@@ -4,9 +4,9 @@ An unofficial "native" Android port of the original 2011 PC version of *The Elde
 
 This repository contains no game code or data. You need your own copy of the PC game, which is used as a basis for the recompilation. Personally, I used the Steam version.
 
-<!-- Video link goes here, e.g.
-[![Watch the video](https://img.youtube.com/vi/VIDEO_ID/hqdefault.jpg)](https://www.youtube.com/embed/VIDEO_ID)
--->
+Youtube link below:
+
+[![Watch the video](https://img.youtube.com/vi/Y5vOU3TdlLM/hqdefault.jpg)](https://www.youtube.com/watch?v=Y5vOU3TdlLM)
 
 ## Functionality
 - **Static recompilation.** This project is *not* a decompilation but a recompilation; Basically, it's just converting one type of code to another rather than re-creating the original source. `TESV.exe`, `d3dx9_42.dll`, `binkw32.dll` and `X3DAudio1_7.dll` are all recompiled.
