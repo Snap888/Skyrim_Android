@@ -150,7 +150,7 @@ static __thread CPU *t_cpu;
 static uint32_t g_next_tid = 0x100;
 static int g_stack_used[GUEST_STACK_SLOTS];
 static pthread_mutex_t g_tlock = PTHREAD_MUTEX_INITIALIZER;
-static uint32_t g_tls_used[64];
+static uint32_t g_tls_used[64 + 512];
 
 CPU *rt_new_cpu(void) {
     CPU *c = calloc(1, sizeof(CPU));
@@ -368,9 +368,17 @@ SHIM(GetCurrentProcess) { RET(0xFFFFFFFFu, 0); }
 SHIM(SetThreadPriority) { RET(1, 2); }
 SHIM(SetThreadAffinityMask) { RET(1, 2); }
 SHIM(SetProcessAffinityMask) { RET(1, 2); }
+/* The game sizes its job system from the processor count; it used to see 1.
+ * Report the cores, capped at 4 (the phone's big cores, and what a 2011 PC
+ * had), since the game's threads now really run in parallel. */
+static uint32_t guest_cpus(void) {
+    long n = sysconf(_SC_NPROCESSORS_CONF);
+    return n < 1 ? 1 : n > 4 ? 4 : (uint32_t)n;
+}
 SHIM(GetProcessAffinityMask) {
-    if (ARG(1)) M32(ARG(1)) = 1;
-    if (ARG(2)) M32(ARG(2)) = 1;
+    uint32_t mask = (1u << guest_cpus()) - 1;
+    if (ARG(1)) M32(ARG(1)) = mask;
+    if (ARG(2)) M32(ARG(2)) = mask;
     RET(1, 3);
 }
 SHIM(SetThreadExecutionState) { RET(0x80000000u, 1); }
@@ -382,25 +390,39 @@ SHIM(Sleep) {
 }
 
 /* ===================== TLS ===================== */
+/* Windows has 64 TEB slots plus 1024 expansion slots, and Skyrim's per-thread
+ * pools take one index each: with only 64, TlsAlloc failed while loading a
+ * save, every pool shared index -1 and ran out of entries (0.17 crash).
+ * Slots 64+ live in the TEB at +0x1800 (512 of them, to the end of the TEB). */
+#define TLS_SLOTS (64 + 512)
+static uint32_t tls_off(uint32_t i) { return i < 64 ? 0xE10 + 4 * i : 0x1800 + 4 * (i - 64); }
+
 SHIM(TlsAlloc) {
     pthread_mutex_lock(&g_tlock);
-    for (uint32_t i = 0; i < 64; i++)
+    for (uint32_t i = 0; i < TLS_SLOTS; i++)
         if (!g_tls_used[i]) {
             g_tls_used[i] = 1;
+            /* a new index reads 0 in every thread, even after TlsFree reuse */
+            for (int k = 0; k < GUEST_STACK_SLOTS; k++) M32(GUEST_TEB_BASE + k * 0x2000 + tls_off(i)) = 0;
             pthread_mutex_unlock(&g_tlock);
+            if (i == 64) LOG("TlsAlloc: using expansion slots");
             RET(i, 0);
         }
     pthread_mutex_unlock(&g_tlock);
+    LOG("TlsAlloc: out of indices");
     RET(0xFFFFFFFFu, 0);
 }
-SHIM(TlsFree) { if (ARG(0) < 64) g_tls_used[ARG(0)] = 0; RET(1, 1); }
+SHIM(TlsFree) {
+    if (ARG(0) < TLS_SLOTS) g_tls_used[ARG(0)] = 0;
+    RET(ARG(0) < TLS_SLOTS, 1);
+}
 SHIM(TlsGetValue) {
     rt_set_last_error(c, 0);
-    RET(ARG(0) < 64 ? M32(TEB(c) + 0xE10 + 4 * ARG(0)) : 0, 1);
+    RET(ARG(0) < TLS_SLOTS ? M32(TEB(c) + tls_off(ARG(0))) : 0, 1);
 }
 SHIM(TlsSetValue) {
-    if (ARG(0) < 64) M32(TEB(c) + 0xE10 + 4 * ARG(0)) = ARG(1);
-    RET(ARG(0) < 64, 2);
+    if (ARG(0) < TLS_SLOTS) M32(TEB(c) + tls_off(ARG(0))) = ARG(1);
+    RET(ARG(0) < TLS_SLOTS, 2);
 }
 
 /* ===================== critical sections ===================== */
@@ -1723,8 +1745,8 @@ SHIM(GetSystemInfo) {
     M32(p + 4) = 0x1000;
     M32(p + 8) = 0x10000;
     M32(p + 12) = 0x7FFEFFFF;
-    M32(p + 16) = 1;
-    M32(p + 20) = 1;
+    M32(p + 16) = (1u << guest_cpus()) - 1;  /* active processor mask */
+    M32(p + 20) = guest_cpus();               /* number of processors */
     M32(p + 24) = 586;
     M32(p + 28) = 0x10000;
     M16(p + 32) = 6;

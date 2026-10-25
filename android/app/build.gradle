@@ -8,8 +8,8 @@ android {
         applicationId "com.tj.skyrim"
         minSdkVersion 28
         targetSdkVersion 29  // legacy storage: plain file access with the normal storage prompt
-        versionCode 17
-        versionName "0.17"
+        versionCode 18
+        versionName "0.18"
         externalNativeBuild {
             cmake {
                 arguments "-DANDROID_STL=c++_shared", "-DANDROID_PLATFORM=android-28"
