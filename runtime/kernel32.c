@@ -67,7 +67,27 @@ typedef struct {
 } Waitable;
 
 static pthread_mutex_t g_wlock = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t g_wcond = PTHREAD_COND_INITIALIZER;
+static pthread_cond_t g_wcond = PTHREAD_COND_INITIALIZER;  /* suspended threads only */
+
+/* A blocked wait: each thread has its own condition variable, and a signal
+ * wakes only the threads waiting on that object. (One shared condition
+ * variable woke every waiting thread on every SetEvent/ReleaseSemaphore, and
+ * bionic makes a futex syscall per broadcast even with nobody waiting; the
+ * job system does that ~100k times a second.) All under g_wlock. */
+typedef struct Waiter {
+    pthread_cond_t cv;
+    uint32_t n;
+    Waitable *const *objs;
+    struct Waiter *prev, *next;
+} Waiter;
+static Waiter *g_waiters;
+static __thread Waiter *t_waiter;
+
+static void wake_waiters(Waitable *w) {
+    for (Waiter *t = g_waiters; t; t = t->next)
+        for (uint32_t i = 0; i < t->n; i++)
+            if (t->objs[i] == w) { pthread_cond_signal(&t->cv); break; }
+}
 
 static uint32_t cur_tid(void);
 
@@ -100,7 +120,7 @@ static uint32_t wait_objects(uint32_t n, const uint32_t *hs, int all, uint32_t m
         }
     }
     struct timespec dl;
-    if (ms != 0xFFFFFFFFu) {
+    if (ms != 0xFFFFFFFFu && ms != 0) {
         clock_gettime(CLOCK_REALTIME, &dl);
         dl.tv_sec += ms / 1000;
         dl.tv_nsec += (long)(ms % 1000) * 1000000;
@@ -125,8 +145,28 @@ static uint32_t wait_objects(uint32_t n, const uint32_t *hs, int all, uint32_t m
                 }
         }
         if (ms == 0) break;
-        if (ms == 0xFFFFFFFFu) pthread_cond_wait(&g_wcond, &g_wlock);
-        else if (pthread_cond_timedwait(&g_wcond, &g_wlock, &dl) == ETIMEDOUT) break;
+        if (!t_waiter) {
+            t_waiter = calloc(1, sizeof *t_waiter);
+            pthread_cond_init(&t_waiter->cv, NULL);
+        }
+        Waiter *me = t_waiter;
+        me->n = n;
+        me->objs = w;
+        me->prev = NULL;
+        me->next = g_waiters;
+        if (g_waiters) g_waiters->prev = me;
+        g_waiters = me;
+        int timed_out = 0;
+        if (ms == 0xFFFFFFFFu) pthread_cond_wait(&me->cv, &g_wlock);
+        else timed_out = pthread_cond_timedwait(&me->cv, &g_wlock, &dl) == ETIMEDOUT;
+        if (me->prev) me->prev->next = me->next; else g_waiters = me->next;
+        if (me->next) me->next->prev = me->prev;
+        if (timed_out) {
+            /* one last look, as Windows would have caught a signal at the deadline */
+            for (uint32_t k = 0; !all && k < n; k++)
+                if (w_ready(w[k])) { w_acquire(w[k]); pthread_mutex_unlock(&g_wlock); return k; }
+            break;
+        }
     }
     pthread_mutex_unlock(&g_wlock);
     return WAIT_TIMEOUT;
@@ -141,7 +181,7 @@ static Waitable *w_new(int kind) {
 static void w_signal(Waitable *w) {
     pthread_mutex_lock(&g_wlock);
     w->signaled = 1;
-    pthread_cond_broadcast(&g_wcond);
+    wake_waiters(w);
     pthread_mutex_unlock(&g_wlock);
 }
 
@@ -182,45 +222,77 @@ void rt_set_static_tls(uint32_t start, uint32_t end, uint32_t index_addr, uint32
 
 static __thread uint32_t t_preset_tid;  /* id CreateThread already handed out */
 
-/* Guest threads run on all cores: the lifter keeps x86 memory ordering with
- * load-acquire/store-release (TSO in tools/lift.py). save/singlecore.txt pins
- * every guest thread to the fastest core instead, as 0.8-0.16 did. */
-static int g_guest_cpu = -2;
+/* Guest threads run on the fast cores (the big cluster; a lone prime core
+ * brings the next cluster in too): the lifter keeps x86 memory ordering with
+ * load-acquire/store-release (TSO in tools/lift.py), and a frame that runs on a
+ * little core is a stutter. dxvk, driver and audio threads inherit this.
+ * save/allcores.txt lets them use every core; save/singlecore.txt pins every
+ * guest thread to the fastest core instead, as 0.8-0.16 did. */
+static int g_guest_cpu = -2;     /* singlecore: the core; -1 otherwise */
+static int g_fast_set;           /* 1: guest threads restricted to g_fast */
+static cpu_set_t g_fast;
 
 static void pin_guest_thread(void) {
 #ifdef __ANDROID__
-#define cpu g_guest_cpu
-    if (cpu == -2) {
+    if (g_guest_cpu == -2) {
         extern char g_save_dir[];
         char path[1100];
+        long khz[16] = {0}, best = -1;
+        int ncpu = 0;
+        g_guest_cpu = -1;
+        for (int i = 0; i < 16; i++) {
+            snprintf(path, sizeof path, "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq", i);
+            FILE *f = fopen(path, "r");
+            if (!f) continue;
+            if (fscanf(f, "%ld", &khz[i]) == 1 && khz[i] >= best) { best = khz[i]; g_guest_cpu = i; }
+            fclose(f);
+            ncpu = i + 1;
+        }
         snprintf(path, sizeof path, "%s/singlecore.txt", g_save_dir);
-        if (access(path, F_OK) != 0) { cpu = -1; LOG("guest threads on all cores (save/singlecore.txt pins them to one)"); }
-        else {
-            long best = -1; cpu = 0;
-            for (int i = 0; i < 16; i++) {
-                snprintf(path, sizeof path, "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq", i);
-                FILE *f = fopen(path, "r");
-                if (!f) continue;
-                long khz = 0;
-                if (fscanf(f, "%ld", &khz) == 1 && khz >= best) { best = khz; cpu = i; }
-                fclose(f);
+        if (access(path, F_OK) == 0) {
+            if (g_guest_cpu < 0) g_guest_cpu = 0;
+            LOG("guest threads pinned to cpu %d (%ld kHz)", g_guest_cpu, best);
+        } else {
+            g_guest_cpu = -1;
+            snprintf(path, sizeof path, "%s/allcores.txt", g_save_dir);
+            /* fast = cores at the top frequency; with fewer than 2 of those,
+             * also the cores at the next frequency down */
+            long second = -1;
+            int ntop = 0, nfast = 0;
+            for (int i = 0; i < ncpu; i++) {
+                if (khz[i] == best) ntop++;
+                else if (khz[i] > second) second = khz[i];
             }
-            LOG("guest threads pinned to cpu %d (%ld kHz)", cpu, best);
+            long cut = ntop >= 2 || second <= 0 ? best : second;
+            CPU_ZERO(&g_fast);
+            for (int i = 0; i < ncpu; i++)
+                if (khz[i] > 0 && khz[i] >= cut) { CPU_SET(i, &g_fast); nfast++; }
+            if (access(path, F_OK) == 0 || best <= 0 || nfast < 2 || nfast >= ncpu)
+                LOG("guest threads on all cores (%d fast of %d; save/singlecore.txt pins them to one)", nfast, ncpu);
+            else {
+                g_fast_set = 1;
+                char list[64] = "";
+                for (int i = 0; i < ncpu; i++)
+                    if (CPU_ISSET(i, &g_fast)) snprintf(list + strlen(list), sizeof list - strlen(list), "%d ", i);
+                LOG("guest threads on the fast cores: %s(%ld kHz; save/allcores.txt uses all)", list, cut);
+            }
         }
     }
-    if (cpu >= 0) {
+    if (g_guest_cpu >= 0) {
         cpu_set_t set;
         CPU_ZERO(&set);
-        CPU_SET(cpu, &set);
+        CPU_SET(g_guest_cpu, &set);
         if (sched_setaffinity(0, sizeof set, &set)) LOG("sched_setaffinity failed: %d", errno);
+    } else if (g_fast_set) {
+        if (sched_setaffinity(0, sizeof g_fast, &g_fast)) LOG("sched_setaffinity failed: %d", errno);
     }
-#undef cpu
 #endif
 }
 
 /* Threads inherit the creator's affinity, so the threads dxvk, the Vulkan
- * driver and SDL audio start would all share the guest core. Bracket the calls
- * that create them: they run on every core except the guest's. */
+ * driver and SDL audio start would all share the single guest core. Bracket
+ * the calls that create them: they run on every core except the guest's.
+ * (On the fast cores they just inherit those, which is what dxvk wants.) */
 void rt_host_affinity_begin(void) {
 #ifdef __ANDROID__
     if (g_guest_cpu < 0) return;
@@ -515,7 +587,7 @@ SHIM(ReleaseMutex) {
     pthread_mutex_lock(&g_wlock);
     if (w->owner == cur_tid() && --w->recursion == 0) {
         w->owner = 0;
-        pthread_cond_broadcast(&g_wcond);
+        wake_waiters(w);
     }
     pthread_mutex_unlock(&g_wlock);
     RET(1, 1);
@@ -533,7 +605,7 @@ SHIM(ReleaseSemaphore) {
     if (ARG(2)) M32(ARG(2)) = (uint32_t)w->count;
     w->count += (int)ARG(1);
     if (w->count > w->max) w->count = w->max;
-    pthread_cond_broadcast(&g_wcond);
+    wake_waiters(w);
     pthread_mutex_unlock(&g_wlock);
     RET(1, 3);
 }
@@ -552,7 +624,31 @@ SHIM(WaitForMultipleObjectsEx) {
 
 /* ===================== files ===================== */
 char g_last_cache_miss[64]; /* newest missing CachedShaders file: the shader about to be compiled */
-typedef struct { int fd; char path[1024]; } GFile;
+/* shared: fd belongs to the BSA cache below, and pos is this handle's own
+ * file position (all reads use pread). */
+typedef struct { int fd; char path[1024]; int shared; off_t pos; } GFile;
+
+/* Read-only BSA archives are opened once and the fd is shared by every
+ * handle: the game opens "Skyrim - Sounds.bsa" again for every sound it plays,
+ * and each open on Android's shared storage is a round trip to the FUSE
+ * daemon. The fds stay open for the rest of the run. */
+static struct { char path[1024]; int fd; } g_bsa_fd[32];
+static int g_nbsa;
+static pthread_mutex_t g_bsa_lock = PTHREAD_MUTEX_INITIALIZER;
+static int bsa_open(const char *host, int *first) {
+    *first = 0;
+    pthread_mutex_lock(&g_bsa_lock);
+    for (int i = 0; i < g_nbsa; i++)
+        if (!strcmp(g_bsa_fd[i].path, host)) { int fd = g_bsa_fd[i].fd; pthread_mutex_unlock(&g_bsa_lock); return fd; }
+    int fd = open(host, O_RDONLY);
+    if (fd >= 0 && g_nbsa < 32) {
+        snprintf(g_bsa_fd[g_nbsa].path, sizeof g_bsa_fd[g_nbsa].path, "%s", host);
+        g_bsa_fd[g_nbsa++].fd = fd;
+        *first = 1;
+    } else if (fd >= 0) *first = -1;  /* cache full: an ordinary handle */
+    pthread_mutex_unlock(&g_bsa_lock);
+    return fd;
+}
 typedef struct { DIR *d; char dir[1024]; char pat[260]; } GFind;
 
 static const char *k_win_game_prefix = GAME_WIN_PREFIX;
@@ -710,7 +806,10 @@ SHIM(CreateFileA) {
     case 5: fl |= O_TRUNC; break;            /* TRUNCATE_EXISTING */
     }
     if (fl & O_CREAT) mkdirs_for(host);
-    int fd = open(host, fl, 0644);
+    const char *ext = strrchr(host, '.');
+    int bsa = fl == O_RDONLY && ext && !strcasecmp(ext, ".bsa"), bsa_first = 0;
+    int fd = bsa ? bsa_open(host, &bsa_first) : open(host, fl, 0644);
+    if (bsa && bsa_first < 0) bsa = 0;
     TRACE("CreateFileA %s -> %s fd=%d", name, host, fd);
     if (fd >= 0 && (fl & O_ACCMODE) == O_RDONLY && strstr(host, "/CachedShaders/")) {
         static uint32_t s_cache_hits;
@@ -718,7 +817,7 @@ SHIM(CreateFileA) {
             LOG("shader cache: %u loaded (e.g. %s)", s_cache_hits, strrchr(host, '/') + 1);
     }
     { const char *x = strrchr(host, '.');
-      if (x && (!strcasecmp(x, ".esm") || !strcasecmp(x, ".esp") || !strcasecmp(x, ".bsa")))
+      if (x && (!strcasecmp(x, ".esm") || !strcasecmp(x, ".esp") || (!strcasecmp(x, ".bsa") && (!bsa || bsa_first))))
           LOG("CreateFileA %s -> fd %d", host, fd); }
     if (fl & (O_WRONLY | O_RDWR))
         LOG("CreateFileA %s (write, disposition %u) -> fd %d%s%s", host, disp, fd,
@@ -744,6 +843,7 @@ SHIM(CreateFileA) {
     }
     GFile *f = calloc(1, sizeof *f);
     f->fd = fd;
+    f->shared = bsa;
     snprintf(f->path, sizeof f->path, "%s", host);
     rt_set_last_error(c, exists && (disp == 2 || disp == 4) ? ERROR_ALREADY_EXISTS : 0);
     RET(h_new(H_FILE, f), 7);
@@ -759,6 +859,7 @@ SHIM(ReadFile) {
     if (!f) { if (ARG(3)) M32(ARG(3)) = 0; rt_set_last_error(c, ERROR_INVALID_HANDLE); RET(0, 5); }
     ssize_t r;
     if (ov) r = pread(f->fd, MEM + buf, n, (off_t)M32(ov + 8) | ((off_t)M32(ov + 12) << 32));
+    else if (f->shared) { r = pread(f->fd, MEM + buf, n, f->pos); if (r > 0) f->pos += r; }
     else r = read(f->fd, MEM + buf, n);
     if (r < 0) r = 0;
     if (ARG(3)) M32(ARG(3)) = (uint32_t)r;
@@ -824,12 +925,21 @@ SHIM(WriteFile) {
     RET(r >= 0, 5);
 }
 
+/* lseek, or the handle's own position for a shared BSA fd */
+static off_t shared_seek(GFile *f, int64_t off, uint32_t how) {
+    if (!f->shared) return lseek(f->fd, off, how == 0 ? SEEK_SET : how == 1 ? SEEK_CUR : SEEK_END);
+    struct stat st;
+    int64_t base = how == 0 ? 0 : how == 1 ? f->pos : (fstat(f->fd, &st) ? 0 : st.st_size);
+    if (base + off < 0) return -1;
+    return f->pos = base + off;
+}
+
 SHIM(SetFilePointer) {
     GFile *f = h_get(ARG(0), H_FILE);
     if (!f) RET(0xFFFFFFFFu, 4);
     int64_t off = (int32_t)ARG(1);
     if (ARG(2)) off = (int64_t)(((uint64_t)M32(ARG(2)) << 32) | ARG(1));
-    off_t r = lseek(f->fd, off, ARG(3) == 0 ? SEEK_SET : ARG(3) == 1 ? SEEK_CUR : SEEK_END);
+    off_t r = shared_seek(f, off, ARG(3));
     if (ARG(2)) M32(ARG(2)) = (uint32_t)((uint64_t)r >> 32);
     RET((uint32_t)r, 4);
 }
@@ -838,7 +948,7 @@ SHIM(SetFilePointerEx) {
     GFile *f = h_get(ARG(0), H_FILE);
     if (!f) RET(0, 5);
     int64_t off = (int64_t)(((uint64_t)ARG(2) << 32) | ARG(1));
-    off_t r = lseek(f->fd, off, ARG(4) == 0 ? SEEK_SET : ARG(4) == 1 ? SEEK_CUR : SEEK_END);
+    off_t r = shared_seek(f, off, ARG(4));
     if (ARG(3)) { M32(ARG(3)) = (uint32_t)r; M32(ARG(3) + 4) = (uint32_t)((uint64_t)r >> 32); }
     RET(r >= 0, 5);
 }
@@ -869,7 +979,11 @@ SHIM(CloseHandle) {
     uint32_t h = ARG(0);
     struct HObj *s = h_slot(h);
     if (!s) RET(0, 1);
-    if (s->type == H_FILE) { close(((GFile *)s->obj)->fd); free(s->obj); }
+    if (s->type == H_FILE) {
+        GFile *f = s->obj;
+        if (!f->shared) close(f->fd);  /* shared BSA fds stay open */
+        free(f);
+    }
     /* waitables may still be referenced by running threads: leak them */
     pthread_mutex_lock(&g_hlock);
     s->type = H_FREE;

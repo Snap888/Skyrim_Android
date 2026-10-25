@@ -1,6 +1,9 @@
 /* Included by generated files only. */
 #pragma once
 #include <setjmp.h>
+#include "rt_table.h"
+/* indirect call through a per-site cache (see lift_terminator in tools/lift.py) */
+void rt_call_ic(CPU *c, uint32_t t, const FnEntry **cache);
 jmp_buf *rt_setjmp_slot(CPU *c, uint32_t guest_jb);
 void rt_setjmp3(CPU *c);
 #define SPILL() do { c->r[0] = eax; c->r[1] = ecx; c->r[2] = edx; c->r[3] = ebx; \
@@ -27,10 +30,26 @@ static inline void rt_movsd(uint32_t n, uint32_t dst, uint32_t src) {
 #define LD_FENCE() ((void)0)
 #endif
 
-/* x86 (TSO) ordering for guest memory other threads can see (see TSO in
- * tools/lift.py): load-acquire / store-release on aligned addresses; an
- * unaligned access (no ldar/stlr form) is a plain access with a fence. */
-#if defined(__aarch64__)
+/* Guest memory other threads can see (see TSO in tools/lift.py).
+ *
+ * Default (0.21+): plain loads/stores, but volatile so the compiler keeps
+ * every access the x86 code makes (no hoisting a flag read out of a spin
+ * loop, no merging). Lock-prefixed instructions, xchg and the Interlocked*
+ * imports stay atomic. 0.17-0.20 used load-acquire/store-release for full x86
+ * ordering; the multi-core crashes that motivated it turned out to be a
+ * dispatcher race, and ldar/stlr on every access cost the main thread a lot.
+ *
+ * -DLB_STRICT_ORDER brings back x86 (TSO) ordering: load-acquire /
+ * store-release on aligned addresses; an unaligned access (no ldar/stlr
+ * form) is a plain access with a fence. */
+#if defined(__aarch64__) && !defined(LB_STRICT_ORDER)
+#define TL8(a) (*(volatile uint8_t *)(MEM + (uint32_t)(a)))
+#define TL16(a) (*(volatile u16u *)(MEM + (uint32_t)(a)))
+#define TL32(a) (*(volatile u32u *)(MEM + (uint32_t)(a)))
+#define TS8(a, v) (*(volatile uint8_t *)(MEM + (uint32_t)(a)) = (v))
+#define TS16(a, v) (*(volatile u16u *)(MEM + (uint32_t)(a)) = (v))
+#define TS32(a, v) (*(volatile u32u *)(MEM + (uint32_t)(a)) = (v))
+#elif defined(__aarch64__)
 static inline uint8_t TL8(uint32_t a) { return __atomic_load_n(MEM + a, __ATOMIC_ACQUIRE); }
 static inline void TS8(uint32_t a, uint8_t v) { __atomic_store_n(MEM + a, v, __ATOMIC_RELEASE); }
 #define TSO_PAIR(n, T, mask) \

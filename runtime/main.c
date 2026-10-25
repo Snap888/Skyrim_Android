@@ -468,6 +468,7 @@ int main(int argc, char **argv) {
     load_pe(GAME_EXE, 0, GAME_EXE);
     extern void touch_setup_guest(void);
     touch_setup_guest();
+    { extern void hud_screen_setup_guest(void); hud_screen_setup_guest(); }
     for (int i = 0; i < ndll; i++) {
         uint32_t args[3] = {g_dll_bases[i], 1, 0};
         if (dll_entries[i] && !rt_invoke(c, dll_entries[i], 3, args))

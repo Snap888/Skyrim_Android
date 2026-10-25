@@ -36,10 +36,10 @@ const char *rt_thunk_name(uint32_t a) {
 #define CACHE_BITS 14
 static const FnEntry *g_cache[1 << CACHE_BITS];
 
-static GuestFn lookup(uint32_t a) {
+static const FnEntry *lookup_entry(uint32_t a) {
     unsigned h = (a ^ (a >> 13)) & ((1 << CACHE_BITS) - 1);
     const FnEntry *e = __atomic_load_n(&g_cache[h], __ATOMIC_ACQUIRE);
-    if (e && e->addr == a) return e->fn;
+    if (e && e->addr == a) return e;
     for (unsigned m = 0; m < g_nmodules; m++) {
         const FnEntry *t = g_modules[m].table;
         unsigned n = rt_module_count(m);
@@ -52,10 +52,14 @@ static GuestFn lookup(uint32_t a) {
         }
         if (lo < n && t[lo].addr == a) {
             __atomic_store_n(&g_cache[h], &t[lo], __ATOMIC_RELEASE);
-            return t[lo].fn;
+            return &t[lo];
         }
     }
     return NULL;
+}
+static GuestFn lookup(uint32_t a) {
+    const FnEntry *e = lookup_entry(a);
+    return e ? e->fn : NULL;
 }
 
 /* Watchdog bookkeeping: the last import each thread called, its guest return
@@ -184,6 +188,21 @@ void rt_call(CPU *c, uint32_t t) {
         rt_fatal("no recompiled code at %08x (return address %08x)", t, ret);
     }
     fn(c);
+}
+
+/* Indirect call from recompiled code with a per-call-site cache: remember the
+ * target's table entry (immutable, so one pointer is a consistent pair).
+ * Imports and unknown targets take the normal path every time. */
+void rt_call_ic(CPU *c, uint32_t t, const FnEntry **cache) {
+    if (t < GUEST_THUNK_BASE) {
+        const FnEntry *e = lookup_entry(t);
+        if (e) {
+            __atomic_store_n(cache, e, __ATOMIC_RELAXED);
+            e->fn(c);
+            return;
+        }
+    }
+    rt_call(c, t);
 }
 
 uint32_t rt_invoke(CPU *c, uint32_t fn, int nargs, const uint32_t *args) {

@@ -1,6 +1,7 @@
 #include "../wsi_window.h"
 
 #include "wsi_helpers_sdl2.h"
+#include "wsi_native_surface.h"
 
 #include <windows.h>
 #include <wsi/native_wsi.h>
@@ -14,6 +15,12 @@ namespace dxvk::wsi {
         HWND      hWindow,
         uint32_t* pWidth,
         uint32_t* pHeight) {
+    NativeSurface ns;
+    if (nativeSurface(hWindow, &ns)) {
+      if (pWidth) *pWidth = ns.width;
+      if (pHeight) *pHeight = ns.height;
+      return;
+    }
     SDL_Window* window = fromHwnd(hWindow);
 
     int32_t w, h;
@@ -32,6 +39,7 @@ namespace dxvk::wsi {
           DxvkWindowState* pState,
           uint32_t         Width,
           uint32_t         Height) {
+    if (nativeSurface(hWindow, nullptr)) return;
     SDL_Window* window = fromHwnd(hWindow);
 
     SDL_SetWindowSize(window, int32_t(Width), int32_t(Height));
@@ -43,6 +51,7 @@ namespace dxvk::wsi {
           HWND             hWindow,
     const WsiMode*         pMode,
           bool             EnteringFullscreen) {
+    if (nativeSurface(hWindow, nullptr)) return true;
     const int32_t displayId    = fromHmonitor(hMonitor);
     SDL_Window* window         = fromHwnd(hWindow);
 
@@ -78,6 +87,7 @@ namespace dxvk::wsi {
           HWND             hWindow,
           DxvkWindowState* pState,
           bool             ModeSwitch) {
+    if (nativeSurface(hWindow, nullptr)) return true;
     const int32_t displayId    = fromHmonitor(hMonitor);
     SDL_Window* window         = fromHwnd(hWindow);
 
@@ -102,6 +112,7 @@ namespace dxvk::wsi {
   bool leaveFullscreenMode(
           HWND             hWindow,
           DxvkWindowState* pState) {
+    if (nativeSurface(hWindow, nullptr)) return true;
     SDL_Window* window = fromHwnd(hWindow);
 
     if (SDL_SetWindowFullscreen(window, 0) != 0) {
@@ -120,6 +131,7 @@ namespace dxvk::wsi {
 
 
   HMONITOR getWindowMonitor(HWND hWindow) {
+    if (nativeSurface(hWindow, nullptr)) return toHmonitor(0);
     SDL_Window* window      = fromHwnd(hWindow);
     const int32_t displayId = SDL_GetWindowDisplayIndex(window);
 
@@ -128,6 +140,7 @@ namespace dxvk::wsi {
 
 
   bool isWindow(HWND hWindow) {
+    if (nativeSurface(hWindow, nullptr)) return true;
     SDL_Window* window = fromHwnd(hWindow);
     return window != nullptr;
   }

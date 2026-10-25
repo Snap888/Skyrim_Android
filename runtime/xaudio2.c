@@ -127,7 +127,11 @@ static void set_format(Voice *v, uint32_t wf) {
         if (v->ncoef > 16) v->ncoef = 16;
         memcpy(v->adpcm_coef, MEM + wf + 22, (size_t)v->ncoef * 4);
     }
-    if (v->fmt == FMT_NONE) LOG("xaudio2: unsupported source format tag %04x (%d ch, %d Hz) plays silent", tag, v->in_ch, v->rate);
+    if (v->fmt == FMT_NONE) {
+        static unsigned s_silent;
+        if (++s_silent % 100 == 1)
+            LOG("xaudio2: unsupported source format tag %04x (%d ch, %d Hz) plays silent (%u so far)", tag, v->in_ch, v->rate, s_silent);
+    }
     v->bpf = v->fmt == FMT_ADPCM ? 2 * v->in_ch : v->block_align ? v->block_align : v->in_ch * bits / 8;
 }
 

@@ -54,19 +54,38 @@ public class LauncherActivity extends Activity {
     /* option key -> labels, and the INI values each label stands for */
     private static final String[] PRESETS = {"Low", "Medium", "High", "Ultra"};
     private static final String[] PRESET_FILES = {"low.ini", "medium.ini", "high.ini", "VeryHigh.ini"};
-    // Must match k_mode_heights / bridge_scaled_mode in runtime/d3d9_bridge.cpp:
-    // the game only accepts a size from the display mode list.
     private static final int[] MODE_HEIGHTS = {1080, 900, 720, 648, 576, 540, 480, 432, 360, 288, 270, 216, 180, 144, 108};
 
-    private int[][] modes() {
+    // Aspect ratio of the picture. Very wide phones (20:9 and up) show the game
+    // at 16:9 or so with black bars instead of stretching its UI to the edges.
+    private static final String[] ASPECTS = {"16:9", "16:10", "4:3", "21:9", "Screen"};
+    private static final int[][] ASPECT_V = {{16, 9}, {16, 10}, {4, 3}, {21, 9}, {0, 0}};
+
+    private int[] screen() {
         Point sz = new Point();
         getWindowManager().getDefaultDisplay().getRealSize(sz);
-        int w = Math.max(sz.x, sz.y), h = Math.min(sz.x, sz.y);
+        return new int[]{Math.max(sz.x, sz.y), Math.min(sz.x, sz.y)};
+    }
+
+    // Must match bridge_scaled_mode in runtime/d3d9_bridge.cpp: the game only
+    // accepts a size from the display mode list.
+    private int[][] modes(int aspect) {
+        int[] s = screen();
+        int w = s[0], h = s[1];
+        int an = ASPECT_V[aspect][0], ad = ASPECT_V[aspect][1];
+        if (an == 0) { an = w; ad = h; }
+        int top = (int) Math.min(h, (long) w * ad / an);
         java.util.ArrayList<int[]> l = new java.util.ArrayList<>();
-        l.add(new int[]{w, h});
+        l.add(new int[]{(int) ((long) top * an / ad) & ~1, top});
         for (int mh : MODE_HEIGHTS)
-            if (mh < h) l.add(new int[]{(int) ((long) mh * w / h) & ~1, mh});
+            if (mh < top) l.add(new int[]{(int) ((long) mh * an / ad) & ~1, mh});
         return l.toArray(new int[0][]);
+    }
+
+    private static String[] modeNames(int[][] m) {
+        String[] r = new String[m.length];
+        for (int i = 0; i < m.length; i++) r[i] = m[i][0] + " x " + m[i][1];
+        return r;
     }
 
     private int defaultMode(int[][] m) {
@@ -172,10 +191,28 @@ public class LauncherActivity extends Activity {
 
         text(root, "Options", 20, true);
         Spinner preset = spinner(root, "preset", "Detail", PRESETS, 0);
-        int[][] m = modes();
-        String[] res = new String[m.length];
-        for (int i = 0; i < m.length; i++) res[i] = m[i][0] + " x " + m[i][1];
-        spinner(root, "res", "Resolution", res, defaultMode(m));
+        Spinner aspect = spinner(root, "aspect", "Aspect ratio", ASPECTS, 0);
+        int[][] m = modes(aspect.getSelectedItemPosition());
+        Spinner res = spinner(root, "res", "Resolution", modeNames(m), defaultMode(m));
+        aspect.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            boolean first = true;
+            @Override public void onItemSelected(AdapterView<?> p, View v, int pos, long id) {
+                if (first) { first = false; return; }
+                // keep the same height where the new list has it
+                int oldH = modes(prefs.getInt("aspectShown", 0))[Math.max(0, res.getSelectedItemPosition())][1];
+                int[][] nm = modes(pos);
+                ArrayAdapter<String> a = new ArrayAdapter<>(LauncherActivity.this,
+                        android.R.layout.simple_spinner_item, modeNames(nm));
+                a.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                res.setAdapter(a);
+                int pick = defaultMode(nm);
+                for (int i = 0; i < nm.length; i++) if (nm[i][1] == oldH) pick = i;
+                res.setSelection(pick);
+                prefs.edit().putInt("aspectShown", pos).apply();
+            }
+            @Override public void onNothingSelected(AdapterView<?> p) {}
+        });
+        prefs.edit().putInt("aspectShown", aspect.getSelectedItemPosition()).apply();
         spinner(root, "aa", "Antialiasing", AA, 0);
         spinner(root, "aniso", "Anisotropic filtering", ANISO, 0);
         spinner(root, "texq", "Texture quality", TEXQ, 1);
@@ -308,6 +345,36 @@ public class LauncherActivity extends Activity {
         return null;
     }
 
+    // SHA-1 of the Steam TESV.exe (1.9.32.0.8) the port was recompiled from:
+    // other versions have different code at different addresses and would crash.
+    private static final String SHA_TESV_STEAM = "f39aecebf6e332616c4c518617073f6e8250e0f8";
+
+    private void checkSha(File f, String want, String name, List<String> bad) {
+        String got = sha1(f);
+        if (got == null) bad.add("cannot read " + name);
+        else if (!got.equals(want)) bad.add(name + " is the wrong version (SHA-1 " + got.substring(0, 8)
+                + ", expected " + want.substring(0, 8) + ")");
+    }
+
+    /* SHA-1 as hex, cached by path, size and modification time; null if unreadable. */
+    private String sha1(File f) {
+        String key = "sha1:" + f.getAbsolutePath(), stamp = f.length() + ":" + f.lastModified();
+        String cached = prefs.getString(key, null);
+        if (cached != null && cached.startsWith(stamp + "=")) return cached.substring(stamp.length() + 1);
+        try (java.io.InputStream in = new java.io.FileInputStream(f)) {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-1");
+            byte[] buf = new byte[1 << 16];
+            for (int n; (n = in.read(buf)) > 0; ) md.update(buf, 0, n);
+            StringBuilder sb = new StringBuilder();
+            for (byte b : md.digest()) sb.append(String.format("%02x", b));
+            String hex = sb.toString();
+            prefs.edit().putString(key, stamp + "=" + hex).apply();
+            return hex;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     /* Returns the list of problems with the folder (empty when it is ready). */
     private List<String> checkFolder(String path) {
         List<String> bad = new ArrayList<>();
@@ -319,8 +386,11 @@ public class LauncherActivity extends Activity {
         if (data == null) bad.add("Data folder missing");
         else if (esm == null) bad.add(data.canRead() ? "Data/Skyrim.esm missing" : "cannot read the Data folder");
         else if (!esm.canRead()) bad.add("cannot read Data/Skyrim.esm");
+        // Only the original exe is checked: Steamless output differs between Steamless versions.
+        File packed = findCi(d, "TESV.exe");
+        if (packed != null) checkSha(packed, SHA_TESV_STEAM, "TESV.exe", bad);
         if (findCi(d, "TESV_unpacked.exe") == null && findCi(d, "TESV.exe.unpacked.exe") == null)
-            bad.add("TESV_unpacked.exe missing");
+            bad.add(packed != null ? "TESV_unpacked.exe missing (unpack TESV.exe with Steamless)" : "TESV_unpacked.exe missing");
         for (String n : new String[] {"d3dx9_42.dll", "X3DAudio1_7.dll", "binkw32.dll"})
             if (findCi(d, n) == null) bad.add(n + " missing");
         return bad;
@@ -354,6 +424,11 @@ public class LauncherActivity extends Activity {
         iniDir.mkdirs();
         try {
             writePrefs(new File(folder), new File(iniDir, "SkyrimPrefs.ini"));
+            // the native side builds the same mode list from this aspect (see modes())
+            int[] av = ASPECT_V[sel("aspect")];
+            try (Writer w = new OutputStreamWriter(new FileOutputStream(new File(save, "display.cfg")))) {
+                w.write(av[0] + " " + av[1] + "\n");
+            }
             try (Writer w = new OutputStreamWriter(new FileOutputStream(new File(save, "touch.cfg")))) {
                 w.write((checks.get("touch").isChecked() ? "1" : "0") + " " + (checks.get("nintendo").isChecked() ? "1" : "0") + "\n");
             }
@@ -374,10 +449,7 @@ public class LauncherActivity extends Activity {
         readIni(out, ini);
         File preset = findCi(game, PRESET_FILES[sel("preset")]);
         if (preset != null) readIni(preset, ini);
-        Point sz = new Point();
-        getWindowManager().getDefaultDisplay().getRealSize(sz);
-        int w = Math.max(sz.x, sz.y), h = Math.min(sz.x, sz.y);
-        int[] mode = modes()[sel("res")];
+        int[] mode = modes(sel("aspect"))[sel("res")];
         put(ini, "Display", "iSize W", Integer.toString(mode[0]));
         put(ini, "Display", "iSize H", Integer.toString(mode[1]));
         put(ini, "Display", "bFull Screen", "1");

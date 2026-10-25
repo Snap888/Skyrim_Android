@@ -1184,7 +1184,11 @@ class Lifter:
             if direct:
                 return [self.call_direct(op.imm & 0xFFFFFFFF, nxt)]
             t = self.get(i, op, 4)
-            return ["{ uint32_t t_ = %s; esp -= 4; M32(esp) = 0x%Xu; %s rt_call(c, t_); %s }" % (
+            # per-site cache of the last target's table entry (entries are
+            # immutable, so one pointer is a consistent (addr, fn) pair)
+            return ["{ uint32_t t_ = %s; esp -= 4; M32(esp) = 0x%Xu; %s { static const FnEntry *ic_; "
+                    "const FnEntry *e_ = __atomic_load_n(&ic_, __ATOMIC_RELAXED); "
+                    "if (e_ && e_->addr == t_) e_->fn(c); else rt_call_ic(c, t_, &ic_); } %s }" % (
                 t, nxt, SPILL, RELOAD)]
         if x86.X86_GRP_RET in i.groups:
             n = op.imm if op else 0

@@ -256,13 +256,6 @@ static void B_IDirect3DDevice9_CreateOffscreenPlainSurface(CPU *c) {
     RET((uint32_t)r, 7);
 }
 
-static void B_IDirect3DDevice9_SetRenderTarget(CPU *c) {
-    IDirect3DDevice9 *self = (IDirect3DDevice9 *)com_host(ARG(0));
-    if (g_d3d_trace) d3d_trace(c, "IDirect3DDevice9::SetRenderTarget", 2);
-    auto r = bridge_call(self, &IDirect3DDevice9::SetRenderTarget, ARG(1), (IDirect3DSurface9 *)com_host(ARG(2)));
-    RET((uint32_t)r, 3);
-}
-
 static void B_IDirect3DDevice9_GetRenderTarget(CPU *c) {
     IDirect3DDevice9 *self = (IDirect3DDevice9 *)com_host(ARG(0));
     if (g_d3d_trace) d3d_trace(c, "IDirect3DDevice9::GetRenderTarget", 2);
@@ -270,13 +263,6 @@ static void B_IDirect3DDevice9_GetRenderTarget(CPU *c) {
     auto r = bridge_call(self, &IDirect3DDevice9::GetRenderTarget, ARG(1), &out1);
     if (ARG(2)) M32(ARG(2)) = d3d9_wrap(out1, IFACE_IDirect3DSurface9);
     RET((uint32_t)r, 3);
-}
-
-static void B_IDirect3DDevice9_SetDepthStencilSurface(CPU *c) {
-    IDirect3DDevice9 *self = (IDirect3DDevice9 *)com_host(ARG(0));
-    if (g_d3d_trace) d3d_trace(c, "IDirect3DDevice9::SetDepthStencilSurface", 1);
-    auto r = bridge_call(self, &IDirect3DDevice9::SetDepthStencilSurface, (IDirect3DSurface9 *)com_host(ARG(1)));
-    RET((uint32_t)r, 2);
 }
 
 static void B_IDirect3DDevice9_GetDepthStencilSurface(CPU *c) {
@@ -302,13 +288,6 @@ static void B_IDirect3DDevice9_EndScene(CPU *c) {
     RET((uint32_t)r, 1);
 }
 
-static void B_IDirect3DDevice9_Clear(CPU *c) {
-    IDirect3DDevice9 *self = (IDirect3DDevice9 *)com_host(ARG(0));
-    if (g_d3d_trace) d3d_trace(c, "IDirect3DDevice9::Clear", 6);
-    auto r = bridge_call(self, &IDirect3DDevice9::Clear, ARG(1), GPTR(ARG(2)), ARG(3), ARG(4), ARGF(5), ARG(6));
-    RET((uint32_t)r, 7);
-}
-
 static void B_IDirect3DDevice9_SetTransform(CPU *c) {
     IDirect3DDevice9 *self = (IDirect3DDevice9 *)com_host(ARG(0));
     if (g_d3d_trace) d3d_trace(c, "IDirect3DDevice9::SetTransform", 2);
@@ -328,20 +307,6 @@ static void B_IDirect3DDevice9_MultiplyTransform(CPU *c) {
     if (g_d3d_trace) d3d_trace(c, "IDirect3DDevice9::MultiplyTransform", 2);
     auto r = bridge_call(self, &IDirect3DDevice9::MultiplyTransform, ARG(1), GPTR(ARG(2)));
     RET((uint32_t)r, 3);
-}
-
-static void B_IDirect3DDevice9_SetViewport(CPU *c) {
-    IDirect3DDevice9 *self = (IDirect3DDevice9 *)com_host(ARG(0));
-    if (g_d3d_trace) d3d_trace(c, "IDirect3DDevice9::SetViewport", 1);
-    auto r = bridge_call(self, &IDirect3DDevice9::SetViewport, GPTR(ARG(1)));
-    RET((uint32_t)r, 2);
-}
-
-static void B_IDirect3DDevice9_GetViewport(CPU *c) {
-    IDirect3DDevice9 *self = (IDirect3DDevice9 *)com_host(ARG(0));
-    if (g_d3d_trace) d3d_trace(c, "IDirect3DDevice9::GetViewport", 1);
-    auto r = bridge_call(self, &IDirect3DDevice9::GetViewport, GPTR(ARG(1)));
-    RET((uint32_t)r, 2);
 }
 
 static void B_IDirect3DDevice9_SetMaterial(CPU *c) {
@@ -529,20 +494,6 @@ static void B_IDirect3DDevice9_GetCurrentTexturePalette(CPU *c) {
     IDirect3DDevice9 *self = (IDirect3DDevice9 *)com_host(ARG(0));
     if (g_d3d_trace) d3d_trace(c, "IDirect3DDevice9::GetCurrentTexturePalette", 1);
     auto r = bridge_call(self, &IDirect3DDevice9::GetCurrentTexturePalette, GPTR(ARG(1)));
-    RET((uint32_t)r, 2);
-}
-
-static void B_IDirect3DDevice9_SetScissorRect(CPU *c) {
-    IDirect3DDevice9 *self = (IDirect3DDevice9 *)com_host(ARG(0));
-    if (g_d3d_trace) d3d_trace(c, "IDirect3DDevice9::SetScissorRect", 1);
-    auto r = bridge_call(self, &IDirect3DDevice9::SetScissorRect, GPTR(ARG(1)));
-    RET((uint32_t)r, 2);
-}
-
-static void B_IDirect3DDevice9_GetScissorRect(CPU *c) {
-    IDirect3DDevice9 *self = (IDirect3DDevice9 *)com_host(ARG(0));
-    if (g_d3d_trace) d3d_trace(c, "IDirect3DDevice9::GetScissorRect", 1);
-    auto r = bridge_call(self, &IDirect3DDevice9::GetScissorRect, GPTR(ARG(1)));
     RET((uint32_t)r, 2);
 }
 
@@ -1618,6 +1569,13 @@ void B_IDirect3DDevice9_CreateTexture(CPU *c);
 void B_IDirect3DDevice9_CreateCubeTexture(CPU *c);
 void B_IDirect3DDevice9_UpdateSurface(CPU *c);
 void B_IDirect3DDevice9_UpdateTexture(CPU *c);
+void B_IDirect3DDevice9_SetRenderTarget(CPU *c);
+void B_IDirect3DDevice9_SetDepthStencilSurface(CPU *c);
+void B_IDirect3DDevice9_Clear(CPU *c);
+void B_IDirect3DDevice9_SetViewport(CPU *c);
+void B_IDirect3DDevice9_GetViewport(CPU *c);
+void B_IDirect3DDevice9_SetScissorRect(CPU *c);
+void B_IDirect3DDevice9_GetScissorRect(CPU *c);
 void B_IDirect3DDevice9_GetNPatchMode(CPU *c);
 void B_IDirect3DSwapChain9_Present(CPU *c);
 void B_IDirect3DSwapChain9_GetPresentParameters(CPU *c);

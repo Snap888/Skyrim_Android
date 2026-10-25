@@ -1,15 +1,22 @@
 apply plugin: 'com.android.application'
 
+// -Pdual=true builds "Skyrim Dual" (com.tj.skyrim.dual): the HUD and
+// favourites go to the second display. It installs next to the normal app;
+// the native code is the same, so both builds share the CMake outputs.
+def dual = project.hasProperty('dual') && project.property('dual') == 'true'
+
 android {
     namespace "com.tj.skyrim"
     compileSdkVersion 34
     ndkVersion project.hasProperty('ndkVersion') ? project.property('ndkVersion') : null
     defaultConfig {
-        applicationId "com.tj.skyrim"
+        applicationId dual ? "com.tj.skyrim.dual" : "com.tj.skyrim"
+        resValue "string", "app_name", dual ? "Skyrim Dual" : "Skyrim"
+        buildConfigField "boolean", "DUAL", dual ? "true" : "false"
         minSdkVersion 28
         targetSdkVersion 29  // legacy storage: plain file access with the normal storage prompt
-        versionCode 18
-        versionName "0.18"
+        versionCode 23
+        versionName dual ? "0.21-dual" : "0.21"
         externalNativeBuild {
             cmake {
                 arguments "-DANDROID_STL=c++_shared", "-DANDROID_PLATFORM=android-28"
@@ -39,6 +46,7 @@ android {
         jniLibs { useLegacyPackaging true }
     }
     lint { abortOnError false }
+    buildFeatures { buildConfig true }
 }
 
 dependencies {

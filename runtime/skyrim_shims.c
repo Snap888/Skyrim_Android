@@ -346,14 +346,24 @@ SHIM(GetDlgItem) { RET(0, 2); }
 SHIM(EnumChildWindows) { RET(1, 3); }
 SHIM(GetClassNameA) { if (ARG(2)) M8(ARG(1)) = 0; RET(0, 3); }
 SHIM(GetWindowTextA) { if (ARG(2)) M8(ARG(1)) = 0; RET(0, 3); }
-/* (vk, sc, keystate[256], wchar buf, n, flags) */
+/* (vk, sc, keystate[256], wchar buf, n, flags), US layout. Shift comes from
+ * the game's key state or ours (the phone keyboard holds it for capitals). */
+extern int platform_shift_down(void);
 SHIM(ToUnicode) {
     uint32_t vk = ARG(0), buf = ARG(3), n = ARG(4);
     uint16_t ch = 0;
-    int shift = ARG(2) && (M8(ARG(2) + 0x10) & 0x80);
+    int shift = (ARG(2) && (M8(ARG(2) + 0x10) & 0x80)) || platform_shift_down();
+    static const struct { uint8_t vk; char c, s; } oem[] = {
+        {0xBA, ';', ':'}, {0xBB, '=', '+'}, {0xBC, ',', '<'}, {0xBD, '-', '_'}, {0xBE, '.', '>'},
+        {0xBF, '/', '?'}, {0xC0, '`', '~'}, {0xDB, '[', '{'}, {0xDC, '\\', '|'}, {0xDD, ']', '}'},
+        {0xDE, '\'', '"'},
+    };
     if (vk >= 'A' && vk <= 'Z') ch = (uint16_t)(shift ? vk : vk + 32);
-    else if (vk >= '0' && vk <= '9') ch = (uint16_t)vk;
+    else if (vk >= '0' && vk <= '9') ch = (uint16_t)(shift ? ")!@#$%^&*("[vk - '0'] : vk);
     else if (vk == 0x20 || vk == 0x0D || vk == 0x08) ch = (uint16_t)vk;
+    else
+        for (unsigned i = 0; i < sizeof oem / sizeof oem[0]; i++)
+            if (oem[i].vk == vk) ch = (uint16_t)(shift ? oem[i].s : oem[i].c);
     if (!ch || !n) RET(0, 6);
     M16(buf) = ch;
     RET(1, 6);

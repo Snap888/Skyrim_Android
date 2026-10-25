@@ -35,7 +35,7 @@ void *platform_window(void) { return g_window; }
 
 /* Scripted input for automated runs: LB_KEYS="frame:Key[:frames],..." holds
  * the SDL-named key (e.g. Return, Space, Left) from that frame on. */
-typedef struct { int frame, len; SDL_Scancode sc; } KeyEv;
+typedef struct { int frame, len; SDL_Scancode sc; int text; } KeyEv;
 static KeyEv g_script[256];
 static int g_nscript;
 static Uint8 g_keys[SDL_NUM_SCANCODES];
@@ -51,7 +51,7 @@ static void load_key_script(void) {
         s += n;
         if (*s == ':') { s++; len = (int)strtol(s, (char **)&s, 10); }
         SDL_Scancode sc = SDL_GetScancodeFromName(name);
-        if (sc != SDL_SCANCODE_UNKNOWN) g_script[g_nscript++] = (KeyEv){fr, len, sc};
+        if (sc != SDL_SCANCODE_UNKNOWN) g_script[g_nscript++] = (KeyEv){fr, len, sc, 0};
         else LOG("LB_KEYS: unknown key %s", name);
         if (*s == ',') s++;
     }
@@ -104,16 +104,97 @@ static void script_events(void) {
     for (int i = 0; i < g_nscript; i++) {
         SDL_Scancode sc = g_script[i].sc;
         if (cur[sc] != prev[sc]) {
-            if (!g_padonly) key_event(sc, cur[sc]);
-            SDL_Event e = {0};
-            e.type = cur[sc] ? SDL_KEYDOWN : SDL_KEYUP;
-            e.key.keysym.scancode = sc;
-            e.key.keysym.sym = SDL_GetKeyFromScancode(sc);
-            extern void input_handle_event(const SDL_Event *e);
-            input_handle_event(&e);
+            if (!g_padonly || g_script[i].text) key_event(sc, cur[sc]);
+            if (!g_script[i].text) {  /* typed text drives the keyboard only, not the virtual pad */
+                SDL_Event e = {0};
+                e.type = cur[sc] ? SDL_KEYDOWN : SDL_KEYUP;
+                e.key.keysym.scancode = sc;
+                e.key.keysym.sym = SDL_GetKeyFromScancode(sc);
+                extern void input_handle_event(const SDL_Event *e);
+                input_handle_event(&e);
+            }
             prev[sc] = cur[sc];
         }
     }
+    /* drop typed keys that are over (their release was just sent) */
+    int n = 0;
+    for (int i = 0; i < g_nscript; i++)
+        if (!g_script[i].text || g_frames < g_script[i].frame + g_script[i].len) g_script[n++] = g_script[i];
+    g_nscript = n;
+}
+
+/* Phone keyboard: the keyboard button (touch.cpp) shows or hides it. The game
+ * reads keys only through DirectInput (and turns them into characters with
+ * ToUnicode), so each typed character becomes a short scripted key press,
+ * with Shift held around capitals and symbols, one after another. */
+static int g_text_on, g_text_hidden_frames, g_text_next;
+int platform_text_input(int toggle) {
+    if (toggle < 0) return g_text_on;
+    g_text_on = !g_text_on;
+    g_text_hidden_frames = 0;
+    if (g_text_on) SDL_StartTextInput(); else SDL_StopTextInput();
+    LOG("keyboard %s", g_text_on ? "shown" : "hidden");
+    return g_text_on;
+}
+static void type_key(SDL_Scancode sc, int shift) {
+    if (g_nscript > 250) return;
+    if (g_text_next < g_frames + 1) g_text_next = g_frames + 1;
+    if (shift) {
+        g_script[g_nscript++] = (KeyEv){g_text_next, 4, SDL_SCANCODE_LSHIFT, 1};
+        g_script[g_nscript++] = (KeyEv){g_text_next + 1, 2, sc, 1};
+        g_text_next += 5;
+    } else {
+        g_script[g_nscript++] = (KeyEv){g_text_next, 2, sc, 1};
+        g_text_next += 3;
+    }
+}
+/* US layout */
+static void type_char(unsigned ch) {
+    static const char shifted_digits[] = ")!@#$%^&*(";
+    static const struct { char c, s; SDL_Scancode sc; } sym[] = {
+        {' ', 0, SDL_SCANCODE_SPACE}, {'-', 0, SDL_SCANCODE_MINUS}, {'_', 1, SDL_SCANCODE_MINUS},
+        {'=', 0, SDL_SCANCODE_EQUALS}, {'+', 1, SDL_SCANCODE_EQUALS}, {'\'', 0, SDL_SCANCODE_APOSTROPHE},
+        {'"', 1, SDL_SCANCODE_APOSTROPHE}, {',', 0, SDL_SCANCODE_COMMA}, {'<', 1, SDL_SCANCODE_COMMA},
+        {'.', 0, SDL_SCANCODE_PERIOD}, {'>', 1, SDL_SCANCODE_PERIOD}, {'/', 0, SDL_SCANCODE_SLASH},
+        {'?', 1, SDL_SCANCODE_SLASH}, {';', 0, SDL_SCANCODE_SEMICOLON}, {':', 1, SDL_SCANCODE_SEMICOLON},
+        {'[', 0, SDL_SCANCODE_LEFTBRACKET}, {']', 0, SDL_SCANCODE_RIGHTBRACKET}, {'`', 0, SDL_SCANCODE_GRAVE},
+        {'~', 1, SDL_SCANCODE_GRAVE}, {'\n', 0, SDL_SCANCODE_RETURN},
+    };
+    if (ch >= 'a' && ch <= 'z') { type_key((SDL_Scancode)(SDL_SCANCODE_A + ch - 'a'), 0); return; }
+    if (ch >= 'A' && ch <= 'Z') { type_key((SDL_Scancode)(SDL_SCANCODE_A + ch - 'A'), 1); return; }
+    if (ch == '0') { type_key(SDL_SCANCODE_0, 0); return; }
+    if (ch >= '1' && ch <= '9') { type_key((SDL_Scancode)(SDL_SCANCODE_1 + ch - '1'), 0); return; }
+    for (int i = 0; i < 10; i++)
+        if (ch == (unsigned char)shifted_digits[i]) { type_key(i ? (SDL_Scancode)(SDL_SCANCODE_1 + i - 1) : SDL_SCANCODE_0, 1); return; }
+    for (unsigned i = 0; i < sizeof sym / sizeof sym[0]; i++)
+        if (ch == (unsigned char)sym[i].c) { type_key(sym[i].sc, sym[i].s); return; }
+}
+/* While the phone keyboard is up: characters arrive as SDL_TEXTINPUT (the
+ * key events SDL makes up for them are pressed and released at once, too
+ * fast for DirectInput polling), Backspace and Enter as key presses. Returns
+ * 1 when the event was used. */
+static int text_event(const SDL_Event *e) {
+    if (!g_text_on) return 0;
+    if (e->type == SDL_TEXTINPUT) {
+        for (const unsigned char *p = (const unsigned char *)e->text.text; *p; p++)
+            if (*p < 0x80) type_char(*p);
+        return 1;
+    }
+    if (e->type == SDL_KEYDOWN || e->type == SDL_KEYUP) {
+        SDL_Scancode sc = e->key.keysym.scancode;
+        int special = sc == SDL_SCANCODE_BACKSPACE || sc == SDL_SCANCODE_RETURN || sc == SDL_SCANCODE_ESCAPE ||
+                      sc == SDL_SCANCODE_TAB || sc == SDL_SCANCODE_DELETE ||
+                      (sc >= SDL_SCANCODE_RIGHT && sc <= SDL_SCANCODE_UP);
+        if (special && e->type == SDL_KEYDOWN && !e->key.repeat) type_key(sc, 0);
+        return special || SDL_GetKeyFromScancode(sc) < 0x80 || sc == SDL_SCANCODE_LSHIFT || sc == SDL_SCANCODE_RSHIFT;
+    }
+    return 0;
+}
+const Uint8 *platform_keys(int *n);
+/* Shift as the game should see it (ToUnicode gets the game's own key state). */
+int platform_shift_down(void) {
+    const Uint8 *ks = platform_keys(NULL);
+    return ks[SDL_SCANCODE_LSHIFT] || ks[SDL_SCANCODE_RSHIFT];
 }
 
 const Uint8 *platform_keys(int *n) {
@@ -156,7 +237,7 @@ static void poll_key_fifo(void) {
         if (sscanf(line, "%31[^:\n]:%d", name, &len) < 1) continue;
         SDL_Scancode sc = SDL_GetScancodeFromName(name);
         if (sc == SDL_SCANCODE_UNKNOWN || g_nscript >= 256) continue;
-        g_script[g_nscript++] = (KeyEv){g_frames + 1, len, sc};
+        g_script[g_nscript++] = (KeyEv){g_frames + 1, len, sc, 0};
         LOG("keyfifo: %s at frame %d", name, g_frames + 1);
     }
     clearerr(fifo);
@@ -172,6 +253,7 @@ void platform_present_hook(void) {
             fflush(NULL);
             exit(0);
         }
+        if (text_event(&e)) continue;
         if (e.type == SDL_KEYDOWN || e.type == SDL_KEYUP)
             key_event(e.key.keysym.scancode, e.type == SDL_KEYDOWN);
         extern void input_handle_event(const SDL_Event *e);
@@ -180,6 +262,13 @@ void platform_present_hook(void) {
         touch_handle_event(&e);
     }
     script_events();
+#ifdef __ANDROID__
+    /* closed with the phone's Back key or its own button: follow it */
+    if (g_text_on) {
+        g_text_hidden_frames = SDL_IsScreenKeyboardShown(g_window) ? 0 : g_text_hidden_frames + 1;
+        if (g_text_hidden_frames > 60) platform_text_input(1);
+    }
+#endif
     g_frames++;
 #ifdef GAME_SKYRIM
     /* bGamepadEnable (Controls menu toggle, not read from the INI at boot):

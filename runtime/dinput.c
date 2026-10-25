@@ -35,6 +35,15 @@ static uint8_t dik_of(SDL_Scancode s) {
     case SDL_SCANCODE_SPACE: return 0x39;
     case SDL_SCANCODE_MINUS: return 0x0C;
     case SDL_SCANCODE_EQUALS: return 0x0D;
+    case SDL_SCANCODE_LEFTBRACKET: return 0x1A;
+    case SDL_SCANCODE_RIGHTBRACKET: return 0x1B;
+    case SDL_SCANCODE_SEMICOLON: return 0x27;
+    case SDL_SCANCODE_APOSTROPHE: return 0x28;
+    case SDL_SCANCODE_GRAVE: return 0x29;
+    case SDL_SCANCODE_BACKSLASH: return 0x2B;
+    case SDL_SCANCODE_COMMA: return 0x33;
+    case SDL_SCANCODE_PERIOD: return 0x34;
+    case SDL_SCANCODE_SLASH: return 0x35;
     case SDL_SCANCODE_LCTRL: return 0x1D;
     case SDL_SCANCODE_RCTRL: return 0x9D;
     case SDL_SCANCODE_LSHIFT: return 0x2A;

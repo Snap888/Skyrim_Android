@@ -33,6 +33,10 @@ const Button k_buttons[] = {
 };
 const int NB = sizeof k_buttons / sizeof k_buttons[0];
 const float STICK_X = 0.24f, STICK_Y = -0.26f, STICK_R = 0.17f; // from bottom-left
+// Keyboard button, top-left: shows or hides the phone's keyboard. It stays
+// on screen when the touch controls are switched off.
+const Button k_kbd = {"Keyboard", 0, 0, 0, 0.08f, 0.07f, 0.045f, 0xFFE0E0E0};
+const int KBD = 100;          // Finger::button value for the keyboard button
 
 struct Finger { SDL_FingerID id; int button; bool stick; float x, y; bool used; };
 Finger g_fingers[10];
@@ -117,6 +121,7 @@ void update() {
             if (l > 1) { sx /= l; sy /= l; }
         } else {
             // a finger may slide between buttons
+            if (f.button == KBD) continue;
             int h = hit_button(f.x, f.y);
             if (h >= 0) f.button = h;
             if (f.button >= 0) b |= k_buttons[f.button].bit;
@@ -129,8 +134,13 @@ void update() {
 }
 } // namespace
 
+extern "C" int hud_screen_crosshair(void);
+extern "C" void bridge_view_rect(float *x0, float *y0, float *x1, float *y1);
+extern "C" int platform_text_input(int toggle);
+
 extern "C" void touch_handle_event(const SDL_Event *e) {
-    if (!enabled()) return;
+    if (!available()) return;
+    bool on = enabled();
     float x, y;
     SDL_FingerID id;
     bool down = false, up = false;
@@ -156,14 +166,30 @@ extern "C" void touch_handle_event(const SDL_Event *e) {
     default:
         return;
     }
+    // window -> back buffer coordinates (the picture may be letterboxed)
+    float vx0, vy0, vx1, vy1;
+    bridge_view_rect(&vx0, &vy0, &vx1, &vy1);
+    x = (x - vx0) / (vx1 - vx0);
+    y = (y - vy0) / (vy1 - vy0);
     g_seen = true;
     Finger *f = nullptr;
     for (auto &g : g_fingers) if (g.used && g.id == id) f = &g;
     if (down && !f) {
+        float kx, ky;
+        button_pos(k_kbd, &kx, &ky);
+        float dx = (x - kx) * g_aspect, dy = y - ky, r = k_kbd.r * 1.4f;
+        bool kbd = dx * dx + dy * dy < r * r;
+        if (!kbd && !on) return;
         for (auto &g : g_fingers) if (!g.used) { f = &g; break; }
         if (!f) return;
         f->used = true;
         f->id = id;
+        if (kbd) {
+            f->button = KBD;
+            f->stick = false;
+            platform_text_input(1);
+            return;
+        }
         f->button = hit_button(x, y);
         // anything on the left half that is not a button drives the stick
         f->stick = f->button < 0 && x < 0.5f;
@@ -172,7 +198,7 @@ extern "C" void touch_handle_event(const SDL_Event *e) {
     f->x = x;
     f->y = y;
     if (up) f->used = false;
-    update();
+    if (f->button != KBD && on) update();
 }
 
 // ---------------------------------------------------------------- drawing
@@ -201,18 +227,20 @@ void make_texture(IDirect3DDevice9 *d) {
     g_tex->UnlockRect(0);
 }
 
-void quad(Vtx *v, float cx, float cy, float r, float w, float h, uint32_t color) {
-    float x0 = (cx - r / g_aspect) * w, x1 = (cx + r / g_aspect) * w;
-    float y0 = (cy - r) * h, y1 = (cy + r) * h;
+void quad(Vtx *v, float cx, float cy, float rx, float ry, float w, float h, uint32_t color) {
+    float x0 = (cx - rx / g_aspect) * w, x1 = (cx + rx / g_aspect) * w;
+    float y0 = (cy - ry) * h, y1 = (cy + ry) * h;
     Vtx q[4] = {{x0, y0, 0, 1, color, 0, 0}, {x1, y0, 0, 1, color, 1, 0},
                 {x0, y1, 0, 1, color, 0, 1}, {x1, y1, 0, 1, color, 1, 1}};
     v[0] = q[0]; v[1] = q[1]; v[2] = q[2];
     v[3] = q[2]; v[4] = q[1]; v[5] = q[3];
 }
+void quad(Vtx *v, float cx, float cy, float r, float w, float h, uint32_t color) { quad(v, cx, cy, r, r, w, h, color); }
 } // namespace
 
 void touch_draw(IDirect3DDevice9 *d) {
-    if (!enabled()) return;
+    if (!available()) return;
+    bool on = enabled();
     IDirect3DSurface9 *bb = nullptr, *old = nullptr;
     if (FAILED(d->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &bb))) return;
     D3DSURFACE_DESC desc;
@@ -262,14 +290,30 @@ void touch_draw(IDirect3DDevice9 *d) {
     d->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
     d->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 
-    Vtx v[6 * (NB + 2)];
+    Vtx v[6 * (NB + 2 + 11)];
     int n = 0;
+    // keyboard button: a disc with two rows of keys and a space bar
+    {
+        float kx, ky, r = k_kbd.r;
+        button_pos(k_kbd, &kx, &ky);
+        uint32_t a = platform_text_input(-1) ? 0xF0 : 0x90;
+        quad(v + 6 * n++, kx, ky, r, w, h, (k_kbd.color & 0xFFFFFF) | a << 24);
+        for (int row = 0; row < 2; row++)
+            for (int k = 0; k < 4; k++)
+                quad(v + 6 * n++, kx + (k - 1.5f) * r * 0.36f / g_aspect, ky + (row - 1) * r * 0.34f, r * 0.11f,
+                     w, h, 0xFF303030);
+        quad(v + 6 * n++, kx, ky + r * 0.4f, r * 0.5f, r * 0.1f, w, h, 0xFF303030);
+    }
+    // the HUD (crosshair included) is on the second screen: a dot instead
+    if (hud_screen_crosshair()) quad(v + 6 * n++, 0.5f, 0.5f, 0.007f, w, h, 0xD0FFFFFF);
     float sx, sy;
     stick_pos(&sx, &sy);
-    quad(v + 6 * n++, sx, sy, STICK_R, w, h, 0x90FFFFFF);
-    quad(v + 6 * n++, sx + g_stick_x * STICK_R / g_aspect, sy + g_stick_y * STICK_R, STICK_R * 0.45f, w, h,
-         0xD0FFFFFF);
-    for (int i = 0; i < NB; i++) {
+    if (on) {
+        quad(v + 6 * n++, sx, sy, STICK_R, w, h, 0x90FFFFFF);
+        quad(v + 6 * n++, sx + g_stick_x * STICK_R / g_aspect, sy + g_stick_y * STICK_R, STICK_R * 0.45f, w, h,
+             0xD0FFFFFF);
+    }
+    for (int i = 0; on && i < NB; i++) {
         float bx, by;
         button_pos(k_buttons[i], &bx, &by);
         uint32_t col = k_buttons[i].color;

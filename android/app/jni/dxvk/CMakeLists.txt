@@ -119,7 +119,8 @@ add_library(dxvk_d3d9 SHARED
     src/wsi/sdl2/wsi_mode_sdl2.cpp
     src/wsi/sdl2/wsi_monitor_sdl2.cpp
     src/wsi/sdl2/wsi_presenter_sdl2.cpp
-    src/wsi/sdl2/wsi_window_sdl2.cpp)
+    src/wsi/sdl2/wsi_window_sdl2.cpp
+    src/wsi/sdl2/wsi_native_surface.cpp)
 target_include_directories(dxvk_d3d9 PRIVATE
     generated include include/native include/native/windows include/native/directx
     src/util src/dxvk src/d3d9 src/dxso src/wsi src/spirv src/vulkan ../sdlinc)
