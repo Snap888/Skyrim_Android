@@ -4,6 +4,8 @@ An unofficial "native" Android port of the original 2011 PC version of *The Elde
 
 This repository contains no game code or data. You need your own copy of the PC game, which is used as a basis for the recompilation. Personally, I used the Steam version.
 
+Discord: http://discord.gg/df3cK2JCqs
+
 Youtube link below:
 
 [![Watch the video](https://img.youtube.com/vi/Y5vOU3TdlLM/hqdefault.jpg)](https://www.youtube.com/watch?v=Y5vOU3TdlLM)
