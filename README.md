@@ -35,6 +35,7 @@ Everything comes from your own PC install of *The Elder Scrolls V: Skyrim* (2011
 | For building on PC | For playing on Android
 | :------------------ | -------------------:
 | TESV_unpacked.exe | TESV_unpacked.exe
+| TESV.exe | TESV.exe
 | d3dx9_42.dll (32-bit) | d3dx9_42.dll (32-bit)
 | binkw32.dll | binkw32.dll
 | X3DAudio1_7.dll (32-bit) | X3DAudio1_7.dll (32-bit)
