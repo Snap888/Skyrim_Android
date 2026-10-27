@@ -1,0 +1,81 @@
+--- a/runtime/xaudio2.c
++++ b/runtime/xaudio2.c
+@@ -21,7 +21,7 @@
+ #define MAX_SENDS 8
+ 
+ enum { V_SOURCE, V_SUBMIX, V_MASTER };
+-enum { FMT_PCM16, FMT_PCM8, FMT_F32, FMT_PCM24, FMT_PCM32, FMT_ADPCM, FMT_NONE };
++enum { FMT_PCM16, FMT_PCM8, FMT_F32, FMT_PCM24, FMT_PCM32, FMT_ADPCM, FMT_XWMA, FMT_NONE };
+ 
+ typedef struct {
+     uint32_t flags, bytes, data, play_begin, play_len, loop_begin, loop_len, loop_count, ctx;
+@@ -39,6 +39,8 @@
+     int in_ch, rate, stage;
+     /* source format */
+     int fmt, bpf, block_align, spb;
++    int xwma_avg_bps;          /* nAvgBytesPerSec for xWMA */
++    int xwma_tag;              /* 0x0161 or 0x0162 */
+     uint8_t adpcm_coef[64];
+     int ncoef;
+     float ratio, max_ratio;
+@@ -126,6 +128,12 @@
+         v->ncoef = M16(wf + 20);
+         if (v->ncoef > 16) v->ncoef = 16;
+         memcpy(v->adpcm_coef, MEM + wf + 22, (size_t)v->ncoef * 4);
++    } else if (tag == 0x0161 || tag == 0x0162) {
++        /* WAVE_FORMAT_WMAUDIO2 / WMAUDIO3 — Skyrim voices & music (xWMA) */
++        v->fmt = FMT_XWMA;
++        v->xwma_tag = tag;
++        v->xwma_avg_bps = (int)M32(wf + 8);
++        v->bpf = v->block_align ? v->block_align : 1;
+     }
+     if (v->fmt == FMT_NONE) {
+         static unsigned s_silent;
+@@ -536,8 +544,18 @@
+     }
+     RET(0, 1);
+ }
+-SHIM(xs_Start) { V->running = 1; RET(0, 3); }
+-SHIM(xs_Stop) { V->running = 0; RET(0, 3); }
++SHIM(xs_Start) {
++    Voice *v = V;
++    v->running = 1;
++    RET(0, 3);
++}
++SHIM(xs_Stop) {
++    Voice *v = V;
++    v->running = 0;
++    v->primed = 0;   /* reset interpolator — avoids click on next Start */
++    v->frac = 0.0;
++    RET(0, 3);
++}
+ SHIM(xs_SubmitSourceBuffer) {
+     Voice *v = V;
+     uint32_t b = ARG(1);
+@@ -554,12 +572,26 @@
+     x->loop_len = M32(b + 24);
+     x->loop_count = M32(b + 28);
+     x->ctx = M32(b + 32);
++    uint32_t bwma = ARG(2);  /* XAUDIO2_BUFFER_WMA* — packet seek table for xWMA */
+     if (v->fmt == FMT_ADPCM && v->block_align && v->spb) {
+         uint32_t nb = x->bytes / (uint32_t)v->block_align;
+         x->nframes = nb * (uint32_t)v->spb;
+         x->decoded = malloc(sizeof(int16_t) * (size_t)x->nframes * (size_t)v->in_ch + 2);
+         for (uint32_t i = 0; i < nb; i++)
+             adpcm_block(v, MEM + x->data + i * (uint32_t)v->block_align, x->decoded + (size_t)i * (size_t)v->spb * (size_t)v->in_ch);
++    } else if (v->fmt == FMT_XWMA) {
++        /* xWMA used for Skyrim dialogue and music.
++         * Real decode needs libavcodec (AV_CODEC_ID_WMAV2 / WMAPRO).
++         * Until linked: empty buffer so OnBufferEnd fires and game does not stall. */
++        static unsigned s_xwma;
++        if (++s_xwma % 50 == 1) {
++            uint32_t packet_count = bwma ? M32(bwma + 4) : 0;
++            LOG("xaudio2: xWMA tag=%04x %d ch %d Hz avg_bps=%d bytes=%u packets=%u — decoder not linked (silent)",
++                v->xwma_tag, v->in_ch, v->rate, v->xwma_avg_bps, x->bytes, packet_count);
++        }
++        x->nframes = 0;
++        x->decoded = NULL;
++        (void)bwma;
+     } else if (v->fmt == FMT_NONE) {
+         x->nframes = 0;
+     } else {
