@@ -1,8 +1,6 @@
 /* xWMA / WMA decode via FFmpeg libavcodec.
- * Built only when LB_HAS_FFMPEG is defined and libavcodec is linked.
- *
- * Skyrim submits raw WMA packets (tag 0x0161 = WMAV2, 0x0162 = WMAPRO)
- * with an optional XAUDIO2_BUFFER_WMA seek table (packet sizes).
+ * Skyrim uses WAVE_FORMAT_WMAUDIO2 (0x0161) / WMAUDIO3 (0x0162) with
+ * XAUDIO2_BUFFER_WMA::pDecodedPacketCumulativeBytes (CUMULATIVE end offsets).
  */
 #ifdef LB_HAS_FFMPEG
 
@@ -15,10 +13,19 @@
 #include <libavutil/channel_layout.h>
 #include <libavutil/frame.h>
 #include <libavutil/mem.h>
+#include <libavutil/error.h>
+
+static void xa_err(const char *what, int err)
+{
+    char buf[128];
+    av_strerror(err, buf, sizeof buf);
+    fprintf(stderr, "xwma_ffmpeg: %s: %s (%d)\n", what, buf, err);
+}
 
 int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
                      int block_align, int avg_bps, int tag,
-                     const uint32_t *packet_info, uint32_t packet_count,
+                     const uint32_t *cum_bytes, uint32_t packet_count,
+                     const uint8_t *extradata, int extradata_size,
                      uint32_t *out_frames)
 {
     *out_frames = 0;
@@ -43,9 +50,21 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
 #endif
     ctx->block_align = block_align > 0 ? block_align : 0;
     if (avg_bps > 0) ctx->bit_rate = (int64_t)avg_bps * 8;
+    ctx->bits_per_coded_sample = 16;
 
-    if (avcodec_open2(ctx, codec, NULL) < 0) {
-        fprintf(stderr, "xwma_ffmpeg: avcodec_open2 failed tag=%04x\n", tag);
+    if (extradata && extradata_size > 0) {
+        ctx->extradata = av_mallocz((size_t)extradata_size + AV_INPUT_BUFFER_PADDING_SIZE);
+        if (!ctx->extradata) {
+            avcodec_free_context(&ctx);
+            return NULL;
+        }
+        memcpy(ctx->extradata, extradata, (size_t)extradata_size);
+        ctx->extradata_size = extradata_size;
+    }
+
+    int err = avcodec_open2(ctx, codec, NULL);
+    if (err < 0) {
+        xa_err("avcodec_open2", err);
         avcodec_free_context(&ctx);
         return NULL;
     }
@@ -56,90 +75,121 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
     AVFrame *frame = av_frame_alloc();
     if (!pkt || !frame) goto fail;
 
-    uint32_t off = 0;
-    uint32_t pi = 0;
-    for (;;) {
-        uint32_t psz;
-        if (packet_info && packet_count && pi < packet_count) {
-            psz = packet_info[pi++];
-            if (psz == 0 || off + psz > size) break;
-        } else if (!packet_info || !packet_count) {
-            if (off >= size) break;
-            if (block_align > 0 && off + (uint32_t)block_align <= size)
-                psz = (uint32_t)block_align;
-            else
-                psz = size - off;
-        } else break;
+    int packets_sent = 0, frames_got = 0, send_err = 0, recv_err = 0;
 
-        pkt->data = (uint8_t *)(data + off);
-        pkt->size = (int)psz;
-        off += psz;
+    #define DRAIN_FRAMES() do { \
+        for (;;) { \
+            int r = avcodec_receive_frame(ctx, frame); \
+            if (r == AVERROR(EAGAIN) || r == AVERROR_EOF) break; \
+            if (r < 0) { recv_err = r; break; } \
+            int n = frame->nb_samples; \
+            int ch = channels; \
+            size_t need = (len + (size_t)n * (size_t)ch) * sizeof(int16_t); \
+            if (need > cap) { \
+                size_t ncap = cap ? cap * 2 : need + 8192; \
+                if (ncap < need) ncap = need; \
+                int16_t *np = realloc(pcm, ncap); \
+                if (!np) goto fail; \
+                pcm = np; cap = ncap; \
+            } \
+            if (frame->format == AV_SAMPLE_FMT_S16) { \
+                memcpy(pcm + len, frame->data[0], (size_t)n * (size_t)ch * 2); \
+            } else if (frame->format == AV_SAMPLE_FMT_FLTP) { \
+                for (int i = 0; i < n; i++) \
+                    for (int c = 0; c < ch; c++) { \
+                        float s = ((float *)frame->data[c])[i]; \
+                        if (s > 1.f) s = 1.f; if (s < -1.f) s = -1.f; \
+                        pcm[len + (size_t)i * (size_t)ch + (size_t)c] = (int16_t)(s * 32767.f); \
+                    } \
+            } else if (frame->format == AV_SAMPLE_FMT_FLT) { \
+                for (int i = 0; i < n * ch; i++) { \
+                    float s = ((float *)frame->data[0])[i]; \
+                    if (s > 1.f) s = 1.f; if (s < -1.f) s = -1.f; \
+                    pcm[len + (size_t)i] = (int16_t)(s * 32767.f); \
+                } \
+            } else if (frame->format == AV_SAMPLE_FMT_S16P) { \
+                for (int i = 0; i < n; i++) \
+                    for (int c = 0; c < ch; c++) \
+                        pcm[len + (size_t)i * (size_t)ch + (size_t)c] = ((int16_t *)frame->data[c])[i]; \
+            } else { \
+                memset(pcm + len, 0, (size_t)n * (size_t)ch * 2); \
+            } \
+            len += (size_t)n * (size_t)ch; \
+            frames_got++; \
+        } \
+    } while (0)
 
-        if (avcodec_send_packet(ctx, pkt) < 0) continue;
-        for (;;) {
-            int r = avcodec_receive_frame(ctx, frame);
-            if (r == AVERROR(EAGAIN) || r == AVERROR_EOF) break;
-            if (r < 0) goto fail;
+    if (cum_bytes && packet_count > 0) {
+        uint32_t prev = 0;
+        for (uint32_t pi = 0; pi < packet_count; pi++) {
+            uint32_t cum = cum_bytes[pi];
+            if (cum < prev) continue;
+            if (cum > size) cum = size;
+            uint32_t psz = cum - prev;
+            if (psz == 0) { prev = cum; continue; }
 
-            int n = frame->nb_samples;
-            int ch = channels;
-            size_t need = (len + (size_t)n * (size_t)ch) * sizeof(int16_t);
-            if (need > cap) {
-                size_t ncap = cap ? cap * 2 : need + 4096;
-                if (ncap < need) ncap = need;
-                int16_t *np = realloc(pcm, ncap);
-                if (!np) goto fail;
-                pcm = np;
-                cap = ncap;
-            }
-            if (frame->format == AV_SAMPLE_FMT_S16) {
-                memcpy(pcm + len, frame->data[0], (size_t)n * (size_t)ch * 2);
-            } else if (frame->format == AV_SAMPLE_FMT_FLTP) {
-                for (int i = 0; i < n; i++)
-                    for (int c = 0; c < ch; c++) {
-                        float s = ((float *)frame->data[c])[i];
-                        if (s > 1) s = 1;
-                        if (s < -1) s = -1;
-                        pcm[len + (size_t)i * (size_t)ch + (size_t)c] = (int16_t)(s * 32767.f);
-                    }
-            } else if (frame->format == AV_SAMPLE_FMT_S16P) {
-                for (int i = 0; i < n; i++)
-                    for (int c = 0; c < ch; c++)
-                        pcm[len + (size_t)i * (size_t)ch + (size_t)c] =
-                            ((int16_t *)frame->data[c])[i];
-            } else {
-                memset(pcm + len, 0, (size_t)n * (size_t)ch * 2);
-            }
-            len += (size_t)n * (size_t)ch;
+            uint8_t *padded = av_malloc((size_t)psz + AV_INPUT_BUFFER_PADDING_SIZE);
+            if (!padded) goto fail;
+            memcpy(padded, data + prev, psz);
+            memset(padded + psz, 0, AV_INPUT_BUFFER_PADDING_SIZE);
+
+            pkt->data = padded;
+            pkt->size = (int)psz;
+            err = avcodec_send_packet(ctx, pkt);
+            av_free(padded);
+            pkt->data = NULL;
+            pkt->size = 0;
+            if (err < 0) send_err = err;
+            else packets_sent++;
+            DRAIN_FRAMES();
+            prev = cum;
+            if (prev >= size) break;
         }
-        if (!packet_info || !packet_count) break;
+    } else {
+        uint32_t step = (block_align > 0 && (size_t)block_align * 2 < size)
+                        ? (uint32_t)block_align : size;
+        for (uint32_t off = 0; off < size; ) {
+            uint32_t psz = step;
+            if (off + psz > size) psz = size - off;
+            if (psz == 0) break;
+
+            uint8_t *padded = av_malloc((size_t)psz + AV_INPUT_BUFFER_PADDING_SIZE);
+            if (!padded) goto fail;
+            memcpy(padded, data + off, psz);
+            memset(padded + psz, 0, AV_INPUT_BUFFER_PADDING_SIZE);
+
+            pkt->data = padded;
+            pkt->size = (int)psz;
+            err = avcodec_send_packet(ctx, pkt);
+            av_free(padded);
+            pkt->data = NULL;
+            pkt->size = 0;
+            if (err < 0) send_err = err;
+            else packets_sent++;
+            DRAIN_FRAMES();
+            off += psz;
+        }
     }
 
     avcodec_send_packet(ctx, NULL);
-    for (;;) {
-        int r = avcodec_receive_frame(ctx, frame);
-        if (r < 0) break;
-        int n = frame->nb_samples;
-        int ch = channels;
-        size_t need = (len + (size_t)n * (size_t)ch) * sizeof(int16_t);
-        if (need > cap) {
-            int16_t *np = realloc(pcm, need + 1024);
-            if (!np) break;
-            pcm = np;
-            cap = need + 1024;
-        }
-        if (frame->format == AV_SAMPLE_FMT_S16)
-            memcpy(pcm + len, frame->data[0], (size_t)n * (size_t)ch * 2);
-        else
-            memset(pcm + len, 0, (size_t)n * (size_t)ch * 2);
-        len += (size_t)n * (size_t)ch;
-    }
+    DRAIN_FRAMES();
+
+#undef DRAIN_FRAMES
 
     av_frame_free(&frame);
     av_packet_free(&pkt);
     avcodec_free_context(&ctx);
 
-    if (!pcm || !len) { free(pcm); return NULL; }
+    if (!pcm || !len) {
+        fprintf(stderr,
+                "xwma_ffmpeg: no PCM tag=%04x size=%u pkts=%u sent=%d frames=%d send_err=%d recv_err=%d extra=%d\n",
+                tag, size, packet_count, packets_sent, frames_got, send_err, recv_err, extradata_size);
+        if (send_err) xa_err("last send", send_err);
+        if (recv_err) xa_err("last recv", recv_err);
+        free(pcm);
+        return NULL;
+    }
+
     *out_frames = (uint32_t)(len / (size_t)channels);
     return pcm;
 
