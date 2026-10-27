@@ -44,21 +44,18 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
     ctx->block_align = block_align > 0 ? block_align : 0;
     if (avg_bps > 0) ctx->bit_rate = (int64_t)avg_bps * 8;
 
-    /* WMA often needs extradata; xWMA from XAudio2 may have none — try open anyway */
     if (avcodec_open2(ctx, codec, NULL) < 0) {
         fprintf(stderr, "xwma_ffmpeg: avcodec_open2 failed tag=%04x\n", tag);
         avcodec_free_context(&ctx);
         return NULL;
     }
 
-    /* Output buffer grows as we decode */
     size_t cap = 0, len = 0;
     int16_t *pcm = NULL;
     AVPacket *pkt = av_packet_alloc();
     AVFrame *frame = av_frame_alloc();
     if (!pkt || !frame) goto fail;
 
-    /* Feed packets: either by seek table sizes or one shot */
     uint32_t off = 0;
     uint32_t pi = 0;
     for (;;) {
@@ -68,7 +65,6 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
             if (psz == 0 || off + psz > size) break;
         } else if (!packet_info || !packet_count) {
             if (off >= size) break;
-            /* no table: one packet = remaining, or block_align chunks */
             if (block_align > 0 && off + (uint32_t)block_align <= size)
                 psz = (uint32_t)block_align;
             else
@@ -96,7 +92,6 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
                 pcm = np;
                 cap = ncap;
             }
-            /* convert to S16 interleaved */
             if (frame->format == AV_SAMPLE_FMT_S16) {
                 memcpy(pcm + len, frame->data[0], (size_t)n * (size_t)ch * 2);
             } else if (frame->format == AV_SAMPLE_FMT_FLTP) {
@@ -113,15 +108,13 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
                         pcm[len + (size_t)i * (size_t)ch + (size_t)c] =
                             ((int16_t *)frame->data[c])[i];
             } else {
-                /* unsupported fmt — silence this frame */
                 memset(pcm + len, 0, (size_t)n * (size_t)ch * 2);
             }
             len += (size_t)n * (size_t)ch;
         }
-        if (!packet_info || !packet_count) break; /* single-shot without table */
+        if (!packet_info || !packet_count) break;
     }
 
-    /* flush */
     avcodec_send_packet(ctx, NULL);
     for (;;) {
         int r = avcodec_receive_frame(ctx, frame);
