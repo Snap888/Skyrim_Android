@@ -1,25 +1,27 @@
 name: Build & Publish APK
 
 on:
-  # Ручной запуск
   workflow_dispatch:
     inputs:
       version:
-        description: "Version name (например 0.24). Оставьте пустым — возьмётся из build.gradle"
+        description: "Version name (например 0.24). Пусто = из build.gradle"
         required: false
         type: string
       dual:
-        description: "Также собрать dual-версию (второй экран)"
+        description: "Также собрать dual-версию"
         required: false
         type: boolean
         default: false
       create_release:
-        description: "Создать GitHub Release и загрузить APK"
+        description: "Создать GitHub Release"
         required: false
         type: boolean
         default: true
+      gen_url:
+        description: "URL на архив gen/ (tar.xz / tar.gz / zip). Обязательно, если gen/ нет в runner"
+        required: false
+        type: string
 
-  # Автоматически при пуше тега v*
   push:
     tags:
       - "v*"
@@ -30,13 +32,12 @@ env:
   JAVA_VERSION: "17"
 
 permissions:
-  contents: write   # нужно для создания релизов
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Рекомендуется self-hosted runner с ≥16 GB RAM,
-    # иначе сборка gen/*.c может упасть по OOM (каждый файл требует 1–2 GB).
+    # Рекомендуется self-hosted с ≥16 GB RAM
 
     steps:
       - name: Checkout
@@ -45,15 +46,51 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Check that gen/ exists
+      - name: Restore / download gen/
         run: |
-          if [ ! -d "gen" ] || [ -z "$(ls -A gen 2>/dev/null)" ]; then
-            echo "::error::Каталог gen/ отсутствует или пуст."
-            echo "Сначала выполните локально: tools/regen_gen.sh /path/to/GAME"
-            echo "Затем либо положите gen/ на self-hosted runner, либо загрузите как artifact."
+          set -e
+          if [ -d "gen" ] && [ -n "$(ls -A gen 2>/dev/null)" ]; then
+            echo "gen/ уже есть на runner"
+            find gen -name '*.c' | wc -l
+            exit 0
+          fi
+
+          if [ -z "${{ github.event.inputs.gen_url }}" ]; then
+            echo "::error::Каталог gen/ отсутствует."
+            echo ""
+            echo "Варианты:"
+            echo "1. Сгенерируйте локально:  tools/regen_gen.sh /path/to/GAME"
+            echo "2. Упакуйте:  tar -cJf gen.tar.xz gen/"
+            echo "3. Загрузите архив куда-нибудь (GitHub Release, private storage, GDrive с прямой ссылкой)"
+            echo "4. При запуске workflow укажите URL в поле gen_url"
+            echo ""
+            echo "Или используйте self-hosted runner, где gen/ уже лежит."
             exit 1
           fi
-          echo "gen/ найден, файлов: $(find gen -name '*.c' | wc -l)"
+
+          echo "Скачиваю gen из ${{ github.event.inputs.gen_url }}"
+          mkdir -p /tmp/gen_dl
+          curl -L --fail --retry 3 -o /tmp/gen_dl/gen.archive "${{ github.event.inputs.gen_url }}"
+
+          # определяем формат
+          if file /tmp/gen_dl/gen.archive | grep -q 'XZ\|xz'; then
+            tar -xJf /tmp/gen_dl/gen.archive
+          elif file /tmp/gen_dl/gen.archive | grep -q 'gzip\|Gzip'; then
+            tar -xzf /tmp/gen_dl/gen.archive
+          elif file /tmp/gen_dl/gen.archive | grep -q 'Zip\|zip'; then
+            unzip -q /tmp/gen_dl/gen.archive
+          else
+            # пробуем как tar.xz по умолчанию
+            tar -xJf /tmp/gen_dl/gen.archive || tar -xzf /tmp/gen_dl/gen.archive
+          fi
+
+          if [ ! -d "gen" ] || [ -z "$(ls -A gen 2>/dev/null)" ]; then
+            echo "::error::После распаковки gen/ всё ещё пуст. Проверьте структуру архива (должен быть каталог gen/ в корне)."
+            exit 1
+          fi
+
+          echo "gen/ успешно восстановлен, файлов C: $(find gen -name '*.c' | wc -l)"
+          rm -rf /tmp/gen_dl
 
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
@@ -84,14 +121,13 @@ jobs:
           elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             VER="${GITHUB_REF#refs/tags/v}"
           else
-            # читаем из build.gradle
-            VER=$(grep -oP 'versionName\s+"\K[^"]+' android/app/build.gradle | head -1)
+            VER=$(grep -oP 'versionName\s+"\K[^"]+' android/app/build.gradle | head -1 || true)
             VER=${VER:-"0.0.0"}
           fi
           echo "version=$VER" >> $GITHUB_OUTPUT
           echo "Сборка версии: $VER"
 
-      - name: Build main APK (debug = optimised)
+      - name: Build main APK
         working-directory: android
         run: |
           ./gradlew assembleDebug \
@@ -100,7 +136,7 @@ jobs:
             --stacktrace
 
       - name: Build dual APK (optional)
-        if: github.event.inputs.dual == 'true' || contains(github.event.head_commit.message, '[dual]')
+        if: github.event.inputs.dual == 'true'
         working-directory: android
         run: |
           ./gradlew assembleDebug \
@@ -115,7 +151,6 @@ jobs:
           VER="${{ steps.ver.outputs.version }}"
           mkdir -p dist
 
-          # Основной APK
           MAIN_APK=$(find android/app/build/outputs/apk -name "app-debug.apk" | head -1)
           if [ -z "$MAIN_APK" ]; then
             echo "::error::APK не найден"
@@ -124,11 +159,10 @@ jobs:
           cp "$MAIN_APK" "dist/Skyrim-${VER}.apk"
           echo "main_apk=dist/Skyrim-${VER}.apk" >> $GITHUB_OUTPUT
 
-          # Dual (если есть)
-          DUAL_APK=$(find android/app/build/outputs/apk -name "app-debug.apk" -path "*/dual/*" 2>/dev/null | head -1 || true)
-          if [ -n "$DUAL_APK" ]; then
+          # dual APK (если собирали)
+          DUAL_APK=$(find android/app/build/outputs/apk -name "app-debug.apk" | tail -n +2 | head -1 || true)
+          if [ -n "$DUAL_APK" ] && [ "$DUAL_APK" != "$MAIN_APK" ]; then
             cp "$DUAL_APK" "dist/Skyrim-${VER}-dual.apk"
-            echo "dual_apk=dist/Skyrim-${VER}-dual.apk" >> $GITHUB_OUTPUT
           fi
 
           ls -lh dist/
@@ -141,7 +175,6 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-      # ---------- Release ----------
       - name: Create GitHub Release
         if: |
           (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
