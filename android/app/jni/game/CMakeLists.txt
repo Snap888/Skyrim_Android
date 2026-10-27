@@ -26,3 +26,36 @@ target_compile_definitions(main PRIVATE DXVK_NATIVE GAME_SKYRIM)
 target_compile_options(main PRIVATE -O2 -fno-strict-aliasing -fwrapv -fsigned-char -Wno-everything
     $<$<COMPILE_LANGUAGE:C>:-std=gnu11>)
 target_link_libraries(main PRIVATE SDL2 dxvk_d3d9 m $<$<BOOL:${ANDROID}>:log> $<$<BOOL:${ANDROID}>:android>)
+
+# ---- xWMA / FFmpeg (optional) ------------------------------------------------
+# Prebuilt tree from workflow artifact "ffmpeg-android-arm64-wmav2-tree":
+#   android/app/jni/ffmpeg/include/...
+#   android/app/jni/ffmpeg/lib/arm64-v8a/libavcodec.so
+#   android/app/jni/ffmpeg/lib/arm64-v8a/libavutil.so
+#
+# Enable: -DLB_HAS_FFMPEG=ON  (default ON if libs exist, else OFF)
+set(FFMPEG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../ffmpeg)
+set(_ffmpeg_avcodec "${FFMPEG_DIR}/lib/${ANDROID_ABI}/libavcodec.so")
+set(_ffmpeg_avutil  "${FFMPEG_DIR}/lib/${ANDROID_ABI}/libavutil.so")
+
+if(NOT DEFINED LB_HAS_FFMPEG)
+  if(EXISTS "${_ffmpeg_avcodec}" AND EXISTS "${_ffmpeg_avutil}")
+    set(LB_HAS_FFMPEG ON)
+  else()
+    set(LB_HAS_FFMPEG OFF)
+  endif()
+endif()
+option(LB_HAS_FFMPEG "Decode xWMA voices via FFmpeg libavcodec (WMAV2)" ${LB_HAS_FFMPEG})
+
+if(LB_HAS_FFMPEG)
+  if(NOT EXISTS "${_ffmpeg_avcodec}")
+    message(FATAL_ERROR "LB_HAS_FFMPEG=ON but missing ${_ffmpeg_avcodec}. Run workflow build-ffmpeg-android and unpack artifact into jni/ffmpeg/")
+  endif()
+  message(STATUS "xWMA: FFmpeg enabled (${FFMPEG_DIR})")
+  target_sources(main PRIVATE ${PORT}/runtime/xwma_ffmpeg.c)
+  target_include_directories(main PRIVATE ${FFMPEG_DIR}/include)
+  target_compile_definitions(main PRIVATE LB_HAS_FFMPEG)
+  target_link_libraries(main PRIVATE "${_ffmpeg_avcodec}" "${_ffmpeg_avutil}")
+else()
+  message(STATUS "xWMA: FFmpeg disabled (voices/music in xWMA play silent)")
+endif()

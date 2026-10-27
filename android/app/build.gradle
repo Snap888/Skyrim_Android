@@ -5,6 +5,9 @@ apply plugin: 'com.android.application'
 // the native code is the same, so both builds share the CMake outputs.
 def dual = project.hasProperty('dual') && project.property('dual') == 'true'
 
+// -Pffmpeg=true|false forces LB_HAS_FFMPEG (default: auto if libs present)
+def ffmpegProp = project.hasProperty('ffmpeg') ? project.property('ffmpeg').toString() : null
+
 android {
     namespace "com.tj.skyrim"
     compileSdkVersion 34
@@ -20,6 +23,11 @@ android {
         externalNativeBuild {
             cmake {
                 arguments "-DANDROID_STL=c++_shared", "-DANDROID_PLATFORM=android-28"
+                if (ffmpegProp == 'true') {
+                    arguments "-DLB_HAS_FFMPEG=ON"
+                } else if (ffmpegProp == 'false') {
+                    arguments "-DLB_HAS_FFMPEG=OFF"
+                }
                 abiFilters 'arm64-v8a'
             }
         }
@@ -40,6 +48,12 @@ android {
         cmake {
             path 'jni/CMakeLists.txt'
             version '3.22.1'
+        }
+    }
+    // Pick up prebuilt libavcodec.so / libavutil.so from jni/ffmpeg/lib/arm64-v8a/
+    sourceSets {
+        main {
+            jniLibs.srcDirs += ['jni/ffmpeg/lib']
         }
     }
     packagingOptions {
