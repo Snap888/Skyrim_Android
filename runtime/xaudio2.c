@@ -13,6 +13,25 @@
 #include <pthread.h>
 #include <time.h>
 #include <unistd.h>
+#include <stdarg.h>
+#ifdef __ANDROID__
+#include <android/log.h>
+#endif
+
+/* xaudio2 diagnostics: always go to port/log.txt (stderr) and logcat on Android */
+static void xa_log(const char *fmt, ...) {
+    char buf[512];
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(buf, sizeof buf, fmt, ap);
+    va_end(ap);
+    fprintf(stderr, "%s\n", buf);
+    fflush(stderr);
+#ifdef __ANDROID__
+    __android_log_print(ANDROID_LOG_INFO, "skyrim-xaudio2", "%s", buf);
+#endif
+}
+#define XA_LOG(...) xa_log(__VA_ARGS__)
 
 #define PASS_FRAMES_MS 10
 #define MAX_VOICES 1024
@@ -21,7 +40,7 @@
 #define MAX_SENDS 8
 
 enum { V_SOURCE, V_SUBMIX, V_MASTER };
-enum { FMT_PCM16, FMT_PCM8, FMT_F32, FMT_PCM24, FMT_PCM32, FMT_ADPCM, FMT_NONE };
+enum { FMT_PCM16, FMT_PCM8, FMT_F32, FMT_PCM24, FMT_PCM32, FMT_ADPCM, FMT_XWMA, FMT_NONE };
 
 typedef struct {
     uint32_t flags, bytes, data, play_begin, play_len, loop_begin, loop_len, loop_count, ctx;
@@ -39,6 +58,10 @@ struct Voice {
     int in_ch, rate, stage;
     /* source format */
     int fmt, bpf, block_align, spb;
+    int xwma_avg_bps;          /* nAvgBytesPerSec for xWMA */
+    int xwma_tag;              /* 0x0161 or 0x0162 */
+    uint8_t xwma_extra[64];    /* WAVEFORMATEX cbSize bytes after header */
+    int xwma_extra_size;
     uint8_t adpcm_coef[64];
     int ncoef;
     float ratio, max_ratio;
@@ -66,6 +89,8 @@ static uint32_t g_engine_cb[16];
 static int g_nengine_cb;
 static int g_rate = 48000, g_running, g_thread_started;
 static SDL_AudioDeviceID g_dev;
+/* diagnostics */
+static unsigned g_xa_src_voices, g_xa_xwma_voices, g_xa_xwma_submits, g_xa_pcm_submits, g_xa_adpcm_submits;
 
 static const uint8_t CLSID_XAudio2[16] = {0x85, 0x86, 0x50, 0x5a, 0x54, 0xa2, 0xba, 0x4f, 0x9b, 0x82, 0x9a, 0x24, 0xb0, 0x03, 0x06, 0xaf};
 /* XAudio2 2.6 (Skyrim): same interfaces as 2.7, different class ids */
@@ -106,6 +131,17 @@ static void adpcm_block(Voice *v, const uint8_t *b, int16_t *out) {
     }
 }
 
+
+#ifdef LB_HAS_FFMPEG
+/* Implemented in xwma_ffmpeg.c — decode xWMA/WMA payload to interleaved PCM16.
+ * cum_bytes: XAUDIO2_BUFFER_WMA pDecodedPacketCumulativeBytes (cumulative ends). */
+int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
+                     int block_align, int avg_bps, int tag,
+                     const uint32_t *cum_bytes, uint32_t packet_count,
+                     const uint8_t *extradata, int extradata_size,
+                     uint32_t *out_frames);
+#endif
+
 static void set_format(Voice *v, uint32_t wf) {
     uint16_t tag = M16(wf);
     int bits = M16(wf + 14);
@@ -126,11 +162,41 @@ static void set_format(Voice *v, uint32_t wf) {
         v->ncoef = M16(wf + 20);
         if (v->ncoef > 16) v->ncoef = 16;
         memcpy(v->adpcm_coef, MEM + wf + 22, (size_t)v->ncoef * 4);
+    } else if (tag == 0x0161 || tag == 0x0162) {
+        /* WAVE_FORMAT_WMAUDIO2 / WMAUDIO3 — Skyrim voices & music (xWMA) */
+        v->fmt = FMT_XWMA;
+        v->xwma_tag = tag;
+        v->xwma_avg_bps = (int)M32(wf + 8);
+        v->bpf = v->block_align ? v->block_align : 1;
+        /* cbSize at offset 16; extradata follows the 18-byte WAVEFORMATEX */
+        {
+            int cb = (int)M16(wf + 16);
+            if (cb < 0) cb = 0;
+            if (cb > (int)sizeof(v->xwma_extra)) cb = (int)sizeof(v->xwma_extra);
+            v->xwma_extra_size = cb;
+            if (cb > 0) memcpy(v->xwma_extra, MEM + wf + 18, (size_t)cb);
+            else memset(v->xwma_extra, 0, sizeof v->xwma_extra);
+        }
+        g_xa_xwma_voices++;
+        XA_LOG("xaudio2: source format xWMA tag=%04x %d ch %d Hz avg_bps=%d block_align=%d extra=%d (voice #%u, decoder %s)",
+               tag, v->in_ch, v->rate, v->xwma_avg_bps, v->block_align, v->xwma_extra_size, g_xa_xwma_voices,
+#ifdef LB_HAS_FFMPEG
+               "FFmpeg"
+#else
+               "NOT LINKED — silent"
+#endif
+        );
     }
     if (v->fmt == FMT_NONE) {
         static unsigned s_silent;
-        if (++s_silent % 100 == 1)
-            LOG("xaudio2: unsupported source format tag %04x (%d ch, %d Hz) plays silent (%u so far)", tag, v->in_ch, v->rate, s_silent);
+        if (++s_silent % 20 == 1)
+            XA_LOG("xaudio2: unsupported source format tag %04x (%d ch, %d Hz) plays silent (%u so far)",
+                   tag, v->in_ch, v->rate, s_silent);
+    } else if (v->fmt != FMT_XWMA) {
+        static unsigned s_ok;
+        if (++s_ok <= 8 || s_ok % 100 == 0)
+            XA_LOG("xaudio2: source format tag=%04x fmt=%d %d ch %d Hz bits=%d",
+                   tag, v->fmt, v->in_ch, v->rate, bits);
     }
     v->bpf = v->fmt == FMT_ADPCM ? 2 * v->in_ch : v->block_align ? v->block_align : v->in_ch * bits / 8;
 }
@@ -536,8 +602,24 @@ SHIM(xv_DestroyVoice) {
     }
     RET(0, 1);
 }
-SHIM(xs_Start) { V->running = 1; RET(0, 3); }
-SHIM(xs_Stop) { V->running = 0; RET(0, 3); }
+SHIM(xs_Start) {
+    Voice *v = V;
+    v->running = 1;
+    if (v->fmt == FMT_XWMA) {
+        static unsigned s;
+        if (++s <= 10 || s % 50 == 0)
+            XA_LOG("xaudio2: Start xWMA voice fmt=%d ch=%d rate=%d queued=%d (#%u)",
+                   v->fmt, v->in_ch, v->rate, v->qn, s);
+    }
+    RET(0, 3);
+}
+SHIM(xs_Stop) {
+    Voice *v = V;
+    v->running = 0;
+    v->primed = 0;   /* reset interpolator — avoids click on next Start */
+    v->frac = 0.0;
+    RET(0, 3);
+}
 SHIM(xs_SubmitSourceBuffer) {
     Voice *v = V;
     uint32_t b = ARG(1);
@@ -554,15 +636,51 @@ SHIM(xs_SubmitSourceBuffer) {
     x->loop_len = M32(b + 24);
     x->loop_count = M32(b + 28);
     x->ctx = M32(b + 32);
+    uint32_t bwma = ARG(2);  /* XAUDIO2_BUFFER_WMA* — packet seek table for xWMA */
     if (v->fmt == FMT_ADPCM && v->block_align && v->spb) {
+        g_xa_adpcm_submits++;
         uint32_t nb = x->bytes / (uint32_t)v->block_align;
         x->nframes = nb * (uint32_t)v->spb;
         x->decoded = malloc(sizeof(int16_t) * (size_t)x->nframes * (size_t)v->in_ch + 2);
         for (uint32_t i = 0; i < nb; i++)
             adpcm_block(v, MEM + x->data + i * (uint32_t)v->block_align, x->decoded + (size_t)i * (size_t)v->spb * (size_t)v->in_ch);
+    } else if (v->fmt == FMT_XWMA) {
+        g_xa_xwma_submits++;
+        uint32_t packet_count = bwma ? M32(bwma + 4) : 0;
+        uint32_t *packet_info = bwma && packet_count ? (uint32_t *)(MEM + M32(bwma)) : NULL;
+#ifdef LB_HAS_FFMPEG
+        /* decode xWMA packets -> PCM16 in x->decoded
+         * packet_info = cumulative end offsets (XAUDIO2_BUFFER_WMA) */
+        x->decoded = xwma_decode(MEM + x->data, x->bytes, v->in_ch, v->rate,
+                                 v->block_align, v->xwma_avg_bps, v->xwma_tag,
+                                 packet_info, packet_count,
+                                 v->xwma_extra, v->xwma_extra_size,
+                                 &x->nframes);
+        if (!x->decoded || !x->nframes) {
+            XA_LOG("xaudio2: xWMA decode FAILED tag=%04x bytes=%u packets=%u submit #%u",
+                   v->xwma_tag, x->bytes, packet_count, g_xa_xwma_submits);
+            x->nframes = 0;
+            free(x->decoded);
+            x->decoded = NULL;
+        } else if (g_xa_xwma_submits <= 10 || g_xa_xwma_submits % 50 == 0) {
+            XA_LOG("xaudio2: xWMA decoded tag=%04x %d ch %d Hz bytes=%u -> %u frames submit #%u",
+                   v->xwma_tag, v->in_ch, v->rate, x->bytes, x->nframes, g_xa_xwma_submits);
+        }
+#else
+        /* No decoder yet: empty buffer so OnBufferEnd fires and game does not stall. */
+        if (g_xa_xwma_submits <= 20 || g_xa_xwma_submits % 50 == 0) {
+            XA_LOG("xaudio2: xWMA SILENT tag=%04x %d ch %d Hz avg_bps=%d bytes=%u packets=%u submit #%u (need FFmpeg)",
+                   v->xwma_tag, v->in_ch, v->rate, v->xwma_avg_bps, x->bytes, packet_count, g_xa_xwma_submits);
+        }
+        x->nframes = 0;
+        x->decoded = NULL;
+        (void)packet_info;
+#endif
+        (void)bwma;
     } else if (v->fmt == FMT_NONE) {
         x->nframes = 0;
     } else {
+        g_xa_pcm_submits++;
         x->nframes = v->bpf ? x->bytes / (uint32_t)v->bpf : 0;
     }
     x->pos = x->play_begin < x->nframes ? x->play_begin : x->nframes;
@@ -715,7 +833,7 @@ SHIM(xa_CreateMasteringVoice) {
     g_master = v;
     v->guest = hcom_new(&k_mst, v);
     M32(ARG(1)) = v->guest;
-    LOG("xaudio2: mastering voice %d ch at %d Hz", v->in_ch, g_rate);
+    XA_LOG("xaudio2: mastering voice %d ch at %d Hz", v->in_ch, g_rate);
     engine_start_thread();  /* real XAudio2 processes from creation; StartEngine is optional */
     RET(0, 7);
 }
@@ -758,7 +876,14 @@ int xaudio2_create(uint32_t clsid, uint32_t *out) {
     classes_init();
     *out = hcom_new(&k_xa, NULL);
     g_running = 1;
-    LOG("xaudio2: created IXAudio2 %08x", *out);
+    XA_LOG("xaudio2: created IXAudio2 %08x", *out);
+    XA_LOG("xaudio2: build: xWMA path=yes decoder=%s log=port/log.txt + logcat",
+#ifdef LB_HAS_FFMPEG
+           "FFmpeg WMAV2"
+#else
+           "NONE (voices/music silent until FFmpeg linked)"
+#endif
+    );
     return 1;
 }
 
