@@ -1,0 +1,106 @@
+name: Build FFmpeg Android arm64 (WMAV2)
+
+on:
+  workflow_dispatch:
+    inputs:
+      ffmpeg_ref:
+        description: "FFmpeg git tag/branch (e.g. n6.1.1, master)"
+        required: false
+        default: "n6.1.1"
+      api_level:
+        description: "Android API level"
+        required: false
+        default: "28"
+
+  push:
+    paths:
+      - ".github/workflows/build-ffmpeg-android.yml"
+      - "scripts/build_ffmpeg_android.sh"
+
+env:
+  NDK_VERSION: "26.3.11579264"
+  FFMPEG_REF: ${{ github.event.inputs.ffmpeg_ref || 'n6.1.1' }}
+  API_LEVEL: ${{ github.event.inputs.api_level || '28' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17 (for sdkmanager)
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android NDK
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r26b
+          add-to-path: false
+
+      - name: Install build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y yasm nasm pkg-config
+
+      - name: Build FFmpeg arm64-v8a (wmav2 + wmapro only)
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/build_ffmpeg_android.sh
+          ./scripts/build_ffmpeg_android.sh \
+            --ndk "$ANDROID_NDK_HOME" \
+            --api "${{ env.API_LEVEL }}" \
+            --ref "${{ env.FFMPEG_REF }}" \
+            --out "$GITHUB_WORKSPACE/ffmpeg-android"
+
+      - name: Package layout for jni/
+        run: |
+          set -euo pipefail
+          OUT="$GITHUB_WORKSPACE/ffmpeg-android"
+          PKG="$GITHUB_WORKSPACE/ffmpeg-package"
+          mkdir -p "$PKG/include" "$PKG/lib/arm64-v8a"
+          cp -a "$OUT/include/." "$PKG/include/"
+          for f in "$OUT/lib/"libavcodec.so* "$OUT/lib/"libavutil.so*; do
+            [ -f "$f" ] || continue
+            base=$(basename "$f")
+            if [[ "$base" == libavcodec.so || "$base" == libavutil.so ]]; then
+              cp -L "$f" "$PKG/lib/arm64-v8a/$base"
+            elif [[ "$base" == libavcodec.so.* && ! -e "$PKG/lib/arm64-v8a/libavcodec.so" ]]; then
+              cp -L "$f" "$PKG/lib/arm64-v8a/libavcodec.so"
+            elif [[ "$base" == libavutil.so.* && ! -e "$PKG/lib/arm64-v8a/libavutil.so" ]]; then
+              cp -L "$f" "$PKG/lib/arm64-v8a/libavutil.so"
+            fi
+          done
+          ls -lah "$PKG/lib/arm64-v8a/"
+          strings "$PKG/lib/arm64-v8a/libavcodec.so" | grep -E 'wmav2|wmapro|WMAV2' | head -10 || true
+          {
+            echo "ffmpeg_ref=${{ env.FFMPEG_REF }}"
+            echo "api=${{ env.API_LEVEL }}"
+            echo "abi=arm64-v8a"
+            echo "decoders=wmav2,wmapro"
+            date -u +%Y-%m-%dT%H:%M:%SZ
+          } > "$PKG/BUILD_INFO.txt"
+          tar -C "$PKG" -cJf "$GITHUB_WORKSPACE/ffmpeg-android-arm64-wmav2.tar.xz" .
+          ls -lh "$GITHUB_WORKSPACE/ffmpeg-android-arm64-wmav2.tar.xz"
+
+      - name: Upload artifact (tar.xz)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ffmpeg-android-arm64-wmav2
+          path: ffmpeg-android-arm64-wmav2.tar.xz
+          retention-days: 90
+
+      - name: Upload artifact (unpacked tree)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ffmpeg-android-arm64-wmav2-tree
+          path: ffmpeg-package/
+          retention-days: 90
