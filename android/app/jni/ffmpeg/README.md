@@ -1,35 +1,43 @@
 # Prebuilt FFmpeg (arm64-v8a, WMAV2/WMAPRO only)
 
-Unpack the GitHub Actions artifact here:
+**Required layout:**
 
 ```
 ffmpeg/
   include/
-    libavcodec/
-    libavutil/
+    libavcodec/avcodec.h   <-- required
+    libavutil/...
   lib/
     arm64-v8a/
       libavcodec.so
       libavutil.so
-  BUILD_INFO.txt   (optional)
 ```
 
-## How to get the libs
+CMake enables `LB_HAS_FFMPEG` only if **headers and .so** are both present.
+If you only upload `.so` without `include/`, the build skips FFmpeg (no compile error).
+
+## Get the full package
 
 1. Actions → **Build FFmpeg Android arm64 (WMAV2)** → Run workflow
-2. Download artifact `ffmpeg-android-arm64-wmav2` (tar.xz) or `ffmpeg-android-arm64-wmav2-tree`
-3. Unpack into this directory:
+2. Download **`ffmpeg-android-arm64-wmav2`** (tar.xz) — contains include/ + lib/
+3. Unpack here:
 
 ```bash
 cd android/app/jni/ffmpeg
+# clear incomplete tree first
+rm -rf include lib
 tar -xJf ~/Downloads/ffmpeg-android-arm64-wmav2.tar.xz
+ls include/libavcodec/avcodec.h lib/arm64-v8a/libavcodec.so
 ```
 
-4. Rebuild the APK — CMake enables `LB_HAS_FFMPEG` automatically when `.so` files exist.
-
-Force on/off:
+Or:
 
 ```bash
-./gradlew assembleDebug -Pffmpeg=true
-./gradlew assembleDebug -Pffmpeg=false
+./scripts/install_ffmpeg_artifact.sh ~/Downloads/ffmpeg-android-arm64-wmav2.tar.xz
+```
+
+4. Rebuild:
+
+```bash
+cd android && ./gradlew assembleDebug -Pffmpeg=true
 ```
