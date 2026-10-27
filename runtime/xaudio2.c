@@ -60,6 +60,8 @@ struct Voice {
     int fmt, bpf, block_align, spb;
     int xwma_avg_bps;          /* nAvgBytesPerSec for xWMA */
     int xwma_tag;              /* 0x0161 or 0x0162 */
+    uint8_t xwma_extra[64];    /* WAVEFORMATEX cbSize bytes after header */
+    int xwma_extra_size;
     uint8_t adpcm_coef[64];
     int ncoef;
     float ratio, max_ratio;
@@ -131,10 +133,12 @@ static void adpcm_block(Voice *v, const uint8_t *b, int16_t *out) {
 
 
 #ifdef LB_HAS_FFMPEG
-/* Implemented in xwma_ffmpeg.c — decode xWMA/WMA payload to interleaved PCM16. */
+/* Implemented in xwma_ffmpeg.c — decode xWMA/WMA payload to interleaved PCM16.
+ * cum_bytes: XAUDIO2_BUFFER_WMA pDecodedPacketCumulativeBytes (cumulative ends). */
 int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
                      int block_align, int avg_bps, int tag,
-                     const uint32_t *packet_info, uint32_t packet_count,
+                     const uint32_t *cum_bytes, uint32_t packet_count,
+                     const uint8_t *extradata, int extradata_size,
                      uint32_t *out_frames);
 #endif
 
@@ -164,9 +168,18 @@ static void set_format(Voice *v, uint32_t wf) {
         v->xwma_tag = tag;
         v->xwma_avg_bps = (int)M32(wf + 8);
         v->bpf = v->block_align ? v->block_align : 1;
+        /* cbSize at offset 16; extradata follows the 18-byte WAVEFORMATEX */
+        {
+            int cb = (int)M16(wf + 16);
+            if (cb < 0) cb = 0;
+            if (cb > (int)sizeof(v->xwma_extra)) cb = (int)sizeof(v->xwma_extra);
+            v->xwma_extra_size = cb;
+            if (cb > 0) memcpy(v->xwma_extra, MEM + wf + 18, (size_t)cb);
+            else memset(v->xwma_extra, 0, sizeof v->xwma_extra);
+        }
         g_xa_xwma_voices++;
-        XA_LOG("xaudio2: source format xWMA tag=%04x %d ch %d Hz avg_bps=%d block_align=%d (voice #%u, decoder %s)",
-               tag, v->in_ch, v->rate, v->xwma_avg_bps, v->block_align, g_xa_xwma_voices,
+        XA_LOG("xaudio2: source format xWMA tag=%04x %d ch %d Hz avg_bps=%d block_align=%d extra=%d (voice #%u, decoder %s)",
+               tag, v->in_ch, v->rate, v->xwma_avg_bps, v->block_align, v->xwma_extra_size, g_xa_xwma_voices,
 #ifdef LB_HAS_FFMPEG
                "FFmpeg"
 #else
@@ -636,10 +649,13 @@ SHIM(xs_SubmitSourceBuffer) {
         uint32_t packet_count = bwma ? M32(bwma + 4) : 0;
         uint32_t *packet_info = bwma && packet_count ? (uint32_t *)(MEM + M32(bwma)) : NULL;
 #ifdef LB_HAS_FFMPEG
-        /* decode xWMA packets -> PCM16 in x->decoded */
+        /* decode xWMA packets -> PCM16 in x->decoded
+         * packet_info = cumulative end offsets (XAUDIO2_BUFFER_WMA) */
         x->decoded = xwma_decode(MEM + x->data, x->bytes, v->in_ch, v->rate,
                                  v->block_align, v->xwma_avg_bps, v->xwma_tag,
-                                 packet_info, packet_count, &x->nframes);
+                                 packet_info, packet_count,
+                                 v->xwma_extra, v->xwma_extra_size,
+                                 &x->nframes);
         if (!x->decoded || !x->nframes) {
             XA_LOG("xaudio2: xWMA decode FAILED tag=%04x bytes=%u packets=%u submit #%u",
                    v->xwma_tag, x->bytes, packet_count, g_xa_xwma_submits);
