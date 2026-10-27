@@ -52,8 +52,11 @@ if [[ ! -d ffmpeg/.git ]]; then
 fi
 cd ffmpeg
 
+# 16 KB page-size friendly for modern Android
 EXTRA_LDFLAGS="-Wl,-z,max-page-size=16384"
 
+# IMPORTANT: do NOT use -fvisibility=hidden — it strips all public av* exports
+# from the .so and the app link fails with undefined reference to avcodec_*.
 ./configure \
   --prefix="$OUT" \
   --target-os=android \
@@ -81,7 +84,7 @@ EXTRA_LDFLAGS="-Wl,-z,max-page-size=16384"
   --enable-decoder=wmapro \
   --enable-parser=wma \
   --enable-protocol=file \
-  --extra-cflags="-O2 -fPIC -DANDROID -fvisibility=hidden" \
+  --extra-cflags="-O2 -fPIC -DANDROID" \
   --extra-ldflags="$EXTRA_LDFLAGS" \
   --disable-debug \
   --disable-autodetect
@@ -93,6 +96,22 @@ for so in "$OUT"/lib/*.so; do
   [[ -f "$so" ]] || continue
   "$STRIP" --strip-unneeded "$so" || true
 done
+
+# Sanity: public symbols must be exported
+echo "=== export check ==="
+for so in "$OUT"/lib/libavcodec.so "$OUT"/lib/libavutil.so; do
+  [[ -f "$so" ]] || continue
+  n=$("$NM" -D "$so" 2>/dev/null | grep -c ' T ' || true)
+  echo "$so defined_symbols=$n"
+  if [[ "${n:-0}" -lt 10 ]]; then
+    echo "ERROR: $so exports too few symbols (visibility/build bug)"
+    exit 1
+  fi
+done
+"$NM" -D "$OUT"/lib/libavcodec.so 2>/dev/null | grep -E 'avcodec_find_decoder|avcodec_open2|avcodec_send_packet' || {
+  echo "ERROR: required avcodec_* symbols missing"
+  exit 1
+}
 
 echo "Installed to $OUT"
 ls -lah "$OUT/lib"
