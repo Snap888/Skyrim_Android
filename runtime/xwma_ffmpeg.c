@@ -52,6 +52,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
     if (avg_bps > 0) ctx->bit_rate = (int64_t)avg_bps * 8;
     ctx->bits_per_coded_sample = 16;
 
+    /* WMA needs WAVEFORMATEX trailing extradata when present */
     if (extradata && extradata_size > 0) {
         ctx->extradata = av_mallocz((size_t)extradata_size + AV_INPUT_BUFFER_PADDING_SIZE);
         if (!ctx->extradata) {
@@ -77,6 +78,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
 
     int packets_sent = 0, frames_got = 0, send_err = 0, recv_err = 0;
 
+    /* Helper: send one encoded packet and drain frames */
     #define DRAIN_FRAMES() do { \
         for (;;) { \
             int r = avcodec_receive_frame(ctx, frame); \
@@ -119,15 +121,18 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
         } \
     } while (0)
 
+    /* Build packet list: prefer cumulative table; else block_align slices */
     if (cum_bytes && packet_count > 0) {
         uint32_t prev = 0;
         for (uint32_t pi = 0; pi < packet_count; pi++) {
             uint32_t cum = cum_bytes[pi];
+            /* tolerate non-monotonic / oversize entries */
             if (cum < prev) continue;
             if (cum > size) cum = size;
             uint32_t psz = cum - prev;
             if (psz == 0) { prev = cum; continue; }
 
+            /* pad for FFmpeg bitstream readers */
             uint8_t *padded = av_malloc((size_t)psz + AV_INPUT_BUFFER_PADDING_SIZE);
             if (!padded) goto fail;
             memcpy(padded, data + prev, psz);
@@ -139,13 +144,18 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
             av_free(padded);
             pkt->data = NULL;
             pkt->size = 0;
-            if (err < 0) send_err = err;
-            else packets_sent++;
+            if (err < 0) {
+                send_err = err;
+                /* keep going — some packets may be headers/partial */
+            } else {
+                packets_sent++;
+            }
             DRAIN_FRAMES();
             prev = cum;
             if (prev >= size) break;
         }
     } else {
+        /* No table: split by block_align if sensible, else whole buffer */
         uint32_t step = (block_align > 0 && (size_t)block_align * 2 < size)
                         ? (uint32_t)block_align : size;
         for (uint32_t off = 0; off < size; ) {
@@ -171,6 +181,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
         }
     }
 
+    /* flush */
     avcodec_send_packet(ctx, NULL);
     DRAIN_FRAMES();
 
