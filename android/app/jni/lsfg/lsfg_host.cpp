@@ -1,4 +1,5 @@
 #include "lsfg_host.h"
+#include "lsfg_extract.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -15,6 +16,7 @@
 static LsfgConfig g_cfg;
 static int g_inited;
 static int g_logged_frame;
+static int g_extract_count;
 
 bool lsfg_load_config(const char *game_dir, LsfgConfig *out) {
     memset(out, 0, sizeof(*out));
@@ -26,7 +28,7 @@ bool lsfg_load_config(const char *game_dir, LsfgConfig *out) {
     snprintf(path, sizeof path, "%s/port/lsfg.conf", game_dir);
     FILE *f = fopen(path, "r");
     if (!f) {
-        LOGI("no %s — LSFG off", path);
+        LOGI("no %s \u2014 LSFG off", path);
         return false;
     }
     char line[1024];
@@ -49,14 +51,18 @@ bool lsfg_load_config(const char *game_dir, LsfgConfig *out) {
     fclose(f);
     if (out->multiplier < 1) out->multiplier = 1;
     if (out->multiplier > 4) out->multiplier = 4;
-    LOGI("config enabled=%d mult=%d flow=%.2f perf=%d dll=%s",
-         out->enabled, out->multiplier, out->flow_scale, out->performance, out->dll_path);
+    if (!out->shader_cache[0] && game_dir[0])
+        snprintf(out->shader_cache, sizeof out->shader_cache, "%s/port/lsfg_spirv", game_dir);
+    LOGI("config enabled=%d mult=%d flow=%.2f perf=%d dll=%s cache=%s",
+         out->enabled, out->multiplier, out->flow_scale, out->performance,
+         out->dll_path, out->shader_cache);
     return true;
 }
 
 bool lsfg_host_init(const LsfgConfig *cfg) {
     g_inited = 0;
     g_logged_frame = 0;
+    g_extract_count = 0;
     if (!cfg) return false;
     g_cfg = *cfg;
     if (!cfg->enabled || cfg->multiplier <= 1) {
@@ -65,13 +71,27 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     }
     FILE *dll = cfg->dll_path[0] ? fopen(cfg->dll_path, "rb") : NULL;
     if (!dll) {
-        LOGW("LSFG enabled but Lossless.dll not found at '%s' — FG inactive", cfg->dll_path);
+        LOGW("LSFG enabled but Lossless.dll not found at '%s' \u2014 FG inactive", cfg->dll_path);
         return false;
     }
     fclose(dll);
-    LOGW("LSFG: DLL found; compute chain NOT YET IMPLEMENTED "
-         "(scaffold only — see docs/LSFG_IMPLEMENTATION.md). "
-         "No frames will be interpolated until dxvk present hook + shader extract land.");
+
+    if (!cfg->shader_cache[0]) {
+        LOGW("LSFG: shader_cache path empty \u2014 skip extract");
+        return false;
+    }
+
+    int n = lsfg_extract_dll(cfg->dll_path, cfg->shader_cache);
+    if (n < 0) {
+        LOGW("LSFG: extract failed");
+        return false;
+    }
+    if (n == 0) {
+        LOGW("LSFG: DLL has no RT_RCDATA resources");
+        return false;
+    }
+    g_extract_count = n;
+    LOGI("LSFG: extract OK (%d resources). DXBC\u2192SPIR-V + present hook still TODO.", n);
     g_inited = 1;
     return true;
 }
@@ -85,8 +105,12 @@ bool lsfg_host_active(void) {
     return g_inited != 0;
 }
 
+int lsfg_host_extract_count(void) {
+    return g_extract_count;
+}
+
 void lsfg_host_on_frame(void) {
     if (!g_inited || g_logged_frame) return;
     g_logged_frame = 1;
-    LOGI("LSFG on_frame stub (no interpolation yet)");
+    LOGI("LSFG on_frame: extract_count=%d (no interpolation yet)", g_extract_count);
 }
