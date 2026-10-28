@@ -1,4 +1,4 @@
-/* DXBC -> SPIR-V via in-tree DXVK DxbcModule (compute shaders from Lossless.dll). */
+/* DXBC -> SPIR-V via in-tree DXVK DxbcModule. */
 #include "lsfg_translate.h"
 #include "lsfg_log.h"
 
@@ -8,6 +8,7 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <sys/stat.h>
 
 #include "../dxvk/src/dxbc/dxbc_module.h"
 #include "../dxvk/src/dxbc/dxbc_reader.h"
@@ -17,6 +18,11 @@
 #define LOGI(...) lsfg_log("I", __VA_ARGS__)
 #define LOGW(...) lsfg_log("W", __VA_ARGS__)
 #define LOGE(...) lsfg_log("E", __VA_ARGS__)
+
+static bool file_exists(const char *path) {
+    struct stat st;
+    return stat(path, &st) == 0 && st.st_size > 0;
+}
 
 static bool read_file(const char *path, std::vector<uint8_t> &out) {
     FILE *f = fopen(path, "rb");
@@ -90,6 +96,14 @@ int lsfg_translate_cache(const char *cache_dir) {
         return -1;
     }
 
+    int total = 0;
+    char line[256];
+    while (fgets(line, sizeof line, man)) {
+        unsigned id; unsigned long sz; char kind[32];
+        if (sscanf(line, "%u %lu %31s", &id, &sz, kind) == 3) total++;
+    }
+    rewind(man);
+
     char out_man_path[800];
     snprintf(out_man_path, sizeof out_man_path, "%s/manifest_spirv.txt", cache_dir);
     FILE *out_man = fopen(out_man_path, "w");
@@ -99,19 +113,28 @@ int lsfg_translate_cache(const char *cache_dir) {
         return -1;
     }
 
-    LOGI("=== LSFG step 2: DXBC -> SPIR-V ===");
-    int ok = 0, fail = 0, skip = 0;
-    char line[256];
+    LOGI("=== LSFG step 2: DXBC -> SPIR-V (%d resources) ===", total);
+    int ok = 0, fail = 0, skip = 0, cached = 0, done = 0;
     while (fgets(line, sizeof line, man)) {
         unsigned id = 0;
         unsigned long size = 0;
         char kind[32] = {0};
         if (sscanf(line, "%u %lu %31s", &id, &size, kind) != 3) continue;
+        done++;
 
         char bin_path[900];
         snprintf(bin_path, sizeof bin_path, "%s/rcdata_%u.bin", cache_dir, id);
         char spv_path[900];
         snprintf(spv_path, sizeof spv_path, "%s/%u.spv", cache_dir, id);
+
+        if (file_exists(spv_path)) {
+            fprintf(out_man, "%u 0 ok cached\n", id);
+            cached++;
+            ok++;
+            if (done == 1 || done == total || (done % 25) == 0)
+                LOGI("translate progress %d/%d (cached %d)", done, total, cached);
+            continue;
+        }
 
         if (!strcmp(kind, "spirv")) {
             std::vector<uint8_t> data;
@@ -129,13 +152,11 @@ int lsfg_translate_cache(const char *cache_dir) {
             }
             fclose(o);
             fprintf(out_man, "%u %zu ok spirv-copy\n", id, data.size() / 4);
-            LOGI("translate: id=%u kind=spirv copied (%zu bytes)", id, data.size());
             ok++;
             continue;
         }
 
         if (strcmp(kind, "dxbc") != 0) {
-            LOGI("translate: id=%u kind=%s skipped", id, kind);
             fprintf(out_man, "%u 0 skip %s\n", id, kind);
             skip++;
             continue;
@@ -163,12 +184,15 @@ int lsfg_translate_cache(const char *cache_dir) {
             continue;
         }
         fprintf(out_man, "%u %zu ok dxbc\n", id, spirv.size());
-        LOGI("translate: id=%u DXBC -> SPIR-V (%zu dwords)", id, spirv.size());
         ok++;
+        if (done == 1 || done == total || (done % 10) == 0)
+            LOGI("translate progress %d/%d ok=%d fail=%d (last id=%u %zu dwords)",
+                 done, total, ok, fail, id, spirv.size());
     }
 
     fclose(man);
     fclose(out_man);
-    LOGI("translate done: ok=%d fail=%d skip=%d -> %s", ok, fail, skip, out_man_path);
+    LOGI("translate done: ok=%d (cached=%d) fail=%d skip=%d -> %s",
+         ok, cached, fail, skip, out_man_path);
     return ok;
 }
