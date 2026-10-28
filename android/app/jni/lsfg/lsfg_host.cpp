@@ -1,6 +1,7 @@
 #include "lsfg_host.h"
 #include "lsfg_extract.h"
 #include "lsfg_translate.h"
+#include "lsfg_present.h"
 #include "lsfg_log.h"
 #include <stdio.h>
 #include <string.h>
@@ -68,7 +69,7 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     g_cfg = *cfg;
 
     LOGI("=== LSFG host init ===");
-    LOGI("STATUS: step1 extract + step2 SPIR-V; step3 present NOT done");
+    LOGI("STATUS: step1 extract + step2 SPIR-V + step3 present hook");
 
     if (!cfg->enabled || cfg->multiplier <= 1) {
         LOGI("LSFG disabled in config (enabled=%d mult=%d)", cfg->enabled, cfg->multiplier);
@@ -109,7 +110,8 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
         return false;
     }
     LOGI("translate OK: %d SPIR-V module(s)", tn);
-    LOGI("NEXT: Vulkan present hook (step 3) — still no frame interpolation");
+    lsfg_host_set_spirv_count(tn);
+    LOGI("STEP3: present hook will log on first Present(); FG compute still TODO");
     g_inited = 1;
     return true;
 }
@@ -132,5 +134,6 @@ void lsfg_host_on_frame(void) {
     if (!g_inited) return;
     if (g_logged_frame) return;
     g_logged_frame = 1;
-    LOGI("on_frame: extract_count=%d — STILL no interpolation (need present hook)", g_extract_count);
+    LOGI("on_frame: extract_count=%d spirv=%d (present hook is authoritative)",
+         g_extract_count, lsfg_host_spirv_count());
 }
