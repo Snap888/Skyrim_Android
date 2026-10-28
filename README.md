@@ -8,7 +8,7 @@ Discord: http://discord.gg/df3cK2JCqs
 
 Youtube link below:
 
-[![Watch the video](https://img.youtube.com/vi/EOMYf-gHe0k/hqdefault.jpg)](https://www.youtube.com/watch?v=EOMYf-gHe0k)
+[![Watch the video](https://img.youtube.com/vi/FxGzgauZbgU/hqdefault.jpg)](https://www.youtube.com/watch?v=FxGzgauZbgU)
 
 ## Functionality
 - **Static recompilation.** This project is *not* a decompilation but a recompilation; Basically, it's just converting one type of code to another rather than re-creating the original source. `TESV.exe`, `d3dx9_42.dll`, `binkw32.dll` and `X3DAudio1_7.dll` are all recompiled.
