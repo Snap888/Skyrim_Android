@@ -1,6 +1,6 @@
 # dxvk-native D3D9 (native-1.9.2b, patched for mobile GPUs). Source list and
 # generated shader headers come from a desktop meson build (tools/make_android.py).
-# dxbc/* added for LSFG DXBC->SPIR-V translation (Lossless Scaling compute shaders).
+# dxbc/* added for LSFG DXBC->SPIR-V translation.
 add_library(dxvk_d3d9 SHARED
     src/d3d9/d3d9_adapter.cpp
     src/d3d9/d3d9_buffer.cpp
@@ -63,11 +63,14 @@ add_library(dxvk_d3d9 SHARED
     src/dxvk/dxvk_graphics.cpp
     src/dxvk/dxvk_image.cpp
     src/dxvk/dxvk_instance.cpp
+    src/dxvk/dxvk_lifetime.cpp
+    src/dxvk/dxvk_main.cpp
     src/dxvk/dxvk_memory.cpp
     src/dxvk/dxvk_meta_blit.cpp
     src/dxvk/dxvk_meta_clear.cpp
     src/dxvk/dxvk_meta_copy.cpp
     src/dxvk/dxvk_meta_mipgen.cpp
+    src/dxvk/dxvk_meta_pack.cpp
     src/dxvk/dxvk_meta_resolve.cpp
     src/dxvk/dxvk_openvr.cpp
     src/dxvk/dxvk_options.cpp
@@ -75,7 +78,7 @@ add_library(dxvk_d3d9 SHARED
     src/dxvk/dxvk_pipelayout.cpp
     src/dxvk/dxvk_pipemanager.cpp
     src/dxvk/dxvk_queue.cpp
-    src/dxvk/dxvk_recycler.cpp
+    src/dxvk/dxvk_renderpass.cpp
     src/dxvk/dxvk_resource.cpp
     src/dxvk/dxvk_sampler.cpp
     src/dxvk/dxvk_shader.cpp
