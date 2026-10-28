@@ -18,17 +18,14 @@ set_source_files_properties(${D3DC_SRC} PROPERTIES COMPILE_OPTIONS "-O2")
 
 add_library(main SHARED ${RT_SRC} ${RT_CXX} $<TARGET_OBJECTS:lbgen>)
 target_include_directories(main PRIVATE ${PORT}/runtime ${PORT}/gen ../sdlinc
-    ../dxvk/include/native/directx ../dxvk/include/native/windows ../dxvk/include/native)
+    ../dxvk/include/native/directx ../dxvk/include/native/windows ../dxvk/include/native
+    ../lsfg)
 target_compile_definitions(main PRIVATE DXVK_NATIVE GAME_SKYRIM)
 target_compile_options(main PRIVATE -O2 -fno-strict-aliasing -fwrapv -fsigned-char -Wno-everything
     $<$<COMPILE_LANGUAGE:C>:-std=gnu11>)
-target_link_libraries(main PRIVATE SDL2 dxvk_d3d9 m $<$<BOOL:${ANDROID}>:log> $<$<BOOL:${ANDROID}>:android>)
+target_link_libraries(main PRIVATE SDL2 dxvk_d3d9 lsfg_host m $<$<BOOL:${ANDROID}>:log> $<$<BOOL:${ANDROID}>:android>)
 
 # ---- xWMA / FFmpeg (optional) ------------------------------------------------
-# Needs BOTH:
-#   jni/ffmpeg/include/libavcodec/avcodec.h
-#   jni/ffmpeg/lib/<abi>/libavcodec.so + libavutil.so
-# From workflow artifact ffmpeg-android-arm64-wmav2 (full tar with include/).
 set(FFMPEG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../ffmpeg)
 set(_ffmpeg_avcodec "${FFMPEG_DIR}/lib/${ANDROID_ABI}/libavcodec.so")
 set(_ffmpeg_avutil  "${FFMPEG_DIR}/lib/${ANDROID_ABI}/libavutil.so")
