@@ -1,8 +1,6 @@
-/* Host-side LSFG (Lossless Scaling Frame Generation) for Skyrim_Android.
- * Design: compositor-style FG after DXVK produces a VkImage (WinNative/Eden path),
- * NOT MediaProjection and NOT loading Lossless.dll as a PE module.
- *
- * Status: scaffolding — config load + lifecycle stubs. Full compute chain TBD.
+/* Host-side LSFG for Skyrim_Android.
+ * Step 1: PE RCDATA extract from user Lossless.dll into shader_cache.
+ * Step 2+: DXBC\u2192SPIR-V, Vulkan present (not yet).
  */
 #pragma once
 #include <stdbool.h>
@@ -25,6 +23,7 @@ bool lsfg_load_config(const char *game_dir, LsfgConfig *out);
 bool lsfg_host_init(const LsfgConfig *cfg);
 void lsfg_host_shutdown(void);
 bool lsfg_host_active(void);
+int  lsfg_host_extract_count(void);
 void lsfg_host_on_frame(void);
 
 #ifdef __cplusplus
