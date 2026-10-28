@@ -1,4 +1,10 @@
-/* xWMA decode via FFmpeg — Skyrim voices/music (tag 0x0161 / 0x0162). */
+/* xWMA decode via FFmpeg for Skyrim (tag 0x0161 / 0x0162).
+ *
+ * XAudio2 gives raw WMA frames of nBlockAlign bytes. Feeding them one-by-one
+ * often yields only a few decoded frames (rare voice snippets). Strategy:
+ *  1) try continuous feed of the whole buffer (decoder self-syncs)
+ *  2) if almost empty, retry with block_align packets
+ */
 #ifdef LB_HAS_FFMPEG
 
 #include <stdint.h>
@@ -12,11 +18,6 @@
 #include <libavutil/mem.h>
 #include <libavutil/error.h>
 
-/* Common WMA2 extradata when WAVEFORMATEX.cbSize == 0 (many game streams). */
-static const uint8_t k_wma2_extra_default[] = {
-    0x00, 0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00
-};
-
 static void xa_err(const char *what, int err)
 {
     char buf[128];
@@ -24,21 +25,21 @@ static void xa_err(const char *what, int err)
     fprintf(stderr, "xwma_ffmpeg: %s: %s (%d)\n", what, buf, err);
 }
 
-static int frame_channels(const AVFrame *frame, int fallback)
+static int frame_ch(const AVFrame *f, int fb)
 {
 #if LIBAVCODEC_VERSION_MAJOR >= 59
-    int n = frame->ch_layout.nb_channels;
+    int n = f->ch_layout.nb_channels;
 #else
-    int n = frame->channels;
+    int n = f->channels;
 #endif
-    return n > 0 ? n : fallback;
+    return n > 0 ? n : fb;
 }
 
 static int append_frame(AVFrame *frame, int want_ch,
                         int16_t **pcm, size_t *len, size_t *cap)
 {
     int n = frame->nb_samples;
-    int src_ch = frame_channels(frame, want_ch);
+    int src_ch = frame_ch(frame, want_ch);
     if (n <= 0 || want_ch <= 0) return 0;
 
     size_t need = (*len + (size_t)n * (size_t)want_ch) * sizeof(int16_t);
@@ -51,27 +52,20 @@ static int append_frame(AVFrame *frame, int want_ch,
         *cap = ncap;
     }
     int16_t *dst = *pcm + *len;
-
     for (int i = 0; i < n; i++) {
         for (int c = 0; c < want_ch; c++) {
             int sc = c < src_ch ? c : 0;
             float s = 0.f;
             switch (frame->format) {
             case AV_SAMPLE_FMT_S16:
-                s = ((int16_t *)frame->data[0])[i * src_ch + sc] / 32768.f;
-                break;
+                s = ((int16_t *)frame->data[0])[i * src_ch + sc] / 32768.f; break;
             case AV_SAMPLE_FMT_S16P:
-                s = ((int16_t *)frame->data[sc])[i] / 32768.f;
-                break;
+                s = ((int16_t *)frame->data[sc])[i] / 32768.f; break;
             case AV_SAMPLE_FMT_FLT:
-                s = ((float *)frame->data[0])[i * src_ch + sc];
-                break;
+                s = ((float *)frame->data[0])[i * src_ch + sc]; break;
             case AV_SAMPLE_FMT_FLTP:
-                s = ((float *)frame->data[sc])[i];
-                break;
-            default:
-                s = 0.f;
-                break;
+                s = ((float *)frame->data[sc])[i]; break;
+            default: break;
             }
             if (s > 1.f) s = 1.f;
             if (s < -1.f) s = -1.f;
@@ -83,18 +77,49 @@ static int append_frame(AVFrame *frame, int want_ch,
 }
 
 static int drain(AVCodecContext *ctx, AVFrame *frame, int want_ch,
-                 int16_t **pcm, size_t *len, size_t *cap, int *got)
+                 int16_t **pcm, size_t *len, size_t *cap)
 {
     for (;;) {
         int r = avcodec_receive_frame(ctx, frame);
         if (r == AVERROR(EAGAIN) || r == AVERROR_EOF) return 0;
         if (r < 0) return r;
         if (append_frame(frame, want_ch, pcm, len, cap) < 0) return AVERROR(ENOMEM);
-        (*got)++;
     }
 }
 
-static int send_raw(AVCodecContext *ctx, const uint8_t *p, int psz, AVPacket *pkt)
+static AVCodecContext *open_ctx(const AVCodec *codec, int channels, int rate,
+                                int block_align, int avg_bps,
+                                const uint8_t *extradata, int extradata_size)
+{
+    AVCodecContext *ctx = avcodec_alloc_context3(codec);
+    if (!ctx) return NULL;
+    ctx->sample_rate = rate > 0 ? rate : 44100;
+#if LIBAVCODEC_VERSION_MAJOR >= 59
+    av_channel_layout_default(&ctx->ch_layout, channels);
+#else
+    ctx->channels = channels;
+    ctx->channel_layout = av_get_default_channel_layout(channels);
+#endif
+    if (block_align > 0) ctx->block_align = block_align;
+    if (avg_bps > 0) ctx->bit_rate = (int64_t)avg_bps * 8;
+    ctx->request_sample_fmt = AV_SAMPLE_FMT_FLTP;
+
+    if (extradata && extradata_size > 0) {
+        ctx->extradata = av_mallocz((size_t)extradata_size + AV_INPUT_BUFFER_PADDING_SIZE);
+        if (!ctx->extradata) { avcodec_free_context(&ctx); return NULL; }
+        memcpy(ctx->extradata, extradata, (size_t)extradata_size);
+        ctx->extradata_size = extradata_size;
+    }
+    if (avcodec_open2(ctx, codec, NULL) < 0) {
+        avcodec_free_context(&ctx);
+        return NULL;
+    }
+    return ctx;
+}
+
+static int feed_block(AVCodecContext *ctx, const uint8_t *p, int psz,
+                      AVPacket *pkt, AVFrame *frame, int channels,
+                      int16_t **pcm, size_t *len, size_t *cap)
 {
     uint8_t *padded = av_malloc((size_t)psz + AV_INPUT_BUFFER_PADDING_SIZE);
     if (!padded) return AVERROR(ENOMEM);
@@ -106,7 +131,8 @@ static int send_raw(AVCodecContext *ctx, const uint8_t *p, int psz, AVPacket *pk
     av_free(padded);
     pkt->data = NULL;
     pkt->size = 0;
-    return err;
+    if (err < 0 && err != AVERROR(EAGAIN)) return err;
+    return drain(ctx, frame, channels, pcm, len, cap);
 }
 
 int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
@@ -117,45 +143,13 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
 {
     *out_frames = 0;
     if (!data || !size || channels < 1) return NULL;
+    (void)cum_bytes;
+    (void)packet_count;
 
     enum AVCodecID id = (tag == 0x0162) ? AV_CODEC_ID_WMAPRO : AV_CODEC_ID_WMAV2;
     const AVCodec *codec = avcodec_find_decoder(id);
     if (!codec) {
-        fprintf(stderr, "xwma_ffmpeg: no decoder for tag %04x\n", tag);
-        return NULL;
-    }
-
-    AVCodecContext *ctx = avcodec_alloc_context3(codec);
-    if (!ctx) return NULL;
-
-    ctx->sample_rate = rate > 0 ? rate : 44100;
-#if LIBAVCODEC_VERSION_MAJOR >= 59
-    av_channel_layout_default(&ctx->ch_layout, channels);
-#else
-    ctx->channels = channels;
-    ctx->channel_layout = av_get_default_channel_layout(channels);
-#endif
-    ctx->block_align = block_align > 0 ? block_align : 0;
-    if (avg_bps > 0) ctx->bit_rate = (int64_t)avg_bps * 8;
-    ctx->request_sample_fmt = AV_SAMPLE_FMT_FLTP;
-
-    const uint8_t *extra = extradata;
-    int extra_sz = extradata_size;
-    if ((!extra || extra_sz <= 0) && tag == 0x0161) {
-        extra = k_wma2_extra_default;
-        extra_sz = (int)sizeof k_wma2_extra_default;
-    }
-    if (extra && extra_sz > 0) {
-        ctx->extradata = av_mallocz((size_t)extra_sz + AV_INPUT_BUFFER_PADDING_SIZE);
-        if (!ctx->extradata) { avcodec_free_context(&ctx); return NULL; }
-        memcpy(ctx->extradata, extra, (size_t)extra_sz);
-        ctx->extradata_size = extra_sz;
-    }
-
-    int err = avcodec_open2(ctx, codec, NULL);
-    if (err < 0) {
-        xa_err("avcodec_open2", err);
-        avcodec_free_context(&ctx);
+        fprintf(stderr, "xwma_ffmpeg: no decoder tag=%04x\n", tag);
         return NULL;
     }
 
@@ -163,95 +157,70 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
     int16_t *pcm = NULL;
     AVPacket *pkt = av_packet_alloc();
     AVFrame *frame = av_frame_alloc();
-    if (!pkt || !frame) goto fail;
-
-    int packets_sent = 0, frames_got = 0, send_err = 0, recv_err = 0;
-    int send_fail = 0;
-
-    int use_cum = 0;
-    if (cum_bytes && packet_count > 0) {
-        uint32_t last = cum_bytes[packet_count - 1];
-        if (cum_bytes[0] <= size && (last == size || last + 8 >= size))
-            use_cum = 1;
-    }
-
-    if (!use_cum && block_align <= 0) {
-        err = send_raw(ctx, data, (int)size, pkt);
-        if (err < 0) send_err = err; else packets_sent++;
-        err = drain(ctx, frame, channels, &pcm, &len, &cap, &frames_got);
-        if (err < 0) recv_err = err;
-    } else if (use_cum) {
-        uint32_t prev = 0;
-        for (uint32_t i = 0; i < packet_count; i++) {
-            uint32_t cum = cum_bytes[i];
-            if (cum < prev) continue;
-            if (cum > size) cum = size;
-            uint32_t psz = cum - prev;
-            if (!psz) { prev = cum; continue; }
-            err = send_raw(ctx, data + prev, (int)psz, pkt);
-            if (err < 0) { send_err = err; send_fail++; }
-            else packets_sent++;
-            err = drain(ctx, frame, channels, &pcm, &len, &cap, &frames_got);
-            if (err < 0) { recv_err = err; break; }
-            prev = cum;
-            if (prev >= size) break;
-        }
-    } else {
-        uint32_t ba = (uint32_t)block_align;
-        for (uint32_t off = 0; off < size; ) {
-            uint32_t psz = ba;
-            if (off + psz > size) psz = size - off;
-            if (!psz) break;
-            if (psz < ba && psz < 64) break;
-            err = send_raw(ctx, data + off, (int)psz, pkt);
-            if (err < 0) { send_err = err; send_fail++; }
-            else packets_sent++;
-            err = drain(ctx, frame, channels, &pcm, &len, &cap, &frames_got);
-            if (err < 0) { recv_err = err; break; }
-            off += psz;
-        }
-    }
-
-    avcodec_send_packet(ctx, NULL);
-    {
-        int e = drain(ctx, frame, channels, &pcm, &len, &cap, &frames_got);
-        if (e < 0) recv_err = e;
-    }
-
-    av_frame_free(&frame);
-    av_packet_free(&pkt);
-    avcodec_free_context(&ctx);
-
-    if (!pcm || !len) {
-        fprintf(stderr,
-                "xwma_ffmpeg: no PCM tag=%04x size=%u ba=%d tbl=%u sent=%d fail=%d got=%d "
-                "use_cum=%d se=%d re=%d extra=%d\n",
-                tag, size, block_align, packet_count, packets_sent, send_fail, frames_got,
-                use_cum, send_err, recv_err, extra_sz);
-        if (send_err) xa_err("send", send_err);
-        if (recv_err) xa_err("recv", recv_err);
-        free(pcm);
+    if (!pkt || !frame) {
+        av_packet_free(&pkt);
+        av_frame_free(&frame);
         return NULL;
     }
 
-    if (send_fail > 0 || (avg_bps > 0 && rate > 0)) {
-        double sec_cmp = avg_bps > 0 ? (double)size / (double)avg_bps : 0;
-        double sec_pcm = (double)(len / (size_t)channels) / (double)(rate > 0 ? rate : 1);
+    /* Pass 1: whole buffer as one bitstream */
+    AVCodecContext *ctx = open_ctx(codec, channels, rate, block_align, avg_bps,
+                                   extradata, extradata_size);
+    if (!ctx) goto done;
+
+    feed_block(ctx, data, (int)size, pkt, frame, channels, &pcm, &len, &cap);
+    avcodec_send_packet(ctx, NULL);
+    drain(ctx, frame, channels, &pcm, &len, &cap);
+    avcodec_free_context(&ctx);
+
+    double sec_cmp = (avg_bps > 0) ? (double)size / (double)avg_bps : 0;
+    double sec_pcm = (rate > 0 && len) ? (double)(len / (size_t)channels) / (double)rate : 0;
+
+    int pass1_ok = (len > 0) && (sec_cmp <= 0.01 || sec_pcm >= sec_cmp * 0.25 || sec_pcm >= 0.5);
+
+    if (!pass1_ok && block_align > 0) {
+        free(pcm); pcm = NULL; len = 0; cap = 0;
+        ctx = open_ctx(codec, channels, rate, block_align, avg_bps,
+                       extradata, extradata_size);
+        if (ctx) {
+            uint32_t ba = (uint32_t)block_align;
+            int sent = 0, fails = 0;
+            for (uint32_t off = 0; off + 4 < size; ) {
+                uint32_t psz = ba;
+                if (off + psz > size) psz = size - off;
+                if (psz < 32) break;
+                int err = feed_block(ctx, data + off, (int)psz, pkt, frame, channels,
+                                     &pcm, &len, &cap);
+                if (err < 0) fails++;
+                else sent++;
+                off += psz;
+            }
+            avcodec_send_packet(ctx, NULL);
+            drain(ctx, frame, channels, &pcm, &len, &cap);
+            avcodec_free_context(&ctx);
+            sec_pcm = (rate > 0 && len) ? (double)(len / (size_t)channels) / (double)rate : 0;
+            fprintf(stderr,
+                    "xwma_ffmpeg: pass2 ba=%d sent=%d fail=%d pcm=%.2fs cmp=%.2fs tag=%04x\n",
+                    block_align, sent, fails, sec_pcm, sec_cmp, tag);
+        }
+    } else if (len > 0) {
         fprintf(stderr,
-                "xwma_ffmpeg: ok tag=%04x pcm=%.2fs cmp=%.2fs frames=%u sent=%d fail=%d use_cum=%d ba=%d extra=%d\n",
-                tag, sec_pcm, sec_cmp, (unsigned)(len / (size_t)channels),
-                packets_sent, send_fail, use_cum, block_align, extra_sz);
+                "xwma_ffmpeg: pass1 whole pcm=%.2fs cmp=%.2fs frames=%u tag=%04x ba=%d extra=%d\n",
+                sec_pcm, sec_cmp, (unsigned)(len / (size_t)channels), tag, block_align, extradata_size);
     }
 
-    *out_frames = (uint32_t)(len / (size_t)channels);
-    return pcm;
-
-fail:
+done:
     av_frame_free(&frame);
     av_packet_free(&pkt);
-    avcodec_free_context(&ctx);
-    free(pcm);
-    return NULL;
+
+    if (!pcm || !len) {
+        fprintf(stderr, "xwma_ffmpeg: FAILED tag=%04x size=%u ba=%d extra=%d\n",
+                tag, size, block_align, extradata_size);
+        free(pcm);
+        return NULL;
+    }
+    *out_frames = (uint32_t)(len / (size_t)channels);
+    return pcm;
 }
 
 #endif /* LB_HAS_FFMPEG */
