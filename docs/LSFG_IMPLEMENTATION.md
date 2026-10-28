@@ -11,27 +11,43 @@ Reference design: WinNative `docs/lsfg-frame-generation.md` / Eden LSFG (not Med
 
 | Item | Location |
 |------|----------|
-| Launcher toggles + write `port/lsfg.conf` | `LauncherActivity.java` |
 | Host config load + init/shutdown stubs | `android/app/jni/lsfg/lsfg_host.*` |
 | Link `lsfg_host` into `libmain` | `jni/lsfg/CMakeLists.txt`, `jni/game/CMakeLists.txt` |
-| Call `lsfg_host_init` after `platform_init` | `runtime/main.c` |
+| Bootstrap helper | `runtime/lsfg_bootstrap.c` |
 | Feasibility notes | `docs/LSFG_VK_INTEGRATION.md` |
 
-## Not done yet (next commits)
+## Wire-up required in `runtime/platform_sdl.c`
 
-1. **Extract** RCDATA from `Lossless.dll` → DXBC → SPIR-V cache under `port/lsfg_spirv/`
-2. **Probe** device for required Vulkan features (`VK_EXT_robustness2`, etc.).
-3. **Present hook** in dxvk-native: intermediate presents then real frame.
-4. **Pacing** with existing FPS cap / vsync options.
+```c
+// end of platform_init(), after load_key_script():
+{ extern void lsfg_bootstrap(void); lsfg_bootstrap(); }
 
-## User setup (once FG is complete)
+// start of platform_present_hook():
+{ extern void lsfg_bootstrap_frame(void); lsfg_bootstrap_frame(); }
+```
 
-1. Copy `Lossless.dll` to `<Skyrim folder>/port/Lossless.dll`
-2. Launcher → enable LSFG, multiplier 2×
-3. logcat tag `skyrim-lsfg`
+`runtime/lsfg_bootstrap.c` is picked up by `file(GLOB RT_SRC ${PORT}/runtime/*.c)`.
 
-Until extract + present hook land, enabling LSFG only logs that the DLL was found.
+## Launcher (add if missing)
 
-## License
+On Play, write `port/lsfg.conf`:
 
-Do **not** commit or ship `Lossless.dll` or extracted SPIR-V in the repo/APK.
+```
+enabled=1
+multiplier=2
+flow_scale=0.70
+performance=1
+dll_path=<game>/port/Lossless.dll
+shader_cache=<game>/port/lsfg_spirv
+```
+
+Copy `Lossless.dll` to `<game>/port/Lossless.dll`. Do not commit the DLL.
+
+## Not done yet
+
+1. Extract RCDATA from DLL → SPIR-V cache
+2. Vulkan feature probe
+3. DXVK present hook (real interpolation)
+4. FPS pacing with multiplier
+
+Until then, logcat tag `skyrim-lsfg` only reports config / DLL found.
