@@ -1,5 +1,6 @@
 # dxvk-native D3D9 (native-1.9.2b, patched for mobile GPUs). Source list and
 # generated shader headers come from a desktop meson build (tools/make_android.py).
+# dxbc/* added for LSFG DXBC->SPIR-V translation (Lossless Scaling compute shaders).
 add_library(dxvk_d3d9 SHARED
     src/d3d9/d3d9_adapter.cpp
     src/d3d9/d3d9_buffer.cpp
@@ -62,21 +63,19 @@ add_library(dxvk_d3d9 SHARED
     src/dxvk/dxvk_graphics.cpp
     src/dxvk/dxvk_image.cpp
     src/dxvk/dxvk_instance.cpp
-    src/dxvk/dxvk_lifetime.cpp
-    src/dxvk/dxvk_main.cpp
     src/dxvk/dxvk_memory.cpp
     src/dxvk/dxvk_meta_blit.cpp
     src/dxvk/dxvk_meta_clear.cpp
     src/dxvk/dxvk_meta_copy.cpp
     src/dxvk/dxvk_meta_mipgen.cpp
-    src/dxvk/dxvk_meta_pack.cpp
     src/dxvk/dxvk_meta_resolve.cpp
+    src/dxvk/dxvk_openvr.cpp
     src/dxvk/dxvk_options.cpp
     src/dxvk/dxvk_pipecache.cpp
     src/dxvk/dxvk_pipelayout.cpp
     src/dxvk/dxvk_pipemanager.cpp
     src/dxvk/dxvk_queue.cpp
-    src/dxvk/dxvk_renderpass.cpp
+    src/dxvk/dxvk_recycler.cpp
     src/dxvk/dxvk_resource.cpp
     src/dxvk/dxvk_sampler.cpp
     src/dxvk/dxvk_shader.cpp
@@ -94,6 +93,18 @@ add_library(dxvk_d3d9 SHARED
     src/dxvk/hud/dxvk_hud_item.cpp
     src/dxvk/hud/dxvk_hud_renderer.cpp
     src/dxvk/platform/dxvk_sdl2_exts.cpp
+    src/dxbc/dxbc_analysis.cpp
+    src/dxbc/dxbc_chunk_isgn.cpp
+    src/dxbc/dxbc_chunk_shex.cpp
+    src/dxbc/dxbc_common.cpp
+    src/dxbc/dxbc_compiler.cpp
+    src/dxbc/dxbc_decoder.cpp
+    src/dxbc/dxbc_defs.cpp
+    src/dxbc/dxbc_header.cpp
+    src/dxbc/dxbc_module.cpp
+    src/dxbc/dxbc_names.cpp
+    src/dxbc/dxbc_reader.cpp
+    src/dxbc/dxbc_util.cpp
     src/spirv/spirv_code_buffer.cpp
     src/spirv/spirv_compression.cpp
     src/spirv/spirv_module.cpp
@@ -123,7 +134,7 @@ add_library(dxvk_d3d9 SHARED
     src/wsi/sdl2/wsi_native_surface.cpp)
 target_include_directories(dxvk_d3d9 PRIVATE
     generated include include/native include/native/windows include/native/directx
-    src/util src/dxvk src/d3d9 src/dxso src/wsi src/spirv src/vulkan ../sdlinc)
+    src/util src/dxvk src/d3d9 src/dxso src/dxbc src/wsi src/spirv src/vulkan ../sdlinc)
 target_include_directories(dxvk_d3d9 PUBLIC include/native/directx include/native/windows include/native)
 target_compile_definitions(dxvk_d3d9 PRIVATE NOMINMAX _WIN32_WINNT=0xa00 DXVK_NATIVE
     DXVK_WSI_SDL2 DXVK_PLATFORM_LINUX _FILE_OFFSET_BITS=64)
