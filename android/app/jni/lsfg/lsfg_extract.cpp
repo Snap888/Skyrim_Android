@@ -1,7 +1,7 @@
-/* Minimal PE RT_RCDATA extractor for Lossless.dll (no pe-parse).
- * Walk .rsrc, type id 10 = RT_RCDATA. */
+/* Minimal PE RT_RCDATA extractor for Lossless.dll (no pe-parse). */
 #include "lsfg_extract.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -99,8 +99,7 @@ static int mkdir_p(const char *path) {
     return 0;
 }
 
-static const uint8_t *map_file(const char *path, size_t *out_sz, uint8_t **heap) {
-    *heap = NULL;
+static uint8_t *map_file(const char *path, size_t *out_sz) {
     *out_sz = 0;
     FILE *f = fopen(path, "rb");
     if (!f) return NULL;
@@ -112,18 +111,16 @@ static const uint8_t *map_file(const char *path, size_t *out_sz, uint8_t **heap)
     if (!buf) { fclose(f); return NULL; }
     if (fread(buf, 1, (size_t)sz, f) != (size_t)sz) { free(buf); fclose(f); return NULL; }
     fclose(f);
-    *heap = buf;
     *out_sz = (size_t)sz;
     return buf;
 }
 
-static int rva_to_off(const SecHdr *secs, int nsec, uint32_t rva, uint32_t *off, uint32_t *max_in_sec) {
+static int rva_to_off(const SecHdr *secs, int nsec, uint32_t rva, uint32_t *off) {
     for (int i = 0; i < nsec; i++) {
         uint32_t va = secs[i].VirtualAddress;
         uint32_t vs = secs[i].VirtualSize ? secs[i].VirtualSize : secs[i].SizeOfRawData;
         if (rva >= va && rva < va + vs) {
             *off = secs[i].PointerToRawData + (rva - va);
-            *max_in_sec = secs[i].PointerToRawData + secs[i].SizeOfRawData;
             return 0;
         }
     }
@@ -134,7 +131,8 @@ static const char *blob_kind(const uint8_t *p, size_t n) {
     if (n >= 4 && p[0] == 'D' && p[1] == 'X' && p[2] == 'B' && p[3] == 'C')
         return "dxbc";
     if (n >= 4) {
-        uint32_t m = (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
+        uint32_t m = (uint32_t)p[0] | ((uint32_t)p[1] << 8) |
+                     ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
         if (m == 0x07230203u) return "spirv";
     }
     return "raw";
@@ -163,10 +161,10 @@ static int write_blob(const char *cache_dir, uint32_t id, const uint8_t *data, s
 static int walk_res(const uint8_t *file, size_t fsz,
                     const SecHdr *secs, int nsec,
                     uint32_t rsrc_rva, uint32_t dir_rva,
-                    int level, uint32_t type_id, uint32_t name_id,
+                    int level, uint32_t name_id,
                     const char *cache_dir, FILE *manifest, int *count) {
-    uint32_t off = 0, sec_end = 0;
-    if (rva_to_off(secs, nsec, dir_rva, &off, &sec_end) != 0) return -1;
+    uint32_t off = 0;
+    if (rva_to_off(secs, nsec, dir_rva, &off) != 0) return -1;
     if (off + sizeof(ResDir) > fsz) return -1;
     const ResDir *dir = (const ResDir *)(file + off);
     uint32_t nent = (uint32_t)dir->NumberOfNamedEntries + dir->NumberOfIdEntries;
@@ -181,23 +179,23 @@ static int walk_res(const uint8_t *file, size_t fsz,
 
         if (level == 0) {
             if (id & 0x80000000u) continue;
-            if (id != RT_RCDATA) continue;
+            if (id != (uint32_t)RT_RCDATA) continue;
             if (!is_dir) continue;
-            if (walk_res(file, fsz, secs, nsec, rsrc_rva, next_rva, 1, id, 0, cache_dir, manifest, count) != 0)
+            if (walk_res(file, fsz, secs, nsec, rsrc_rva, next_rva, 1, 0, cache_dir, manifest, count) != 0)
                 return -1;
         } else if (level == 1) {
             if (id & 0x80000000u) continue;
             if (!is_dir) continue;
-            if (walk_res(file, fsz, secs, nsec, rsrc_rva, next_rva, 2, type_id, id, cache_dir, manifest, count) != 0)
+            if (walk_res(file, fsz, secs, nsec, rsrc_rva, next_rva, 2, id, cache_dir, manifest, count) != 0)
                 return -1;
         } else {
             if (is_dir) continue;
-            uint32_t doff = 0, dend = 0;
-            if (rva_to_off(secs, nsec, next_rva, &doff, &dend) != 0) return -1;
+            uint32_t doff = 0;
+            if (rva_to_off(secs, nsec, next_rva, &doff) != 0) return -1;
             if (doff + sizeof(ResData) > fsz) return -1;
             const ResData *rd = (const ResData *)(file + doff);
-            uint32_t data_off = 0, data_end = 0;
-            if (rva_to_off(secs, nsec, rd->OffsetToData, &data_off, &data_end) != 0) return -1;
+            uint32_t data_off = 0;
+            if (rva_to_off(secs, nsec, rd->OffsetToData, &data_off) != 0) return -1;
             if (rd->Size == 0 || data_off + rd->Size > fsz) {
                 LOGW("extract: skip id=%u bad size/rva", name_id);
                 continue;
@@ -216,10 +214,9 @@ bool lsfg_extract_cache_ready(const char *cache_dir) {
     FILE *f = fopen(path, "r");
     if (!f) return false;
     char line[128];
-    int ok = 0;
-    if (fgets(line, sizeof line, f)) ok = 1;
+    int ok = fgets(line, sizeof line, f) != NULL;
     fclose(f);
-    return ok != 0;
+    return ok;
 }
 
 int lsfg_extract_dll(const char *dll_path, const char *cache_dir) {
@@ -243,8 +240,7 @@ int lsfg_extract_dll(const char *dll_path, const char *cache_dir) {
     }
 
     size_t fsz = 0;
-    uint8_t *heap = NULL;
-    const uint8_t *file = map_file(dll_path, &fsz, &heap);
+    uint8_t *file = map_file(dll_path, &fsz);
     if (!file) {
         LOGE("extract: cannot read DLL %s", dll_path);
         return -1;
@@ -254,70 +250,73 @@ int lsfg_extract_dll(const char *dll_path, const char *cache_dir) {
     int count = 0;
     FILE *manifest = NULL;
 
-    if (fsz < sizeof(DosHdr)) goto done;
-    const DosHdr *dos = (const DosHdr *)file;
-    if (dos->e_magic != 0x5A4D) { LOGE("extract: not MZ"); goto done; }
-    if (dos->e_lfanew <= 0 || (size_t)dos->e_lfanew + 4 + sizeof(FileHdr) > fsz) {
-        LOGE("extract: bad e_lfanew"); goto done;
-    }
-    if (memcmp(file + dos->e_lfanew, "PE\0\0", 4) != 0) { LOGE("extract: not PE"); goto done; }
+    do {
+        if (fsz < sizeof(DosHdr)) { LOGE("extract: file too small"); break; }
+        const DosHdr *dos = (const DosHdr *)file;
+        if (dos->e_magic != 0x5A4D) { LOGE("extract: not MZ"); break; }
+        if (dos->e_lfanew <= 0 || (size_t)dos->e_lfanew + 4 + sizeof(FileHdr) > fsz) {
+            LOGE("extract: bad e_lfanew"); break;
+        }
+        if (memcmp(file + dos->e_lfanew, "PE\0\0", 4) != 0) { LOGE("extract: not PE"); break; }
 
-    const FileHdr *fh = (const FileHdr *)(file + dos->e_lfanew + 4);
-    size_t opt_off = (size_t)dos->e_lfanew + 4 + sizeof(FileHdr);
-    if (opt_off + 2 > fsz) goto done;
-    uint16_t opt_magic = *(const uint16_t *)(file + opt_off);
+        const FileHdr *fh = (const FileHdr *)(file + dos->e_lfanew + 4);
+        size_t opt_off = (size_t)dos->e_lfanew + 4 + sizeof(FileHdr);
+        if (opt_off + 2 > fsz) break;
+        uint16_t opt_magic = *(const uint16_t *)(file + opt_off);
 
-    DataDir rsrc_dir = {0, 0};
-    if (opt_magic == 0x10b) {
-        if (opt_off + sizeof(OptHdr32) > fsz) goto done;
-        const OptHdr32 *opt = (const OptHdr32 *)(file + opt_off);
-        if (opt->NumberOfRvaAndSizes > IMAGE_DIRECTORY_ENTRY_RESOURCE)
-            rsrc_dir = opt->DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE];
-    } else if (opt_magic == 0x20b) {
-        if (opt_off + sizeof(OptHdr64) > fsz) goto done;
-        const OptHdr64 *opt = (const OptHdr64 *)(file + opt_off);
-        if (opt->NumberOfRvaAndSizes > IMAGE_DIRECTORY_ENTRY_RESOURCE)
-            rsrc_dir = opt->DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE];
-    } else {
-        LOGE("extract: unknown optional magic %04x", opt_magic);
-        goto done;
-    }
+        DataDir rsrc_dir;
+        rsrc_dir.VirtualAddress = 0;
+        rsrc_dir.Size = 0;
+        if (opt_magic == 0x10b) {
+            if (opt_off + sizeof(OptHdr32) > fsz) break;
+            const OptHdr32 *opt = (const OptHdr32 *)(file + opt_off);
+            if (opt->NumberOfRvaAndSizes > (uint32_t)IMAGE_DIRECTORY_ENTRY_RESOURCE)
+                rsrc_dir = opt->DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE];
+        } else if (opt_magic == 0x20b) {
+            if (opt_off + sizeof(OptHdr64) > fsz) break;
+            const OptHdr64 *opt = (const OptHdr64 *)(file + opt_off);
+            if (opt->NumberOfRvaAndSizes > (uint32_t)IMAGE_DIRECTORY_ENTRY_RESOURCE)
+                rsrc_dir = opt->DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE];
+        } else {
+            LOGE("extract: unknown optional magic %04x", opt_magic);
+            break;
+        }
 
-    if (rsrc_dir.VirtualAddress == 0 || rsrc_dir.Size == 0) {
-        LOGE("extract: no resource directory");
-        goto done;
-    }
+        if (rsrc_dir.VirtualAddress == 0 || rsrc_dir.Size == 0) {
+            LOGE("extract: no resource directory");
+            break;
+        }
 
-    size_t sec_off = opt_off + fh->SizeOfOptionalHeader;
-    if (sec_off + (size_t)fh->NumberOfSections * sizeof(SecHdr) > fsz) goto done;
-    const SecHdr *secs = (const SecHdr *)(file + sec_off);
-    int nsec = fh->NumberOfSections;
+        size_t sec_off = opt_off + fh->SizeOfOptionalHeader;
+        if (sec_off + (size_t)fh->NumberOfSections * sizeof(SecHdr) > fsz) break;
+        const SecHdr *secs = (const SecHdr *)(file + sec_off);
+        int nsec = fh->NumberOfSections;
 
-    char man_path[800];
-    snprintf(man_path, sizeof man_path, "%s/manifest.txt", cache_dir);
-    manifest = fopen(man_path, "w");
-    if (!manifest) {
-        LOGE("extract: cannot write manifest");
-        goto done;
-    }
+        char man_path[800];
+        snprintf(man_path, sizeof man_path, "%s/manifest.txt", cache_dir);
+        manifest = fopen(man_path, "w");
+        if (!manifest) {
+            LOGE("extract: cannot write manifest");
+            break;
+        }
 
-    if (walk_res(file, fsz, secs, nsec, rsrc_dir.VirtualAddress, rsrc_dir.VirtualAddress,
-                 0, 0, 0, cache_dir, manifest, &count) != 0) {
-        LOGE("extract: resource walk failed");
-        goto done;
-    }
+        if (walk_res(file, fsz, secs, nsec, rsrc_dir.VirtualAddress, rsrc_dir.VirtualAddress,
+                     0, 0, cache_dir, manifest, &count) != 0) {
+            LOGE("extract: resource walk failed");
+            break;
+        }
 
-    fflush(manifest);
-    LOGI("extract: done, %d RCDATA blob(s) -> %s", count, cache_dir);
-    result = count;
+        fflush(manifest);
+        LOGI("extract: done, %d RCDATA blob(s) -> %s", count, cache_dir);
+        result = count;
+    } while (0);
 
-done:
     if (manifest) fclose(manifest);
-    free(heap);
-    if (result <= 0) {
+    free(file);
+    if (result < 0) {
         char man_path2[800];
         snprintf(man_path2, sizeof man_path2, "%s/manifest.txt", cache_dir);
-        if (result < 0) remove(man_path2);
+        remove(man_path2);
     }
     return result;
 }
