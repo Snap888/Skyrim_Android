@@ -8,16 +8,10 @@
 #include <sys/stat.h>
 #include <errno.h>
 
-#ifdef __ANDROID__
-#include <android/log.h>
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, "skyrim-lsfg", __VA_ARGS__)
-#define LOGW(...) __android_log_print(ANDROID_LOG_WARN, "skyrim-lsfg", __VA_ARGS__)
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, "skyrim-lsfg", __VA_ARGS__)
-#else
-#define LOGI(...) do { fprintf(stderr, __VA_ARGS__); fputc('\n', stderr); } while (0)
-#define LOGW(...) LOGI(__VA_ARGS__)
-#define LOGE(...) LOGI(__VA_ARGS__)
-#endif
+#include "lsfg_log.h"
+#define LOGI(...) lsfg_log("I", __VA_ARGS__)
+#define LOGW(...) lsfg_log("W", __VA_ARGS__)
+#define LOGE(...) lsfg_log("E", __VA_ARGS__)
 
 #pragma pack(push, 1)
 struct DosHdr {
