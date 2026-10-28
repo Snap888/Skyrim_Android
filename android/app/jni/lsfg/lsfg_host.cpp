@@ -1,5 +1,6 @@
 #include "lsfg_host.h"
 #include "lsfg_extract.h"
+#include "lsfg_translate.h"
 #include "lsfg_log.h"
 #include <stdio.h>
 #include <string.h>
@@ -67,8 +68,7 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     g_cfg = *cfg;
 
     LOGI("=== LSFG host init ===");
-    LOGI("STATUS: frame generation NOT implemented yet (extract only)");
-    LOGI("Need: DXBC->SPIR-V + DXVK present hook before FPS can rise");
+    LOGI("STATUS: step1 extract + step2 SPIR-V; step3 present NOT done");
 
     if (!cfg->enabled || cfg->multiplier <= 1) {
         LOGI("LSFG disabled in config (enabled=%d mult=%d)", cfg->enabled, cfg->multiplier);
@@ -98,8 +98,18 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     }
     g_extract_count = n;
     LOGI("extract OK: %d RCDATA blob(s) in %s", n, cfg->shader_cache);
-    LOGI("NEXT: translate dxbc blobs to SPIR-V, then wire present()");
-    LOGI("Until then: no interpolated frames (game runs at base FPS only)");
+
+    int tn = lsfg_translate_cache(cfg->shader_cache);
+    if (tn < 0) {
+        LOGW("SPIR-V translate hard-failed");
+        return false;
+    }
+    if (tn == 0) {
+        LOGW("SPIR-V translate produced 0 modules — FG cannot run");
+        return false;
+    }
+    LOGI("translate OK: %d SPIR-V module(s)", tn);
+    LOGI("NEXT: Vulkan present hook (step 3) — still no frame interpolation");
     g_inited = 1;
     return true;
 }
@@ -122,5 +132,5 @@ void lsfg_host_on_frame(void) {
     if (!g_inited) return;
     if (g_logged_frame) return;
     g_logged_frame = 1;
-    LOGI("on_frame: extract_count=%d — STILL no interpolation (scaffold)", g_extract_count);
+    LOGI("on_frame: extract_count=%d — STILL no interpolation (need present hook)", g_extract_count);
 }
