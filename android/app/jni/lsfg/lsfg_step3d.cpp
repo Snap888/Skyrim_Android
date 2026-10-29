@@ -21,8 +21,10 @@ static VkImageView g_view[2];
 static int g_fb_ready;
 
 extern "C" void lsfg_step3hb_set_phys(void *phys);
+extern "C" void lsfg_step3hc_set_phys(void *phys);
 extern "C" void lsfg_step3d_set_phys_queue(void *phys, void *queue) {
     lsfg_step3hb_set_phys(phys);
+    lsfg_step3hc_set_phys(phys);
     g_phys = (VkPhysicalDevice)phys;
     g_queue = (VkQueue)queue;
 }
