@@ -111,6 +111,7 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     }
     LOGI("translate OK: %d SPIR-V module(s)", tn);
     lsfg_host_set_spirv_count(tn);
+    lsfg_host_set_cache_dir(cfg->shader_cache);
     LOGI("STEP3: present hook will log on first Present(); FG compute still TODO");
     g_inited = 1;
     return true;
