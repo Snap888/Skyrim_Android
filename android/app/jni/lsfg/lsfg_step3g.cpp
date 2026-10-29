@@ -16,6 +16,7 @@ using namespace dxvk;
 static std::atomic<unsigned> g_copy_n{0};
 static int g_pp;
 static int g_logged;
+static unsigned g_history_mask;
 
 extern "C" void lsfg_step3g_copy_impl(
     void *ctx_v, void *src_view_v, void *device_v,
@@ -75,6 +76,15 @@ extern "C" void lsfg_step3g_copy_impl(
         VkExtent3D{ w, h, 1 });
 
     unsigned n = ++g_copy_n;
+    unsigned slot = (unsigned)(g_pp & 1);
+    unsigned slot_bit = 1u << slot;
+    if (!(g_history_mask & slot_bit)) {
+        g_history_mask |= slot_bit;
+        lsfg_log("I", "step3g: first copy command recorded for history[%u]; mask=0x%x",
+                 slot, g_history_mask);
+        if (g_history_mask == 0x3u)
+            lsfg_log("I", "step3g: both history slots have copy commands recorded (GPU pixel contents not yet read back)");
+    }
     if (!g_logged) {
         g_logged = 1;
         lsfg_log("I", "=== LSFG step 3g-a: DXVK cmd-stream copy LIVE ===");
