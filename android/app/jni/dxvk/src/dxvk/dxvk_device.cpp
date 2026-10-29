@@ -1,11 +1,15 @@
 #include "dxvk_device.h"
 #include "dxvk_instance.h"
 
-/* LSFG callback: set from libmain via lsfg_set_vk_device_hook (avoids weak-symbol across .so). */
+/* LSFG: context hook (device, physicalDevice, graphicsQueue) */
+static void (*g_lsfg_vk_ctx_hook)(void*, void*, void*) = nullptr;
 static void (*g_lsfg_vk_device_hook)(void*) = nullptr;
 
 extern "C" void lsfg_set_vk_device_hook(void (*fn)(void*)) {
   g_lsfg_vk_device_hook = fn;
+}
+extern "C" void lsfg_set_vk_context_hook(void (*fn)(void*, void*, void*)) {
+  g_lsfg_vk_ctx_hook = fn;
 }
 
 namespace dxvk {
@@ -37,7 +41,6 @@ namespace dxvk {
       g_dxvkUbyte4AsUint = !(fp.bufferFeatures & VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT)
                         || (force && *force == '1');
 #ifdef __ANDROID__
-      // Mobile drivers are unreliable with scaled formats; the UINT path is exact everywhere.
       g_dxvkUbyte4AsUint = true;
 #endif
       Logger::info(str::format("Port: USCALED vertex fetch ",
@@ -48,19 +51,19 @@ namespace dxvk {
     m_queues.graphics = getQueue(queueFamilies.graphics, 0);
     m_queues.transfer = getQueue(queueFamilies.transfer, 0);
 
-    // LSFG: notify host of VkDevice (hook installed from lsfg_host_init)
-    if (g_lsfg_vk_device_hook)
+    // LSFG: notify host of Vulkan context
+    if (g_lsfg_vk_ctx_hook)
+      g_lsfg_vk_ctx_hook(
+        reinterpret_cast<void*>(m_vkd->device()),
+        reinterpret_cast<void*>(m_adapter->handle()),
+        reinterpret_cast<void*>(m_queues.graphics.queueHandle));
+    else if (g_lsfg_vk_device_hook)
       g_lsfg_vk_device_hook(reinterpret_cast<void*>(m_vkd->device()));
   }
   
   
   DxvkDevice::~DxvkDevice() {
-    // Wait for all pending Vulkan commands to be
-    // executed before we destroy any resources.
     this->waitForIdle();
-
-    // Stop workers explicitly in order to prevent
-    // access to structures that are being destroyed.
     m_objects.pipelineManager().stopWorkerThreads();
   }
 
@@ -97,20 +100,16 @@ namespace dxvk {
   
   Rc<DxvkCommandList> DxvkDevice::createCommandList() {
     Rc<DxvkCommandList> cmdList = m_recycledCommandLists.retrieveObject();
-    
     if (cmdList == nullptr)
       cmdList = new DxvkCommandList(this);
-    
     return cmdList;
   }
 
 
   Rc<DxvkDescriptorPool> DxvkDevice::createDescriptorPool() {
     Rc<DxvkDescriptorPool> pool = m_recycledDescriptorPools.retrieveObject();
-
     if (pool == nullptr)
       pool = new DxvkDescriptorPool(m_vkd);
-    
     return pool;
   }
   
