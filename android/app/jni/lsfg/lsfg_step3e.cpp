@@ -12,22 +12,14 @@
 #endif
 
 extern "C" void lsfg_set_present_image_hook(void (*fn)(void*, void*, uint32_t, uint32_t, uint32_t));
-extern "C" int  lsfg_step3d_frames_ready(void);
-extern "C" void *lsfg_step3d_get_image(int idx);
-extern "C" unsigned lsfg_step3d_fb_width(void);
-extern "C" unsigned lsfg_step3d_fb_height(void);
-
 static std::atomic<unsigned> g_n{0};
 static int g_logged_init;
 static int g_3f_logged;
 static int g_null_skipped;
 
-static VkQueue          g_queue = VK_NULL_HANDLE;
-static uint32_t         g_qfam  = 0;
-
 extern "C" void lsfg_step3e_set_queue(void *queue, uint32_t family) {
-    g_queue = (VkQueue)queue;
-    g_qfam  = family;
+    (void)queue;
+    (void)family;
 }
 
 extern "C" void lsfg_step3e_on_image(void *device, void *image,
