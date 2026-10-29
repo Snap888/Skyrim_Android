@@ -164,7 +164,7 @@ static void try_build_compute_pipelines(VkDevice device) {
         VkResult pr = vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &pci, nullptr, &pipe);
         if (pr == VK_SUCCESS && pipe) {
             g_compute_ok++;
-            lsfg_log("I", "step3c: id=%u compute pipeline OK", id);
+            lsfg_log("I", "step3c: id=%u pipeline creation probe OK (not dispatched)", id);
             vkDestroyPipeline(device, pipe, nullptr);
         } else {
             g_compute_fail++;
@@ -173,7 +173,7 @@ static void try_build_compute_pipelines(VkDevice device) {
         vkDestroyShaderModule(device, mod, nullptr);
     }
     fclose(f);
-    lsfg_log("I", "step3c done: compute tried=%d ok=%d fail=%d", tried, g_compute_ok, g_compute_fail);
+    lsfg_log("I", "step3c probe done: tried=%d pipeline_create_ok=%d fail=%d; all probe pipelines destroyed, no dispatch/output", tried, g_compute_ok, g_compute_fail);
 }
 
 void lsfg_host_on_present(uint32_t width, uint32_t height, uint32_t vk_format) {
@@ -197,7 +197,7 @@ void lsfg_host_on_present_ex(uint32_t width, uint32_t height, uint32_t vk_format
         lsfg_step3d_run(dev, g_cache_dir, width, height);
     }
     if (g_present_n == 60 || g_present_n == 300 || (g_present_n % 1800) == 0) {
-        lsfg_log("I", "present: frame #%u %ux%u compute_ok=%d frames=%d (no interpolation yet)",
+        lsfg_log("I", "present: frame #%u %ux%u pipeline_probe_ok=%d history_ready=%d generated_frames=0 (dispatch/output not implemented)",
                  g_present_n, width, height, g_compute_ok, lsfg_step3d_frames_ready());
     }
 }
