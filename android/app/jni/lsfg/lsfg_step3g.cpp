@@ -10,6 +10,8 @@
 
 extern "C" int  lsfg_step3d_frames_ready(void);
 extern "C" void *lsfg_step3d_get_image(int idx);
+extern "C" unsigned lsfg_step3d_fb_width(void);
+extern "C" unsigned lsfg_step3d_fb_height(void);
 
 using namespace dxvk;
 
@@ -17,7 +19,7 @@ static std::atomic<unsigned> g_copy_n{0};
 static int g_pp;
 static int g_logged;
 static unsigned g_history_mask;
-static std::atomic<unsigned> g_slot_copies[2] = {{0}, {0}};
+static std::atomic<unsigned> g_slot_copies[2]{};
 
 extern "C" void lsfg_step3g_copy_impl(
     void *ctx_v, void *src_view_v, void *device_v,
@@ -31,13 +33,31 @@ extern "C" void lsfg_step3g_copy_impl(
     auto *srcView = reinterpret_cast<DxvkImageView*>(src_view_v);
     auto *device  = reinterpret_cast<DxvkDevice*>(device_v);
 
-    VkImage histVk = reinterpret_cast<VkImage>(lsfg_step3d_get_image(g_pp & 1));
+    unsigned slot = (unsigned)(g_pp & 1);
+    unsigned fbw = lsfg_step3d_fb_width();
+    unsigned fbh = lsfg_step3d_fb_height();
+    if (w != fbw || h != fbh) {
+        if (!g_logged) {
+            g_logged = 1;
+            lsfg_log("W", "step3g: extent mismatch present=%ux%u history=%ux%u; skip copy", w, h, fbw, fbh);
+        }
+        return;
+    }
+    VkImage histVk = reinterpret_cast<VkImage>(lsfg_step3d_get_image((int)slot));
     if (!histVk) return;
 
     Rc<DxvkImage> srcImg = srcView->image();
     if (srcImg == nullptr) return;
 
     VkFormat histFmt = VK_FORMAT_R8G8B8A8_UNORM;
+    if (srcImg->info().extent.width != w || srcImg->info().extent.height != h) {
+        if (!g_logged) {
+            g_logged = 1;
+            lsfg_log("W", "step3g: source extent mismatch image=%ux%u args=%ux%u; skip copy",
+                     srcImg->info().extent.width, srcImg->info().extent.height, w, h);
+        }
+        return;
+    }
     if (srcImg->info().format != histFmt) {
         if (!g_logged) {
             g_logged = 1;
