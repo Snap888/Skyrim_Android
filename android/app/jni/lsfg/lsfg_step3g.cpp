@@ -12,6 +12,7 @@ extern "C" int  lsfg_step3d_frames_ready(void);
 extern "C" void *lsfg_step3d_get_image(int idx);
 extern "C" unsigned lsfg_step3d_fb_width(void);
 extern "C" unsigned lsfg_step3d_fb_height(void);
+extern "C" unsigned lsfg_step3d_fb_generation(void);
 
 using namespace dxvk;
 
@@ -20,6 +21,10 @@ static int g_pp;
 static int g_logged;
 static unsigned g_history_mask;
 static std::atomic<unsigned> g_slot_copies[2]{};
+static Rc<DxvkImage> g_hist_wrap[2];
+static VkImage g_hist_handle[2]{};
+static DxvkDevice* g_wrap_device;
+static unsigned g_wrap_generation;
 
 extern "C" void lsfg_step3g_copy_impl(
     void *ctx_v, void *src_view_v, void *device_v,
@@ -67,7 +72,19 @@ extern "C" void lsfg_step3g_copy_impl(
         return;
     }
 
-    DxvkImageCreateInfo ii{};
+    unsigned generation = lsfg_step3d_fb_generation();
+    if (g_wrap_device != device || g_wrap_generation != generation) {
+        g_hist_wrap[0] = Rc<DxvkImage>();
+        g_hist_wrap[1] = Rc<DxvkImage>();
+        g_hist_handle[0] = VK_NULL_HANDLE;
+        g_hist_handle[1] = VK_NULL_HANDLE;
+        g_wrap_device = device;
+        g_wrap_generation = generation;
+        lsfg_log("I", "step3g: reset persistent history wrappers generation=%u", generation);
+    }
+
+    if (g_hist_wrap[slot] == nullptr || g_hist_handle[slot] != histVk) {
+        DxvkImageCreateInfo ii{};
     ii.type        = VK_IMAGE_TYPE_2D;
     ii.format      = histFmt;
     ii.flags       = 0;
@@ -83,7 +100,12 @@ extern "C" void lsfg_step3g_copy_impl(
     ii.layout      = VK_IMAGE_LAYOUT_GENERAL;
     ii.shared      = VK_TRUE;
 
-    Rc<DxvkImage> dstImg = new DxvkImage(device->vkd(), ii, histVk);
+        g_hist_wrap[slot] = new DxvkImage(device->vkd(), ii, histVk);
+        g_hist_handle[slot] = histVk;
+        lsfg_log("I", "step3g: created persistent wrapper slot[%u] image=%p generation=%u",
+                 slot, (void*)histVk, generation);
+    }
+    Rc<DxvkImage> dstImg = g_hist_wrap[slot];
 
     VkImageSubresourceLayers sub{};
     sub.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -97,7 +119,6 @@ extern "C" void lsfg_step3g_copy_impl(
         VkExtent3D{ w, h, 1 });
 
     unsigned n = ++g_copy_n;
-    unsigned slot = (unsigned)(g_pp & 1);
     unsigned slot_n = ++g_slot_copies[slot];
     unsigned slot_bit = 1u << slot;
     if (!(g_history_mask & slot_bit)) {
