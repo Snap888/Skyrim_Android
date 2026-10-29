@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 #include "dxvk_barrier.h"
 #include "dxvk_bind_mask.h"
 #include "dxvk_cmdlist.h"
@@ -56,6 +58,9 @@ namespace dxvk {
      * buffer and allocates a new one.
      */
     void flushCommandList();
+
+    /** Registers work to run after the active command list's GPU fence. */
+    void addCompletionCallback(std::function<void(VkResult)> callback);
     
     /**
      * \brief Begins generating query data
