@@ -162,14 +162,21 @@ extern "C" void lsfg_step3d_run(void *device, const char *cache_dir, uint32_t w,
         create_fb(dev, w, h);
 
     if (g_done) return;
-    g_done = 1;
-
-    lsfg_log("I", "=== LSFG step 3d: descriptor reflection + frame pair ===");
 
     char man[600];
     snprintf(man, sizeof man, "%s/manifest_spirv.txt", cache_dir);
     FILE *f = fopen(man, "r");
-    if (!f) { lsfg_log("W", "step3d: no manifest"); return; }
+    if (!f) {
+        static int missing_manifest_logged;
+        if (!missing_manifest_logged) {
+            missing_manifest_logged = 1;
+            lsfg_log("W", "step3d: no manifest yet at %s; will retry", man);
+        }
+        return;
+    }
+
+    g_done = 1;
+    lsfg_log("I", "=== LSFG step 3d: descriptor reflection + frame pair ===");
 
     int cn = 0, wb = 0, maxb = 0;
     char line[256];
