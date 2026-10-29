@@ -58,7 +58,6 @@ namespace dxvk {
     m_queues.graphics = getQueue(queueFamilies.graphics, 0);
     m_queues.transfer = getQueue(queueFamilies.transfer, 0);
 
-    // LSFG: notify host of Vulkan context
     if (g_lsfg_vk_ctx_hook)
       g_lsfg_vk_ctx_hook(
         reinterpret_cast<void*>(m_vkd->device()),
@@ -247,6 +246,17 @@ namespace dxvk {
     const Rc<vk::Presenter>&        presenter,
           DxvkSubmitStatus*         status) {
     status->result = VK_NOT_READY;
+
+    /* LSFG step 3e: signal present */
+    if (g_lsfg_present_image_hook) {
+      const auto info = presenter->info();
+      g_lsfg_present_image_hook(
+        reinterpret_cast<void*>(m_vkd->device()),
+        nullptr,
+        info.imageExtent.width,
+        info.imageExtent.height,
+        static_cast<uint32_t>(info.format.format));
+    }
 
     DxvkPresentInfo presentInfo;
     presentInfo.presenter = presenter;
