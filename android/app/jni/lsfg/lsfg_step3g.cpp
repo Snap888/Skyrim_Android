@@ -12,6 +12,7 @@ extern "C" int  lsfg_step3d_frames_ready(void);
 extern "C" void *lsfg_step3d_get_image(int idx);
 extern "C" void lsfg_set_step3g_copy_hook(void (*fn)(void*, void*, void*, uint32_t, uint32_t, uint32_t));
 extern "C" void lsfg_step3gb_after_copy(void *device, unsigned qfam);
+extern "C" void lsfg_step3hb_after_copy(void *device, unsigned qfam);
 extern "C" unsigned lsfg_step3e_queue_family(void);
 
 using namespace dxvk;
@@ -90,6 +91,8 @@ static void lsfg_step3g_copy_impl(
     }
     g_pp++;
     lsfg_step3gb_after_copy(reinterpret_cast<void*>(device->handle()),
+                           lsfg_step3e_queue_family());
+    lsfg_step3hb_after_copy(reinterpret_cast<void*>(device->handle()),
                            lsfg_step3e_queue_family());
 }
 
