@@ -4,8 +4,12 @@
 
 #include "d3d9_hud.h"
 
-/* Optional host-side LSFG hook; implemented in lsfg_host static library. */
-extern "C" void lsfg_step3g_insert_copy(void*, void*, void*, uint32_t, uint32_t, uint32_t);
+/* LSFG callback registration keeps DXVK independent of lsfg_host at link time. */
+using LsfgCopyHook = void (*)(void*, void*, void*, uint32_t, uint32_t, uint32_t);
+static LsfgCopyHook g_lsfgCopyHook = nullptr;
+extern "C" void lsfg_step3g_set_copy_hook(LsfgCopyHook hook) {
+  g_lsfgCopyHook = hook;
+}
 
 namespace dxvk {
 
@@ -869,7 +873,7 @@ namespace dxvk {
 
       /* LSFG step 3g-a: copy swapchain -> history inside same DXVK cmd list */
       {
-        lsfg_step3g_insert_copy(
+        if (g_lsfgCopyHook) g_lsfgCopyHook(
             m_context.ptr(),
             m_imageViews.at(imageIndex).ptr(),
             m_device.ptr(),
