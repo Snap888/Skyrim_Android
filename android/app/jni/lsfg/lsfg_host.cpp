@@ -16,6 +16,8 @@ extern "C" void lsfg_set_vk_context_hook(void (*)(void*, void*, void*, unsigned)
 extern "C" void lsfg_step3e_install(void);
 extern "C" void lsfg_step3g_install(void);
 extern "C" void lsfg_step3gb_install(void);
+extern "C" void lsfg_step3h_install(void);
+extern "C" void lsfg_step3h_pin_roles(const char *cache, int performance);
 extern "C" void lsfg_step3e_set_queue(void *queue, unsigned family);
 
 static LsfgConfig g_cfg;
@@ -125,8 +127,10 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     lsfg_step3e_install();
     lsfg_step3g_install();
     lsfg_step3gb_install();
+    lsfg_step3h_install();
+    lsfg_step3h_pin_roles(cfg->shader_cache, cfg->performance);
 
-    LOGI("STEP3: present + step3e/3g/3g-b hooks installed");
+    LOGI("STEP3: present + step3e/3g/3g-b + 3h-a roles installed");
     g_inited = 1;
     return true;
 }
