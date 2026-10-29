@@ -3,6 +3,7 @@
 #include "lsfg_log.h"
 
 #include <stdio.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <vector>
@@ -105,11 +106,13 @@ int lsfg_translate_cache(const char *cache_dir) {
     rewind(man);
 
     char out_man_path[800];
+    char out_man_tmp[840];
     snprintf(out_man_path, sizeof out_man_path, "%s/manifest_spirv.txt", cache_dir);
-    FILE *out_man = fopen(out_man_path, "w");
+    snprintf(out_man_tmp, sizeof out_man_tmp, "%s/manifest_spirv.txt.tmp", cache_dir);
+    FILE *out_man = fopen(out_man_tmp, "w");
     if (!out_man) {
         fclose(man);
-        LOGE("translate: cannot write %s", out_man_path);
+        LOGE("translate: cannot write temporary manifest %s", out_man_tmp);
         return -1;
     }
 
@@ -191,7 +194,19 @@ int lsfg_translate_cache(const char *cache_dir) {
     }
 
     fclose(man);
-    fclose(out_man);
+    int manifest_close_ok = (fclose(out_man) == 0);
+    if (!manifest_close_ok) {
+        remove(out_man_tmp);
+        LOGE("translate: failed closing temporary manifest %s", out_man_tmp);
+        return -1;
+    }
+    if (rename(out_man_tmp, out_man_path) != 0) {
+        int rename_errno = errno;
+        remove(out_man_tmp);
+        LOGE("translate: cannot publish manifest %s: %s",
+             out_man_path, strerror(rename_errno));
+        return -1;
+    }
     LOGI("translate done: ok=%d (cached=%d) fail=%d skip=%d -> %s",
          ok, cached, fail, skip, out_man_path);
     return ok;
