@@ -17,6 +17,7 @@ static std::atomic<unsigned> g_copy_n{0};
 static int g_pp;
 static int g_logged;
 static unsigned g_history_mask;
+static std::atomic<unsigned> g_slot_copies[2] = {{0}, {0}};
 
 extern "C" void lsfg_step3g_copy_impl(
     void *ctx_v, void *src_view_v, void *device_v,
@@ -77,6 +78,7 @@ extern "C" void lsfg_step3g_copy_impl(
 
     unsigned n = ++g_copy_n;
     unsigned slot = (unsigned)(g_pp & 1);
+    unsigned slot_n = ++g_slot_copies[slot];
     unsigned slot_bit = 1u << slot;
     if (!(g_history_mask & slot_bit)) {
         g_history_mask |= slot_bit;
@@ -91,9 +93,9 @@ extern "C" void lsfg_step3g_copy_impl(
         lsfg_log("I", "step3g: first copy %ux%u fmt=0x%x -> hist[%d]=%p",
                  w, h, vkfmt, g_pp & 1, (void*)histVk);
     }
-    if (n == 1 || n == 60 || n == 300 || (n % 1800) == 0) {
-        lsfg_log("I", "step3g: copy #%u %ux%u -> hist[%d] (in DXVK present cmd list)",
-                 n, w, h, g_pp & 1);
+    if (n == 1 || n == 60 || n == 300 || (n % 1800) == 0 || slot_n == 1) {
+        lsfg_log("I", "step3g: copy #%u slot[%u] slot_copy=%u %ux%u fmt=0x%x (command recorded)",
+                 n, slot, slot_n, w, h, vkfmt);
     }
     g_pp++;
 }
