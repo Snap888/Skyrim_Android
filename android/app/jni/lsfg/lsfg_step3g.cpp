@@ -11,13 +11,14 @@
 extern "C" int  lsfg_step3d_frames_ready(void);
 extern "C" void *lsfg_step3d_get_image(int idx);
 
-using namespace dxvk;
+namespace dxvk {
 
 static std::atomic<unsigned> g_copy_n{0};
 static int g_pp;
 static int g_logged;
 
-extern "C" void lsfg_step3g_insert_copy(
+/* Must be in namespace dxvk — PresentImage declares it there */
+void lsfg_step3g_insert_copy(
     void *ctx_v, void *src_view_v, void *device_v,
     uint32_t w, uint32_t h, uint32_t vkfmt) {
 
@@ -87,3 +88,5 @@ extern "C" void lsfg_step3g_insert_copy(
     }
     g_pp++;
 }
+
+} // namespace dxvk
