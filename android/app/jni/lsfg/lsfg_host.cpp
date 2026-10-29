@@ -14,6 +14,7 @@
 extern "C" void lsfg_register_vk_context(void*, void*, void*, unsigned);
 extern "C" void lsfg_set_vk_context_hook(void (*)(void*, void*, void*, unsigned));
 extern "C" void lsfg_step3e_install(void);
+extern "C" void lsfg_step3g_install(void);
 extern "C" void lsfg_step3e_set_queue(void *queue, unsigned family);
 
 static LsfgConfig g_cfg;
@@ -34,7 +35,7 @@ bool lsfg_load_config(const char *game_dir, LsfgConfig *out) {
     snprintf(path, sizeof path, "%s/port/lsfg.conf", game_dir);
     FILE *f = fopen(path, "r");
     if (!f) {
-        LOGI("no %s — LSFG off", path);
+        LOGI("no %s \u2014 LSFG off", path);
         return false;
     }
     char line[1024];
@@ -89,7 +90,7 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     LOGI("Lossless.dll found");
 
     if (!cfg->shader_cache[0]) {
-        LOGW("shader_cache path empty — skip extract");
+        LOGW("shader_cache path empty \u2014 skip extract");
         return false;
     }
 
@@ -111,7 +112,7 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
         return false;
     }
     if (tn == 0) {
-        LOGW("SPIR-V translate produced 0 modules — FG cannot run");
+        LOGW("SPIR-V translate produced 0 modules \u2014 FG cannot run");
         return false;
     }
     LOGI("translate OK: %d SPIR-V module(s)", tn);
@@ -121,8 +122,9 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     lsfg_set_vk_context_hook(lsfg_register_vk_context);
     LOGI("LSFG: Vk context hook installed (device+phys+queue on DxvkDevice create)");
     lsfg_step3e_install();
+    lsfg_step3g_install();
 
-    LOGI("STEP3: present hook + step3e image hook installed");
+    LOGI("STEP3: present + step3e/3g hooks installed");
     g_inited = 1;
     return true;
 }
