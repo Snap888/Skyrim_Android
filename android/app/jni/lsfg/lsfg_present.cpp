@@ -12,6 +12,10 @@
 #include <vulkan/vulkan_core.h>
 #endif
 
+extern "C" void lsfg_step3d_set_phys_queue(void *phys, void *queue);
+extern "C" void lsfg_step3d_run(void *device, const char *cache_dir, unsigned w, unsigned h);
+extern "C" int  lsfg_step3d_frames_ready(void);
+
 static int g_spirv_count;
 static unsigned g_present_n;
 static int g_present_logged_init;
@@ -37,6 +41,13 @@ extern "C" void lsfg_register_vk_device(void *dev) {
     lsfg_log("I", "LSFG: VkDevice registered %p", (void*)dev);
 }
 
+extern "C" void lsfg_register_vk_context(void *dev, void *phys, void *queue) {
+    g_vk_device = reinterpret_cast<VkDevice>(dev);
+    lsfg_step3d_set_phys_queue(phys, queue);
+    lsfg_log("I", "LSFG: Vk context registered device=%p phys=%p queue=%p",
+             dev, phys, queue);
+}
+
 static bool load_spv_file(const char *path, std::vector<uint32_t> &out) {
     FILE *f = fopen(path, "rb");
     if (!f) return false;
@@ -50,7 +61,6 @@ static bool load_spv_file(const char *path, std::vector<uint32_t> &out) {
     return out[0] == 0x07230203u;
 }
 
-/* SPIR-V: OpEntryPoint = 15, ExecutionModel GLCompute = 5 */
 static bool spirv_is_compute(const std::vector<uint32_t> &code) {
     if (code.size() < 5) return false;
     size_t i = 5;
@@ -59,9 +69,7 @@ static bool spirv_is_compute(const std::vector<uint32_t> &code) {
         uint32_t op = word & 0xffffu;
         uint32_t len = word >> 16;
         if (len == 0) break;
-        if (op == 15 && i + 1 < code.size()) {
-            if (code[i + 1] == 5) return true;
-        }
+        if (op == 15 && i + 1 < code.size() && code[i + 1] == 5) return true;
         i += len;
     }
     return false;
@@ -70,15 +78,10 @@ static bool spirv_is_compute(const std::vector<uint32_t> &code) {
 static void validate_spirv_on_device(VkDevice device) {
     if (g_vk_validated || !device || !g_cache_dir[0]) return;
     g_vk_validated = 1;
-
     char man[600];
     snprintf(man, sizeof man, "%s/manifest_spirv.txt", g_cache_dir);
     FILE *f = fopen(man, "r");
-    if (!f) {
-        lsfg_log("W", "vk-validate: no %s", man);
-        return;
-    }
-
+    if (!f) { lsfg_log("W", "vk-validate: no %s", man); return; }
     lsfg_log("I", "=== LSFG step 3b: VkShaderModule validation ===");
     int tried = 0, ok = 0, fail = 0;
     char line[256];
@@ -86,13 +89,11 @@ static void validate_spirv_on_device(VkDevice device) {
         unsigned id = 0;
         if (sscanf(line, "%u", &id) != 1) continue;
         if (strstr(line, " fail ") || strstr(line, " skip ")) continue;
-
         char path[700];
         snprintf(path, sizeof path, "%s/%u.spv", g_cache_dir, id);
         std::vector<uint32_t> code;
         if (!load_spv_file(path, code)) continue;
         tried++;
-
         VkShaderModuleCreateInfo ci{};
         ci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         ci.codeSize = code.size() * sizeof(uint32_t);
@@ -113,16 +114,12 @@ static void validate_spirv_on_device(VkDevice device) {
     lsfg_log("I", "vk-validate done: tried=%d ok=%d fail=%d", tried, ok, fail);
     if (ok > 0)
         lsfg_log("I", "SPIR-V modules load on GPU — ready for compute pipeline (step 3c)");
-    else
-        lsfg_log("W", "No SPIR-V loaded on GPU — check .spv files / device");
 }
 
 static void try_build_compute_pipelines(VkDevice device) {
     if (g_pipe_built || !device || !g_cache_dir[0]) return;
     g_pipe_built = 1;
-
     lsfg_log("I", "=== LSFG step 3c: compute pipeline probe ===");
-
     VkPipelineLayoutCreateInfo lci{};
     lci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     VkResult lr = vkCreatePipelineLayout(device, &lci, nullptr, &g_pipe_layout);
@@ -131,40 +128,29 @@ static void try_build_compute_pipelines(VkDevice device) {
         return;
     }
     lsfg_log("I", "step3c: empty PipelineLayout OK %p", (void*)g_pipe_layout);
-
     char man[600];
     snprintf(man, sizeof man, "%s/manifest_spirv.txt", g_cache_dir);
     FILE *f = fopen(man, "r");
-    if (!f) {
-        lsfg_log("W", "step3c: no manifest");
-        return;
-    }
-
+    if (!f) return;
     int tried = 0;
     char line[256];
     while (fgets(line, sizeof line, f) && tried < 24) {
         unsigned id = 0;
         if (sscanf(line, "%u", &id) != 1) continue;
         if (strstr(line, " fail ") || strstr(line, " skip ")) continue;
-
         char path[700];
         snprintf(path, sizeof path, "%s/%u.spv", g_cache_dir, id);
         std::vector<uint32_t> code;
-        if (!load_spv_file(path, code)) continue;
-        if (!spirv_is_compute(code)) continue;
+        if (!load_spv_file(path, code) || !spirv_is_compute(code)) continue;
         tried++;
-
         VkShaderModuleCreateInfo sci{};
         sci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         sci.codeSize = code.size() * sizeof(uint32_t);
         sci.pCode = code.data();
         VkShaderModule mod = VK_NULL_HANDLE;
         if (vkCreateShaderModule(device, &sci, nullptr, &mod) != VK_SUCCESS || !mod) {
-            g_compute_fail++;
-            lsfg_log("W", "step3c: id=%u shader module fail", id);
-            continue;
+            g_compute_fail++; continue;
         }
-
         VkComputePipelineCreateInfo pci{};
         pci.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
         pci.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -172,7 +158,6 @@ static void try_build_compute_pipelines(VkDevice device) {
         pci.stage.module = mod;
         pci.stage.pName = "main";
         pci.layout = g_pipe_layout;
-
         VkPipeline pipe = VK_NULL_HANDLE;
         VkResult pr = vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &pci, nullptr, &pipe);
         if (pr == VK_SUCCESS && pipe) {
@@ -181,19 +166,12 @@ static void try_build_compute_pipelines(VkDevice device) {
             vkDestroyPipeline(device, pipe, nullptr);
         } else {
             g_compute_fail++;
-            lsfg_log("W", "step3c: id=%u compute pipeline FAIL VkResult=%d (need descriptors?)", id, (int)pr);
+            lsfg_log("W", "step3c: id=%u FAIL %d", id, (int)pr);
         }
         vkDestroyShaderModule(device, mod, nullptr);
     }
     fclose(f);
-
     lsfg_log("I", "step3c done: compute tried=%d ok=%d fail=%d", tried, g_compute_ok, g_compute_fail);
-    if (g_compute_ok > 0)
-        lsfg_log("I", "NEXT step 3d: descriptor sets + frame pair + dispatch between presents");
-    else if (tried == 0)
-        lsfg_log("W", "step3c: no GLCompute entry points in scanned modules");
-    else
-        lsfg_log("W", "step3c: pipelines failed — need matching descriptor layouts from LSFG");
 }
 
 void lsfg_host_on_present(uint32_t width, uint32_t height, uint32_t vk_format) {
@@ -203,9 +181,7 @@ void lsfg_host_on_present(uint32_t width, uint32_t height, uint32_t vk_format) {
 void lsfg_host_on_present_ex(uint32_t width, uint32_t height, uint32_t vk_format, void *vk_device) {
     if (!lsfg_host_active()) return;
     g_present_n++;
-
     VkDevice dev = vk_device ? reinterpret_cast<VkDevice>(vk_device) : g_vk_device;
-
     if (!g_present_logged_init) {
         g_present_logged_init = 1;
         lsfg_log("I", "=== LSFG step 3: present hook LIVE ===");
@@ -213,14 +189,13 @@ void lsfg_host_on_present_ex(uint32_t width, uint32_t height, uint32_t vk_format
                  width, height, vk_format, g_spirv_count, (void*)dev);
         lsfg_log("I", "STATUS: hook receives frames; dimensions from SDL window");
     }
-
     if (dev) {
         validate_spirv_on_device(dev);
         try_build_compute_pipelines(dev);
+        lsfg_step3d_run(dev, g_cache_dir, width, height);
     }
-
     if (g_present_n == 60 || g_present_n == 300 || (g_present_n % 1800) == 0) {
-        lsfg_log("I", "present: frame #%u %ux%u compute_ok=%d (no interpolation yet)",
-                 g_present_n, width, height, g_compute_ok);
+        lsfg_log("I", "present: frame #%u %ux%u compute_ok=%d frames=%d (no interpolation yet)",
+                 g_present_n, width, height, g_compute_ok, lsfg_step3d_frames_ready());
     }
 }
