@@ -49,23 +49,168 @@ static bool is_compute(const std::vector<uint32_t> &c) {
     return false;
 }
 
-static void reflect(const std::vector<uint32_t> &c, std::vector<std::pair<uint32_t,uint32_t>> &out) {
+struct RefBinding {
+    uint32_t set, binding;
+    VkDescriptorType type;
+    uint32_t count;
+};
+
+static bool reflect(const std::vector<uint32_t> &c, std::vector<RefBinding> &out) {
     out.clear();
-    std::unordered_map<uint32_t, uint32_t> id_set, id_bind;
+    std::unordered_map<uint32_t, uint32_t> id_set, id_bind, storage;
+    std::unordered_map<uint32_t, uint32_t> pointer_pointee, pointer_storage;
+    std::unordered_map<uint32_t, uint32_t> type_opcode, image_sampled, array_element, array_length_id;
+    std::unordered_map<uint32_t, uint64_t> constants;
+    std::unordered_map<uint32_t, uint32_t> decorations;
+    struct Var { uint32_t type, id, storage; };
+    std::vector<Var> vars;
+
     for (size_t i = 5; i < c.size();) {
-        uint32_t w = c[i], op = w & 0xffff, len = w >> 16;
-        if (!len) break;
-        if (op == 71 && len >= 4 && i + 3 < c.size()) {
-            uint32_t tgt = c[i+1], dec = c[i+2], lit = c[i+3];
-            if (dec == 34) id_set[tgt] = lit;
-            if (dec == 33) id_bind[tgt] = lit;
+        uint32_t w = c[i], op = w & 0xffffu, len = w >> 16;
+        if (!len || i + len > c.size()) return false;
+        const uint32_t *a = c.data() + i;
+        if (op == 71 && len >= 3) {
+            uint32_t target = a[1], dec = a[2];
+            if (dec == 34 && len >= 4) id_set[target] = a[3];
+            if (dec == 33 && len >= 4) id_bind[target] = a[3];
+            if (dec == 2) decorations[target] |= 1u;       // Block
+            if (dec == 3) decorations[target] |= 2u;       // BufferBlock
+        } else if (op == 32 && len >= 4) {                // OpTypePointer
+            type_opcode[a[1]] = op;
+            pointer_storage[a[1]] = a[2];
+            pointer_pointee[a[1]] = a[3];
+        } else if ((op >= 25 && op <= 30) && len >= 2) {  // image/sampler/struct/array types
+            type_opcode[a[1]] = op;
+            if (op == 25 && len >= 8) image_sampled[a[1]] = a[7];
+            if (op == 28 && len >= 4) { array_element[a[1]] = a[2]; array_length_id[a[1]] = a[3]; }
+        } else if (op == 43 && len >= 4) {                // OpConstant
+            uint64_t value = a[3];
+            if (len >= 5) value |= (uint64_t)a[4] << 32;
+            constants[a[2]] = value;
+        } else if (op == 59 && len >= 4) {                // OpVariable
+            vars.push_back({a[1], a[2], a[3]});
         }
         i += len;
     }
-    for (auto &kv : id_bind)
-        out.push_back({id_set.count(kv.first) ? id_set[kv.first] : 0, kv.second});
-    std::sort(out.begin(), out.end());
-    out.erase(std::unique(out.begin(), out.end()), out.end());
+
+    for (const Var &v : vars) {
+        if (!id_bind.count(v.id)) continue;
+        uint32_t set = id_set.count(v.id) ? id_set[v.id] : 0;
+        uint32_t binding = id_bind[v.id];
+        if (set > 7 || binding > 63) return false;
+        auto pit = pointer_pointee.find(v.type);
+        if (pit == pointer_pointee.end()) return false;
+        uint32_t tid = pit->second, count = 1;
+        while (type_opcode.count(tid) && type_opcode[tid] == 28) {
+            uint32_t len_id = array_length_id[tid];
+            if (!constants.count(len_id) || constants[len_id] == 0 || constants[len_id] > 1024) return false;
+            count *= (uint32_t)constants[len_id];
+            tid = array_element[tid];
+        }
+
+        VkDescriptorType dtype;
+        if (v.storage == 12) { // StorageBuffer
+            dtype = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        } else if (v.storage == 2) { // Uniform: distinguish Block and legacy BufferBlock
+            if (decorations[tid] & 2u) dtype = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            else if (decorations[tid] & 1u) dtype = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            else return false;
+        } else if (v.storage == 0) { // UniformConstant
+            uint32_t op = type_opcode.count(tid) ? type_opcode[tid] : 0;
+            if (op == 26) dtype = VK_DESCRIPTOR_TYPE_SAMPLER;
+            else if (op == 27) dtype = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            else if (op == 25) {
+                uint32_t sampled = image_sampled.count(tid) ? image_sampled[tid] : 1;
+                dtype = sampled == 2 ? VK_DESCRIPTOR_TYPE_STORAGE_IMAGE : VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+            } else return false;
+        } else {
+            continue; // push constants and non-descriptor variables
+        }
+        out.push_back({set, binding, dtype, count});
+    }
+    std::sort(out.begin(), out.end(), [](const RefBinding &a, const RefBinding &b) {
+        return a.set != b.set ? a.set < b.set : a.binding < b.binding;
+    });
+    for (size_t i = 1; i < out.size(); i++)
+        if (out[i-1].set == out[i].set && out[i-1].binding == out[i].binding) return false;
+    return true;
+}
+
+static bool probe_reflected_layout(VkDevice dev, const std::vector<uint32_t> &code,
+                                   unsigned id, int *binding_count) {
+    std::vector<RefBinding> bindings;
+    if (!reflect(code, bindings)) {
+        lsfg_log("W", "step3d: id=%u descriptor reflection unsupported/invalid; layout skipped", id);
+        return false;
+    }
+    uint32_t max_set = 0;
+    for (const auto &b : bindings) if (b.set > max_set) max_set = b.set;
+    std::vector<VkDescriptorSetLayout> sets;
+    VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
+    bool ok = true;
+    if (!bindings.empty()) {
+        sets.resize((size_t)max_set + 1, VK_NULL_HANDLE);
+        for (uint32_t set = 0; set <= max_set && ok; set++) {
+            std::vector<VkDescriptorSetLayoutBinding> entries;
+            for (const auto &b : bindings) if (b.set == set) {
+                VkDescriptorSetLayoutBinding e{};
+                e.binding = b.binding;
+                e.descriptorType = b.type;
+                e.descriptorCount = b.count;
+                e.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+                entries.push_back(e);
+            }
+            VkDescriptorSetLayoutCreateInfo ci{};
+            ci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+            ci.bindingCount = (uint32_t)entries.size();
+            ci.pBindings = entries.empty() ? nullptr : entries.data();
+            ok = vkCreateDescriptorSetLayout(dev, &ci, nullptr, &sets[set]) == VK_SUCCESS;
+        }
+    }
+    if (ok) {
+        VkPipelineLayoutCreateInfo lci{};
+        lci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        lci.setLayoutCount = (uint32_t)sets.size();
+        lci.pSetLayouts = sets.empty() ? nullptr : sets.data();
+        ok = vkCreatePipelineLayout(dev, &lci, nullptr, &pipeline_layout) == VK_SUCCESS;
+    }
+    if (ok) {
+        VkShaderModuleCreateInfo sci{};
+        sci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        sci.codeSize = code.size() * sizeof(uint32_t);
+        sci.pCode = code.data();
+        VkShaderModule module = VK_NULL_HANDLE;
+        ok = vkCreateShaderModule(dev, &sci, nullptr, &module) == VK_SUCCESS;
+        if (ok) {
+            VkComputePipelineCreateInfo pci{};
+            pci.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+            pci.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+            pci.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+            pci.stage.module = module;
+            pci.stage.pName = "main";
+            pci.layout = pipeline_layout;
+            VkPipeline pipeline = VK_NULL_HANDLE;
+            ok = vkCreateComputePipelines(dev, VK_NULL_HANDLE, 1, &pci, nullptr, &pipeline) == VK_SUCCESS;
+            if (pipeline) vkDestroyPipeline(dev, pipeline, nullptr);
+            vkDestroyShaderModule(dev, module, nullptr);
+        }
+    }
+    if (pipeline_layout) vkDestroyPipelineLayout(dev, pipeline_layout, nullptr);
+    for (auto layout : sets) if (layout) vkDestroyDescriptorSetLayout(dev, layout, nullptr);
+    if (binding_count) *binding_count = (int)bindings.size();
+    if (ok) {
+        char buf[384];
+        int n = snprintf(buf, sizeof buf, "step3d: id=%u reflected-layout OK bindings=%zu", id, bindings.size());
+        for (const auto &b : bindings) {
+            if (n >= (int)sizeof(buf)-1) break;
+            n += snprintf(buf+n, sizeof(buf)-(size_t)n, " [s%u:b%u t%d x%u]",
+                          b.set, b.binding, (int)b.type, b.count);
+        }
+        lsfg_log("I", "%s", buf);
+    } else {
+        lsfg_log("W", "step3d: id=%u reflected layout/pipeline probe failed", id);
+    }
+    return ok;
 }
 
 static uint32_t find_mem(uint32_t bits, VkMemoryPropertyFlags flags) {
@@ -178,7 +323,7 @@ extern "C" void lsfg_step3d_run(void *device, const char *cache_dir, uint32_t w,
     g_done = 1;
     lsfg_log("I", "=== LSFG step 3d: descriptor reflection + frame pair ===");
 
-    int cn = 0, wb = 0, maxb = 0;
+    int cn = 0, wb = 0, maxb = 0, layout_ok = 0, layout_fail = 0;
     char line[256];
     while (fgets(line, sizeof line, f) && cn < 40) {
         unsigned id = 0;
@@ -189,24 +334,21 @@ extern "C" void lsfg_step3d_run(void *device, const char *cache_dir, uint32_t w,
         std::vector<uint32_t> code;
         if (!load_spv(path, code) || !is_compute(code)) continue;
         cn++;
-        std::vector<std::pair<uint32_t,uint32_t>> binds;
-        reflect(code, binds);
-        if (!binds.empty()) {
+        std::vector<RefBinding> binds;
+        bool reflected = reflect(code, binds);
+        if (reflected && !binds.empty()) {
             wb++;
             if ((int)binds.size() > maxb) maxb = (int)binds.size();
-            if (wb <= 8) {
-                char buf[256]; int n = snprintf(buf, sizeof buf, "step3d: id=%u bindings:", id);
-                for (auto &b : binds)
-                    n += snprintf(buf + n, sizeof buf - (size_t)n, " set%u:b%u", b.first, b.second);
-                lsfg_log("I", "%s", buf);
-            }
         }
+        int count = 0;
+        if (probe_reflected_layout(dev, code, id, &count)) layout_ok++;
+        else layout_fail++;
     }
     fclose(f);
-    lsfg_log("I", "step3d reflect: compute=%d with_bindings=%d max_bindings=%d", cn, wb, maxb);
+    lsfg_log("I", "step3d reflect/layout: compute=%d with_bindings=%d max_bindings=%d layout_pipeline_ok=%d failed=%d", cn, wb, maxb, layout_ok, layout_fail);
     lsfg_log("I", "step3d frames: ready=%d %ux%u phys=%p queue=%p",
              g_fb_ready, g_fb_w, g_fb_h, (void*)g_phys, (void*)g_queue);
-    lsfg_log("I", "NEXT step 3f: real VkImage path + history write probe");
+    lsfg_log("I", "step3d: layout/pipeline probes only; no descriptors bound and no dispatch submitted");
 }
 
 extern "C" int lsfg_step3d_frames_ready(void) { return g_fb_ready; }
