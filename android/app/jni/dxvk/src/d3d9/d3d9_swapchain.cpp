@@ -4,6 +4,9 @@
 
 #include "d3d9_hud.h"
 
+/* Optional host-side LSFG hook; implemented in lsfg_host static library. */
+extern "C" void lsfg_step3g_insert_copy(void*, void*, void*, uint32_t, uint32_t, uint32_t);
+
 namespace dxvk {
 
 #ifndef DXVK_NATIVE
@@ -866,7 +869,6 @@ namespace dxvk {
 
       /* LSFG step 3g-a: copy swapchain -> history inside same DXVK cmd list */
       {
-        extern void lsfg_step3g_insert_copy(void*, void*, void*, uint32_t, uint32_t, uint32_t);
         lsfg_step3g_insert_copy(
             m_context.ptr(),
             m_imageViews.at(imageIndex).ptr(),
