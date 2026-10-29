@@ -250,6 +250,82 @@ static bool probe_reflected_layout(VkDevice dev, const std::vector<uint32_t> &co
     return ok;
 }
 
+struct ShaderRole { const char *name; unsigned id; };
+static const ShaderRole kShaderRoles[] = {
+    {"mipmaps", 255},
+    {"generate", 256},
+    {"gamma[0]", 257},
+    {"gamma[1]", 259},
+    {"gamma[2]", 260},
+    {"gamma[3]", 261},
+    {"gamma[4]", 262},
+    {"delta[0]", 257},
+    {"delta[1]", 263},
+    {"delta[2]", 264},
+    {"delta[3]", 265},
+    {"delta[4]", 266},
+    {"delta[5]", 258},
+    {"delta[6]", 271},
+    {"delta[7]", 272},
+    {"delta[8]", 273},
+    {"delta[9]", 274},
+    {"alpha[0]", 267},
+    {"alpha[1]", 268},
+    {"alpha[2]", 269},
+    {"alpha[3]", 270},
+    {"beta[0]", 275},
+    {"beta[1]", 276},
+    {"beta[2]", 277},
+    {"beta[3]", 278},
+    {"beta[4]", 279},
+    {"p_mipmaps", 255},
+    {"p_generate", 256},
+    {"p_gamma[0]", 280},
+    {"p_gamma[1]", 282},
+    {"p_gamma[2]", 283},
+    {"p_gamma[3]", 284},
+    {"p_gamma[4]", 285},
+    {"p_delta[0]", 280},
+    {"p_delta[1]", 286},
+    {"p_delta[2]", 287},
+    {"p_delta[3]", 288},
+    {"p_delta[4]", 289},
+    {"p_delta[5]", 281},
+    {"p_delta[6]", 294},
+    {"p_delta[7]", 295},
+    {"p_delta[8]", 296},
+    {"p_delta[9]", 297},
+    {"p_alpha[0]", 290},
+    {"p_alpha[1]", 291},
+    {"p_alpha[2]", 292},
+    {"p_alpha[3]", 293},
+    {"p_beta[0]", 298},
+    {"p_beta[1]", 299},
+    {"p_beta[2]", 300},
+    {"p_beta[3]", 301},
+    {"p_beta[4]", 302},
+};
+
+// Audit the upstream LSFG 3.1 / 3.1P symbolic role table. Some roles
+// intentionally share resource IDs; count names, not unique resources.
+static void audit_shader_roles(const char *cache_dir) {
+    int present = 0, missing = 0, compute_ok = 0, compute_bad = 0;
+    for (const auto &role : kShaderRoles) {
+        char path[700];
+        snprintf(path, sizeof path, "%s/%u.spv", cache_dir, role.id);
+        std::vector<uint32_t> code;
+        bool loaded = load_spv(path, code);
+        bool compute = loaded && is_compute(code);
+        if (loaded) present++; else missing++;
+        if (compute) compute_ok++; else compute_bad++;
+        lsfg_log(loaded ? "I" : "W", "step3d role: %s id=%u %s%s",
+                 role.name, role.id, loaded ? "SPIR-V present" : "MISSING",
+                 compute ? " compute" : (loaded ? " non-compute" : ""));
+    }
+    lsfg_log("I", "step3d role audit: present=%d missing=%d compute_ok=%d compute_invalid=%d",
+             present, missing, compute_ok, compute_bad);
+}
+
 static uint32_t find_mem(uint32_t bits, VkMemoryPropertyFlags flags) {
     if (!g_phys) return UINT32_MAX;
     VkPhysicalDeviceMemoryProperties mp{};
@@ -358,6 +434,7 @@ extern "C" void lsfg_step3d_run(void *device, const char *cache_dir, uint32_t w,
     }
 
     g_done = 1;
+    audit_shader_roles(cache_dir);
     lsfg_log("I", "=== LSFG step 3d: descriptor reflection + frame pair ===");
 
     int manifest_entries = 0;
