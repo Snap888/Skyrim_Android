@@ -11,8 +11,10 @@
 #define LOGW(...) lsfg_log("W", __VA_ARGS__)
 #define LOGE(...) lsfg_log("E", __VA_ARGS__)
 
-extern "C" void lsfg_register_vk_context(void*, void*, void*);
-extern "C" void lsfg_set_vk_context_hook(void (*)(void*, void*, void*));
+extern "C" void lsfg_register_vk_context(void*, void*, void*, unsigned);
+extern "C" void lsfg_set_vk_context_hook(void (*)(void*, void*, void*, unsigned));
+extern "C" void lsfg_step3e_install(void);
+extern "C" void lsfg_step3e_set_queue(void *queue, unsigned family);
 
 static LsfgConfig g_cfg;
 static int g_inited;
@@ -118,8 +120,9 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
 
     lsfg_set_vk_context_hook(lsfg_register_vk_context);
     LOGI("LSFG: Vk context hook installed (device+phys+queue on DxvkDevice create)");
+    lsfg_step3e_install();
 
-    LOGI("STEP3: present hook will log on first Present(); FG compute still TODO");
+    LOGI("STEP3: present hook + step3e image hook installed");
     g_inited = 1;
     return true;
 }
