@@ -17,6 +17,7 @@ static unsigned g_present_n;
 static int g_present_logged_init;
 static int g_vk_validated;
 static char g_cache_dir[512];
+static VkDevice g_vk_device = VK_NULL_HANDLE;
 
 void lsfg_host_set_spirv_count(int n) { g_spirv_count = n; }
 int  lsfg_host_spirv_count(void) { return g_spirv_count; }
@@ -26,6 +27,11 @@ void lsfg_host_set_cache_dir(const char *path) {
     snprintf(g_cache_dir, sizeof g_cache_dir, "%s", path);
 }
 const char *lsfg_host_cache_dir(void) { return g_cache_dir; }
+
+extern "C" void lsfg_register_vk_device(void *dev) {
+    g_vk_device = reinterpret_cast<VkDevice>(dev);
+    lsfg_log("I", "LSFG: VkDevice registered %p", (void*)dev);
+}
 
 static bool load_spv_file(const char *path, std::vector<uint32_t> &out) {
     FILE *f = fopen(path, "rb");
@@ -97,21 +103,18 @@ void lsfg_host_on_present_ex(uint32_t width, uint32_t height, uint32_t vk_format
     if (!lsfg_host_active()) return;
     g_present_n++;
 
+    VkDevice dev = vk_device ? reinterpret_cast<VkDevice>(vk_device) : g_vk_device;
+
     if (!g_present_logged_init) {
         g_present_logged_init = 1;
         lsfg_log("I", "=== LSFG step 3: present hook LIVE ===");
-        lsfg_log("I", "present: first frame %ux%u vkfmt=0x%x spirv_modules=%d",
-                 width, height, vk_format, g_spirv_count);
-        if (width == 0 && height == 0)
-            lsfg_log("I", "present: size 0x0 from bootstrap — DXVK PresentImage will supply real size");
+        lsfg_log("I", "present: first frame %ux%u vkfmt=0x%x spirv_modules=%d device=%p",
+                 width, height, vk_format, g_spirv_count, (void*)dev);
         lsfg_log("I", "STATUS: hook receives frames; compute FG pipeline NOT wired yet");
-    } else if (width > 0 && height > 0 && g_present_n <= 5) {
-        lsfg_log("I", "present: frame #%u %ux%u vkfmt=0x%x",
-                 g_present_n, width, height, vk_format);
     }
 
-    if (vk_device)
-        validate_spirv_on_device(reinterpret_cast<VkDevice>(vk_device));
+    if (dev)
+        validate_spirv_on_device(dev);
 
     if (g_present_n == 60 || g_present_n == 300 || (g_present_n % 1800) == 0) {
         lsfg_log("I", "present: frame #%u %ux%u (still no interpolation)",
