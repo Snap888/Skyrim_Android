@@ -41,11 +41,13 @@ extern "C" void lsfg_register_vk_device(void *dev) {
     lsfg_log("I", "LSFG: VkDevice registered %p", (void*)dev);
 }
 
-extern "C" void lsfg_register_vk_context(void *dev, void *phys, void *queue) {
+extern "C" void lsfg_register_vk_context(void *dev, void *phys, void *queue, unsigned qfam) {
     g_vk_device = reinterpret_cast<VkDevice>(dev);
     lsfg_step3d_set_phys_queue(phys, queue);
-    lsfg_log("I", "LSFG: Vk context registered device=%p phys=%p queue=%p",
-             dev, phys, queue);
+    extern void lsfg_step3e_set_queue(void *queue, unsigned family);
+    lsfg_step3e_set_queue(queue, qfam);
+    lsfg_log("I", "LSFG: Vk context registered device=%p phys=%p queue=%p family=%u",
+             dev, phys, queue, qfam);
 }
 
 static bool load_spv_file(const char *path, std::vector<uint32_t> &out) {
