@@ -1,6 +1,9 @@
 #include "dxvk_device.h"
 #include "dxvk_instance.h"
 
+/* LSFG: weak so dxvk_d3d9 links without lsfg; resolved when main loads lsfg_host */
+extern "C" void lsfg_register_vk_device(void*) __attribute__((weak));
+
 namespace dxvk {
 
   bool g_dxvkDepthClamp = true;
@@ -41,11 +44,9 @@ namespace dxvk {
     m_queues.graphics = getQueue(queueFamilies.graphics, 0);
     m_queues.transfer = getQueue(queueFamilies.transfer, 0);
 
-    // LSFG: register VkDevice for SPIR-V validation / future compute FG
-    {
-      extern "C" void lsfg_register_vk_device(void*);
+    // LSFG: register VkDevice (no-op if lsfg not linked)
+    if (lsfg_register_vk_device)
       lsfg_register_vk_device(reinterpret_cast<void*>(m_vkd->device()));
-    }
   }
   
   
