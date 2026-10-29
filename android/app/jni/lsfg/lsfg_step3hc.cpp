@@ -32,6 +32,7 @@ extern "C" int lsfg_roles_ready(void);
 extern "C" uint32_t lsfg_role_generate_id(void);
 extern "C" uint32_t lsfg_role_mipmaps_id(void);
 extern "C" int lsfg_role_perf_mode(void);
+extern "C" void lsfg_step3hd_after_probe(void);
 
 struct BindInfo {
     uint32_t binding;
@@ -72,6 +73,10 @@ static PassRt g_mip{}, g_gen{};
 static int g_ready;
 static int g_probe_done;
 static std::atomic<unsigned> g_disp_n{0};
+
+extern "C" void *lsfg_step3hc_get_out_view(void) { return (void*)g_out_view; }
+extern "C" void *lsfg_step3hc_get_out_image(void) { return (void*)g_out; }
+extern "C" int lsfg_step3hc_chain_ready(void) { return g_ready; }
 
 static bool load_spv(const char *path, std::vector<uint32_t> &out) {
     FILE *f = fopen(path, "rb");
@@ -502,13 +507,13 @@ extern "C" void lsfg_step3hc_after_copy(void *device, unsigned qfam) {
     }
 
     unsigned n = ++g_disp_n;
-    /* Single probe only — per-frame chain was 1–2 FPS on Adreno 740. */
     if (g_probe_done || n < 3) return;
     g_probe_done = 1;
     if (dispatch_chain(g_dev)) {
         lsfg_log("I", "step3h-c: PROBE DISPATCH once #%u mipmaps->generate %ux%u",
                  n, lsfg_step3d_fb_width(), lsfg_step3d_fb_height());
         lsfg_log("I", "step3h-c: per-frame FG off until 3h-d (correct bindings + present)");
+        lsfg_step3hd_after_probe();
     }
 }
 
