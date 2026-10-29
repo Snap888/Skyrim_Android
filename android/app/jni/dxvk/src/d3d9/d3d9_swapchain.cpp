@@ -873,13 +873,15 @@ namespace dxvk {
 
       /* LSFG step 3g-a: copy swapchain -> history inside same DXVK cmd list */
       {
-        if (g_lsfgCopyHook) g_lsfgCopyHook(
-            m_context.ptr(),
-            m_imageViews.at(imageIndex).ptr(),
-            m_device.ptr(),
-            info.imageExtent.width,
-            info.imageExtent.height,
-            static_cast<uint32_t>(info.format.format));
+        if (g_lsfgCopyHook
+         && (info.imageUsage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT))
+          g_lsfgCopyHook(
+              m_context.ptr(),
+              m_imageViews.at(imageIndex).ptr(),
+              m_device.ptr(),
+              info.imageExtent.width,
+              info.imageExtent.height,
+              static_cast<uint32_t>(info.format.format));
       }
 
       if (i + 1 >= SyncInterval)
@@ -1003,7 +1005,7 @@ namespace dxvk {
     imageInfo.extent      = { info.imageExtent.width, info.imageExtent.height, 1 };
     imageInfo.numLayers   = 1;
     imageInfo.mipLevels   = 1;
-    imageInfo.usage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    imageInfo.usage       = info.imageUsage;
     imageInfo.stages      = 0;
     imageInfo.access      = 0;
     imageInfo.tiling      = VK_IMAGE_TILING_OPTIMAL;
