@@ -112,6 +112,12 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     LOGI("translate OK: %d SPIR-V module(s)", tn);
     lsfg_host_set_spirv_count(tn);
     lsfg_host_set_cache_dir(cfg->shader_cache);
+    {
+        extern "C" void lsfg_register_vk_device(void*);
+        extern "C" void lsfg_set_vk_device_hook(void (*)(void*));
+        lsfg_set_vk_device_hook(lsfg_register_vk_device);
+        LOGI("LSFG: VkDevice hook installed (will fire on DxvkDevice create)");
+    }
     LOGI("STEP3: present hook will log on first Present(); FG compute still TODO");
     g_inited = 1;
     return true;
