@@ -59,7 +59,7 @@ static bool get_compute_info(const std::vector<uint32_t> &c, ComputeInfo &info) 
     memset(&info, 0, sizeof(info));
     for (size_t i = 5; i < c.size();) {
         uint32_t w = c[i], op = w & 0xffffu, len = w >> 16;
-        if (!len || i + len > c.size()) return fail("malformed instruction", (uint32_t)i, len);
+        if (!len || i + len > c.size()) return false;
         const uint32_t *a = c.data() + i;
         if (op == 15 && len >= 4 && a[1] == 5) { // OpEntryPoint GLCompute
             size_t out = 0;
@@ -104,7 +104,7 @@ static bool reflect(const std::vector<uint32_t> &c, std::vector<RefBinding> &out
 
     for (size_t i = 5; i < c.size();) {
         uint32_t w = c[i], op = w & 0xffffu, len = w >> 16;
-        if (!len || i + len > c.size()) return false;
+        if (!len || i + len > c.size()) return fail("malformed instruction", (uint32_t)i, len);
         const uint32_t *a = c.data() + i;
         if (op == 71 && len >= 3) {
             uint32_t target = a[1], dec = a[2];
