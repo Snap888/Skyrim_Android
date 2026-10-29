@@ -10,15 +10,15 @@
 
 extern "C" int  lsfg_step3d_frames_ready(void);
 extern "C" void *lsfg_step3d_get_image(int idx);
+extern "C" void lsfg_set_step3g_copy_hook(void (*fn)(void*, void*, void*, uint32_t, uint32_t, uint32_t));
 
-namespace dxvk {
+using namespace dxvk;
 
 static std::atomic<unsigned> g_copy_n{0};
 static int g_pp;
 static int g_logged;
 
-/* Must be in namespace dxvk — PresentImage declares it there */
-void lsfg_step3g_insert_copy(
+static void lsfg_step3g_copy_impl(
     void *ctx_v, void *src_view_v, void *device_v,
     uint32_t w, uint32_t h, uint32_t vkfmt) {
 
@@ -89,4 +89,7 @@ void lsfg_step3g_insert_copy(
     g_pp++;
 }
 
-} // namespace dxvk
+extern "C" void lsfg_step3g_install(void) {
+    lsfg_set_step3g_copy_hook(lsfg_step3g_copy_impl);
+    lsfg_log("I", "LSFG: step3g copy hook installed (dxvk trampoline)");
+}
