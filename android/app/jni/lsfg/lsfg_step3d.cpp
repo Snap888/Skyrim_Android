@@ -89,6 +89,23 @@ static void destroy_fb(VkDevice dev) {
 static bool create_fb(VkDevice dev, uint32_t w, uint32_t h) {
     if (!dev || !g_phys || !w || !h) return false;
     if (g_fb_ready && g_fb_w == w && g_fb_h == h) return true;
+
+    /*
+     * History images are referenced by DXVK command lists recorded on the
+     * graphics queue. On a resize, wait for those lists to finish before
+     * destroying/replacing the externally-owned VkImages and their memory.
+     * This is intentionally only on create/resize, never on the frame path.
+     */
+    if (g_fb_ready) {
+        VkResult idle = vkDeviceWaitIdle(dev);
+        if (idle != VK_SUCCESS) {
+            lsfg_log("W", "step3d: resize aborted; vkDeviceWaitIdle failed %d", (int)idle);
+            return false;
+        }
+        lsfg_log("I", "step3d: GPU idle before history resize %ux%u -> %ux%u",
+                 g_fb_w, g_fb_h, w, h);
+    }
+
     destroy_fb(dev);
     g_fb_w = w; g_fb_h = h;
     for (int i = 0; i < 2; i++) {
