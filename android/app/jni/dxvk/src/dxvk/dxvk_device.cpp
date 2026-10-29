@@ -333,5 +333,10 @@ namespace dxvk {
     m_vkd->vkGetDeviceQueue(m_vkd->device(), family, index, &queue);
     return DxvkDeviceQueue { queue, family, index };
   }
+
+  /* PresentImage declares this inside namespace dxvk — C++ linkage symbol for the linker */
+  void* lsfg_get_present_image_hook() {
+    return reinterpret_cast<void*>(g_lsfg_present_image_hook);
+  }
   
 }
