@@ -79,11 +79,11 @@ static bool spirv_is_compute(const std::vector<uint32_t> &code) {
 
 static void validate_spirv_on_device(VkDevice device) {
     if (g_vk_validated || !device || !g_cache_dir[0]) return;
-    g_vk_validated = 1;
     char man[600];
     snprintf(man, sizeof man, "%s/manifest_spirv.txt", g_cache_dir);
     FILE *f = fopen(man, "r");
-    if (!f) { lsfg_log("W", "vk-validate: no %s", man); return; }
+    if (!f) { lsfg_log("W", "vk-validate: no %s; will retry", man); return; }
+    g_vk_validated = 1;
     lsfg_log("I", "=== LSFG step 3b: VkShaderModule validation ===");
     int tried = 0, ok = 0, fail = 0;
     char line[256];
@@ -120,20 +120,23 @@ static void validate_spirv_on_device(VkDevice device) {
 
 static void try_build_compute_pipelines(VkDevice device) {
     if (g_pipe_built || !device || !g_cache_dir[0]) return;
-    g_pipe_built = 1;
+    char man[600];
+    snprintf(man, sizeof man, "%s/manifest_spirv.txt", g_cache_dir);
+    FILE *f = fopen(man, "r");
+    if (!f) {
+        lsfg_log("W", "step3c: no %s; will retry", man);
+        return;
+    }
     lsfg_log("I", "=== LSFG step 3c: compute pipeline probe ===");
     VkPipelineLayoutCreateInfo lci{};
     lci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     VkResult lr = vkCreatePipelineLayout(device, &lci, nullptr, &g_pipe_layout);
     if (lr != VK_SUCCESS || !g_pipe_layout) {
         lsfg_log("W", "step3c: vkCreatePipelineLayout failed %d", (int)lr);
+        fclose(f);
         return;
     }
     lsfg_log("I", "step3c: empty PipelineLayout OK %p", (void*)g_pipe_layout);
-    char man[600];
-    snprintf(man, sizeof man, "%s/manifest_spirv.txt", g_cache_dir);
-    FILE *f = fopen(man, "r");
-    if (!f) return;
     int tried = 0;
     char line[256];
     while (fgets(line, sizeof line, f) && tried < 24) {
@@ -173,6 +176,7 @@ static void try_build_compute_pipelines(VkDevice device) {
         vkDestroyShaderModule(device, mod, nullptr);
     }
     fclose(f);
+    g_pipe_built = 1;
     lsfg_log("I", "step3c probe done: tried=%d pipeline_create_ok=%d fail=%d; all probe pipelines destroyed, no dispatch/output", tried, g_compute_ok, g_compute_fail);
 }
 
