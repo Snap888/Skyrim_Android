@@ -88,6 +88,11 @@ namespace dxvk {
     this->beginRecording(
       m_device->createCommandList());
   }
+
+  void DxvkContext::addCompletionCallback(std::function<void(VkResult)> callback) {
+    if (m_cmd != nullptr)
+      m_cmd->addCompletionCallback(std::move(callback));
+  }
   
   
   void DxvkContext::beginQuery(const Rc<DxvkGpuQuery>& query) {
