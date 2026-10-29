@@ -864,6 +864,18 @@ namespace dxvk {
         }
       }
 
+      /* LSFG step 3g-a: copy swapchain -> history inside same DXVK cmd list */
+      {
+        extern void lsfg_step3g_insert_copy(void*, void*, void*, uint32_t, uint32_t, uint32_t);
+        lsfg_step3g_insert_copy(
+            m_context.ptr(),
+            m_imageViews.at(imageIndex).ptr(),
+            m_device.ptr(),
+            info.imageExtent.width,
+            info.imageExtent.height,
+            static_cast<uint32_t>(info.format.format));
+      }
+
       if (i + 1 >= SyncInterval)
         m_context->signal(m_frameLatencySignal, m_frameId);
 
