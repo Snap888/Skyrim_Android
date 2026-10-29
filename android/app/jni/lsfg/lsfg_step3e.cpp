@@ -36,6 +36,7 @@ extern "C" void lsfg_step3e_set_queue(void *queue, uint32_t family) {
     g_queue = (VkQueue)queue;
     g_qfam  = family;
 }
+extern "C" unsigned lsfg_step3e_queue_family(void) { return g_qfam; }
 
 static bool ensure_pool(VkDevice dev) {
     if (g_pool_ok && g_dev == dev) return true;
