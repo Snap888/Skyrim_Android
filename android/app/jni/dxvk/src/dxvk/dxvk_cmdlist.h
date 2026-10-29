@@ -1,6 +1,9 @@
 #pragma once
 
 #include <limits>
+#include <functional>
+#include <utility>
+#include <vector>
 
 #include "dxvk_bind_mask.h"
 #include "dxvk_buffer.h"
@@ -199,6 +202,15 @@ namespace dxvk {
     void notifySignals() {
       m_signalTracker.notify();
     }
+
+    /**
+     * \brief Registers a callback to run after GPU completion, before resources are reset.
+     */
+    void addCompletionCallback(std::function<void(VkResult)> callback) {
+      m_completionCallbacks.push_back(std::move(callback));
+    }
+
+    void notifyCompletion(VkResult status);
     
     /**
      * \brief Resets the command list
@@ -796,6 +808,7 @@ namespace dxvk {
     DxvkGpuQueryTracker m_gpuQueryTracker;
     DxvkBufferTracker   m_bufferTracker;
     DxvkStatCounters    m_statCounters;
+    std::vector<std::function<void(VkResult)>> m_completionCallbacks;
 
     VkCommandBuffer getCmdBuffer(DxvkCmdBuffer cmdBuffer) const {
       if (cmdBuffer == DxvkCmdBuffer::ExecBuffer) return m_execBuffer;
