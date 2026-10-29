@@ -168,7 +168,23 @@ namespace dxvk {
   }
   
   
+  void DxvkCommandList::notifyCompletion(VkResult status) {
+    auto callbacks = std::move(m_completionCallbacks);
+    m_completionCallbacks.clear();
+
+    for (auto& callback : callbacks) {
+      try {
+        callback(status);
+      } catch (...) {
+        Logger::err("DxvkCommandList: Completion callback failed");
+      }
+    }
+  }
+
+
   void DxvkCommandList::reset() {
+    m_completionCallbacks.clear();
+
     // Signal resources and events to
     // avoid stalling main thread
     m_signalTracker.reset();
