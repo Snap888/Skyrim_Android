@@ -22,7 +22,16 @@
 
 static bool file_exists(const char *path) {
     struct stat st;
-    return stat(path, &st) == 0 && st.st_size > 0;
+    if (stat(path, &st) != 0 || st.st_size < 20 || (st.st_size % 4) != 0)
+        return false;
+
+    FILE *f = fopen(path, "rb");
+    if (!f) return false;
+    uint32_t magic = 0;
+    bool ok = fread(&magic, sizeof(magic), 1, f) == 1
+           && magic == 0x07230203u;
+    fclose(f);
+    return ok;
 }
 
 static bool read_file(const char *path, std::vector<uint8_t> &out) {
@@ -38,12 +47,33 @@ static bool read_file(const char *path, std::vector<uint8_t> &out) {
     return true;
 }
 
-static bool write_spv(const char *path, const uint32_t *words, size_t dword_count) {
-    FILE *f = fopen(path, "wb");
+static bool write_bytes_atomic(const char *path, const void *data, size_t size) {
+    char tmp_path[1024];
+    int len = snprintf(tmp_path, sizeof tmp_path, "%s.tmp", path);
+    if (len < 0 || (size_t)len >= sizeof tmp_path) return false;
+
+    FILE *f = fopen(tmp_path, "wb");
     if (!f) return false;
-    size_t n = fwrite(words, sizeof(uint32_t), dword_count, f);
-    fclose(f);
-    return n == dword_count;
+    bool ok = fwrite(data, 1, size, f) == size;
+    if (ok) ok = fflush(f) == 0;
+    if (fclose(f) != 0) ok = false;
+    if (!ok) {
+        remove(tmp_path);
+        return false;
+    }
+    if (rename(tmp_path, path) != 0) {
+        int rename_errno = errno;
+        remove(tmp_path);
+        LOGW("translate: cannot publish %s: %s", path, strerror(rename_errno));
+        return false;
+    }
+    return true;
+}
+
+static bool write_spv(const char *path, const uint32_t *words, size_t dword_count) {
+    if (!words || dword_count < 5) return false;
+    if (words[0] != 0x07230203u) return false;
+    return write_bytes_atomic(path, words, dword_count * sizeof(uint32_t));
 }
 
 static int translate_dxbc(const std::vector<uint8_t> &dxbc, std::vector<uint32_t> &spirv_out, std::string &err) {
@@ -146,14 +176,14 @@ int lsfg_translate_cache(const char *cache_dir) {
                 fail++;
                 continue;
             }
-            FILE *o = fopen(spv_path, "wb");
-            if (!o || fwrite(data.data(), 1, data.size(), o) != data.size()) {
-                if (o) fclose(o);
-                LOGW("translate: id=%u spirv copy fail", id);
+            if ((data.size() % sizeof(uint32_t)) != 0
+                || data.size() < 5 * sizeof(uint32_t)
+                || *reinterpret_cast<const uint32_t*>(data.data()) != 0x07230203u
+                || !write_bytes_atomic(spv_path, data.data(), data.size())) {
+                LOGW("translate: id=%u spirv copy/validation fail", id);
                 fail++;
                 continue;
             }
-            fclose(o);
             fprintf(out_man, "%u %zu ok spirv-copy\n", id, data.size() / 4);
             ok++;
             continue;
