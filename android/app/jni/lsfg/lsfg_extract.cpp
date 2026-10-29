@@ -207,10 +207,32 @@ bool lsfg_extract_cache_ready(const char *cache_dir) {
     snprintf(path, sizeof path, "%s/manifest.txt", cache_dir);
     FILE *f = fopen(path, "r");
     if (!f) return false;
-    char line[128];
-    int ok = fgets(line, sizeof line, f) != NULL;
+
+    char line[256];
+    int count = 0;
+    bool valid = true;
+    while (fgets(line, sizeof line, f)) {
+        unsigned id = 0;
+        unsigned long expected_size = 0;
+        char kind[32] = {0};
+        if (sscanf(line, "%u %lu %31s", &id, &expected_size, kind) != 3) {
+            valid = false;
+            break;
+        }
+
+        char blob_path[900];
+        snprintf(blob_path, sizeof blob_path, "%s/rcdata_%u.bin", cache_dir, id);
+        struct stat st;
+        if (stat(blob_path, &st) != 0 || st.st_size <= 0
+            || (unsigned long)st.st_size != expected_size) {
+            valid = false;
+            break;
+        }
+        count++;
+    }
+    if (ferror(f)) valid = false;
     fclose(f);
-    return ok;
+    return valid && count > 0;
 }
 
 int lsfg_extract_dll(const char *dll_path, const char *cache_dir) {
@@ -287,10 +309,12 @@ int lsfg_extract_dll(const char *dll_path, const char *cache_dir) {
         int nsec = fh->NumberOfSections;
 
         char man_path[800];
+        char man_tmp_path[840];
         snprintf(man_path, sizeof man_path, "%s/manifest.txt", cache_dir);
-        manifest = fopen(man_path, "w");
+        snprintf(man_tmp_path, sizeof man_tmp_path, "%s/manifest.txt.tmp", cache_dir);
+        manifest = fopen(man_tmp_path, "w");
         if (!manifest) {
-            LOGE("extract: cannot write manifest");
+            LOGE("extract: cannot write temporary manifest");
             break;
         }
 
@@ -300,16 +324,34 @@ int lsfg_extract_dll(const char *dll_path, const char *cache_dir) {
             break;
         }
 
-        fflush(manifest);
+        if (fflush(manifest) != 0) {
+            LOGE("extract: failed flushing temporary manifest");
+            break;
+        }
         LOGI("extract: done, %d RCDATA blob(s) -> %s", count, cache_dir);
         result = count;
     } while (0);
 
-    if (manifest) fclose(manifest);
+    int manifest_close_ok = 1;
+    if (manifest) {
+        manifest_close_ok = (fclose(manifest) == 0);
+        manifest = NULL;
+    }
+    char man_path2[800];
+    char man_tmp_path2[840];
+    snprintf(man_path2, sizeof man_path2, "%s/manifest.txt", cache_dir);
+    snprintf(man_tmp_path2, sizeof man_tmp_path2, "%s/manifest.txt.tmp", cache_dir);
+    if (result >= 0 && manifest_close_ok) {
+        if (rename(man_tmp_path2, man_path2) != 0) {
+            LOGE("extract: cannot publish manifest: %s", strerror(errno));
+            result = -1;
+        }
+    } else {
+        result = -1;
+    }
     free(file);
     if (result < 0) {
-        char man_path2[800];
-        snprintf(man_path2, sizeof man_path2, "%s/manifest.txt", cache_dir);
+        remove(man_tmp_path2);
         remove(man_path2);
     }
     return result;
