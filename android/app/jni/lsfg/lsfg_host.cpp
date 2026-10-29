@@ -15,6 +15,7 @@ extern "C" void lsfg_register_vk_context(void*, void*, void*, unsigned);
 extern "C" void lsfg_set_vk_context_hook(void (*)(void*, void*, void*, unsigned));
 extern "C" void lsfg_step3e_install(void);
 extern "C" void lsfg_step3g_install(void);
+extern "C" void lsfg_step3gb_install(void);
 extern "C" void lsfg_step3e_set_queue(void *queue, unsigned family);
 
 static LsfgConfig g_cfg;
@@ -123,8 +124,9 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     LOGI("LSFG: Vk context hook installed (device+phys+queue on DxvkDevice create)");
     lsfg_step3e_install();
     lsfg_step3g_install();
+    lsfg_step3gb_install();
 
-    LOGI("STEP3: present + step3e/3g hooks installed");
+    LOGI("STEP3: present + step3e/3g/3g-b hooks installed");
     g_inited = 1;
     return true;
 }
