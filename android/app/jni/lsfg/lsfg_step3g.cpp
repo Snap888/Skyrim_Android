@@ -174,6 +174,7 @@ extern "C" void lsfg_step3g_copy_impl(
 
     unsigned n = ++g_copy_n;
     unsigned slot_n = ++g_slot_copies[slot];
+    const unsigned slot_bit = 1u << slot;
     if (!(g_history_mask & slot_bit)) {
         g_history_mask |= slot_bit;
         lsfg_log("I", "step3g: first copy command recorded for history[%u]; mask=0x%x",
