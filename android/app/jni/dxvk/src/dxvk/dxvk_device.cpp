@@ -1,15 +1,22 @@
 #include "dxvk_device.h"
 #include "dxvk_instance.h"
 
-/* LSFG: context hook (device, physicalDevice, graphicsQueue) */
-static void (*g_lsfg_vk_ctx_hook)(void*, void*, void*) = nullptr;
+/* LSFG: context hook (device, physicalDevice, graphicsQueue, queueFamily) */
+static void (*g_lsfg_vk_ctx_hook)(void*, void*, void*, uint32_t) = nullptr;
 static void (*g_lsfg_vk_device_hook)(void*) = nullptr;
+static void (*g_lsfg_present_image_hook)(void*, void*, uint32_t, uint32_t, uint32_t) = nullptr;
 
 extern "C" void lsfg_set_vk_device_hook(void (*fn)(void*)) {
   g_lsfg_vk_device_hook = fn;
 }
-extern "C" void lsfg_set_vk_context_hook(void (*fn)(void*, void*, void*)) {
+extern "C" void lsfg_set_vk_context_hook(void (*fn)(void*, void*, void*, uint32_t)) {
   g_lsfg_vk_ctx_hook = fn;
+}
+extern "C" void lsfg_set_present_image_hook(void (*fn)(void*, void*, uint32_t, uint32_t, uint32_t)) {
+  g_lsfg_present_image_hook = fn;
+}
+extern "C" void* lsfg_get_present_image_hook(void) {
+  return (void*)g_lsfg_present_image_hook;
 }
 
 namespace dxvk {
@@ -56,7 +63,8 @@ namespace dxvk {
       g_lsfg_vk_ctx_hook(
         reinterpret_cast<void*>(m_vkd->device()),
         reinterpret_cast<void*>(m_adapter->handle()),
-        reinterpret_cast<void*>(m_queues.graphics.queueHandle));
+        reinterpret_cast<void*>(m_queues.graphics.queueHandle),
+        m_queues.graphics.queueFamily);
     else if (g_lsfg_vk_device_hook)
       g_lsfg_vk_device_hook(reinterpret_cast<void*>(m_vkd->device()));
   }
