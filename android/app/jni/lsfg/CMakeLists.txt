@@ -4,6 +4,7 @@ add_library(lsfg_host STATIC
     lsfg_log.cpp
     lsfg_translate.cpp
     lsfg_present.cpp
+    lsfg_step3d.cpp
     dxbc_options_stub.cpp
 )
 target_include_directories(lsfg_host PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
