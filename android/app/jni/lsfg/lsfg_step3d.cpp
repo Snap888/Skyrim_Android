@@ -19,6 +19,7 @@ static VkImage g_img[2];
 static VkDeviceMemory g_mem[2];
 static VkImageView g_view[2];
 static int g_fb_ready;
+static unsigned g_fb_generation;
 
 extern "C" void lsfg_step3d_set_phys_queue(void *phys, void *queue) {
     g_phys = (VkPhysicalDevice)phys;
@@ -78,6 +79,7 @@ static uint32_t find_mem(uint32_t bits, VkMemoryPropertyFlags flags) {
 }
 
 static void destroy_fb(VkDevice dev) {
+    ++g_fb_generation;
     for (int i = 0; i < 2; i++) {
         if (g_view[i]) { vkDestroyImageView(dev, g_view[i], nullptr); g_view[i] = VK_NULL_HANDLE; }
         if (g_img[i])  { vkDestroyImage(dev, g_img[i], nullptr); g_img[i] = VK_NULL_HANDLE; }
@@ -208,3 +210,4 @@ extern "C" void *lsfg_step3d_get_image(int idx) {
 }
 extern "C" unsigned lsfg_step3d_fb_width(void) { return g_fb_w; }
 extern "C" unsigned lsfg_step3d_fb_height(void) { return g_fb_h; }
+extern "C" unsigned lsfg_step3d_fb_generation(void) { return g_fb_generation; }
