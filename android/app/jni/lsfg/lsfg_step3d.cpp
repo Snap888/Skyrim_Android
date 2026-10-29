@@ -59,7 +59,7 @@ static bool get_compute_info(const std::vector<uint32_t> &c, ComputeInfo &info) 
     memset(&info, 0, sizeof(info));
     for (size_t i = 5; i < c.size();) {
         uint32_t w = c[i], op = w & 0xffffu, len = w >> 16;
-        if (!len || i + len > c.size()) return false;
+        if (!len || i + len > c.size()) return fail("malformed instruction", (uint32_t)i, len);
         const uint32_t *a = c.data() + i;
         if (op == 15 && len >= 4 && a[1] == 5) { // OpEntryPoint GLCompute
             size_t out = 0;
@@ -87,8 +87,13 @@ struct RefBinding {
     uint32_t count;
 };
 
-static bool reflect(const std::vector<uint32_t> &c, std::vector<RefBinding> &out) {
+static bool reflect(const std::vector<uint32_t> &c, std::vector<RefBinding> &out, char *why = nullptr, size_t why_cap = 0) {
     out.clear();
+    auto fail = [&](const char *msg, uint32_t id, uint32_t detail) -> bool {
+        if (why && why_cap) snprintf(why, why_cap, "%s id=%u detail=%u", msg, id, detail);
+        return false;
+    };
+    if (why && why_cap) why[0] = 0;
     std::unordered_map<uint32_t, uint32_t> id_set, id_bind, storage;
     std::unordered_map<uint32_t, uint32_t> pointer_pointee, pointer_storage;
     std::unordered_map<uint32_t, uint32_t> type_opcode, image_sampled, array_element, array_length_id;
@@ -129,13 +134,13 @@ static bool reflect(const std::vector<uint32_t> &c, std::vector<RefBinding> &out
         if (!id_bind.count(v.id)) continue;
         uint32_t set = id_set.count(v.id) ? id_set[v.id] : 0;
         uint32_t binding = id_bind[v.id];
-        if (set > 7 || binding > 63) return false;
+        if (set > 7 || binding > 63) return fail("descriptor set/binding out of supported range", v.id, set > 7 ? set : binding);
         auto pit = pointer_pointee.find(v.type);
-        if (pit == pointer_pointee.end()) return false;
+        if (pit == pointer_pointee.end()) return fail("descriptor variable has no OpTypePointer", v.id, v.type);
         uint32_t tid = pit->second, count = 1;
         while (type_opcode.count(tid) && type_opcode[tid] == 28) {
             uint32_t len_id = array_length_id[tid];
-            if (!constants.count(len_id) || constants[len_id] == 0 || constants[len_id] > 1024) return false;
+            if (!constants.count(len_id) || constants[len_id] == 0 || constants[len_id] > 1024) return fail("unsupported descriptor array length", v.id, len_id);
             count *= (uint32_t)constants[len_id];
             tid = array_element[tid];
         }
@@ -146,7 +151,7 @@ static bool reflect(const std::vector<uint32_t> &c, std::vector<RefBinding> &out
         } else if (v.storage == 2) { // Uniform: distinguish Block and legacy BufferBlock
             if (decorations[tid] & 2u) dtype = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
             else if (decorations[tid] & 1u) dtype = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            else return false;
+            else return fail("Uniform struct missing Block/BufferBlock decoration", v.id, tid);
         } else if (v.storage == 0) { // UniformConstant
             uint32_t op = type_opcode.count(tid) ? type_opcode[tid] : 0;
             if (op == 26) dtype = VK_DESCRIPTOR_TYPE_SAMPLER;
@@ -154,7 +159,7 @@ static bool reflect(const std::vector<uint32_t> &c, std::vector<RefBinding> &out
             else if (op == 25) {
                 uint32_t sampled = image_sampled.count(tid) ? image_sampled[tid] : 1;
                 dtype = sampled == 2 ? VK_DESCRIPTOR_TYPE_STORAGE_IMAGE : VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-            } else return false;
+            } else return fail("unsupported UniformConstant descriptor type", v.id, type_opcode.count(tid) ? type_opcode[tid] : 0);
         } else {
             continue; // push constants and non-descriptor variables
         }
@@ -164,15 +169,16 @@ static bool reflect(const std::vector<uint32_t> &c, std::vector<RefBinding> &out
         return a.set != b.set ? a.set < b.set : a.binding < b.binding;
     });
     for (size_t i = 1; i < out.size(); i++)
-        if (out[i-1].set == out[i].set && out[i-1].binding == out[i].binding) return false;
+        if (out[i-1].set == out[i].set && out[i-1].binding == out[i].binding) return fail("duplicate descriptor binding", out[i].binding, out[i].set);
     return true;
 }
 
 static bool probe_reflected_layout(VkDevice dev, const std::vector<uint32_t> &code,
                                    unsigned id, int *binding_count) {
     std::vector<RefBinding> bindings;
-    if (!reflect(code, bindings)) {
-        lsfg_log("W", "step3d: id=%u descriptor reflection unsupported/invalid; layout skipped", id);
+    char reflect_error[192] = {};
+    if (!reflect(code, bindings, reflect_error, sizeof(reflect_error))) {
+        lsfg_log("W", "step3d: id=%u descriptor reflection unsupported/invalid (%s); layout skipped", id, reflect_error[0] ? reflect_error : "unspecified");
         return false;
     }
     uint32_t max_set = 0;
