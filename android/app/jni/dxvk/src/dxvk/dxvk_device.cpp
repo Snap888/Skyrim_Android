@@ -247,16 +247,8 @@ namespace dxvk {
           DxvkSubmitStatus*         status) {
     status->result = VK_NOT_READY;
 
-    /* LSFG step 3e: signal present */
-    if (g_lsfg_present_image_hook) {
-      const auto info = presenter->info();
-      g_lsfg_present_image_hook(
-        reinterpret_cast<void*>(m_vkd->device()),
-        nullptr,
-        info.imageExtent.width,
-        info.imageExtent.height,
-        static_cast<uint32_t>(info.format.format));
-    }
+    /* LSFG: present-image hook ONLY from D3D9SwapChainEx::PresentImage
+       (real VkImage). Do not fire here with nullptr. */
 
     DxvkPresentInfo presentInfo;
     presentInfo.presenter = presenter;
@@ -334,7 +326,7 @@ namespace dxvk {
     return DxvkDeviceQueue { queue, family, index };
   }
 
-  /* PresentImage declares this inside namespace dxvk — C++ linkage symbol for the linker */
+  /* PresentImage declares this inside namespace dxvk */
   void* lsfg_get_present_image_hook() {
     return reinterpret_cast<void*>(g_lsfg_present_image_hook);
   }
