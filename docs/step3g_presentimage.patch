@@ -1,0 +1,35 @@
+--- a/android/app/jni/dxvk/src/d3d9/d3d9_swapchain.cpp
++++ b/android/app/jni/dxvk/src/d3d9/d3d9_swapchain.cpp
+@@ -847,11 +847,9 @@
+       if (m_hud != nullptr)
+         m_hud->render(m_context, info.format, info.imageExtent);
+ 
+-      /* LSFG step 3e: notify host of WSI image about to be presented */
++      /* LSFG step 3f: real WSI image notify */
+       {
+-        extern void (*lsfg_present_image_hook_ptr)(void*, void*, uint32_t, uint32_t, uint32_t);
+-        /* resolved via lsfg_set_present_image_hook in dxvk_device.cpp */
+-        extern void* lsfg_get_present_image_hook(void);
++        extern void* lsfg_get_present_image_hook();
+         auto hook = reinterpret_cast<void(*)(void*,void*,uint32_t,uint32_t,uint32_t)>(
+             lsfg_get_present_image_hook());
+         if (hook) {
+@@ -864,6 +862,18 @@
+         }
+       }
+ 
++      /* LSFG step 3g-a: copy swapchain -> history inside same DXVK cmd list */
++      {
++        extern void lsfg_step3g_insert_copy(void*, void*, void*, uint32_t, uint32_t, uint32_t);
++        lsfg_step3g_insert_copy(
++            m_context.ptr(),
++            m_imageViews.at(imageIndex).ptr(),
++            m_device.ptr(),
++            info.imageExtent.width,
++            info.imageExtent.height,
++            static_cast<uint32_t>(info.format.format));
++      }
++
+       if (i + 1 >= SyncInterval)
+         m_context->signal(m_frameLatencySignal, m_frameId);
+ 
