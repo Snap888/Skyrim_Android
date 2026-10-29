@@ -180,7 +180,14 @@ extern "C" void lsfg_step3d_run(void *device, const char *cache_dir, uint32_t w,
     lsfg_log("I", "step3d reflect: compute=%d with_bindings=%d max_bindings=%d", cn, wb, maxb);
     lsfg_log("I", "step3d frames: ready=%d %ux%u phys=%p queue=%p",
              g_fb_ready, g_fb_w, g_fb_h, (void*)g_phys, (void*)g_queue);
-    lsfg_log("I", "NEXT step 3e: inject cmd buffer at DXVK present (copy+dispatch+present generated)");
+    lsfg_log("I", "NEXT step 3f: real VkImage path + history write probe");
 }
 
 extern "C" int lsfg_step3d_frames_ready(void) { return g_fb_ready; }
+
+extern "C" void *lsfg_step3d_get_image(int idx) {
+    if (!g_fb_ready || idx < 0 || idx > 1) return nullptr;
+    return (void*)g_img[idx];
+}
+extern "C" unsigned lsfg_step3d_fb_width(void) { return g_fb_w; }
+extern "C" unsigned lsfg_step3d_fb_height(void) { return g_fb_h; }
