@@ -25,7 +25,6 @@ static Rc<DxvkImage> g_hist_wrap[2];
 static VkImage g_hist_handle[2]{};
 static DxvkDevice* g_wrap_device;
 static unsigned g_wrap_generation;
-static unsigned g_readback_mask;
 
 extern "C" void lsfg_step3g_copy_impl(
     void *ctx_v, void *src_view_v, void *device_v,
@@ -82,7 +81,6 @@ extern "C" void lsfg_step3g_copy_impl(
         g_wrap_device = device;
         g_wrap_generation = generation;
         g_history_mask = 0;
-        g_readback_mask = 0;
         g_slot_copies[0] = 0;
         g_slot_copies[1] = 0;
         lsfg_log("I", "step3g: reset persistent history wrappers generation=%u", generation);
@@ -123,10 +121,11 @@ extern "C" void lsfg_step3g_copy_impl(
         srcImg, sub, VkOffset3D{ 0, 0, 0 },
         VkExtent3D{ w, h, 1 });
 
-    // One 2x2 RGBA readback per history slot/generation. The readback copy is
-    // recorded in this same DXVK command list and inspected only after its fence.
-    unsigned slot_bit = 1u << slot;
-    if (!(g_readback_mask & slot_bit)) {
+    // Sample history pixels at the center on the first copy and every 120 copies
+    // per slot. The readback is recorded in this same DXVK command list and
+    // inspected only after its GPU fence completes.
+    unsigned slot_copy_index = g_slot_copies[slot].load();
+    if (slot_copy_index == 0 || (slot_copy_index % 120) == 0) {
         DxvkBufferCreateInfo bi{};
         bi.size   = 16;
         bi.usage  = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
@@ -139,14 +138,17 @@ extern "C" void lsfg_step3g_copy_impl(
         VkMemoryPropertyFlags required = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
                                        | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
         if (readback != nullptr && (readback->memFlags() & required) == required) {
+            const uint32_t sample_x = w / 2;
+            const uint32_t sample_y = h / 2;
             ctx->copyImageToBuffer(
                 readback, 0, 4, 4, dstImg, sub,
-                VkOffset3D{ 0, 0, 0 }, VkExtent3D{ 2, 2, 1 });
+                VkOffset3D{ (int32_t)sample_x, (int32_t)sample_y, 0 },
+                VkExtent3D{ 2, 2, 1 });
 
-            ctx->addCompletionCallback([readback, slot, generation](VkResult status) {
+            ctx->addCompletionCallback([readback, slot, generation, slot_copy_index, sample_x, sample_y](VkResult status) {
                 if (status != VK_SUCCESS) {
-                    lsfg_log("W", "step3g: history[%u] readback completion failed status=%d",
-                             slot, (int)status);
+                    lsfg_log("W", "step3g: history[%u] readback #%u completion failed status=%d",
+                             slot, slot_copy_index, (int)status);
                     return;
                 }
 
@@ -155,19 +157,17 @@ extern "C" void lsfg_step3g_copy_impl(
                 for (unsigned i = 0; i < 16; i++)
                     checksum += p[i];
 
-                lsfg_log("I", "step3g: GPU readback slot[%u] gen=%u checksum=%u "
-                         "p0=%u,%u,%u,%u p1=%u,%u,%u,%u "
-                         "p2=%u,%u,%u,%u p3=%u,%u,%u,%u",
-                         slot, generation, checksum,
+                lsfg_log("I", "step3g: GPU readback slot[%u] gen=%u copy=%u xy=%u,%u checksum=%u "
+                         "p0=%u,%u,%u,%u p1=%u,%u,%u,%u p2=%u,%u,%u,%u p3=%u,%u,%u,%u",
+                         slot, generation, slot_copy_index, sample_x, sample_y, checksum,
                          (unsigned)p[0], (unsigned)p[1], (unsigned)p[2], (unsigned)p[3],
                          (unsigned)p[4], (unsigned)p[5], (unsigned)p[6], (unsigned)p[7],
                          (unsigned)p[8], (unsigned)p[9], (unsigned)p[10], (unsigned)p[11],
                          (unsigned)p[12], (unsigned)p[13], (unsigned)p[14], (unsigned)p[15]);
             });
-            g_readback_mask |= slot_bit;
-            lsfg_log("I", "step3g: scheduled 2x2 GPU readback for history[%u]", slot);
+            lsfg_log("I", "step3g: scheduled 2x2 GPU readback for history[%u] copy=%u at %u,%u",
+                     slot, slot_copy_index, sample_x, sample_y);
         } else {
-            g_readback_mask |= slot_bit;
             lsfg_log("W", "step3g: readback skipped for history[%u]: host-coherent memory unavailable", slot);
         }
     }
