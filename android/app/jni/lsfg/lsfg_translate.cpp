@@ -176,9 +176,12 @@ int lsfg_translate_cache(const char *cache_dir) {
                 fail++;
                 continue;
             }
+            uint32_t magic = 0;
+            if (data.size() >= sizeof(magic))
+                memcpy(&magic, data.data(), sizeof(magic));
             if ((data.size() % sizeof(uint32_t)) != 0
                 || data.size() < 5 * sizeof(uint32_t)
-                || *reinterpret_cast<const uint32_t*>(data.data()) != 0x07230203u
+                || magic != 0x07230203u
                 || !write_bytes_atomic(spv_path, data.data(), data.size())) {
                 LOGW("translate: id=%u spirv copy/validation fail", id);
                 fail++;
