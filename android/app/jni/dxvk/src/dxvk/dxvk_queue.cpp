@@ -171,6 +171,7 @@ namespace dxvk {
         m_device->waitForIdle();
       }
 
+      entry.submit.cmdList->notifyCompletion(status);
       entry.submit.cmdList->notifySignals();
       entry.submit.cmdList->reset();
 
