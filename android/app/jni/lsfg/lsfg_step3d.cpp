@@ -49,6 +49,38 @@ static bool is_compute(const std::vector<uint32_t> &c) {
     return false;
 }
 
+struct ComputeInfo {
+    char entry[128];
+    uint32_t local_x, local_y, local_z;
+    bool has_local_size;
+};
+
+static bool get_compute_info(const std::vector<uint32_t> &c, ComputeInfo &info) {
+    memset(&info, 0, sizeof(info));
+    for (size_t i = 5; i < c.size();) {
+        uint32_t w = c[i], op = w & 0xffffu, len = w >> 16;
+        if (!len || i + len > c.size()) return false;
+        const uint32_t *a = c.data() + i;
+        if (op == 15 && len >= 4 && a[1] == 5) { // OpEntryPoint GLCompute
+            size_t out = 0;
+            const unsigned char *name = reinterpret_cast<const unsigned char *>(a + 3);
+            size_t bytes = (size_t)(len - 3) * sizeof(uint32_t);
+            while (out + 1 < sizeof(info.entry) && out < bytes && name[out]) {
+                info.entry[out] = (char)name[out];
+                out++;
+            }
+            info.entry[out] = 0;
+        } else if (op == 16 && len >= 6 && a[2] == 17) { // OpExecutionMode LocalSize
+            info.local_x = a[3];
+            info.local_y = a[4];
+            info.local_z = a[5];
+            info.has_local_size = true;
+        }
+        i += len;
+    }
+    return info.entry[0] != 0;
+}
+
 struct RefBinding {
     uint32_t set, binding;
     VkDescriptorType type;
@@ -187,11 +219,16 @@ static bool probe_reflected_layout(VkDevice dev, const std::vector<uint32_t> &co
             pci.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
             pci.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
             pci.stage.module = module;
-            pci.stage.pName = "main";
-            pci.layout = pipeline_layout;
-            VkPipeline pipeline = VK_NULL_HANDLE;
-            ok = vkCreateComputePipelines(dev, VK_NULL_HANDLE, 1, &pci, nullptr, &pipeline) == VK_SUCCESS;
-            if (pipeline) vkDestroyPipeline(dev, pipeline, nullptr);
+            ComputeInfo info{};
+            if (!get_compute_info(code, info)) {
+                ok = false;
+            } else {
+                pci.stage.pName = info.entry;
+                pci.layout = pipeline_layout;
+                VkPipeline pipeline = VK_NULL_HANDLE;
+                ok = vkCreateComputePipelines(dev, VK_NULL_HANDLE, 1, &pci, nullptr, &pipeline) == VK_SUCCESS;
+                if (pipeline) vkDestroyPipeline(dev, pipeline, nullptr);
+            }
             vkDestroyShaderModule(dev, module, nullptr);
         }
     }
@@ -338,6 +375,17 @@ extern "C" void lsfg_step3d_run(void *device, const char *cache_dir, uint32_t w,
         std::vector<uint32_t> code;
         if (!load_spv(path, code) || !is_compute(code)) continue;
         cn++;
+        ComputeInfo info{};
+        if (get_compute_info(code, info)) {
+            if (info.has_local_size)
+                lsfg_log("I", "step3d shader: id=%u entry=%s local_size=%u,%u,%u",
+                         id, info.entry, info.local_x, info.local_y, info.local_z);
+            else
+                lsfg_log("I", "step3d shader: id=%u entry=%s local_size=unspecified/specialized",
+                         id, info.entry);
+        } else {
+            lsfg_log("W", "step3d shader: id=%u compute entrypoint metadata unavailable", id);
+        }
         std::vector<RefBinding> binds;
         bool reflected = reflect(code, binds);
         if (reflected && !binds.empty()) {
