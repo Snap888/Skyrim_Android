@@ -19,6 +19,7 @@ extern "C" void lsfg_step3gb_install(void);
 extern "C" void lsfg_step3h_install(void);
 extern "C" void lsfg_step3h_pin_roles(const char *cache, int performance);
 extern "C" void lsfg_step3hb_install(void);
+extern "C" void lsfg_step3hc_install(void);
 extern "C" void lsfg_step3hb_set_phys(void *phys);
 extern "C" void lsfg_step3e_set_queue(void *queue, unsigned family);
 
@@ -132,8 +133,9 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     lsfg_step3h_install();
     lsfg_step3h_pin_roles(cfg->shader_cache, cfg->performance);
     lsfg_step3hb_install();
+    lsfg_step3hc_install();
 
-    LOGI("STEP3: present + step3e/3g/3g-b + 3h-a/b installed");
+    LOGI("STEP3: present + 3e/3g/3g-b + 3h-a/b/c installed");
     g_inited = 1;
     return true;
 }
