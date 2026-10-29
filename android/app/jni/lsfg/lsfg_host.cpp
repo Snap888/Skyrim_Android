@@ -11,9 +11,8 @@
 #define LOGW(...) lsfg_log("W", __VA_ARGS__)
 #define LOGE(...) lsfg_log("E", __VA_ARGS__)
 
-/* Implemented in lsfg_present.cpp / dxvk_device.cpp — must be at namespace scope */
-extern "C" void lsfg_register_vk_device(void*);
-extern "C" void lsfg_set_vk_device_hook(void (*)(void*));
+extern "C" void lsfg_register_vk_context(void*, void*, void*);
+extern "C" void lsfg_set_vk_context_hook(void (*)(void*, void*, void*));
 
 static LsfgConfig g_cfg;
 static int g_inited;
@@ -117,8 +116,8 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     lsfg_host_set_spirv_count(tn);
     lsfg_host_set_cache_dir(cfg->shader_cache);
 
-    lsfg_set_vk_device_hook(lsfg_register_vk_device);
-    LOGI("LSFG: VkDevice hook installed (will fire on DxvkDevice create)");
+    lsfg_set_vk_context_hook(lsfg_register_vk_context);
+    LOGI("LSFG: Vk context hook installed (device+phys+queue on DxvkDevice create)");
 
     LOGI("STEP3: present hook will log on first Present(); FG compute still TODO");
     g_inited = 1;
