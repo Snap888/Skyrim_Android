@@ -99,8 +99,4 @@ namespace dxvk {
     return DxvkDeviceQueue { queue, family, index };
   }
 
-  void DxvkDevice::initSubmissionQueue() {
-    // no-op, queue created in ctor
-  }
-
 }
