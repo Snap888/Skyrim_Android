@@ -159,10 +159,10 @@ extern "C" void lsfg_step3g_copy_impl(
                          "p0=%u,%u,%u,%u p1=%u,%u,%u,%u "
                          "p2=%u,%u,%u,%u p3=%u,%u,%u,%u",
                          slot, generation, checksum,
-                         p[0], p[1], p[2], p[3],
-                         p[4], p[5], p[6], p[7],
-                         p[8], p[9], p[10], p[11],
-                         p[12], p[13], p[14], p[15]);
+                         (unsigned)p[0], (unsigned)p[1], (unsigned)p[2], (unsigned)p[3],
+                         (unsigned)p[4], (unsigned)p[5], (unsigned)p[6], (unsigned)p[7],
+                         (unsigned)p[8], (unsigned)p[9], (unsigned)p[10], (unsigned)p[11],
+                         (unsigned)p[12], (unsigned)p[13], (unsigned)p[14], (unsigned)p[15]);
             });
             g_readback_mask |= slot_bit;
             lsfg_log("I", "step3g: scheduled 2x2 GPU readback for history[%u]", slot);
