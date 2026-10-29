@@ -323,11 +323,15 @@ extern "C" void lsfg_step3d_run(void *device, const char *cache_dir, uint32_t w,
     g_done = 1;
     lsfg_log("I", "=== LSFG step 3d: descriptor reflection + frame pair ===");
 
+    int manifest_entries = 0;
     int cn = 0, wb = 0, maxb = 0, layout_ok = 0, layout_fail = 0;
     char line[256];
-    while (fgets(line, sizeof line, f) && cn < 40) {
+    /* Audit every manifest entry: shader IDs and variants are not guaranteed
+       to be ordered, and a fixed sample can miss the actual LSFG pass set. */
+    while (fgets(line, sizeof line, f)) {
         unsigned id = 0;
         if (sscanf(line, "%u", &id) != 1) continue;
+        manifest_entries++;
         if (strstr(line, " fail ") || strstr(line, " skip ")) continue;
         char path[700];
         snprintf(path, sizeof path, "%s/%u.spv", cache_dir, id);
@@ -345,7 +349,7 @@ extern "C" void lsfg_step3d_run(void *device, const char *cache_dir, uint32_t w,
         else layout_fail++;
     }
     fclose(f);
-    lsfg_log("I", "step3d reflect/layout: compute=%d with_bindings=%d max_bindings=%d layout_pipeline_ok=%d failed=%d", cn, wb, maxb, layout_ok, layout_fail);
+    lsfg_log("I", "step3d manifest audit: entries=%d compute_spv=%d with_bindings=%d max_bindings=%d layout_pipeline_ok=%d failed=%d", manifest_entries, cn, wb, maxb, layout_ok, layout_fail);
     lsfg_log("I", "step3d frames: ready=%d %ux%u phys=%p queue=%p",
              g_fb_ready, g_fb_w, g_fb_h, (void*)g_phys, (void*)g_queue);
     lsfg_log("I", "step3d: layout/pipeline probes only; no descriptors bound and no dispatch submitted");
