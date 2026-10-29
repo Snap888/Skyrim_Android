@@ -1,5 +1,8 @@
 /* Step 3h-c: per-pass SPIR-V descriptor layouts + dispatch chain (mipmaps -> generate).
  * Not full lsfg-vk wiring — binds history + intermediate images with reflected types.
+ *
+ * IMPORTANT: do NOT dispatch every frame — full-res compute on present path drops
+ * Adreno to 1–2 FPS. Build once, probe-dispatch once until 3h-d presents correctly.
  */
 #include "lsfg_log.h"
 #include "lsfg_host.h"
@@ -67,6 +70,7 @@ static VkImageView g_out_view = VK_NULL_HANDLE;
 
 static PassRt g_mip{}, g_gen{};
 static int g_ready;
+static int g_probe_done;
 static std::atomic<unsigned> g_disp_n{0};
 
 static bool load_spv(const char *path, std::vector<uint32_t> &out) {
@@ -403,7 +407,8 @@ static bool build(VkDevice dev, VkPhysicalDevice phys, uint32_t qfam) {
 
     g_ready = 1;
     lsfg_log("I", "step3h-c: CHAIN READY (mipmaps + generate descriptors)");
-    lsfg_log("I", "NEXT step 3h-d: present generated frame into swapchain path");
+    lsfg_log("I", "step3h-c: per-frame dispatch DISABLED (Adreno FPS fix)");
+    lsfg_log("I", "NEXT step 3h-d: present generated + correct bindings before enabling per-frame FG");
     return true;
 }
 
@@ -436,7 +441,7 @@ static bool dispatch_chain(VkDevice dev) {
     update_ds(dev, &g_mip, h0, h1, g_flow_view, g_out_view);
     update_ds(dev, &g_gen, h0, h1, g_flow_view, g_out_view);
 
-    vkWaitForFences(dev, 1, &g_fence, VK_TRUE, 1000000000ull);
+    vkWaitForFences(dev, 1, &g_fence, VK_TRUE, 500000000ull);
     vkResetFences(dev, 1, &g_fence);
     vkResetCommandBuffer(g_cmd, 0);
 
@@ -497,16 +502,16 @@ extern "C" void lsfg_step3hc_after_copy(void *device, unsigned qfam) {
     }
 
     unsigned n = ++g_disp_n;
-    if (n >= 2) {
-        if (dispatch_chain(g_dev)) {
-            if (n == 2 || n == 60 || n == 300 || (n % 1800) == 0) {
-                lsfg_log("I", "step3h-c: DISPATCH CHAIN OK #%u mipmaps->generate %ux%u (out not presented yet)",
-                         n, lsfg_step3d_fb_width(), lsfg_step3d_fb_height());
-            }
-        }
+    /* Single probe only — per-frame chain was 1–2 FPS on Adreno 740. */
+    if (g_probe_done || n < 3) return;
+    g_probe_done = 1;
+    if (dispatch_chain(g_dev)) {
+        lsfg_log("I", "step3h-c: PROBE DISPATCH once #%u mipmaps->generate %ux%u",
+                 n, lsfg_step3d_fb_width(), lsfg_step3d_fb_height());
+        lsfg_log("I", "step3h-c: per-frame FG off until 3h-d (correct bindings + present)");
     }
 }
 
 extern "C" void lsfg_step3hc_install(void) {
-    lsfg_log("I", "LSFG: step3h-c descriptor+dispatch chain installed");
+    lsfg_log("I", "LSFG: step3h-c installed (build once, probe once — no per-frame dispatch)");
 }
