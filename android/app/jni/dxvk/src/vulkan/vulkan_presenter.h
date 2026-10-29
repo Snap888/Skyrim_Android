@@ -23,6 +23,7 @@ namespace dxvk::vk {
   struct PresenterDesc {
     VkExtent2D          imageExtent;
     uint32_t            imageCount;
+    VkImageUsageFlags   imageUsage;
     uint32_t            numFormats;
     VkSurfaceFormatKHR  formats[4];
     uint32_t            numPresentModes;
