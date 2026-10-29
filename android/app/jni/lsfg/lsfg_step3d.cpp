@@ -191,3 +191,9 @@ extern "C" void *lsfg_step3d_get_image(int idx) {
 }
 extern "C" unsigned lsfg_step3d_fb_width(void) { return g_fb_w; }
 extern "C" unsigned lsfg_step3d_fb_height(void) { return g_fb_h; }
+
+extern "C" void *lsfg_step3d_get_view(int idx) {
+    if (!g_fb_ready || idx < 0 || idx > 1) return nullptr;
+    return (void*)g_view[idx];
+}
+extern "C" void *lsfg_step3d_get_queue(void) { return (void*)g_queue; }
