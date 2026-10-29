@@ -81,7 +81,6 @@ extern "C" void lsfg_step3g_copy_impl(
         g_wrap_device = device;
         g_wrap_generation = generation;
         g_history_mask = 0;
-        g_pp = 0;
         g_slot_copies[0] = 0;
         g_slot_copies[1] = 0;
         lsfg_log("I", "step3g: reset persistent history wrappers generation=%u", generation);
