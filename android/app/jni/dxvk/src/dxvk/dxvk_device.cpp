@@ -5,6 +5,7 @@
 static void (*g_lsfg_vk_ctx_hook)(void*, void*, void*, uint32_t) = nullptr;
 static void (*g_lsfg_vk_device_hook)(void*) = nullptr;
 static void (*g_lsfg_present_image_hook)(void*, void*, uint32_t, uint32_t, uint32_t) = nullptr;
+static void (*g_lsfg_step3g_copy_hook)(void*, void*, void*, uint32_t, uint32_t, uint32_t) = nullptr;
 
 extern "C" void lsfg_set_vk_device_hook(void (*fn)(void*)) {
   g_lsfg_vk_device_hook = fn;
@@ -17,6 +18,9 @@ extern "C" void lsfg_set_present_image_hook(void (*fn)(void*, void*, uint32_t, u
 }
 extern "C" void* lsfg_get_present_image_hook(void) {
   return (void*)g_lsfg_present_image_hook;
+}
+extern "C" void lsfg_set_step3g_copy_hook(void (*fn)(void*, void*, void*, uint32_t, uint32_t, uint32_t)) {
+  g_lsfg_step3g_copy_hook = fn;
 }
 
 namespace dxvk {
@@ -326,9 +330,15 @@ namespace dxvk {
     return DxvkDeviceQueue { queue, family, index };
   }
 
-  /* PresentImage declares this inside namespace dxvk */
   void* lsfg_get_present_image_hook() {
     return reinterpret_cast<void*>(g_lsfg_present_image_hook);
+  }
+
+  void lsfg_step3g_insert_copy(
+      void* ctx, void* src_view, void* device,
+      uint32_t w, uint32_t h, uint32_t vkfmt) {
+    if (g_lsfg_step3g_copy_hook)
+      g_lsfg_step3g_copy_hook(ctx, src_view, device, w, h, vkfmt);
   }
   
 }
