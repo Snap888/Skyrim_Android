@@ -28,5 +28,5 @@ target_compile_options(lsfg_host PRIVATE
 )
 target_link_libraries(lsfg_host PUBLIC dxvk_d3d9)
 if(ANDROID)
-  target_link_libraries(lsfg_host PUBLIC log)
+  target_link_libraries(lsfg_host PUBLIC log vulkan)
 endif()

@@ -5,8 +5,11 @@ extern "C" {
 #endif
 
 void lsfg_host_on_present(uint32_t width, uint32_t height, uint32_t vk_format);
+void lsfg_host_on_present_ex(uint32_t width, uint32_t height, uint32_t vk_format, void *vk_device);
 void lsfg_host_set_spirv_count(int n);
 int  lsfg_host_spirv_count(void);
+void lsfg_host_set_cache_dir(const char *path);
+const char *lsfg_host_cache_dir(void);
 
 #ifdef __cplusplus
 }
