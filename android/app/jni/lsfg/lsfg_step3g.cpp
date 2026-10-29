@@ -80,25 +80,29 @@ extern "C" void lsfg_step3g_copy_impl(
         g_hist_handle[1] = VK_NULL_HANDLE;
         g_wrap_device = device;
         g_wrap_generation = generation;
+        g_history_mask = 0;
+        g_pp = 0;
+        g_slot_copies[0] = 0;
+        g_slot_copies[1] = 0;
         lsfg_log("I", "step3g: reset persistent history wrappers generation=%u", generation);
     }
 
     if (g_hist_wrap[slot] == nullptr || g_hist_handle[slot] != histVk) {
         DxvkImageCreateInfo ii{};
-    ii.type        = VK_IMAGE_TYPE_2D;
-    ii.format      = histFmt;
-    ii.flags       = 0;
-    ii.sampleCount = VK_SAMPLE_COUNT_1_BIT;
-    ii.extent      = { w, h, 1 };
-    ii.numLayers   = 1;
-    ii.mipLevels   = 1;
-    ii.usage       = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT
-                   | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    ii.stages      = VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-    ii.access      = VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
-    ii.tiling      = VK_IMAGE_TILING_OPTIMAL;
-    ii.layout      = VK_IMAGE_LAYOUT_GENERAL;
-    ii.shared      = VK_TRUE;
+        ii.type        = VK_IMAGE_TYPE_2D;
+        ii.format      = histFmt;
+        ii.flags       = 0;
+        ii.sampleCount = VK_SAMPLE_COUNT_1_BIT;
+        ii.extent      = { w, h, 1 };
+        ii.numLayers   = 1;
+        ii.mipLevels   = 1;
+        ii.usage       = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT
+                       | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        ii.stages      = VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+        ii.access      = VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
+        ii.tiling      = VK_IMAGE_TILING_OPTIMAL;
+        ii.layout      = VK_IMAGE_LAYOUT_GENERAL;
+        ii.shared      = VK_TRUE;
 
         g_hist_wrap[slot] = new DxvkImage(device->vkd(), ii, histVk);
         g_hist_handle[slot] = histVk;
