@@ -1,6 +1,4 @@
-/* Step 3h-h: correct per-pass descriptor types (UBO/sampler/sampled/storage)
- * + optional present inject (OFF by default).
- */
+/* Step 3h-h: typed bindings + optional present (OFF). Calls 3h-i after probe. */
 #include "lsfg_log.h"
 
 #include <stdio.h>
@@ -28,6 +26,7 @@ extern "C" unsigned lsfg_step3d_fb_width(void);
 extern "C" unsigned lsfg_step3d_fb_height(void);
 extern "C" const char *lsfg_host_cache_dir(void);
 extern "C" int lsfg_role_perf_mode(void);
+extern "C" void lsfg_step3hi_after_typed(void *device, unsigned qfam);
 
 struct PassDef {
     const char *name;
@@ -94,7 +93,6 @@ static void reflect(const std::vector<uint32_t> &c, std::vector<BindInfo> &out) 
     out.clear();
     std::unordered_map<uint32_t, uint32_t> id_bind, id_type, type_pointee;
     std::unordered_map<uint32_t, int> type_kind;
-
     for (size_t i = 5; i < c.size();) {
         uint32_t w = c[i], op = w & 0xffff, len = w >> 16;
         if (!len) break;
@@ -116,12 +114,10 @@ static void reflect(const std::vector<uint32_t> &c, std::vector<BindInfo> &out) 
         }
         i += len;
     }
-
     std::vector<uint32_t> binds;
     for (auto &kv : id_bind) binds.push_back(kv.second);
     std::sort(binds.begin(), binds.end());
     binds.erase(std::unique(binds.begin(), binds.end()), binds.end());
-
     for (uint32_t b : binds) {
         BindInfo bi{};
         bi.binding = b;
@@ -158,16 +154,12 @@ static uint32_t find_mem(VkPhysicalDevice phys, uint32_t bits, VkMemoryPropertyF
 static bool ensure_shared(VkDevice dev, VkPhysicalDevice phys) {
     if (g_sampler) return true;
     if (!phys) return false;
-
     VkSamplerCreateInfo sci{};
     sci.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     sci.magFilter = VK_FILTER_LINEAR;
     sci.minFilter = VK_FILTER_LINEAR;
     sci.addressModeU = sci.addressModeV = sci.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     if (vkCreateSampler(dev, &sci, nullptr, &g_sampler) != VK_SUCCESS) return false;
-
-    uint32_t w = lsfg_step3d_fb_width();
-    uint32_t h = lsfg_step3d_fb_height();
     VkBufferCreateInfo bci{};
     bci.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bci.size = 256;
@@ -187,7 +179,8 @@ static bool ensure_shared(VkDevice dev, VkPhysicalDevice phys) {
         memset(map, 0, 256);
         float *f = (float*)map;
         f[0] = 0.5f;
-        f[1] = (float)w; f[2] = (float)h;
+        f[1] = (float)lsfg_step3d_fb_width();
+        f[2] = (float)lsfg_step3d_fb_height();
         vkUnmapMemory(dev, g_ubo_mem);
     }
     return true;
@@ -202,13 +195,11 @@ static bool build_pass(VkDevice dev, const char *cache, const PassDef &def, Pass
     std::vector<uint32_t> code;
     if (!load_spv(path, code)) return false;
     reflect(code, p->binds);
-
     VkShaderModuleCreateInfo smci{};
     smci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     smci.codeSize = code.size() * 4;
     smci.pCode = code.data();
     if (vkCreateShaderModule(dev, &smci, nullptr, &p->sm) != VK_SUCCESS) return false;
-
     std::vector<VkDescriptorSetLayoutBinding> lbs;
     for (auto &b : p->binds) {
         VkDescriptorSetLayoutBinding lb{};
@@ -223,13 +214,11 @@ static bool build_pass(VkDevice dev, const char *cache, const PassDef &def, Pass
     dlci.bindingCount = (uint32_t)lbs.size();
     dlci.pBindings = lbs.empty() ? nullptr : lbs.data();
     if (vkCreateDescriptorSetLayout(dev, &dlci, nullptr, &p->dsl) != VK_SUCCESS) return false;
-
     VkPipelineLayoutCreateInfo plci{};
     plci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     plci.setLayoutCount = 1;
     plci.pSetLayouts = &p->dsl;
     if (vkCreatePipelineLayout(dev, &plci, nullptr, &p->pl) != VK_SUCCESS) return false;
-
     VkComputePipelineCreateInfo pci{};
     pci.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
     pci.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -249,18 +238,15 @@ static void update_ds(VkDevice dev, PassRt *p,
                       VkImageView *flows, int nflow,
                       VkImageView gen0) {
     if (!p->ok || !p->ds || p->binds.empty()) return;
-
     std::vector<VkWriteDescriptorSet> writes;
     std::vector<VkDescriptorImageInfo> imgs;
     std::vector<VkDescriptorBufferInfo> bufs;
     imgs.reserve(p->binds.size() + 4);
     bufs.reserve(4);
     writes.reserve(p->binds.size());
-
     int si = 0, fi = 0, n_storage = 0;
     for (auto &b : p->binds)
         if (b.type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE) n_storage++;
-
     int storage_i = 0;
     for (size_t bi = 0; bi < p->binds.size(); bi++) {
         auto &b = p->binds[bi];
@@ -270,7 +256,6 @@ static void update_ds(VkDevice dev, PassRt *p,
         w.dstBinding = b.binding;
         w.descriptorCount = 1;
         w.descriptorType = b.type;
-
         if (b.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
             VkDescriptorBufferInfo bb{};
             bb.buffer = g_ubo; bb.offset = 0; bb.range = 256;
@@ -285,10 +270,8 @@ static void update_ds(VkDevice dev, PassRt *p,
         } else if (b.type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE) {
             VkImageView v = gen0;
             if (n_storage > 1) {
-                if (storage_i < nflow && flows[storage_i])
-                    v = flows[storage_i];
-                else
-                    v = gen0;
+                if (storage_i < nflow && flows[storage_i]) v = flows[storage_i];
+                else v = gen0;
                 storage_i++;
             }
             VkDescriptorImageInfo ii{};
@@ -302,7 +285,6 @@ static void update_ds(VkDevice dev, PassRt *p,
             else if (si == 1) v = h1;
             else if (si < 2 + nmip && mips[si - 2]) v = mips[si - 2];
             else if (fi < nflow && flows[fi]) { v = flows[fi]; fi++; }
-            else v = h0;
             si++;
             VkDescriptorImageInfo ii{};
             ii.imageView = v ? v : h0;
@@ -345,21 +327,13 @@ static bool build(VkDevice dev, VkPhysicalDevice phys, uint32_t qfam) {
         lsfg_log("W", "step3h-h: shared UBO/sampler failed");
         return false;
     }
-
     lsfg_log("I", "=== LSFG step 3h-h: typed bindings + optional present ===");
-
     size_t ndefs = sizeof(k_perf) / sizeof(k_perf[0]);
-    int ok = 0, fail = 0;
-    int n_ubo = 0, n_samp = 0, n_sampled = 0, n_storage = 0;
+    int ok = 0, fail = 0, n_ubo = 0, n_samp = 0, n_sampled = 0, n_storage = 0;
     g_passes.clear();
-    g_passes.reserve(ndefs);
-
     for (size_t i = 0; i < ndefs; i++) {
         PassRt p{};
-        if (!build_pass(dev, cache, k_perf[i], &p)) {
-            fail++;
-            continue;
-        }
+        if (!build_pass(dev, cache, k_perf[i], &p)) { fail++; continue; }
         for (auto &b : p.binds) {
             if (b.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) n_ubo++;
             else if (b.type == VK_DESCRIPTOR_TYPE_SAMPLER) n_samp++;
@@ -369,28 +343,22 @@ static bool build(VkDevice dev, VkPhysicalDevice phys, uint32_t qfam) {
         ok++;
         g_passes.push_back(std::move(p));
     }
-
     lsfg_log("I", "step3h-h: pipelines ok=%d fail=%d", ok, fail);
     lsfg_log("I", "step3h-h: bind types UBO=%d sampler=%d sampled=%d storage=%d",
              n_ubo, n_samp, n_sampled, n_storage);
-
     if (ok < 2) return false;
-
     if (!g_passes.empty()) {
         auto &p0 = g_passes[0];
         for (size_t i = 0; i < p0.binds.size() && i < 6; i++)
-            lsfg_log("I", "step3h-h: %s b%u type=%u",
-                     p0.name, p0.binds[i].binding, (unsigned)p0.binds[i].type);
+            lsfg_log("I", "step3h-h: %s b%u type=%u", p0.name, p0.binds[i].binding, (unsigned)p0.binds[i].type);
     }
     for (auto &p : g_passes) {
         if (p.id == 256) {
             for (size_t i = 0; i < p.binds.size() && i < 8; i++)
-                lsfg_log("I", "step3h-h: generate b%u type=%u",
-                         p.binds[i].binding, (unsigned)p.binds[i].type);
+                lsfg_log("I", "step3h-h: generate b%u type=%u", p.binds[i].binding, (unsigned)p.binds[i].type);
             break;
         }
     }
-
     VkDescriptorPoolSize sizes[4] = {};
     sizes[0].type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE; sizes[0].descriptorCount = 256;
     sizes[1].type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE; sizes[1].descriptorCount = 256;
@@ -402,17 +370,14 @@ static bool build(VkDevice dev, VkPhysicalDevice phys, uint32_t qfam) {
     dpci.poolSizeCount = 4;
     dpci.pPoolSizes = sizes;
     if (vkCreateDescriptorPool(dev, &dpci, nullptr, &g_dpool) != VK_SUCCESS) return false;
-
     for (auto &p : g_passes) {
         VkDescriptorSetAllocateInfo dsai{};
         dsai.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         dsai.descriptorPool = g_dpool;
         dsai.descriptorSetCount = 1;
         dsai.pSetLayouts = &p.dsl;
-        if (vkAllocateDescriptorSets(dev, &dsai, &p.ds) != VK_SUCCESS)
-            p.ds = VK_NULL_HANDLE;
+        if (vkAllocateDescriptorSets(dev, &dsai, &p.ds) != VK_SUCCESS) p.ds = VK_NULL_HANDLE;
     }
-
     VkCommandPoolCreateInfo pci{};
     pci.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     pci.queueFamilyIndex = qfam;
@@ -428,7 +393,6 @@ static bool build(VkDevice dev, VkPhysicalDevice phys, uint32_t qfam) {
     fci.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fci.flags = VK_FENCE_CREATE_SIGNALED_BIT;
     if (vkCreateFence(dev, &fci, nullptr, &g_fence) != VK_SUCCESS) return false;
-
     g_ready = 1;
     lsfg_log("I", "step3h-h: TYPED CHAIN READY stages=%d present_inject=%s",
              ok, g_present_enabled ? "ON" : "OFF");
@@ -439,40 +403,32 @@ static bool submit_typed(VkDevice dev) {
     if (!g_ready || !g_cmd) return false;
     VkQueue q = (VkQueue)lsfg_step3d_get_queue();
     if (!q) return false;
-
     if (vkWaitForFences(dev, 1, &g_fence, VK_TRUE, 0) == VK_TIMEOUT) {
         lsfg_log("W", "step3h-h: fence busy — skip");
         return false;
     }
     vkResetFences(dev, 1, &g_fence);
     vkResetCommandBuffer(g_cmd, 0);
-
     VkImageView h0 = (VkImageView)lsfg_step3d_get_view(0);
     VkImageView h1 = (VkImageView)lsfg_step3d_get_view(1);
     VkImageView gen0 = (VkImageView)lsfg_step3he_get_gen_view(0);
     if (!h0 || !h1 || !gen0) return false;
-
     VkImageView mips[7], flows[12];
     for (int i = 0; i < 7; i++) mips[i] = (VkImageView)lsfg_step3he_get_mip_view(i);
     for (int i = 0; i < 12; i++) flows[i] = (VkImageView)lsfg_step3he_get_flow_view(i);
-
     for (auto &p : g_passes)
         update_ds(dev, &p, h0, h1, mips, 7, flows, 12, gen0);
-
     VkCommandBufferBeginInfo bi{};
     bi.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     bi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     vkBeginCommandBuffer(g_cmd, &bi);
-
     barrier(g_cmd, (VkImage)lsfg_step3d_get_image(0));
     barrier(g_cmd, (VkImage)lsfg_step3d_get_image(1));
-
     uint32_t w = lsfg_step3d_fb_width();
     uint32_t h = lsfg_step3d_fb_height();
     if (w < 8) w = 8; if (h < 8) h = 8;
     uint32_t fw = (w * 70) / 100; if (fw < 8) fw = 8;
     uint32_t fh = (h * 70) / 100; if (fh < 8) fh = 8;
-
     int dispatched = 0;
     for (auto &p : g_passes) {
         if (!p.ok || !p.pipe) continue;
@@ -486,7 +442,6 @@ static bool submit_typed(VkDevice dev) {
         dispatched++;
     }
     vkEndCommandBuffer(g_cmd);
-
     VkSubmitInfo si{};
     si.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     si.commandBufferCount = 1;
@@ -499,14 +454,8 @@ static bool submit_typed(VkDevice dev) {
     return true;
 }
 
-extern "C" void lsfg_step3hh_set_phys(void *phys) {
-    g_phys = (VkPhysicalDevice)phys;
-}
-
-extern "C" void lsfg_step3hh_set_present(int enabled) {
-    g_present_enabled = enabled ? 1 : 0;
-}
-
+extern "C" void lsfg_step3hh_set_phys(void *phys) { g_phys = (VkPhysicalDevice)phys; }
+extern "C" void lsfg_step3hh_set_present(int enabled) { g_present_enabled = enabled ? 1 : 0; }
 extern "C" int lsfg_step3hh_present_enabled(void) { return g_present_enabled; }
 
 extern "C" void lsfg_step3hh_on_present(void *device, void *swapchain_image,
@@ -526,17 +475,16 @@ extern "C" void lsfg_step3hh_after_chain(void *device, unsigned qfam) {
     if (!lsfg_step3hg_chain_ready()) return;
     g_dev = (VkDevice)device;
     g_qfam = qfam;
-
     if (!g_ready) {
         if (!build(g_dev, g_phys, qfam)) return;
     }
     if (g_probe_done) return;
     g_probe_done = 1;
-
     if (submit_typed(g_dev)) {
         lsfg_log("I", "step3h-h: typed UBO/sampler/sampled/storage applied");
         lsfg_log("I", "NEXT step 3h-i: per-frame FG with pacing (config fg_present=1)");
         lsfg_log("I", "NOTE: per-frame FG still OFF — FPS safe");
+        lsfg_step3hi_after_typed((void*)g_dev, g_qfam);
     }
 }
 
