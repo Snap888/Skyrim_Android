@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <functional>
 #include <limits>
+#include <utility>
 #include <unordered_map>
 
 #include "dxvk_device.h"
@@ -285,7 +286,7 @@ Rc<DxvkShader> createLsfgComputeShader(
         viewType = imageViewType(image->second.b, image->second.d & 1u);
       } else if (typeIt->second.op == 25) {
         const TypeInfo& image = typeIt->second;
-        uint32_t sampled = (image.d >> 2) & 1u;
+        uint32_t sampled = (image.d >> 2) & 3u;
         if (sampled == 1) {
           descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
           viewType = imageViewType(image.b, image.d & 1u);

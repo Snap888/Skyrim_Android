@@ -26,7 +26,7 @@ extern "C" const char *lsfg_host_cache_dir(void);
 using namespace dxvk;
 
 static std::atomic<unsigned> g_copy_n{0};
-static int g_pp;
+static unsigned g_pp;
 static int g_logged;
 static unsigned g_history_mask;
 static std::atomic<unsigned> g_slot_copies[2]{};
@@ -258,7 +258,7 @@ extern "C" void lsfg_step3g_copy_impl(
     auto *srcView = reinterpret_cast<DxvkImageView*>(src_view_v);
     auto *device  = reinterpret_cast<DxvkDevice*>(device_v);
 
-    unsigned slot = (unsigned)(g_pp & 1);
+    unsigned slot = g_pp & 1u;
     unsigned fbw = lsfg_step3d_fb_width();
     unsigned fbh = lsfg_step3d_fb_height();
     if (w != fbw || h != fbh) {
@@ -406,7 +406,7 @@ extern "C" void lsfg_step3g_copy_impl(
         g_logged = 1;
         lsfg_log("I", "=== LSFG step 3g-a: DXVK cmd-stream copy LIVE ===");
         lsfg_log("I", "step3g: first copy %ux%u fmt=0x%x -> hist[%d]=%p",
-                 w, h, vkfmt, g_pp & 1, (void*)histVk);
+                 w, h, vkfmt, g_pp & 1u, (void*)histVk);
     }
     if (n == 1 || n == 60 || n == 300 || (n % 1800) == 0 || slot_n == 1) {
         lsfg_log("I", "step3g: copy #%u slot[%u] slot_copy=%u %ux%u fmt=0x%x (command recorded)",
