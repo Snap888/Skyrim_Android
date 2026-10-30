@@ -176,6 +176,8 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     lsfg_step3hj_set_throttle(g_fg_throttle_cfg > 0 ? g_fg_throttle_cfg : 2);
     lsfg_step3hj_set_inject(g_fg_inject_cfg);
     lsfg_step3hj_set_live(g_fg_live_cfg);
+    if (g_fg_live_cfg && g_fg_throttle_cfg > 30)
+        LOGI("TIP: fg_throttle=%d is high — use 2..8 for visible FG (port/lsfg.conf)", g_fg_throttle_cfg);
 
     LOGI("STEP3: 3h-j LIGHT FG installed (live=%d inject=%d throttle=%d)",
          g_fg_live_cfg, g_fg_inject_cfg, g_fg_throttle_cfg);
