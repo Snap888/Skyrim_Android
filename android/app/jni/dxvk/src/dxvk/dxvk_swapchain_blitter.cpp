@@ -44,41 +44,25 @@ namespace dxvk {
         srcView->imageInfo().extent.height };
     }
 
-    bool sameSize = dstRect.extent == srcRect.extent;
+    const bool sameSize = dstRect.extent == srcRect.extent;
     bool usedResolveImage = false;
-    bool canBlendHistory = srcView->imageInfo().sampleCount == VK_SAMPLE_COUNT_1_BIT;
 
-    if (canBlendHistory) {
-      this->draw(ctx, sameSize ? m_fsCopy : m_fsBlit,
-        dstView, dstRect, srcView, srcRect);
-
-      // Overlay the previous game frame at 50% using fixed-function blending.
-      // The first frame after startup/resize is presented unmodified.
-      if (m_blendHistoryValid && m_blendHistoryView != nullptr) {
-        this->draw(ctx, sameSize ? m_fsCopy : m_fsBlit,
-          dstView, dstRect, m_blendHistoryView, srcRect, true);
-      }
-
-      this->updateBlendHistory(ctx, srcView);
-    } else if (sameSize) {
-      m_blendHistoryValid = false;
-      m_blendHistoryImage = nullptr;
-      m_blendHistoryView = nullptr;
-      this->draw(ctx, m_fsResolve,
-        dstView, dstRect, srcView, srcRect);
-    } else {
-        m_blendHistoryValid = false;
-        m_blendHistoryImage = nullptr;
-        m_blendHistoryView = nullptr;
+    if (srcView->imageInfo().sampleCount != VK_SAMPLE_COUNT_1_BIT) {
+      if (sameSize) {
+        this->draw(ctx, m_fsResolve, dstView, dstRect, srcView, srcRect);
+      } else {
         if (m_resolveImage == nullptr
          || m_resolveImage->info().extent != srcView->imageInfo().extent
          || m_resolveImage->info().format != srcView->imageInfo().format)
           this->createResolveImage(srcView->imageInfo());
 
-      this->resolve(ctx, m_resolveView, srcView);
-      this->draw(ctx, m_fsBlit, dstView, dstRect, m_resolveView, srcRect);
-
-      usedResolveImage = true;
+        this->resolve(ctx, m_resolveView, srcView);
+        this->draw(ctx, m_fsBlit, dstView, dstRect, m_resolveView, srcRect);
+        usedResolveImage = true;
+      }
+    } else {
+      this->draw(ctx, sameSize ? m_fsCopy : m_fsBlit,
+        dstView, dstRect, srcView, srcRect);
     }
 
     if (!usedResolveImage)
@@ -104,8 +88,7 @@ namespace dxvk {
     const Rc<DxvkImageView>&  dstView,
           VkRect2D            dstRect,
     const Rc<DxvkImageView>&  srcView,
-          VkRect2D            srcRect,
-          bool                blend) {
+          VkRect2D            srcRect) {
     DxvkInputAssemblyState iaState;
     iaState.primitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
     iaState.primitiveRestart  = VK_FALSE;
@@ -152,18 +135,16 @@ namespace dxvk {
     ctx->setLogicOpState(loState);
 
     DxvkBlendMode blendMode;
-    blendMode.enableBlending  = blend ? VK_TRUE : VK_FALSE;
-    blendMode.colorSrcFactor  = blend ? VK_BLEND_FACTOR_CONSTANT_ALPHA : VK_BLEND_FACTOR_ONE;
-    blendMode.colorDstFactor  = blend ? VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA : VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    blendMode.colorBlendOp    = VK_BLEND_OP_ADD;
-    blendMode.alphaSrcFactor  = blend ? VK_BLEND_FACTOR_CONSTANT_ALPHA : VK_BLEND_FACTOR_ONE;
-    blendMode.alphaDstFactor  = blend ? VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA : VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    blendMode.alphaBlendOp    = VK_BLEND_OP_ADD;
-    blendMode.writeMask       = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT
-                              | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    blendMode.enableBlending = VK_FALSE;
+    blendMode.colorSrcFactor = VK_BLEND_FACTOR_ONE;
+    blendMode.colorDstFactor = VK_BLEND_FACTOR_ZERO;
+    blendMode.colorBlendOp = VK_BLEND_OP_ADD;
+    blendMode.alphaSrcFactor = VK_BLEND_FACTOR_ONE;
+    blendMode.alphaDstFactor = VK_BLEND_FACTOR_ZERO;
+    blendMode.alphaBlendOp = VK_BLEND_OP_ADD;
+    blendMode.writeMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT
+                        | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     ctx->setBlendMode(0, blendMode);
-    if (blend)
-      ctx->setBlendConstants({ 0.5f, 0.5f, 0.5f, 0.5f });
 
     VkViewport viewport;
     viewport.x        = float(dstRect.offset.x);
@@ -185,12 +166,10 @@ namespace dxvk {
       dstView->imageInfo().extent.width,
       dstView->imageInfo().extent.height };
 
-    if (!blend) {
-      if (dstRect.extent == dstExtent)
-        ctx->discardImageView(dstView, VK_IMAGE_ASPECT_COLOR_BIT);
-      else
-        ctx->clearRenderTarget(dstView, VK_IMAGE_ASPECT_COLOR_BIT, VkClearValue());
-    }
+    if (dstRect.extent == dstExtent)
+      ctx->discardImageView(dstView, VK_IMAGE_ASPECT_COLOR_BIT);
+    else
+      ctx->clearRenderTarget(dstView, VK_IMAGE_ASPECT_COLOR_BIT, VkClearValue());
 
     ctx->bindResourceSampler(BindingIds::Image, m_samplerPresent);
     ctx->bindResourceSampler(BindingIds::Gamma, m_samplerGamma);
@@ -215,69 +194,6 @@ namespace dxvk {
     ctx->draw(3, 1, 0, 0);
     ctx->setSpecConstant(VK_PIPELINE_BIND_POINT_GRAPHICS, 0, 0);
   }
-
-  void DxvkSwapchainBlitter::updateBlendHistory(
-          DxvkContext*             ctx,
-    const Rc<DxvkImageView>&       srcView) {
-    VkExtent3D extent = srcView->mipLevelExtent(0);
-
-    VkFormat historyFormat = srcView->info().format;
-
-    if (m_blendHistoryImage == nullptr
-     || m_blendHistoryImage->info().extent != extent
-     || m_blendHistoryImage->info().format != historyFormat) {
-      m_blendHistoryValid = false;
-      m_blendHistoryImage = nullptr;
-      m_blendHistoryView = nullptr;
-
-      DxvkImageCreateInfo imageInfo;
-      imageInfo.type        = VK_IMAGE_TYPE_2D;
-      imageInfo.format      = historyFormat;
-      imageInfo.flags       = 0;
-      imageInfo.sampleCount = VK_SAMPLE_COUNT_1_BIT;
-      imageInfo.extent      = extent;
-      imageInfo.numLayers   = 1;
-      imageInfo.mipLevels   = 1;
-      imageInfo.usage       = VK_IMAGE_USAGE_TRANSFER_DST_BIT
-                            | VK_IMAGE_USAGE_SAMPLED_BIT;
-      imageInfo.stages      = VK_PIPELINE_STAGE_TRANSFER_BIT
-                            | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-      imageInfo.access      = VK_ACCESS_TRANSFER_WRITE_BIT
-                            | VK_ACCESS_SHADER_READ_BIT;
-      imageInfo.tiling      = VK_IMAGE_TILING_OPTIMAL;
-      imageInfo.layout      = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-      m_blendHistoryImage = m_device->createImage(
-        imageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-      DxvkImageViewCreateInfo viewInfo;
-      viewInfo.type      = VK_IMAGE_VIEW_TYPE_2D;
-      viewInfo.format    = historyFormat;
-      viewInfo.usage     = VK_IMAGE_USAGE_SAMPLED_BIT;
-      viewInfo.aspect    = VK_IMAGE_ASPECT_COLOR_BIT;
-      viewInfo.minLevel  = 0;
-      viewInfo.numLevels = 1;
-      viewInfo.minLayer  = 0;
-      viewInfo.numLayers = 1;
-      m_blendHistoryView = m_device->createImageView(m_blendHistoryImage, viewInfo);
-    }
-
-    VkImageSubresourceLayers srcSubresource = {
-      srcView->info().aspect,
-      srcView->info().minLevel,
-      srcView->info().minLayer,
-      1u };
-    VkImageSubresourceLayers dstSubresource = {
-      VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-
-    ctx->copyImage(
-      m_blendHistoryImage, dstSubresource, VkOffset3D { 0, 0, 0 },
-      srcView->image(), srcSubresource, VkOffset3D { 0, 0, 0 },
-      extent);
-
-    m_blendHistoryValid = true;
-  }
-
 
   void DxvkSwapchainBlitter::resolve(
           DxvkContext*        ctx,
