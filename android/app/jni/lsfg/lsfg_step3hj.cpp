@@ -1,7 +1,7 @@
 /* Step 3h-j: BEST path for real FG on Adreno
- * Full 25-pass async, 1-in-flight, never WaitIdle.
- * Present inject: blit gen to WSI when ready.
- * Config: fg_live=1, fg_inject=1, fg_throttle=2..30
+ * Full chain async, 1-in-flight, never WaitIdle.
+ * Incremental pipeline build (3/frame) — avoids SIGABRT.
+ * Config: fg_live=1, fg_inject=1, fg_throttle=30
  */
 #include "lsfg_log.h"
 
@@ -67,7 +67,8 @@ static VkDeviceMemory g_ubo_mem = VK_NULL_HANDLE;
 static std::vector<PassRt> g_passes;
 static int g_ready;
 static VkImage g_mip[7]; static VkDeviceMemory g_mip_mem[7]; static VkImageView g_mip_view[7];
-static VkImage g_flow[12]; static VkDeviceMemory g_flow_mem[12]; static VkImageView g_flow_view[12];
+static VkImage g_flow[4]; static VkDeviceMemory g_flow_mem[4]; static VkImageView g_flow_view[4];
+enum { FLOW_N = 4 };
 static VkImage g_gen; static VkDeviceMemory g_gen_mem; static VkImageView g_gen_view;
 static int g_imgs_ok;
 static int g_fg_live, g_fg_inject;
@@ -77,6 +78,10 @@ static unsigned g_submit_n, g_skip_n, g_inject_n;
 static int g_inflight = -1;
 static int g_gen_ready;
 static int g_logged;
+static int g_build_phase;
+static size_t g_pipe_i;
+static int g_pipe_ok;
+static int g_build_fail;
 
 static bool load_spv(const char *path, std::vector<uint32_t> &out) {
     FILE *f = fopen(path, "rb");
@@ -181,18 +186,31 @@ static bool ensure_imgs(VkDevice dev, VkPhysicalDevice phys) {
     if (g_imgs_ok) return true;
     uint32_t w = lsfg_step3d_fb_width(); uint32_t h = lsfg_step3d_fb_height();
     if (w < 16) w = 16; if (h < 16) h = 16;
-    uint32_t fw = (w * 70) / 100; if (fw < 8) fw = 8;
-    uint32_t fh = (h * 70) / 100; if (fh < 8) fh = 8;
+    uint32_t fw = (w * 50) / 100; if (fw < 8) fw = 8;
+    uint32_t fh = (h * 50) / 100; if (fh < 8) fh = 8;
+    if (fw > 960) fw = 960;
+    if (fh > 540) fh = 540;
     uint32_t mw = fw, mh = fh;
     for (int i = 0; i < 7; i++) {
-        if (!create_img(dev, phys, mw, mh, VK_FORMAT_R8_UNORM, &g_mip[i], &g_mip_mem[i], &g_mip_view[i])) return false;
+        if (!create_img(dev, phys, mw, mh, VK_FORMAT_R8_UNORM, &g_mip[i], &g_mip_mem[i], &g_mip_view[i])) {
+            lsfg_log("W", "step3h-j: mip[%d] alloc fail %ux%u", i, mw, mh);
+            return false;
+        }
         mw = mw > 1 ? mw / 2 : 1; mh = mh > 1 ? mh / 2 : 1;
     }
-    for (int i = 0; i < 12; i++)
-        if (!create_img(dev, phys, fw, fh, VK_FORMAT_R16G16B16A16_SFLOAT, &g_flow[i], &g_flow_mem[i], &g_flow_view[i])) return false;
-    if (!create_img(dev, phys, w, h, VK_FORMAT_R8G8B8A8_UNORM, &g_gen, &g_gen_mem, &g_gen_view)) return false;
+    for (int i = 0; i < FLOW_N; i++) {
+        if (!create_img(dev, phys, fw, fh, VK_FORMAT_R16G16B16A16_SFLOAT,
+                        &g_flow[i], &g_flow_mem[i], &g_flow_view[i])) {
+            lsfg_log("W", "step3h-j: flow[%d] alloc fail", i);
+            return false;
+        }
+    }
+    if (!create_img(dev, phys, w, h, VK_FORMAT_R8G8B8A8_UNORM, &g_gen, &g_gen_mem, &g_gen_view)) {
+        lsfg_log("W", "step3h-j: gen out alloc fail");
+        return false;
+    }
     g_imgs_ok = 1;
-    lsfg_log("I", "step3h-j: intermediates OK full=%ux%u flow=%ux%u", w, h, fw, fh);
+    lsfg_log("I", "step3h-j: intermediates OK full=%ux%u flow=%ux%u flows=%d", w, h, fw, fh, FLOW_N);
     return true;
 }
 
@@ -284,7 +302,7 @@ static void update_ds(VkDevice dev, PassRt *p, VkImageView h0, VkImageView h1) {
             imgs.push_back(ii); w.pImageInfo = &imgs.back();
         } else if (b.type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE) {
             VkImageView v = g_gen_view;
-            if (p->id != 256 && storage_i < 12) { v = g_flow_view[storage_i]; storage_i++; }
+            if (p->id != 256 && storage_i < FLOW_N) { v = g_flow_view[storage_i]; storage_i++; }
             VkDescriptorImageInfo ii{}; ii.imageView = v ? v : h0; ii.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
             imgs.push_back(ii); w.pImageInfo = &imgs.back();
         } else {
@@ -292,7 +310,7 @@ static void update_ds(VkDevice dev, PassRt *p, VkImageView h0, VkImageView h1) {
             if (si == 0) v = h0;
             else if (si == 1) v = h1;
             else if (si < 9) v = g_mip_view[si - 2 < 7 ? si - 2 : 6];
-            else if (fi < 12) { v = g_flow_view[fi]; fi++; }
+            else if (fi < FLOW_N) { v = g_flow_view[fi]; fi++; }
             si++;
             VkDescriptorImageInfo ii{}; ii.imageView = v ? v : h0; ii.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
             imgs.push_back(ii); w.pImageInfo = &imgs.back();
@@ -318,33 +336,22 @@ static void barrier_img(VkCommandBuffer cmd, VkImage img) {
         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &b);
 }
 
-static bool build(VkDevice dev, VkPhysicalDevice phys, uint32_t qfam) {
-    if (g_ready) return true;
-    const char *cache = lsfg_host_cache_dir();
-    if (!cache || !*cache) return false;
-    if (!ensure_shared(dev, phys) || !ensure_imgs(dev, phys)) return false;
-    lsfg_log("I", "=== LSFG step 3h-j: async FULL chain + inject ===");
-    size_t ndefs = sizeof(k_perf) / sizeof(k_perf[0]);
-    g_passes.clear();
-    int ok = 0;
-    for (size_t i = 0; i < ndefs; i++) {
-        PassRt p{};
-        if (!build_pass(dev, cache, k_perf[i], &p)) continue;
-        ok++; g_passes.push_back(std::move(p));
-    }
-    lsfg_log("I", "step3h-j: pipelines ok=%d/%zu", ok, ndefs);
-    if (ok < 10) return false;
+static bool finish_pool(VkDevice dev, uint32_t qfam) {
     VkDescriptorPoolSize sizes[4] = {};
-    sizes[0].type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE; sizes[0].descriptorCount = 512;
-    sizes[1].type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE; sizes[1].descriptorCount = 512;
-    sizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; sizes[2].descriptorCount = 64;
-    sizes[3].type = VK_DESCRIPTOR_TYPE_SAMPLER; sizes[3].descriptorCount = 64;
+    sizes[0].type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE; sizes[0].descriptorCount = 256;
+    sizes[1].type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE; sizes[1].descriptorCount = 256;
+    sizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; sizes[2].descriptorCount = 32;
+    sizes[3].type = VK_DESCRIPTOR_TYPE_SAMPLER; sizes[3].descriptorCount = 32;
     VkDescriptorPoolCreateInfo dpci{};
     dpci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     dpci.maxSets = (uint32_t)g_passes.size() + 4;
     dpci.poolSizeCount = 4; dpci.pPoolSizes = sizes;
-    if (vkCreateDescriptorPool(dev, &dpci, nullptr, &g_dpool) != VK_SUCCESS) return false;
+    if (vkCreateDescriptorPool(dev, &dpci, nullptr, &g_dpool) != VK_SUCCESS) {
+        lsfg_log("W", "step3h-j: descriptor pool fail");
+        return false;
+    }
     for (auto &p : g_passes) {
+        if (!p.ok || !p.dsl) continue;
         VkDescriptorSetAllocateInfo dsai{};
         dsai.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         dsai.descriptorPool = g_dpool; dsai.descriptorSetCount = 1; dsai.pSetLayouts = &p.dsl;
@@ -354,7 +361,10 @@ static bool build(VkDevice dev, VkPhysicalDevice phys, uint32_t qfam) {
     pci.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     pci.queueFamilyIndex = qfam;
     pci.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    if (vkCreateCommandPool(dev, &pci, nullptr, &g_cp) != VK_SUCCESS) return false;
+    if (vkCreateCommandPool(dev, &pci, nullptr, &g_cp) != VK_SUCCESS) {
+        lsfg_log("W", "step3h-j: cmd pool fail");
+        return false;
+    }
     VkCommandBufferAllocateInfo cai{};
     cai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     cai.commandPool = g_cp; cai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -366,11 +376,78 @@ static bool build(VkDevice dev, VkPhysicalDevice phys, uint32_t qfam) {
         fci.flags = VK_FENCE_CREATE_SIGNALED_BIT;
         if (vkCreateFence(dev, &fci, nullptr, &g_fence[i]) != VK_SUCCESS) return false;
     }
-    g_ready = 1;
-    lsfg_log("I", "step3h-j: READY live=%d inject=%d throttle=%u stages=%d",
-             g_fg_live, g_fg_inject, g_throttle, ok);
-    lsfg_log("I", "step3h-j: async 1-in-flight, NO WaitIdle — present-safe");
     return true;
+}
+
+static void build_tick(VkDevice dev, VkPhysicalDevice phys, uint32_t qfam) {
+    if (g_ready || g_build_fail) return;
+    const char *cache = lsfg_host_cache_dir();
+    if (!cache || !*cache) { g_build_fail = 1; return; }
+
+    if (g_build_phase == 0) {
+        lsfg_log("I", "=== LSFG step 3h-j: async FULL chain + inject (incremental) ===");
+        if (!ensure_shared(dev, phys)) {
+            lsfg_log("W", "step3h-j: shared resources fail");
+            g_build_fail = 1;
+            return;
+        }
+        g_build_phase = 1;
+        return;
+    }
+
+    if (g_build_phase == 1) {
+        if (!ensure_imgs(dev, phys)) {
+            lsfg_log("W", "step3h-j: image alloc fail — disable FG");
+            g_build_fail = 1;
+            return;
+        }
+        g_passes.clear();
+        g_pipe_i = 0;
+        g_pipe_ok = 0;
+        g_build_phase = 2;
+        lsfg_log("I", "step3h-j: building pipelines 1-by-1 (Adreno-safe)");
+        return;
+    }
+
+    if (g_build_phase == 2) {
+        size_t ndefs = sizeof(k_perf) / sizeof(k_perf[0]);
+        int budget = 3;
+        while (budget-- > 0 && g_pipe_i < ndefs) {
+            PassRt p{};
+            const PassDef &def = k_perf[g_pipe_i];
+            g_pipe_i++;
+            if (!build_pass(dev, cache, def, &p)) {
+                lsfg_log("W", "step3h-j: pipe fail id=%u name=%s (skip)", def.id, def.name);
+                continue;
+            }
+            g_pipe_ok++;
+            g_passes.push_back(std::move(p));
+            if (g_pipe_ok == 1 || (g_pipe_ok % 5) == 0)
+                lsfg_log("I", "step3h-j: pipeline progress %d (id=%u %s)", g_pipe_ok, def.id, def.name);
+        }
+        if (g_pipe_i < ndefs) return;
+
+        lsfg_log("I", "step3h-j: pipelines ok=%d/%zu", g_pipe_ok, ndefs);
+        if (g_pipe_ok < 2) {
+            lsfg_log("W", "step3h-j: too few pipelines — FG disabled");
+            g_build_fail = 1;
+            return;
+        }
+        g_build_phase = 3;
+        return;
+    }
+
+    if (g_build_phase == 3) {
+        if (!finish_pool(dev, qfam)) {
+            g_build_fail = 1;
+            return;
+        }
+        g_ready = 1;
+        g_build_phase = 4;
+        lsfg_log("I", "step3h-j: READY live=%d inject=%d throttle=%u stages=%d",
+                 g_fg_live, g_fg_inject, g_throttle, g_pipe_ok);
+        lsfg_log("I", "step3h-j: async 1-in-flight, NO WaitIdle — present-safe");
+    }
 }
 
 static void poll_fence(VkDevice dev) {
@@ -405,8 +482,9 @@ static bool submit_full(VkDevice dev) {
     barrier_img(g_cmd[s], (VkImage)lsfg_step3d_get_image(1));
     uint32_t w = lsfg_step3d_fb_width(); uint32_t h = lsfg_step3d_fb_height();
     if (w < 8) w = 8; if (h < 8) h = 8;
-    uint32_t fw = (w * 70) / 100; if (fw < 8) fw = 8;
-    uint32_t fh = (h * 70) / 100; if (fh < 8) fh = 8;
+    uint32_t fw = (w * 50) / 100; if (fw < 8) fw = 8;
+    uint32_t fh = (h * 50) / 100; if (fh < 8) fh = 8;
+    if (fw > 960) fw = 960; if (fh > 540) fh = 540;
     for (auto &p : g_passes) {
         if (!p.ok || !p.pipe) continue;
         vkCmdBindPipeline(g_cmd[s], VK_PIPELINE_BIND_POINT_COMPUTE, p.pipe);
@@ -416,7 +494,7 @@ static bool submit_full(VkDevice dev) {
         vkCmdDispatch(g_cmd[s],
             is_gen ? ((w + 7) / 8) : ((fw + 7) / 8),
             is_gen ? ((h + 7) / 8) : ((fh + 7) / 8), 1);
-        if (p.id != 256) barrier_img(g_cmd[s], g_flow[0]);
+        if (p.id != 256 && FLOW_N > 0) barrier_img(g_cmd[s], g_flow[0]);
     }
     barrier_img(g_cmd[s], g_gen);
     vkEndCommandBuffer(g_cmd[s]);
@@ -445,20 +523,30 @@ extern "C" void *lsfg_step3hj_gen_view(void) { return g_gen_ready ? (void*)g_gen
 extern "C" void lsfg_step3hj_on_frame(void *device, unsigned qfam) {
     if (!device || !g_phys) return;
     if (!lsfg_step3d_frames_ready()) return;
-    g_dev = (VkDevice)device; g_qfam = qfam;
+    g_dev = (VkDevice)device;
+    g_qfam = qfam;
     lsfg_step3hb_after_copy(device, qfam);
-    if (!g_ready) { if (!build(g_dev, g_phys, qfam)) return; }
+
+    if (!g_ready && !g_build_fail)
+        build_tick(g_dev, g_phys, qfam);
+
     unsigned n = ++g_frame_n;
-    poll_fence(g_dev);
+    if (g_ready)
+        poll_fence(g_dev);
+
     if (!g_fg_live) {
-        if (!g_logged && n >= 5) { g_logged = 1; lsfg_log("I", "step3h-j: idle (fg_live=0)"); }
+        if (!g_logged && n >= 5) {
+            g_logged = 1;
+            lsfg_log("I", "step3h-j: idle (fg_live=0)");
+        }
         return;
     }
-    if (n < 90) return;
+    if (!g_ready) return;
+    if (n < 120) return;
     if (g_throttle > 1 && (n % g_throttle) != 0) { g_skip_n++; return; }
     bool ok = submit_full(g_dev);
     if (!ok) g_skip_n++;
-    if (n == 90 || n == 120 || n == 300 || (n % 1800) == 0)
+    if (n == 120 || n == 180 || n == 300 || (n % 1800) == 0)
         lsfg_log("I", "step3h-j: frame #%u submit=%d ok=%u skip=%u inflight=%d gen=%d inject=%d",
                  n, ok ? 1 : 0, g_submit_n, g_skip_n, g_inflight, g_gen_ready, g_fg_inject);
 }
