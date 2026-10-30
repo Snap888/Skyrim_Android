@@ -873,6 +873,17 @@ namespace dxvk {
             info.imageExtent.height,
             static_cast<uint32_t>(info.format.format));
       }
+            /* LSFG step 3h-j: if generated frame ready, blit over WSI */
+      {
+        extern void lsfg_step3hj_insert_inject(void*, void*, void*, uint32_t, uint32_t, uint32_t);
+        lsfg_step3hj_insert_inject(
+            m_context.ptr(),
+            m_imageViews.at(imageIndex).ptr(),
+            m_device.ptr(),
+            info.imageExtent.width,
+            info.imageExtent.height,
+            static_cast<uint32_t>(info.format.format));
+      }
 
       if (i + 1 >= SyncInterval)
         m_context->signal(m_frameLatencySignal, m_frameId);
