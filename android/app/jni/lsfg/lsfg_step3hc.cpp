@@ -1,8 +1,5 @@
 /* Step 3h-c: per-pass SPIR-V descriptor layouts + dispatch chain (mipmaps -> generate).
- * Not full lsfg-vk wiring — binds history + intermediate images with reflected types.
- *
- * IMPORTANT: do NOT dispatch every frame — full-res compute on present path drops
- * Adreno to 1–2 FPS. Build once, probe-dispatch once until 3h-d presents correctly.
+ * IMPORTANT: do NOT dispatch every frame — Adreno drops to 1-2 FPS.
  */
 #include "lsfg_log.h"
 #include "lsfg_host.h"
@@ -33,6 +30,7 @@ extern "C" uint32_t lsfg_role_generate_id(void);
 extern "C" uint32_t lsfg_role_mipmaps_id(void);
 extern "C" int lsfg_role_perf_mode(void);
 extern "C" void lsfg_step3hd_after_probe(void);
+extern "C" void lsfg_step3hd_set_device(void *dev);
 
 struct BindInfo {
     uint32_t binding;
@@ -413,7 +411,6 @@ static bool build(VkDevice dev, VkPhysicalDevice phys, uint32_t qfam) {
     g_ready = 1;
     lsfg_log("I", "step3h-c: CHAIN READY (mipmaps + generate descriptors)");
     lsfg_log("I", "step3h-c: per-frame dispatch DISABLED (Adreno FPS fix)");
-    lsfg_log("I", "NEXT step 3h-d: present generated + correct bindings before enabling per-frame FG");
     return true;
 }
 
@@ -513,6 +510,7 @@ extern "C" void lsfg_step3hc_after_copy(void *device, unsigned qfam) {
         lsfg_log("I", "step3h-c: PROBE DISPATCH once #%u mipmaps->generate %ux%u",
                  n, lsfg_step3d_fb_width(), lsfg_step3d_fb_height());
         lsfg_log("I", "step3h-c: per-frame FG off until 3h-d (correct bindings + present)");
+        lsfg_step3hd_set_device((void*)g_dev);
         lsfg_step3hd_after_probe();
     }
 }
