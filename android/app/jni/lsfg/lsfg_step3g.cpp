@@ -237,7 +237,7 @@ static bool ensure_mipmap_resources(DxvkDevice *device, const char *cache_dir,
 static bool dispatch_mipmaps(DxvkContext *ctx, DxvkDevice *device,
                              const char *cache_dir, unsigned slot,
                              uint32_t width, uint32_t height, unsigned generation) {
-    if (!g_hist_view[slot]) return false;
+    if (g_hist_view[slot] == nullptr) return false;
     if (!ensure_mipmap_resources(device, cache_dir, width, height, generation)) return false;
 
     ctx->bindResourceBuffer(0, DxvkBufferSlice(g_mipmap_ubo));
