@@ -15,6 +15,7 @@ Windows DLL on Android. No proprietary DLL or extracted shader payload is commit
 | RCDATA extraction | `android/app/jni/lsfg/lsfg_extract.cpp` | Implemented; runtime log reported 300 resources extracted |
 | DXBC to SPIR-V translation | `android/app/jni/lsfg/lsfg_translate.cpp` | Implemented; runtime log reported 300 modules processed |
 | CPU-side SPIR-V reflection | `android/app/jni/lsfg/lsfg_step3d.cpp` | Descriptor metadata and workgroup-size audit; no GPU pipelines |
+| Reflection metadata export | `lsfg_reflection.tsv` in the runtime shader-cache directory | CPU-only TSV export of shader entry point/workgroup size and reflected descriptor set/binding/type/count; no shader bytecode |
 | History image allocation | `android/app/jni/lsfg/lsfg_step3d.cpp` | Two RGBA8 images allocated |
 | Game-frame history copies | `android/app/jni/lsfg/lsfg_step3g.cpp` | LSFG diagnostics/history path; separate from the blitter prototype |
 | Experimental temporal blend | `android/app/jni/dxvk/src/dxvk/dxvk_swapchain_blitter.cpp` | Previous single-sample game image is sampled and blended 50/50 over the current present image; current image is then copied into persistent DXVK-managed history |
@@ -27,6 +28,15 @@ reflection results, history-copy completion callbacks, and no reported copy
 failures. These observations do not establish that the copied pixel contents are
 correct. The same log explicitly reported that no GPU pipelines were created,
 no descriptors were bound, and no compute dispatch or generated output occurred.
+
+The reflection pass also writes `lsfg_reflection.tsv` beside the runtime SPIR-V
+cache. It contains one `shader` row per reflected compute module and one
+`binding` row per descriptor binding (numeric Vulkan descriptor type and array
+count). It is metadata only: it does not include SPIR-V instructions, image
+format/dimension details, UBO member offsets, push-constant layouts, or
+specialization values. It is intended to make the current CPU reflection
+reproducible and easier to correlate with the recovered pass graph, not to
+authorize pipeline creation.
 
 ## Recovered LSFG execution chain
 
@@ -88,6 +98,15 @@ A future non-blocking resize implementation needs explicit deferred retirement
 of each old image, image view, and allocation until every command list that
 references that generation has completed. The wrapper's shared ownership alone
 does not own/destroy the externally-created VkImage or its VkDeviceMemory.
+
+**Present-thread caveat:** `lsfg_step3d_run()` is called synchronously from
+`lsfg_host_on_present_ex()`. Therefore the current `vkDeviceWaitIdle()` on a
+history-size change is in the present-hook call path and can cause a visible
+resize hitch. It is not executed on every frame, but it is not an asynchronous
+resize. Do not remove the wait until deferred retirement is implemented; doing
+so would risk destroying images still referenced by in-flight DXVK command
+lists.
+
 
 ## Next implementation gates
 
@@ -170,3 +189,21 @@ SPIR-V types, image formats, descriptor arrays, push constants, and UBO member
 offsets. Only then should DXVK compute pipeline/layout creation and dispatch be
 implemented. The current branch still has no LSFG compute dispatch or generated
 frame output.
+
+
+### Runtime update (2026-10-30 21:20)
+
+The latest supplied run reports 300/300 CPU reflection successes and both
+history slots active at 2448×1080. At the sampled checkpoints, command-list
+completion counters match the history-copy count through #1800 (900 copies per
+slot). It continues to report `generated_frames=0`, with no GPU pipelines,
+descriptor sets, or dispatches. This confirms sustained command-list retirement,
+not history pixel correctness or generated-frame output.
+
+The CPU reflection path now additionally writes `lsfg_reflection.tsv` into the
+runtime shader-cache directory. The TSV exports each compute module's entry
+point and known workgroup size, plus descriptor set/binding/type/count rows.
+This is an offline-analysis aid; its current schema does not yet expose image
+formats/dimensions, UBO member layouts, push constants, or specialization
+values. The code change has been committed, but no Android build or device
+validation has been run for it.
