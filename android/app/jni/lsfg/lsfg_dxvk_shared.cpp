@@ -13,6 +13,7 @@
 #include "dxvk_limits.h"
 #include "dxvk_sampler.h"
 #include "lsfg_dxvk_shader.h"
+#include "lsfg_log.h"
 
 namespace dxvk {
 
