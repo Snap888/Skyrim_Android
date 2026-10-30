@@ -36,53 +36,62 @@ namespace dxvk {
   bool g_dxvkDepthClamp = true;
   bool g_dxvkUbyte4AsUint = false;
 
-  
   DxvkDevice::DxvkDevice(
     const Rc<DxvkInstance>&         instance,
     const Rc<DxvkAdapter>&          adapter,
     const Rc<vk::DeviceFn>&         vkd,
     const DxvkDeviceExtensions&     extensions,
-    const DxvkDeviceFeatures&       features,
-    const DxvkDeviceQueueSet&       queues,
-    const DxvkQueueCallback&        queueCallback)
-  : m_options         (instance->options()),
-    m_instance        (instance),
-    m_adapter         (adapter),
-    m_vkd             (vkd),
-    m_extensions      (extensions),
-    m_features        (features),
-    m_properties      (adapter->devicePropertiesExt()),
-    m_perfHints       (getPerfHints()),
-    m_queues          (queues),
-    m_submissionQueue (this, queueCallback) {
+    const DxvkDeviceFeatures&       features)
+  : m_options           (instance->options()),
+    m_instance          (instance),
+    m_adapter           (adapter),
+    m_vkd               (vkd),
+    m_extensions        (extensions),
+    m_features          (features),
+    m_properties        (adapter->devicePropertiesExt()),
+    m_perfHints         (getPerfHints()),
+    m_objects           (this),
+    m_submissionQueue   (this) {
+    g_dxvkDepthClamp = features.core.features.depthClamp;
+    {
+      VkFormatProperties fp = adapter->formatProperties(VK_FORMAT_R8G8B8A8_USCALED);
+      const char* force = std::getenv("LB_NOSCALED");
+      g_dxvkUbyte4AsUint = !(fp.bufferFeatures & VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT)
+                        || (force && *force == '1');
+#ifdef __ANDROID__
+      g_dxvkUbyte4AsUint = true;
+#endif
+      Logger::info(str::format("Port: USCALED vertex fetch ",
+        (fp.bufferFeatures & VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT) ? "supported" : "NOT supported",
+        g_dxvkUbyte4AsUint ? ", UBYTE4/SHORT fetched normalized + rescaled" : ""));
+    }
     auto queueFamilies = m_adapter->findQueueFamilies();
+    m_queues.graphics = getQueue(queueFamilies.graphics, 0);
+    m_queues.transfer = getQueue(queueFamilies.transfer, 0);
 
     if (g_lsfg_vk_ctx_hook)
       g_lsfg_vk_ctx_hook(
-          reinterpret_cast<void*>(m_vkd->device()),
-          reinterpret_cast<void*>(m_adapter->handle()),
-          reinterpret_cast<void*>(m_queues.graphics.queueHandle),
-          m_queues.graphics.queueFamily);
+        reinterpret_cast<void*>(m_vkd->device()),
+        reinterpret_cast<void*>(m_adapter->handle()),
+        reinterpret_cast<void*>(m_queues.graphics.queueHandle),
+        m_queues.graphics.queueFamily);
     else if (g_lsfg_vk_device_hook)
       g_lsfg_vk_device_hook(reinterpret_cast<void*>(m_vkd->device()));
   }
 
   DxvkDevice::~DxvkDevice() {
-    // wait for all pending submissions
+    // wait for GPU idle before destroying device-owned resources
     this->waitForIdle();
   }
 
   bool DxvkDevice::isUnifiedMemoryArchitecture() const {
     auto memoryTypes = m_adapter->memoryProperties().memoryTypes;
-
     for (uint32_t i = 0; i < m_adapter->memoryProperties().memoryTypeCount; i++) {
       uint32_t flags = memoryTypes[i].propertyFlags;
-
       if ((flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
        && (flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
         return true;
     }
-
     return false;
   }
 
@@ -93,14 +102,18 @@ namespace dxvk {
     return hints;
   }
 
+  DxvkDeviceQueue DxvkDevice::getQueue(uint32_t family, uint32_t index) {
+    DxvkDeviceQueue queue;
+    queue.queueFamily = family;
+    queue.queueIndex  = index;
+    m_vkd->vkGetDeviceQueue(m_vkd->device(), queue.queueFamily, queue.queueIndex, &queue.queueHandle);
+    return queue;
+  }
+
   void DxvkDevice::waitForIdle() {
     this->lockSubmission();
     m_vkd->vkDeviceWaitIdle(m_vkd->device());
     this->unlockSubmission();
-  }
-
-  void DxvkDevice::recycleObjects() {
-    // no-op for now
   }
 
 }
