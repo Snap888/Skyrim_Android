@@ -16,16 +16,40 @@ Windows DLL on Android. No proprietary DLL or extracted shader payload is commit
 | DXBC to SPIR-V translation | `android/app/jni/lsfg/lsfg_translate.cpp` | Implemented; runtime log reported 300 modules processed |
 | CPU-side SPIR-V reflection | `android/app/jni/lsfg/lsfg_step3d.cpp` | Descriptor metadata and workgroup-size audit; no GPU pipelines |
 | History image allocation | `android/app/jni/lsfg/lsfg_step3d.cpp` | Two RGBA8 images allocated |
-| Game-frame history copies | `android/app/jni/lsfg/lsfg_step3g.cpp` | Copies recorded through `DxvkContext::copyImage()` |
+| Game-frame history copies | `android/app/jni/lsfg/lsfg_step3g.cpp` | LSFG diagnostics/history path; separate from the blitter prototype |
+| Experimental temporal blend | `android/app/jni/dxvk/src/dxvk/dxvk_swapchain_blitter.cpp` | Previous single-sample game image is sampled and blended 50/50 over the current present image; current image is then copied into persistent DXVK-managed history |
 | Completion observation | `dxvk_context.*`, `dxvk_cmdlist.*`, `dxvk_queue.cpp` | Fence completion callbacks wired |
 | Compute pipeline/descriptors/dispatch | — | **Not implemented** |
-| Generated-frame output and pacing | — | **Not implemented** |
+| Additional WSI presentation / generated-frame pacing | — | **Not implemented** |
 
 The runtime log previously supplied for this branch reported 300 successful CPU
 reflection results, history-copy completion callbacks, and no reported copy
 failures. These observations do not establish that the copied pixel contents are
 correct. The same log explicitly reported that no GPU pipelines were created,
 no descriptors were bound, and no compute dispatch or generated output occurred.
+
+## Experimental present-path blend (prototype)
+
+The D3D9 swapchain blitter now contains a first visual experiment that reuses
+DXVK's existing presentation fragment shader and fixed-function alpha blending.
+For single-sample source images it:
+1. draws the current game image to the acquired WSI image;
+2. if a compatible history image exists, overlays the previous game image at
+   50% constant alpha;
+3. records a copy of the current source image into a persistent, sampled
+   history image through `DxvkContext::copyImage()`.
+
+The first frame and the first frame after a source extent/format change are
+presented without blending. Multisampled sources bypass the blend and invalidate
+the temporal history. Old history resources are released through DXVK reference
+ownership rather than an immediate Vulkan device-idle wait.
+
+**Important limitation:** this is temporal frame blending, not yet true 2x frame
+generation. It produces one blended presentation for each game frame; it does
+not insert an additional WSI present between game frames, estimate motion, or
+use the 300 extracted LSFG shaders. Ghosting is expected in moving scenes.
+The prototype has not been compiled or tested on an Android device. It must be
+treated as experimental until an APK build and runtime visual validation pass.
 
 ## DXVK completion callback audit
 
