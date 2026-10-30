@@ -17,6 +17,8 @@ extern "C" int  lsfg_step3hc_chain_ready(void);
 extern "C" unsigned lsfg_step3d_fb_width(void);
 extern "C" unsigned lsfg_step3d_fb_height(void);
 extern "C" int lsfg_role_perf_mode(void);
+extern "C" void lsfg_step3hf_after_pyramid(void *device, unsigned qfam);
+extern "C" unsigned lsfg_step3e_queue_family(void);
 
 static VkDevice g_dev = VK_NULL_HANDLE;
 static VkPhysicalDevice g_phys = VK_NULL_HANDLE;
@@ -185,7 +187,9 @@ extern "C" void lsfg_step3he_after_probe(void *device) {
     if (!lsfg_step3hc_chain_ready()) return;
     g_dev = (VkDevice)device;
     g_logged = 1;
-    build_pool(g_dev, g_phys);
+    if (build_pool(g_dev, g_phys)) {
+        lsfg_step3hf_after_pyramid((void*)g_dev, lsfg_step3e_queue_family());
+    }
 }
 
 extern "C" void lsfg_step3he_install(void) {
