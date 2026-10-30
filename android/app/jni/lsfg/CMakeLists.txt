@@ -9,6 +9,7 @@ add_library(lsfg_host STATIC
     lsfg_step3g.cpp
     lsfg_dxvk_shader.cpp
     lsfg_dxvk_shared.cpp
+    lsfg_dxvk_generation.cpp
     dxbc_options_stub.cpp
 )
 target_include_directories(lsfg_host PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
