@@ -37,7 +37,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Рекомендуется self-hosted с ≥16 GB RAM
 
     steps:
       - name: Checkout
@@ -45,6 +44,30 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+
+      - name: Restore d3d9_swapchain (LSFG extern C)
+        run: |
+          set -e
+          curl -fsSL -o android/app/jni/dxvk/src/d3d9/d3d9_swapchain.cpp \
+            "https://raw.githubusercontent.com/Snap888/Skyrim_Android/ecb603b331e6d35be326b640635497175e306941/android/app/jni/dxvk/src/d3d9/d3d9_swapchain.cpp"
+          python3 -c '
+          from pathlib import Path
+          p = Path("android/app/jni/dxvk/src/d3d9/d3d9_swapchain.cpp")
+          src = p.read_text()
+          old = "    for (uint32_t i = 0; i < SyncInterval || i < 1; i++) {"
+          new = "    extern \"C\" int lsfg_step3hj_should_inject(void);\n    const bool lsfgExtra = (lsfg_step3hj_should_inject() != 0) && (SyncInterval <= 1);\n    const uint32_t presentLoops = lsfgExtra ? 2u : ((SyncInterval < 1u) ? 1u : SyncInterval);\n\n    for (uint32_t i = 0; i < presentLoops; i++) {"
+          if old not in src:
+              raise SystemExit("swapchain present loop not found")
+          src = src.replace(old, new, 1)
+          src = src.replace(
+              "extern void lsfg_step3hj_insert_inject(void*, void*, void*, uint32_t, uint32_t, uint32_t);",
+              "extern \"C\" void lsfg_step3hj_insert_inject(void*, void*, void*, uint32_t, uint32_t, uint32_t);")
+          src = src.replace(
+              "      if (i + 1 >= SyncInterval)\n        m_context->signal(m_frameLatencySignal, m_frameId);",
+              "      if (i + 1 >= presentLoops)\n        m_context->signal(m_frameLatencySignal, m_frameId);", 1)
+          p.write_text(src)
+          print("swapchain OK", p.stat().st_size)
+          '
 
       - name: Restore / download gen/
         run: |
@@ -72,7 +95,6 @@ jobs:
           mkdir -p /tmp/gen_dl
           curl -L --fail --retry 3 -o /tmp/gen_dl/gen.archive "${{ github.event.inputs.gen_url }}"
 
-          # определяем формат
           if file /tmp/gen_dl/gen.archive | grep -q 'XZ\|xz'; then
             tar -xJf /tmp/gen_dl/gen.archive
           elif file /tmp/gen_dl/gen.archive | grep -q 'gzip\|Gzip'; then
@@ -80,7 +102,6 @@ jobs:
           elif file /tmp/gen_dl/gen.archive | grep -q 'Zip\|zip'; then
             unzip -q /tmp/gen_dl/gen.archive
           else
-            # пробуем как tar.xz по умолчанию
             tar -xJf /tmp/gen_dl/gen.archive || tar -xzf /tmp/gen_dl/gen.archive
           fi
 
@@ -161,7 +182,6 @@ jobs:
           cp "$MAIN_APK" "dist/Skyrim-${VER}.apk"
           echo "main_apk=dist/Skyrim-${VER}.apk" >> $GITHUB_OUTPUT
 
-          # dual APK (если собирали)
           DUAL_APK=$(find android/app/build/outputs/apk -name "app-debug.apk" | tail -n +2 | head -1 || true)
           if [ -n "$DUAL_APK" ] && [ "$DUAL_APK" != "$MAIN_APK" ]; then
             cp "$DUAL_APK" "dist/Skyrim-${VER}-dual.apk"
