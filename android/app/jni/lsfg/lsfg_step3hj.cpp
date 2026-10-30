@@ -2,6 +2,8 @@
  * Full 25-pass crashes driver during vkCreateComputePipelines.
  * 1 pipeline per present frame. Inject when gen fence signals.
  * Config: fg_live=1, fg_inject=1, fg_throttle=30 (max 120)
+ *
+ * CRITICAL: never memset() PassRt — it contains std::vector.
  */
 #include "lsfg_log.h"
 
@@ -34,14 +36,14 @@ static const PassDef k_light[] = {
 
 struct BindInfo { uint32_t binding; VkDescriptorType type; };
 struct PassRt {
-    uint32_t id;
-    VkShaderModule sm;
-    VkDescriptorSetLayout dsl;
-    VkPipelineLayout pl;
-    VkPipeline pipe;
-    VkDescriptorSet ds;
+    uint32_t id = 0;
+    VkShaderModule sm = VK_NULL_HANDLE;
+    VkDescriptorSetLayout dsl = VK_NULL_HANDLE;
+    VkPipelineLayout pl = VK_NULL_HANDLE;
+    VkPipeline pipe = VK_NULL_HANDLE;
+    VkDescriptorSet ds = VK_NULL_HANDLE;
     std::vector<BindInfo> binds;
-    int ok;
+    int ok = 0;
 };
 
 enum { CMD_SLOTS = 2 };
@@ -218,7 +220,8 @@ static bool ensure_shared(VkDevice dev, VkPhysicalDevice phys) {
 }
 
 static bool build_pass(VkDevice dev, const char *cache, const PassDef &def, PassRt *p) {
-    memset(p, 0, sizeof(*p));
+    /* Never memset PassRt — contains std::vector (was corrupting g_passes.size()) */
+    *p = PassRt{};
     p->id = def.id;
     char path[700];
     snprintf(path, sizeof path, "%s/%u.spv", cache, def.id);
@@ -319,7 +322,12 @@ static void barrier_img(VkCommandBuffer cmd, VkImage img) {
 }
 
 static bool finish_pool(VkDevice dev, uint32_t qfam) {
-    lsfg_log("I", "step3h-j: finish_pool begin passes=%zu qfam=%u", g_passes.size(), qfam);
+    size_t npass = g_passes.size();
+    lsfg_log("I", "step3h-j: finish_pool begin passes=%zu qfam=%u", npass, qfam);
+    if (npass == 0 || npass > 64) {
+        lsfg_log("W", "step3h-j: passes count corrupt/empty (%zu) — abort FG", npass);
+        return false;
+    }
     VkDescriptorPoolSize sizes[4] = {};
     sizes[0].type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE; sizes[0].descriptorCount = 64;
     sizes[1].type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE; sizes[1].descriptorCount = 64;
@@ -327,7 +335,7 @@ static bool finish_pool(VkDevice dev, uint32_t qfam) {
     sizes[3].type = VK_DESCRIPTOR_TYPE_SAMPLER; sizes[3].descriptorCount = 16;
     VkDescriptorPoolCreateInfo dpci{};
     dpci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    dpci.maxSets = (uint32_t)g_passes.size() + 4;
+    dpci.maxSets = (uint32_t)npass + 4;
     dpci.poolSizeCount = 4; dpci.pPoolSizes = sizes;
     if (vkCreateDescriptorPool(dev, &dpci, nullptr, &g_dpool) != VK_SUCCESS) {
         lsfg_log("W", "step3h-j: descriptor pool fail");
@@ -415,16 +423,19 @@ static void build_tick(VkDevice dev, VkPhysicalDevice phys, uint32_t qfam) {
             } else {
                 g_pipe_ok++;
                 g_passes.push_back(std::move(p));
-                lsfg_log("I", "step3h-j: pipe OK id=%u %s (ok=%d)", def.id, def.name, g_pipe_ok);
+                lsfg_log("I", "step3h-j: pipe OK id=%u %s (ok=%d size=%zu)",
+                         def.id, def.name, g_pipe_ok, g_passes.size());
             }
             return;
         }
-        lsfg_log("I", "step3h-j: pipelines ok=%d/%zu mode=light", g_pipe_ok, ndefs);
-        if (g_pipe_ok < 1) {
+        lsfg_log("I", "step3h-j: pipelines ok=%d/%zu size=%zu mode=light",
+                 g_pipe_ok, ndefs, g_passes.size());
+        if (g_pipe_ok < 1 || g_passes.empty()) {
             g_build_fail = 1;
             return;
         }
         g_build_phase = 3;
+        return; /* finish_pool next frame — safer */
     }
 
     if (g_build_phase == 3) {
