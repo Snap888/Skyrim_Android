@@ -25,12 +25,14 @@ extern "C" void lsfg_step3hc_set_phys(void *phys);
 extern "C" void lsfg_step3he_set_phys(void *phys);
 extern "C" void lsfg_step3hf_set_phys(void *phys);
 extern "C" void lsfg_step3hg_set_phys(void *phys);
+extern "C" void lsfg_step3hh_set_phys(void *phys);
 extern "C" void lsfg_step3d_set_phys_queue(void *phys, void *queue) {
     lsfg_step3hb_set_phys(phys);
     lsfg_step3hc_set_phys(phys);
     lsfg_step3he_set_phys(phys);
     lsfg_step3hf_set_phys(phys);
     lsfg_step3hg_set_phys(phys);
+    lsfg_step3hh_set_phys(phys);
     g_phys = (VkPhysicalDevice)phys;
     g_queue = (VkQueue)queue;
 }
@@ -130,26 +132,19 @@ extern "C" void lsfg_step3d_run(void *device, const char *cache_dir, uint32_t w,
     if (!dev || !cache_dir || !cache_dir[0]) return;
     if (g_done) return;
     g_done = 1;
-
     lsfg_log("I", "=== LSFG step 3d: descriptor reflection + frame pair ===");
-
     if (w && h && !g_fb_ready) {
         if (make_hist(dev, w, h))
             lsfg_log("I", "step3d: frame pair %ux%u OK", w, h);
         else
             lsfg_log("W", "step3d: frame pair create failed");
     }
-
     char man[600];
     snprintf(man, sizeof man, "%s/manifest_spirv.txt", cache_dir);
     FILE *f = fopen(man, "r");
-    if (!f) {
-        lsfg_log("W", "step3d: no manifest_spirv.txt");
-        return;
-    }
+    if (!f) { lsfg_log("W", "step3d: no manifest_spirv.txt"); return; }
     char line[256];
-    int compute = 0, with_b = 0, max_b = 0;
-    int nlog = 0;
+    int compute = 0, with_b = 0, max_b = 0, nlog = 0;
     while (fgets(line, sizeof line, f) && compute < 40) {
         unsigned id = 0;
         if (sscanf(line, "%u", &id) != 1) continue;
@@ -160,24 +155,19 @@ extern "C" void lsfg_step3d_run(void *device, const char *cache_dir, uint32_t w,
         compute++;
         std::vector<uint32_t> binds;
         reflect_bindings(code, binds);
-        if (!binds.empty()) {
-            with_b++;
-            if ((int)binds.size() > max_b) max_b = (int)binds.size();
-        }
+        if (!binds.empty()) { with_b++; if ((int)binds.size() > max_b) max_b = (int)binds.size(); }
         if (nlog < 8) {
             char buf[256];
             int pos = snprintf(buf, sizeof buf, "step3d: id=%u bindings:", id);
-            for (uint32_t b : binds) {
+            for (uint32_t b : binds)
                 if (pos < (int)sizeof(buf) - 16)
                     pos += snprintf(buf + pos, sizeof(buf) - pos, " set0:b%u", b);
-            }
             lsfg_log("I", "%s", buf);
             nlog++;
         }
     }
     fclose(f);
-    lsfg_log("I", "step3d reflect: compute=%d with_bindings=%d max_bindings=%d",
-             compute, with_b, max_b);
+    lsfg_log("I", "step3d reflect: compute=%d with_bindings=%d max_bindings=%d", compute, with_b, max_b);
     lsfg_log("I", "step3d frames: ready=%d %ux%u phys=%p queue=%p",
              g_fb_ready, g_fb_w, g_fb_h, (void*)g_phys, (void*)g_queue);
 }
