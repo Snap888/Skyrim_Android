@@ -84,11 +84,6 @@ namespace dxvk {
     Rc<DxvkImage>       m_resolveImage;
     Rc<DxvkImageView>   m_resolveView;
 
-    // Experimental temporal blend history (single-sample only).
-    Rc<DxvkImage>       m_blendHistoryImage;
-    Rc<DxvkImageView>   m_blendHistoryView;
-    bool                m_blendHistoryValid = false;
-
     Rc<DxvkSampler>     m_samplerPresent;
     Rc<DxvkSampler>     m_samplerGamma;
 
@@ -98,10 +93,7 @@ namespace dxvk {
       const Rc<DxvkImageView>&  dstView,
             VkRect2D            dstRect,
       const Rc<DxvkImageView>&  srcView,
-            VkRect2D            srcRect,
-            bool                blend = false);
-
-    void updateBlendHistory(DxvkContext* ctx, const Rc<DxvkImageView>& srcView);
+            VkRect2D            srcRect);
 
     void resolve(
             DxvkContext*        ctx,
