@@ -250,7 +250,7 @@ static void write_extended_metadata(FILE *out, unsigned shader_id,
         auto im = images.find(base);
         if (im != images.end()) {
             const auto &x = im->second;
-            fprintf(out, "image\\t%u\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t%u\\t%u\\t%u\\t%u\\t%u\\t%u\\t%u\\n",
+            fprintf(out, "image\t%u\t\t\t\t\t\t\t\t\t\t%u\t%u\t%u\t%u\t%u\t%u\t%u\n",
                     shader_id, base, x.dim, x.depth, x.arrayed, x.ms, x.sampled, x.format);
         }
         if ((v.storage == 2 || v.storage == 9 || v.storage == 12) && struct_members.count(base)) {
@@ -259,14 +259,14 @@ static void write_extended_metadata(FILE *out, unsigned shader_id,
                 uint64_t key = member_key(base, m);
                 uint32_t off = member_offset.count(key) ? member_offset[key] : UINT32_MAX;
                 uint32_t ms = member_matrix_stride.count(key) ? member_matrix_stride[key] : UINT32_MAX;
-                fprintf(out, "%s\\t%u\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t%u\\t%u\\t%u\\t%u\\t%u\\t%u\\t%u\\n",
+                fprintf(out, "%s\t%u\t\t\t\t\t\t\t\t\t\t%u\t%u\t%u\t%u\t%u\t%u\t%u\n",
                         v.storage == 9 ? "push_member" : (v.storage == 12 ? "ssbo_member" : "ubo_member"),
                         shader_id, base, m, off, ms, 0u, 0u, 0u);
             }
         }
     }
     for (const auto &entry : array_stride)
-        fprintf(out, "array_stride\\t%u\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t%u\\t%u\\t%u\\t%u\\t%u\\t%u\\t%u\\n",
+        fprintf(out, "array_stride\t%u\t\t\t\t\t\t\t\t\t\t%u\t%u\t%u\t%u\t%u\t%u\t%u\n",
                 shader_id, entry.first, 0u, entry.second, 0u, 0u, 0u, 0u);
 }
 
