@@ -932,9 +932,8 @@ namespace dxvk {
           { uint32_t(m_srcRect.right - m_srcRect.left),
             uint32_t(m_srcRect.bottom - m_srcRect.top) } };
         VkRect2D generatedDstRect = {
-          { int32_t(m_dstRect.left), int32_t(m_dstRect.top) },
-          { uint32_t(m_dstRect.right - m_dstRect.left),
-            uint32_t(m_dstRect.bottom - m_dstRect.top) } };
+          { 0, 0 },
+          { generatedInfo.imageExtent.width, generatedInfo.imageExtent.height } };
 
         void* generatedOpaque = g_lsfgGenerateHook(
           m_context.ptr(), m_device.ptr(),
