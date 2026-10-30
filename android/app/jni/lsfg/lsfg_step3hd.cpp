@@ -1,6 +1,5 @@
 /* Step 3h-d: present-path scaffold for generated frame.
- * Does NOT enable per-frame FG. After 3h-c probe, logs that out image is available
- * and documents the DXVK inject point for a future safe present.
+ * Does NOT enable per-frame FG. After 3h-c probe, logs that out image is available.
  */
 #include "lsfg_log.h"
 
@@ -17,8 +16,12 @@ extern "C" void *lsfg_step3hc_get_out_image(void);
 extern "C" int lsfg_step3hc_chain_ready(void);
 extern "C" unsigned lsfg_step3d_fb_width(void);
 extern "C" unsigned lsfg_step3d_fb_height(void);
+extern "C" void lsfg_step3he_after_probe(void *device);
 
+static void *g_dev_for_he = nullptr;
 static int g_logged;
+
+extern "C" void lsfg_step3hd_set_device(void *dev) { g_dev_for_he = dev; }
 
 extern "C" void lsfg_step3hd_after_probe(void) {
     if (g_logged) return;
@@ -33,6 +36,7 @@ extern "C" void lsfg_step3hd_after_probe(void) {
     lsfg_log("I", "step3h-d: inject point = D3D9SwapChainEx::PresentImage after step3g copy");
     lsfg_log("I", "step3h-d: enable per-frame only after full flow chain + pacing");
     lsfg_log("I", "STATUS: descriptors OK, probe OK, present DEFERRED — FPS safe");
+    lsfg_step3he_after_probe(g_dev_for_he);
 }
 
 extern "C" void lsfg_step3hd_install(void) {
