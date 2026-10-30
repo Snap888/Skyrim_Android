@@ -24,11 +24,13 @@ extern "C" void lsfg_step3hb_set_phys(void *phys);
 extern "C" void lsfg_step3hc_set_phys(void *phys);
 extern "C" void lsfg_step3he_set_phys(void *phys);
 extern "C" void lsfg_step3hf_set_phys(void *phys);
+extern "C" void lsfg_step3hg_set_phys(void *phys);
 extern "C" void lsfg_step3d_set_phys_queue(void *phys, void *queue) {
     lsfg_step3hb_set_phys(phys);
     lsfg_step3hc_set_phys(phys);
     lsfg_step3he_set_phys(phys);
     lsfg_step3hf_set_phys(phys);
+    lsfg_step3hg_set_phys(phys);
     g_phys = (VkPhysicalDevice)phys;
     g_queue = (VkQueue)queue;
 }
@@ -178,22 +180,17 @@ extern "C" void lsfg_step3d_run(void *device, const char *cache_dir, uint32_t w,
              compute, with_b, max_b);
     lsfg_log("I", "step3d frames: ready=%d %ux%u phys=%p queue=%p",
              g_fb_ready, g_fb_w, g_fb_h, (void*)g_phys, (void*)g_queue);
-    lsfg_log("I", "NEXT step 3f: real VkImage path + history write probe");
 }
 
 extern "C" int lsfg_step3d_frames_ready(void) { return g_fb_ready; }
-
 extern "C" void *lsfg_step3d_get_image(int idx) {
     if (!g_fb_ready || idx < 0 || idx > 1) return nullptr;
     return (void*)g_img[idx];
 }
-
 extern "C" unsigned lsfg_step3d_fb_width(void) { return g_fb_w; }
 extern "C" unsigned lsfg_step3d_fb_height(void) { return g_fb_h; }
-
 extern "C" void *lsfg_step3d_get_view(int idx) {
     if (!g_fb_ready || idx < 0 || idx > 1) return nullptr;
     return (void*)g_view[idx];
 }
-
 extern "C" void *lsfg_step3d_get_queue(void) { return (void*)g_queue; }
