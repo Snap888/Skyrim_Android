@@ -168,6 +168,16 @@ Rc<DxvkShader> createLsfgComputeShader(
     return Rc<DxvkShader>();
   }
 
+  // DxvkContext sources push-constant bytes from its D3D state. LSFG has
+  // no D3D constant-state provider, so reject these modules instead of
+  // dispatching with unrelated or uninitialized push-constant data.
+  for (const auto& v : variables) {
+    if (v.storage == 9) {
+      setError(error, "LSFG compute shader declares unsupported push constants", v.id);
+      return Rc<DxvkShader>();
+    }
+  }
+
   std::function<uint64_t(uint32_t, uint32_t, bool, unsigned)> typeSize;
   typeSize = [&](uint32_t id, uint32_t matrixStride, bool rowMajor, unsigned depth) -> uint64_t {
     if (depth > 32) return 0;
