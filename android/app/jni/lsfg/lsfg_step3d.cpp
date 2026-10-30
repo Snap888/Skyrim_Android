@@ -200,6 +200,73 @@ static bool reflect(const std::vector<uint32_t> &c, std::vector<RefBinding> &out
     return true;
 }
 
+// Extended offline metadata. This parser reports declarations only; it does
+// not infer runtime image formats/usages or evaluate specialization constants.
+static void write_extended_metadata(FILE *out, unsigned shader_id,
+                                    const std::vector<uint32_t> &code) {
+    if (!out) return;
+    struct ImageType { uint32_t sampled_type, dim, depth, arrayed, ms, sampled, format; };
+    std::unordered_map<uint32_t, ImageType> images;
+    std::unordered_map<uint32_t, uint32_t> ptr_pointee, type_op, array_elem;
+    std::unordered_map<uint32_t, uint32_t> array_stride, struct_members;
+    std::unordered_map<uint64_t, uint32_t> member_offset, member_matrix_stride;
+    struct Variable { uint32_t type, id, storage; };
+    std::vector<Variable> variables;
+    auto member_key = [](uint32_t type, uint32_t member) -> uint64_t {
+        return (uint64_t(type) << 32) | member;
+    };
+    for (size_t i = 5; i < code.size();) {
+        uint32_t w = code[i], op = w & 0xffffu, len = w >> 16;
+        if (!len || i + len > code.size()) return;
+        const uint32_t *a = code.data() + i;
+        if (op == 25 && len >= 9) { // OpTypeImage
+            images[a[1]] = {a[2],a[3],a[4],a[5],a[6],a[7],a[8]};
+            type_op[a[1]] = op;
+        } else if (op == 32 && len >= 4) {
+            ptr_pointee[a[1]] = a[3]; type_op[a[1]] = op;
+        } else if (op == 28 && len >= 4) {
+            array_elem[a[1]] = a[2]; type_op[a[1]] = op;
+        } else if (op == 30 && len >= 2) {
+            type_op[a[1]] = op; struct_members[a[1]] = len - 2;
+        } else if (op == 71 && len >= 4 && a[2] == 6) { // ArrayStride
+            array_stride[a[1]] = a[3];
+        } else if (op == 72 && len >= 5) { // OpMemberDecorate
+            uint64_t key = member_key(a[1], a[2]);
+            if (a[3] == 35) member_offset[key] = a[4];       // Offset
+            if (a[3] == 7) member_matrix_stride[key] = a[4]; // MatrixStride
+        } else if (op == 59 && len >= 4) {
+            variables.push_back({a[1],a[2],a[3]});
+        }
+        i += len;
+    }
+    for (const auto &v : variables) {
+        auto p = ptr_pointee.find(v.type);
+        if (p == ptr_pointee.end()) continue;
+        uint32_t base = p->second;
+        while (array_elem.count(base)) base = array_elem[base];
+        auto im = images.find(base);
+        if (im != images.end()) {
+            const auto &x = im->second;
+            fprintf(out, "image\\t%u\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t%u\\t%u\\t%u\\t%u\\t%u\\t%u\\t%u\\n",
+                    shader_id, base, x.dim, x.depth, x.arrayed, x.ms, x.sampled, x.format);
+        }
+        if ((v.storage == 2 || v.storage == 9) && struct_members.count(base)) {
+            uint32_t members = struct_members[base];
+            for (uint32_t m = 0; m < members; ++m) {
+                uint64_t key = member_key(base, m);
+                uint32_t off = member_offset.count(key) ? member_offset[key] : UINT32_MAX;
+                uint32_t ms = member_matrix_stride.count(key) ? member_matrix_stride[key] : UINT32_MAX;
+                fprintf(out, "%s\\t%u\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t%u\\t%u\\t%u\\t%u\\t%u\\t%u\\t%u\\n",
+                        v.storage == 9 ? "push_member" : "ubo_member",
+                        shader_id, base, m, off, ms, 0u, 0u, 0u);
+            }
+        }
+    }
+    for (const auto &entry : array_stride)
+        fprintf(out, "array_stride\\t%u\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t%u\\t%u\\t%u\\t%u\\t%u\\t%u\\t%u\\n",
+                shader_id, entry.first, 0u, entry.second, 0u, 0u, 0u, 0u);
+}
+
 // Startup-safe reflection only. Creating hundreds of Vulkan pipelines here
 // blocks the game's present thread while the driver compiles shaders.
 // Actual pipeline creation belongs in a controlled, incremental runtime path.
@@ -419,7 +486,7 @@ extern "C" void lsfg_step3d_run(void *device, const char *cache_dir, uint32_t w,
     snprintf(metadata_path, sizeof metadata_path, "%s/lsfg_reflection.tsv", cache_dir);
     FILE *metadata = fopen(metadata_path, "w");
     if (metadata) {
-        fprintf(metadata, "kind\tid\tentry\tlocal_x\tlocal_y\tlocal_z\tlocal_size_known\tset\tbinding\tdescriptor_type\tcount\n");
+        fprintf(metadata, "kind\tid\tentry\tlocal_x\tlocal_y\tlocal_z\tlocal_size_known\tset\tbinding\tdescriptor_type\tcount\ttype_id\tmember_index\tmember_offset\tmatrix_stride\tarray_stride\timage_dim\timage_depth\timage_arrayed\timage_ms\timage_sampled\timage_format\n");
     } else {
         lsfg_log("W", "step3d: cannot write reflection metadata %s", metadata_path);
     }
@@ -461,16 +528,17 @@ extern "C" void lsfg_step3d_run(void *device, const char *cache_dir, uint32_t w,
         else reflection_fail++;
 
         if (metadata) {
-            fprintf(metadata, "shader\t%u\t%s\t%u\t%u\t%u\t%d\t\t\t\t\n",
+            fprintf(metadata, "shader\t%u\t%s\t%u\t%u\t%u\t%d\t\t\t\t\t\t\t\t\t\t\t\t\t\t\n",
                     id, info.entry[0] ? info.entry : "",
                     info.local_x, info.local_y, info.local_z,
                     info.has_local_size ? 1 : 0);
             if (reflected) {
                 for (const auto &b : binds) {
-                    fprintf(metadata, "binding\t%u\t\t\t\t\t\t%u\t%u\t%d\t%u\n",
+                    fprintf(metadata, "binding\t%u\t\t\t\t\t\t%u\t%u\t%d\t%u\t\t\t\t\t\t\t\t\t\t\t\n",
                             id, b.set, b.binding, (int)b.type, b.count);
                 }
             }
+            write_extended_metadata(metadata, id, code);
         }
     }
     fclose(f);
