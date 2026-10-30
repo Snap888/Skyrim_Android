@@ -104,3 +104,35 @@ The excerpt's summary again reports 300/300 reflection success. Runtime then all
 ### Consequence
 
 The next comparison should prioritize actual binary comparisons for the observed candidate pairs (348↔397, 349↔398, 350↔399, 351↔400), followed by full SPIR-V type/image/UBO reflection. Do not merge their layouts solely because the visible interfaces match. Preserve a distinct layout per reflected interface until the full metadata and runtime selection are known.
+
+
+## Runtime reflection evidence: IDs 388–400 (2026-10-30 20:25)
+
+The user supplied a later runtime excerpt covering copied-SPIR-V IDs 388–400. Every listed module reports `entry=main` and `reflection OK`. The visible descriptor interfaces are:
+
+| ID | Candidate base role | Workgroup | Reflected interface |
+|---:|---|---|---|
+| 388 | Alpha 290 (+98) | 8×8×1 | sampler b16; sampled b32; storage b48 |
+| 389 | Alpha 291 (+98) | 8×8×1 | sampler b16; sampled b32; storage b48 |
+| 390 | Alpha 292 (+98) | 8×8×1 | sampler b16; sampled b32; storage b48–b49 |
+| 391 | Alpha 293 (+98) | 8×8×1 | sampler b16; sampled b32–b33; storage b48–b49 |
+| 392 | Delta 294 (+98) | 8×8×1 | sampler b16; sampled b32; storage b48 |
+| 393 | Delta 295 (+98) | 8×8×1 | sampler b16; sampled b32; storage b48 |
+| 394 | Delta 296 (+98) | 8×8×1 | sampler b16; sampled b32; storage b48 |
+| 395 | Delta 297 (+98) | 8×8×1 | UBO b0; samplers b16/b17; sampled b32–b33; storage b48 |
+| 396 | Beta 298 (+98) | 8×8×1 | sampler b16; sampled b32–b37; storage b48–b49 |
+| 397–399 | Beta 299–301 (+98) | 8×8×1 | sampler b16; sampled b32–b33; storage b48–b49 |
+| 400 | Beta 302 (+98) | 32×32×1 | UBO b0; sampler b16; sampled b32–b33; storage b48–b53 |
+
+The role/base labels are arithmetic archive correspondences from the candidate map, not evidence that the Android runtime selected those modules for those passes. IDs 388–391 add the +98 Alpha candidates to the earlier +49 observations 339–342; IDs 392–396 similarly cover the later Delta/Beta candidate IDs. The table records only what the CPU reflection log exposes. It does not include image formats/dimensions, UBO member layout or contents, instruction equivalence, or runtime selection.
+
+The 20:25 summary again reports 300 compute modules, 300 with bindings, and 300 successful reflections. The same run records two history slots, each receiving 900 copies by copy #1800, with the aggregate completion count reaching 1800. This is command-list completion evidence, not a pixel readback or proof of correct temporal contents. No GPU pipelines, descriptor sets, or compute dispatches were created; generated frame count remains zero.
+
+### Updated comparison priority
+
+The new +98 candidates make these comparisons useful next:
+- Alpha: 339↔388, 340↔389, 341↔390, 342↔391.
+- Delta: 343↔392, 344↔393, 345↔394, 346↔395.
+- Beta: 347↔396, plus the previously noted 348↔397, 349↔398, 350↔399, 351↔400.
+
+Matching binding signatures should be treated as layout clues only. Before pipeline creation, compare the actual SPIR-V instructions and complete type/format/UBO metadata, and establish which module the Windows runtime actually selects.
