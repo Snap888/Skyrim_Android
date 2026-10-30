@@ -548,8 +548,8 @@ bool dispatchLsfgGeneration(
         uint32_t width, uint32_t height, uint32_t frameIndex,
         uint32_t generationCount, uint32_t generationIndex,
         float flowScale, uint32_t deviceGeneration) {
-  if (!context || !device || !cacheDir || !frameViews || !targetView
-      || !frameViews[0] || !frameViews[1]
+  if (!context || !device || !cacheDir || !frameViews || targetView == nullptr
+      || frameViews[0] == nullptr || frameViews[1] == nullptr
       || generationCount == 0 || generationCount > 3
       || generationIndex >= generationCount
       || !lsfgSharedPassesReady()) return false;
@@ -568,7 +568,8 @@ bool dispatchLsfgGeneration(
     clearValue.color.float32[1] = 0.0f;
     clearValue.color.float32[2] = 0.0f;
     clearValue.color.float32[3] = 0.0f;
-    context->clearImageViewCs(g_dummyMotion.view, { 0, 0, 0 }, { 1, 1, 1 }, clearValue);
+    context->clearImageView(g_dummyMotion.view, { 0, 0, 0 }, { 1, 1, 1 },
+                            VK_IMAGE_ASPECT_COLOR_BIT, clearValue);
     g_dummyCleared = true;
   }
 
