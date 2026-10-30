@@ -54,6 +54,9 @@ static VkImage g_hist_handle[2]{};
 static DxvkDevice* g_wrap_device;
 static unsigned g_wrap_generation;
 static unsigned g_wrap_frames;
+static unsigned g_wrap_width;
+static unsigned g_wrap_height;
+static unsigned g_wrap_format;
 
 
 struct LsfgConstants {
@@ -296,7 +299,8 @@ extern "C" void lsfg_step3g_copy_impl(
     }
 
     unsigned generation = lsfg_step3d_fb_generation();
-    if (g_wrap_device != device || g_wrap_generation != generation) {
+    if (g_wrap_device != device || g_wrap_generation != generation
+        || g_wrap_width != w || g_wrap_height != h || g_wrap_format != histFmt) {
         g_hist_wrap[0] = Rc<DxvkImage>();
         g_hist_wrap[1] = Rc<DxvkImage>();
         g_hist_view[0] = Rc<DxvkImageView>();
@@ -306,6 +310,9 @@ extern "C" void lsfg_step3g_copy_impl(
         g_hist_handle[1] = VK_NULL_HANDLE;
         g_wrap_device = device;
         g_wrap_generation = generation;
+        g_wrap_width = w;
+        g_wrap_height = h;
+        g_wrap_format = histFmt;
         g_wrap_frames = 0;
         g_history_mask = 0;
         g_slot_copies[0] = 0;
