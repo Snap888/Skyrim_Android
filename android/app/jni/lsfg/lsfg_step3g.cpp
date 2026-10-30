@@ -465,6 +465,7 @@ Rc<DxvkImageView> lsfg_step3g_generate_impl(
         uint32_t width, uint32_t height, uint32_t format,
         uint32_t generationCount, uint32_t generationIndex) {
     if (!lsfg_host_active() || g_wrap_frames < 3 || !context || !device
+        || width != g_wrap_width || height != g_wrap_height || format != g_wrap_format
         || g_hist_view[0] == nullptr || g_hist_view[1] == nullptr
         || !lsfgSharedPassesReady())
         return Rc<DxvkImageView>();
