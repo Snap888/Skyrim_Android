@@ -30,13 +30,15 @@ correct. The same log explicitly reported that no GPU pipelines were created,
 no descriptors were bound, and no compute dispatch or generated output occurred.
 
 The reflection pass also writes `lsfg_reflection.tsv` beside the runtime SPIR-V
-cache. It contains one `shader` row per reflected compute module and one
-`binding` row per descriptor binding (numeric Vulkan descriptor type and array
-count). It is metadata only: it does not include SPIR-V instructions, image
-format/dimension details, UBO member offsets, push-constant layouts, or
-specialization values. It is intended to make the current CPU reflection
-reproducible and easier to correlate with the recovered pass graph, not to
-authorize pipeline creation.
+cache. It contains `shader` and `binding` rows, plus extended `image`,
+`ubo_member`, `ssbo_member`, `push_member`, and `array_stride` rows where
+the declarations are present. Image rows expose the SPIR-V `OpTypeImage`
+operands (dimension, depth, arrayed, multisample, sampled mode, and format);
+buffer-member rows expose declared member offsets and matrix strides.
+Specialization-dependent values are not evaluated, and these declarations do
+not prove the runtime image view format, image usage, descriptor contents, or
+host-side buffer packing. This remains offline metadata, not authorization to
+create or dispatch pipelines.
 
 ## Recovered LSFG execution chain
 
@@ -207,3 +209,16 @@ This is an offline-analysis aid; its current schema does not yet expose image
 formats/dimensions, UBO member layouts, push constants, or specialization
 values. The code change has been committed, but no Android build or device
 validation has been run for it.
+
+
+### Extended reflection update (2026-10-30)
+
+The CPU metadata exporter now also records `OpTypeImage` declarations,
+uniform/storage/push-constant struct member offsets and matrix strides, and
+`ArrayStride` decorations. It unwraps `OpTypeSampledImage` to associate
+combined-image-sampler descriptors with their underlying image declaration.
+This is still a partial SPIR-V layout audit: it does not calculate complete
+nested type sizes, member scalar/vector/matrix types, runtime image dimensions,
+actual VkImageView formats/usages, descriptor writes, or host-side constant
+buffer values. The change has been committed but has not been compiled or
+validated against the user's runtime cache/device.
