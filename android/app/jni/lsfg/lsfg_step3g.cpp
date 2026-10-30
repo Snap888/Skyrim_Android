@@ -24,7 +24,6 @@ extern "C" void *lsfg_step3d_get_image(int idx);
 extern "C" unsigned lsfg_step3d_fb_width(void);
 extern "C" unsigned lsfg_step3d_fb_height(void);
 extern "C" unsigned lsfg_step3d_fb_generation(void);
-extern const char *lsfg_host_cache_dir(void);
 
 using namespace dxvk;
 
