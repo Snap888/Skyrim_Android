@@ -11,12 +11,21 @@ extern "C" void lsfg_step3g_set_copy_hook(LsfgCopyHook hook) {
   g_lsfgCopyHook = hook;
 }
 
-namespace dxvk {
-  Rc<DxvkImageView> lsfg_step3g_generate_impl(
-    DxvkContext*, DxvkDevice*, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
+using LsfgGenerationCountHook = unsigned (*)(void);
+using LsfgCanGenerateHook = bool (*)(void);
+using LsfgGenerateHook = void* (*)(void*, void*, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
+static LsfgGenerationCountHook g_lsfgGenerationCountHook = nullptr;
+static LsfgCanGenerateHook g_lsfgCanGenerateHook = nullptr;
+static LsfgGenerateHook g_lsfgGenerateHook = nullptr;
+
+extern "C" void lsfg_step3g_set_generation_hooks(
+    LsfgGenerationCountHook countHook,
+    LsfgCanGenerateHook canGenerateHook,
+    LsfgGenerateHook generateHook) {
+  g_lsfgGenerationCountHook = countHook;
+  g_lsfgCanGenerateHook = canGenerateHook;
+  g_lsfgGenerateHook = generateHook;
 }
-extern "C" unsigned lsfg_host_generation_count(void);
-extern "C" bool lsfg_step3g_can_generate(void);
 
 namespace dxvk {
 
@@ -898,8 +907,8 @@ namespace dxvk {
     }
 
     /* LSFG: append generated presentations after the source frame. */
-    const uint32_t lsfgGenerations = lsfg_host_generation_count();
-    if (lsfgGenerations && lsfg_step3g_can_generate()) {
+    const uint32_t lsfgGenerations = g_lsfgGenerationCountHook ? g_lsfgGenerationCountHook() : 0;
+    if (lsfgGenerations && g_lsfgCanGenerateHook && g_lsfgCanGenerateHook() && g_lsfgGenerateHook) {
       for (uint32_t generation = 0; generation < lsfgGenerations; generation++) {
         SynchronizePresent();
 
@@ -927,20 +936,22 @@ namespace dxvk {
           { uint32_t(m_dstRect.right - m_dstRect.left),
             uint32_t(m_dstRect.bottom - m_dstRect.top) } };
 
-        Rc<DxvkImageView> generatedView = lsfg_step3g_generate_impl(
+        void* generatedOpaque = g_lsfgGenerateHook(
           m_context.ptr(), m_device.ptr(),
           generatedInfo.imageExtent.width, generatedInfo.imageExtent.height,
           static_cast<uint32_t>(generatedInfo.format.format),
           lsfgGenerations, generation);
+        auto* generatedView = static_cast<Rc<DxvkImageView>*>(generatedOpaque);
 
-        if (generatedView != nullptr) {
+        if (generatedView != nullptr && *generatedView != nullptr) {
           m_blitter->presentImage(m_context.ptr(), m_imageViews.at(generatedImageIndex),
-            generatedDstRect, generatedView, generatedSrcRect);
+            generatedDstRect, *generatedView, generatedSrcRect);
         } else {
           // Keep the acquired WSI image valid if a generation pass cannot be recorded.
           m_blitter->presentImage(m_context.ptr(), m_imageViews.at(generatedImageIndex),
             generatedDstRect, swapImageView, fallbackSrcRect);
         }
+        delete generatedView;
 
         if (m_hud != nullptr)
           m_hud->render(m_context, generatedInfo.format, generatedInfo.imageExtent);

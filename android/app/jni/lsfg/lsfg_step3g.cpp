@@ -463,3 +463,16 @@ Rc<DxvkImageView> lsfg_step3g_generate_impl(
 }
 
 }
+
+
+extern "C" void* lsfg_step3g_generate_impl_opaque(
+        void* context, void* device,
+        uint32_t width, uint32_t height, uint32_t format,
+        uint32_t generationCount, uint32_t generationIndex) {
+    dxvk::Rc<dxvk::DxvkImageView> view = dxvk::lsfg_step3g_generate_impl(
+        static_cast<dxvk::DxvkContext*>(context),
+        static_cast<dxvk::DxvkDevice*>(device),
+        width, height, format, generationCount, generationIndex);
+    if (view == nullptr) return nullptr;
+    return new dxvk::Rc<dxvk::DxvkImageView>(view);
+}

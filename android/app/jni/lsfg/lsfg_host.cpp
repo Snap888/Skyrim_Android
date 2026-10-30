@@ -17,6 +17,12 @@ extern "C" void lsfg_step3e_install(void);
 extern "C" void lsfg_step3e_set_queue(void *queue, unsigned family);
 extern "C" void lsfg_step3g_set_copy_hook(void (*hook)(void*, void*, void*, uint32_t, uint32_t, uint32_t));
 extern "C" void lsfg_step3g_copy_impl(void*, void*, void*, uint32_t, uint32_t, uint32_t);
+extern "C" bool lsfg_step3g_can_generate(void);
+extern "C" void* lsfg_step3g_generate_impl_opaque(
+    void*, void*, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
+extern "C" void lsfg_step3g_set_generation_hooks(
+    unsigned (*)(void), bool (*)(void),
+    void* (*)(void*, void*, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t));
 
 static LsfgConfig g_cfg;
 static int g_inited;
@@ -124,7 +130,11 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     LOGI("LSFG: Vk context hook installed (device+phys+queue on DxvkDevice create)");
     lsfg_step3e_install();
     lsfg_step3g_set_copy_hook(lsfg_step3g_copy_impl);
-    LOGI("LSFG: DXVK frame-copy callback registered");
+    lsfg_step3g_set_generation_hooks(
+        lsfg_host_generation_count,
+        lsfg_step3g_can_generate,
+        lsfg_step3g_generate_impl_opaque);
+    LOGI("LSFG: DXVK frame-copy and generated-frame callbacks registered");
 
     LOGI("STEP3: present hook + step3e image hook installed");
     g_inited = 1;
