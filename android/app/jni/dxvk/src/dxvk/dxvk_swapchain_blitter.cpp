@@ -219,7 +219,6 @@ namespace dxvk {
   void DxvkSwapchainBlitter::updateBlendHistory(
           DxvkContext*             ctx,
     const Rc<DxvkImageView>&       srcView) {
-    const DxvkImageCreateInfo& srcInfo = srcView->imageInfo();
     VkExtent3D extent = srcView->mipLevelExtent(0);
 
     VkFormat historyFormat = srcView->info().format;
