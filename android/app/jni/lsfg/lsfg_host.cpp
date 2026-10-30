@@ -81,7 +81,11 @@ bool lsfg_load_config(const char *game_dir, LsfgConfig *out) {
         else if (!strcmp(key, "dll_path")) snprintf(out->dll_path, sizeof out->dll_path, "%s", val);
         else if (!strcmp(key, "shader_cache")) snprintf(out->shader_cache, sizeof out->shader_cache, "%s", val);
         else if (!strcmp(key, "fg_live")) g_fg_live_cfg = atoi(val);
-        else if (!strcmp(key, "fg_throttle")) g_fg_throttle_cfg = atoi(val);
+        else if (!strcmp(key, "fg_throttle")) {
+            g_fg_throttle_cfg = atoi(val);
+            if (g_fg_throttle_cfg < 1) g_fg_throttle_cfg = 1;
+            if (g_fg_throttle_cfg > 120) g_fg_throttle_cfg = 120;
+        }
         else if (!strcmp(key, "fg_light")) g_fg_light_cfg = atoi(val);
         else if (!strcmp(key, "fg_inject")) g_fg_inject_cfg = atoi(val);
     }
@@ -173,8 +177,8 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     lsfg_step3hj_set_inject(g_fg_inject_cfg);
     lsfg_step3hj_set_live(g_fg_live_cfg);
 
-    LOGI("STEP3: 3h-j async FULL FG installed (live=%d inject=%d)",
-         g_fg_live_cfg, g_fg_inject_cfg);
+    LOGI("STEP3: 3h-j LIGHT FG installed (live=%d inject=%d throttle=%d)",
+         g_fg_live_cfg, g_fg_inject_cfg, g_fg_throttle_cfg);
     g_inited = 1;
     return true;
 }
