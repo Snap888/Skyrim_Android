@@ -424,7 +424,7 @@ extern "C" void lsfg_step3d_run(void *device, const char *cache_dir, uint32_t w,
     }
     fclose(f);
     lsfg_log("I", "step3d manifest audit: entries=%d compute_spv=%d with_bindings=%d max_bindings=%d reflection_ok=%d reflection_failed=%d", manifest_entries, cn, wb, maxb, reflection_ok, reflection_fail);
-    lsfg_log("I", "step3d frames: ready=%d %ux%u phys=%p queue=%p",
+    lsfg_log("I", "step3d history_images_allocated=%d extent=%ux%u phys=%p queue=%p",
              g_fb_ready, g_fb_w, g_fb_h, (void*)g_phys, (void*)g_queue);
     lsfg_log("I", "step3d: CPU reflection only; no GPU pipelines created, no descriptors bound, no dispatch submitted");
 }
