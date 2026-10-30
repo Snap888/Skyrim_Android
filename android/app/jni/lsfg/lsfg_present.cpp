@@ -196,8 +196,9 @@ void lsfg_host_on_present_ex(uint32_t width, uint32_t height, uint32_t vk_format
         lsfg_log("I", "STATUS: hook receives frames; dimensions from SDL window");
     }
     if (dev) {
-        // Keep expensive driver shader/pipeline compilation off the game's
-        // present thread. step3d performs CPU-side SPIR-V reflection only.
+        // step3d allocates the external frame-history images only. Shader
+        // creation, compute dispatch and image hazards are handled by DXVK's
+        // active command list from the step3g/step3j callbacks.
         if (false) {
             validate_spirv_on_device(dev);
             try_build_compute_pipelines(dev);
@@ -205,7 +206,7 @@ void lsfg_host_on_present_ex(uint32_t width, uint32_t height, uint32_t vk_format
         lsfg_step3d_run(dev, g_cache_dir, width, height);
     }
     if (g_present_n == 60 || g_present_n == 300 || (g_present_n % 1800) == 0) {
-        lsfg_log("I", "present: frame #%u %ux%u gpu_pipeline_probe=disabled history_images_allocated=%d generated_frames=0 (dispatch/output not implemented)",
+        lsfg_log("I", "present: frame #%u %ux%u history_images_ready=%d compute_path=DXVK-command-list",
                  g_present_n, width, height, lsfg_step3d_frames_ready());
     }
 }
