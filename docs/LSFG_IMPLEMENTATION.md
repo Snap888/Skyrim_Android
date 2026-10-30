@@ -1,3 +1,5 @@
+> **Актуализация статуса:** этот файл содержит исторические заметки и отдельные более ранние runtime checkpoints. Для текущего состояния исходников, последовательности DXVK dispatch, карты файлов, roadmap и актуальных инструкций тестирования см. [docs/README.md](README.md). Не трактуйте старые строки «Compute pipeline/descriptors/dispatch — Not implemented» как состояние текущего HEAD: последующие commits добавили mipmaps, Alpha/Beta, Gamma/Delta/Generate и generated-frame presentation в DXVK path. Исполнение на Android GPU всё ещё требует повторного подтверждения актуальным APK и runtime log.
+
 # LSFG implementation status (`snap-patch-3`)
 
 ## Goal
