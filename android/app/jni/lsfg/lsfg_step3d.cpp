@@ -27,6 +27,7 @@ extern "C" void lsfg_step3hf_set_phys(void *phys);
 extern "C" void lsfg_step3hg_set_phys(void *phys);
 extern "C" void lsfg_step3hh_set_phys(void *phys);
 extern "C" void lsfg_step3hi_set_phys(void *phys);
+extern "C" void lsfg_step3hj_set_phys(void *phys);
 extern "C" void lsfg_step3d_set_phys_queue(void *phys, void *queue) {
     lsfg_step3hb_set_phys(phys);
     lsfg_step3hc_set_phys(phys);
@@ -35,6 +36,7 @@ extern "C" void lsfg_step3d_set_phys_queue(void *phys, void *queue) {
     lsfg_step3hg_set_phys(phys);
     lsfg_step3hh_set_phys(phys);
     lsfg_step3hi_set_phys(phys);
+    lsfg_step3hj_set_phys(phys);
     g_phys = (VkPhysicalDevice)phys;
     g_queue = (VkQueue)queue;
 }
