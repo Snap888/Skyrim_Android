@@ -51,3 +51,32 @@ Therefore no shader is dispatched speculatively. The next implementation step is
 ## Reproducibility
 
 The counts above were obtained by parsing SPIR-V instruction streams (entry points, execution modes, names, decorations, variables and image types) from the supplied archive. They are static metadata observations; no GPU execution or Android build was performed for this audit.
+
+## Deeper reflection of original SPIR-V (IDs 303–400)
+
+A second pass over the SPIR-V instruction streams inspected `OpName`, `OpMemberName`, `OpDecorate`, `OpMemberDecorate`, `OpTypePointer`, `OpTypeImage`, `OpTypeStruct`, `OpVariable`, and `OpExecutionMode`.
+
+### Named descriptor contract
+
+The 98 original modules expose the following stable naming convention where present:
+
+- `Sampler` / `Sampler1`: separate sampler descriptors at bindings 16 / 17.
+- `Input1` … `InputN`: sampled images starting at binding 32.
+- `Output1` … `OutputN`: storage images starting at binding 48.
+- Mipmap-producing variants expose `OutputMip0` … `OutputMip5` at bindings 48–53. Some seven-output variants expose bindings 48–54.
+- `cb`: a uniform-buffer struct at binding 0.
+
+This confirms that the embedded-SPIR-V family is not just a different numeric binding map: its resource names provide semantic *roles* for each descriptor. The names still do not reveal which runtime image is assigned to each input or output.
+
+### Constant-buffer structure
+
+The embedded modules with a `cb` uniform buffer use SPIR-V struct member decorations with byte offsets. The observed common layouts include:
+
+- Seven members at offsets 0, 8, 12, 16, 20, 24, 28.
+- Eight members at offsets 0, 8, 12, 16, 20, 24, 28, 32.
+
+Other seven-member variants retain the same offset pattern while changing member scalar/vector types. The first member is commonly a larger vector/aggregate type; several following members are scalar-sized fields; trailing members are image-dimension or scale-like values by shape only. Their exact semantic meaning must not be guessed from type IDs or offsets. A correct host-side constant-buffer writer still requires recovering the actual values written by the Windows runtime (or authoritative shader source / disassembly).
+
+### What this adds to implementation planning
+
+The embedded-SPIR-V family can support a future descriptor-set builder keyed by reflected names and binding decorations, with per-shader descriptor counts and workgroup sizes. It does **not** yet support an execution graph: producer/consumer image identity, image formats/extents, mip allocation, per-pass constants, and pass ordering remain unknown. The 202 DXBC-derived modules also require a separate reflection path because DXVK's translated binding numbers and resource conventions differ.
