@@ -54,17 +54,30 @@ jobs:
           from pathlib import Path
           p = Path("android/app/jni/dxvk/src/d3d9/d3d9_swapchain.cpp")
           src = p.read_text()
+          if "lsfg_step3hj_should_inject" not in src.split("namespace dxvk")[0]:
+              src = src.replace(
+                  "namespace dxvk {",
+                  "extern \"C\" int  lsfg_step3hj_should_inject(void);\n"
+                  "extern \"C\" void lsfg_step3hj_insert_inject(void*, void*, void*, uint32_t, uint32_t, uint32_t);\n\n"
+                  "namespace dxvk {",
+                  1)
           old = "    for (uint32_t i = 0; i < SyncInterval || i < 1; i++) {"
-          new = "    extern \"C\" int lsfg_step3hj_should_inject(void);\n    const bool lsfgExtra = (lsfg_step3hj_should_inject() != 0) && (SyncInterval <= 1);\n    const uint32_t presentLoops = lsfgExtra ? 2u : ((SyncInterval < 1u) ? 1u : SyncInterval);\n\n    for (uint32_t i = 0; i < presentLoops; i++) {"
+          new = (
+              "    const bool lsfgExtra = (lsfg_step3hj_should_inject() != 0) && (SyncInterval <= 1);\n"
+              "    const uint32_t presentLoops = lsfgExtra ? 2u : ((SyncInterval < 1u) ? 1u : SyncInterval);\n"
+              "\n"
+              "    for (uint32_t i = 0; i < presentLoops; i++) {"
+          )
           if old not in src:
               raise SystemExit("swapchain present loop not found")
           src = src.replace(old, new, 1)
           src = src.replace(
-              "extern void lsfg_step3hj_insert_inject(void*, void*, void*, uint32_t, uint32_t, uint32_t);",
-              "extern \"C\" void lsfg_step3hj_insert_inject(void*, void*, void*, uint32_t, uint32_t, uint32_t);")
+              "        extern void lsfg_step3hj_insert_inject(void*, void*, void*, uint32_t, uint32_t, uint32_t);\n",
+              "")
           src = src.replace(
               "      if (i + 1 >= SyncInterval)\n        m_context->signal(m_frameLatencySignal, m_frameId);",
-              "      if (i + 1 >= presentLoops)\n        m_context->signal(m_frameLatencySignal, m_frameId);", 1)
+              "      if (i + 1 >= presentLoops)\n        m_context->signal(m_frameLatencySignal, m_frameId);",
+              1)
           p.write_text(src)
           print("swapchain OK", p.stat().st_size)
           '
@@ -80,14 +93,6 @@ jobs:
 
           if [ -z "${{ github.event.inputs.gen_url }}" ]; then
             echo "::error::Каталог gen/ отсутствует."
-            echo ""
-            echo "Варианты:"
-            echo "1. Сгенерируйте локально: tools/regen_gen.sh /path/to/GAME"
-            echo "2. Упакуйте: tar -cJf gen.tar.xz gen/"
-            echo "3. Загрузите архив куда-нибудь (GitHub Release, private storage, GDrive с прямой ссылкой)"
-            echo "4. При запуске workflow укажите URL в поле gen_url"
-            echo ""
-            echo "Или используйте self-hosted runner, где gen/ уже лежит."
             exit 1
           fi
 
@@ -106,7 +111,7 @@ jobs:
           fi
 
           if [ ! -d "gen" ] || [ -z "$(ls -A gen 2>/dev/null)" ]; then
-            echo "::error::После распаковки gen/ всё ещё пуст. Проверьте структуру архива (должен быть каталог gen/ в корне)."
+            echo "::error::После распаковки gen/ всё ещё пуст."
             exit 1
           fi
 
@@ -173,7 +178,6 @@ jobs:
         run: |
           VER="${{ steps.ver.outputs.version }}"
           mkdir -p dist
-
           MAIN_APK=$(find android/app/build/outputs/apk -name "app-debug.apk" | head -1)
           if [ -z "$MAIN_APK" ]; then
             echo "::error::APK не найден"
@@ -181,12 +185,6 @@ jobs:
           fi
           cp "$MAIN_APK" "dist/Skyrim-${VER}.apk"
           echo "main_apk=dist/Skyrim-${VER}.apk" >> $GITHUB_OUTPUT
-
-          DUAL_APK=$(find android/app/build/outputs/apk -name "app-debug.apk" | tail -n +2 | head -1 || true)
-          if [ -n "$DUAL_APK" ] && [ "$DUAL_APK" != "$MAIN_APK" ]; then
-            cp "$DUAL_APK" "dist/Skyrim-${VER}-dual.apk"
-          fi
-
           ls -lh dist/
 
       - name: Upload APK artifacts
@@ -208,15 +206,7 @@ jobs:
           body: |
             ## Skyrim for Android ${{ steps.ver.outputs.version }}
 
-            **APK:** `Skyrim-${{ steps.ver.outputs.version }}.apk` (arm64-v8a, Android 9+, Vulkan 1.1)
-
-            ### Требования
-            - arm64 устройство
-            - Android 9+
-            - Vulkan 1.1
-            - Собственные файлы игры (TESV.exe + Data/ и т.д.)
-
-            При проблемах прикладывайте `port/log.txt` из папки Skyrim.
+            **APK:** `Skyrim-${{ steps.ver.outputs.version }}.apk`
           files: |
             dist/Skyrim-*.apk
           draft: false
