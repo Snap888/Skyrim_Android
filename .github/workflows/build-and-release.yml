@@ -37,6 +37,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     # Рекомендуется self-hosted с ≥16 GB RAM
 
     steps:
@@ -72,7 +73,6 @@ jobs:
           mkdir -p /tmp/gen_dl
           curl -L --fail --retry 3 -o /tmp/gen_dl/gen.archive "${{ github.event.inputs.gen_url }}"
 
-          # определяем формат
           if file /tmp/gen_dl/gen.archive | grep -q 'XZ\|xz'; then
             tar -xJf /tmp/gen_dl/gen.archive
           elif file /tmp/gen_dl/gen.archive | grep -q 'gzip\|Gzip'; then
@@ -80,7 +80,6 @@ jobs:
           elif file /tmp/gen_dl/gen.archive | grep -q 'Zip\|zip'; then
             unzip -q /tmp/gen_dl/gen.archive
           else
-            # пробуем как tar.xz по умолчанию
             tar -xJf /tmp/gen_dl/gen.archive || tar -xzf /tmp/gen_dl/gen.archive
           fi
 
@@ -130,12 +129,53 @@ jobs:
           echo "Сборка версии: $VER"
 
       - name: Build main APK
+        timeout-minutes: 105
         working-directory: android
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.logging.stacktrace=all"
         run: |
+          set -o pipefail
+          echo "=== Build started: $(date -u) ==="
+          echo "=== Runner resources ==="
+          nproc
+          free -h
+          df -h .
           ./gradlew assembleDebug \
             -PndkVersion=${{ env.NDK_VERSION }} \
             --no-daemon \
-            --stacktrace
+            --info \
+            --console=plain \
+            --stacktrace 2>&1 | tee ../build-main.log
+          echo "=== Build finished: $(date -u) ==="
+
+      - name: Diagnose failed or timed-out build
+        if: failure() || cancelled()
+        run: |
+          echo "=== Build diagnostics: $(date -u) ==="
+          echo "--- Processes ---"
+          ps -eo pid,ppid,stat,etime,%cpu,%mem,cmd --sort=-%cpu | head -40 || true
+          echo "--- Memory ---"
+          free -h || true
+          echo "--- Disk ---"
+          df -h || true
+          echo "--- Gradle/CMake/Ninja log tail ---"
+          tail -n 250 build-main.log 2>/dev/null || true
+          echo "--- Native build diagnostic files ---"
+          find android/app/.cxx -type f \( -name 'CMakeError.log' -o -name 'CMakeOutput.log' -o -name 'build.ninja' -o -name '*.ninja_log' \) -print 2>/dev/null | head -100 || true
+
+      - name: Upload build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-diagnostics-${{ github.run_number }}
+          path: |
+            build-main.log
+            android/app/.cxx/**/CMakeFiles/CMakeError.log
+            android/app/.cxx/**/CMakeFiles/CMakeOutput.log
+            android/app/.cxx/**/build.ninja
+            android/app/.cxx/**/.ninja_log
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Build dual APK (optional)
         if: github.event.inputs.dual == 'true'
@@ -145,6 +185,8 @@ jobs:
             -PndkVersion=${{ env.NDK_VERSION }} \
             -Pdual=true \
             --no-daemon \
+            --info \
+            --console=plain \
             --stacktrace
 
       - name: Prepare artifacts
@@ -161,7 +203,6 @@ jobs:
           cp "$MAIN_APK" "dist/Skyrim-${VER}.apk"
           echo "main_apk=dist/Skyrim-${VER}.apk" >> $GITHUB_OUTPUT
 
-          # dual APK (если собирали)
           DUAL_APK=$(find android/app/build/outputs/apk -name "app-debug.apk" | tail -n +2 | head -1 || true)
           if [ -n "$DUAL_APK" ] && [ "$DUAL_APK" != "$MAIN_APK" ]; then
             cp "$DUAL_APK" "dist/Skyrim-${VER}-dual.apk"
