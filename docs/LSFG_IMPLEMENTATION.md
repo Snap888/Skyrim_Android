@@ -128,3 +128,8 @@ This is stronger evidence that the DXVK command-list copy path remains active ov
 ### Runtime reflection variant observation (2026-10-30 19:44)
 
 The latest user-supplied excerpt expands the visible copied-SPIR-V reflection through IDs 348–400. It shows matching workgroup/interface signatures for candidate pairs 348↔397, 349↔398, 350↔399, and 351↔400, while also showing distinct layouts and workgroup sizes across other IDs. The details and limitations are recorded in [LSFG_VARIANT_MAP.md](LSFG_VARIANT_MAP.md). Matching reflection signatures are not proof of byte identity or runtime selection.
+
+
+### Runtime update (2026-10-30 20:25)
+
+A later user-supplied log extends reflection observations through copied-SPIR-V IDs 388–400. It records distinct Alpha, Delta, and Beta candidate interfaces; the detailed per-ID table and arithmetic candidate comparisons are in [LSFG_VARIANT_MAP.md](LSFG_VARIANT_MAP.md). The same excerpt reports 300/300 successful CPU reflections and, at copy #1800, 1800 aggregate DXVK command-list completions with 900 copies per history slot. It still reports no GPU pipeline creation, descriptor binding, compute dispatch, or generated frames. These results validate neither history pixel contents nor shader equivalence/runtime selection.
