@@ -24,9 +24,9 @@ For the chain shader IDs, the archive layout gives candidate companions at base 
 | Gamma / Delta shared | 280 | 329 | 378 |
 | Delta | 281 | 330 | 379 |
 | Gamma | 282 | 331 | 380 |
-| Gamma / Alpha / Beta stage ID | 283 | 332 | 381 |
-| Gamma / Alpha / Beta stage ID | 284 | 333 | 382 |
-| Delta | 285 | 334 | 383 |
+| Gamma | 283 | 332 | 381 |
+| Gamma | 284 | 333 | 382 |
+| Gamma | 285 | 334 | 383 |
 | Delta | 286 | 335 | 384 |
 | Gamma / Delta | 287 | 336 | 385 |
 | Gamma / Delta | 288 | 337 | 386 |
