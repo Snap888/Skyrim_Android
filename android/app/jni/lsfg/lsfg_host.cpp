@@ -29,6 +29,11 @@ extern "C" void lsfg_step3hi_install(void);
 extern "C" void lsfg_step3hi_set_live(int live);
 extern "C" void lsfg_step3hi_set_throttle(int n);
 extern "C" void lsfg_step3hi_set_light(int light);
+extern "C" void lsfg_step3hj_install(void);
+extern "C" void lsfg_step3hj_set_live(int live);
+extern "C" void lsfg_step3hj_set_inject(int inj);
+extern "C" void lsfg_step3hj_set_throttle(int n);
+extern "C" void lsfg_step3hj_set_phys(void *phys);
 
 static LsfgConfig g_cfg;
 static int g_inited;
@@ -37,6 +42,7 @@ static int g_extract_count;
 static int g_fg_live_cfg;
 static int g_fg_throttle_cfg = 30;
 static int g_fg_light_cfg = 1;
+static int g_fg_inject_cfg = 1;
 
 bool lsfg_load_config(const char *game_dir, LsfgConfig *out) {
     memset(out, 0, sizeof(*out));
@@ -48,13 +54,14 @@ bool lsfg_load_config(const char *game_dir, LsfgConfig *out) {
     g_fg_live_cfg = 0;
     g_fg_throttle_cfg = 30;
     g_fg_light_cfg = 1;
+    g_fg_inject_cfg = 1;
     lsfg_log_open(game_dir);
 
     char path[768];
     snprintf(path, sizeof path, "%s/port/lsfg.conf", game_dir);
     FILE *f = fopen(path, "r");
     if (!f) {
-        LOGI("no %s \u2014 LSFG off", path);
+        LOGI("no %s — LSFG off", path);
         return false;
     }
     char line[1024];
@@ -76,15 +83,16 @@ bool lsfg_load_config(const char *game_dir, LsfgConfig *out) {
         else if (!strcmp(key, "fg_live")) g_fg_live_cfg = atoi(val);
         else if (!strcmp(key, "fg_throttle")) g_fg_throttle_cfg = atoi(val);
         else if (!strcmp(key, "fg_light")) g_fg_light_cfg = atoi(val);
+        else if (!strcmp(key, "fg_inject")) g_fg_inject_cfg = atoi(val);
     }
     fclose(f);
     if (out->multiplier < 1) out->multiplier = 1;
     if (out->multiplier > 4) out->multiplier = 4;
     if (!out->shader_cache[0] && game_dir[0])
         snprintf(out->shader_cache, sizeof out->shader_cache, "%s/port/lsfg_spirv", game_dir);
-    LOGI("config enabled=%d mult=%d flow=%.2f perf=%d fg_live=%d throttle=%d light=%d",
+    LOGI("config enabled=%d mult=%d flow=%.2f perf=%d fg_live=%d throttle=%d inject=%d",
          out->enabled, out->multiplier, out->flow_scale, out->performance,
-         g_fg_live_cfg, g_fg_throttle_cfg, g_fg_light_cfg);
+         g_fg_live_cfg, g_fg_throttle_cfg, g_fg_inject_cfg);
     LOGI("dll=%s", out->dll_path);
     LOGI("cache=%s", out->shader_cache);
     return true;
@@ -113,7 +121,7 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     LOGI("Lossless.dll found");
 
     if (!cfg->shader_cache[0]) {
-        LOGW("shader_cache path empty \u2014 skip extract");
+        LOGW("shader_cache path empty — skip extract");
         return false;
     }
 
@@ -135,7 +143,7 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
         return false;
     }
     if (tn == 0) {
-        LOGW("SPIR-V translate produced 0 modules \u2014 FG cannot run");
+        LOGW("SPIR-V translate produced 0 modules — FG cannot run");
         return false;
     }
     LOGI("translate OK: %d SPIR-V module(s)", tn);
@@ -159,9 +167,14 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     lsfg_step3hi_install();
     lsfg_step3hi_set_throttle(g_fg_throttle_cfg);
     lsfg_step3hi_set_light(g_fg_light_cfg);
-    lsfg_step3hi_set_live(g_fg_live_cfg);
+    lsfg_step3hi_set_live(0);
+    lsfg_step3hj_install();
+    lsfg_step3hj_set_throttle(g_fg_throttle_cfg > 0 ? g_fg_throttle_cfg : 2);
+    lsfg_step3hj_set_inject(g_fg_inject_cfg);
+    lsfg_step3hj_set_live(g_fg_live_cfg);
 
-    LOGI("STEP3: 3e/3g/3h-a..i installed (live=light+throttle unless configured)");
+    LOGI("STEP3: 3h-j async FULL FG installed (live=%d inject=%d)",
+         g_fg_live_cfg, g_fg_inject_cfg);
     g_inited = 1;
     return true;
 }
