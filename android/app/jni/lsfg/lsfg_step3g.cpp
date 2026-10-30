@@ -57,6 +57,7 @@ static unsigned g_wrap_frames;
 static unsigned g_wrap_width;
 static unsigned g_wrap_height;
 static unsigned g_wrap_format;
+static unsigned g_last_generation_pp;
 
 
 struct LsfgConstants {
@@ -314,6 +315,7 @@ extern "C" void lsfg_step3g_copy_impl(
         g_wrap_height = h;
         g_wrap_format = histFmt;
         g_wrap_frames = 0;
+        g_last_generation_pp = 0;
         g_history_mask = 0;
         g_slot_copies[0] = 0;
         g_slot_copies[1] = 0;
@@ -328,6 +330,7 @@ extern "C" void lsfg_step3g_copy_impl(
         g_hist_handle[0] = VK_NULL_HANDLE;
         g_hist_handle[1] = VK_NULL_HANDLE;
         g_wrap_frames = 0;
+        g_last_generation_pp = 0;
         g_history_mask = 0;
         reset_mipmap_resources();
         lsfg_log("I", "step3g: history VkImage handles changed; restarting frame warmup");
@@ -384,11 +387,12 @@ extern "C" void lsfg_step3g_copy_impl(
         VkExtent3D{ w, h, 1 });
 
     const char *cache_dir = lsfg_host_cache_dir();
+    bool shared_dispatched = false;
     if (dispatch_mipmaps(ctx, device, cache_dir, slot, w, h, generation)) {
         unsigned frame_index = g_pp;
-        dispatchLsfgSharedPasses(ctx, device, cache_dir, g_flow_views,
-                                 g_flow_extent, frame_index,
-                                 lsfg_host_flow_scale(), generation);
+        shared_dispatched = dispatchLsfgSharedPasses(
+            ctx, device, cache_dir, g_flow_views, g_flow_extent,
+            frame_index, lsfg_host_flow_scale(), generation);
         if (frame_index < 2 || (frame_index % 300) == 0) {
             lsfg_log("I", "step3h: mipmaps dispatch frame=%u history_slot=%u groups=%ux%u",
                      frame_index, slot, (g_flow_extent.width + 63u) >> 6,
@@ -440,14 +444,18 @@ extern "C" void lsfg_step3g_copy_impl(
                  n, slot, slot_n, w, h, vkfmt);
     }
     g_pp++;
-    g_wrap_frames++;
+    g_wrap_frames = shared_dispatched ? (g_wrap_frames + 1u) : 0u;
 }
 
 
 extern "C" bool lsfg_step3g_can_generate(void) {
-    return lsfg_host_active() && g_wrap_frames >= 3
-        && g_hist_view[0] != nullptr && g_hist_view[1] != nullptr
-        && lsfgSharedPassesReady();
+    if (!lsfg_host_active() || g_wrap_frames < 3 || g_pp == 0
+        || g_pp == g_last_generation_pp
+        || g_hist_view[0] == nullptr || g_hist_view[1] == nullptr
+        || !lsfgSharedPassesReady())
+        return false;
+    g_last_generation_pp = g_pp;
+    return true;
 }
 
 namespace dxvk {
@@ -456,7 +464,9 @@ Rc<DxvkImageView> lsfg_step3g_generate_impl(
         DxvkContext* context, DxvkDevice* device,
         uint32_t width, uint32_t height, uint32_t format,
         uint32_t generationCount, uint32_t generationIndex) {
-    if (!lsfg_step3g_can_generate() || !context || !device)
+    if (!lsfg_host_active() || g_wrap_frames < 3 || !context || !device
+        || g_hist_view[0] == nullptr || g_hist_view[1] == nullptr
+        || !lsfgSharedPassesReady())
         return Rc<DxvkImageView>();
 
     const char* cacheDir = lsfg_host_cache_dir();
