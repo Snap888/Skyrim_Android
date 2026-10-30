@@ -18,4 +18,9 @@ bool dispatchLsfgSharedPasses(
         float                            flowScale,
         uint32_t                         generation);
 
+bool lsfgSharedPassesReady();
+const Rc<DxvkImageView>& lsfgAlphaHistoryView(uint32_t level, uint32_t history, uint32_t output);
+const Rc<DxvkImageView>& lsfgBetaOutputView(uint32_t level);
+VkExtent2D lsfgAlphaHistoryExtent(uint32_t level);
+
 }

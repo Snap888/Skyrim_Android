@@ -389,4 +389,27 @@ bool dispatchLsfgSharedPasses(
   return true;
 }
 
+bool lsfgSharedPassesReady() {
+  return g_ready;
+}
+
+const Rc<DxvkImageView>& lsfgAlphaHistoryView(uint32_t level, uint32_t history, uint32_t output) {
+  static const Rc<DxvkImageView> empty;
+  if (!g_ready || level >= AlphaLevels || history >= HistorySlots || output >= AlphaOutputs)
+    return empty;
+  return g_alphaHistory[level][history][output].view;
+}
+
+const Rc<DxvkImageView>& lsfgBetaOutputView(uint32_t level) {
+  static const Rc<DxvkImageView> empty;
+  if (!g_ready || level >= BetaOutputs) return empty;
+  return g_betaOutputs[level].view;
+}
+
+VkExtent2D lsfgAlphaHistoryExtent(uint32_t level) {
+  if (!g_ready || level >= AlphaLevels) return { 0, 0 };
+  return g_alphaHistory[level][0][0].extent;
+}
+
+
 } // namespace dxvk
