@@ -205,7 +205,7 @@ void lsfg_host_on_present_ex(uint32_t width, uint32_t height, uint32_t vk_format
         lsfg_step3d_run(dev, g_cache_dir, width, height);
     }
     if (g_present_n == 60 || g_present_n == 300 || (g_present_n % 1800) == 0) {
-        lsfg_log("I", "present: frame #%u %ux%u pipeline_probe_ok=%d history_ready=%d generated_frames=0 (dispatch/output not implemented)",
+        lsfg_log("I", "present: frame #%u %ux%u compute_pipeline_probe_count=%d history_images_ready=%d generated_frames=0 (dispatch/output not implemented)",
                  g_present_n, width, height, g_compute_ok, lsfg_step3d_frames_ready());
     }
 }
