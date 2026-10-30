@@ -916,6 +916,9 @@ namespace dxvk {
         m_context->beginRecording(m_device->createCommandList());
 
         VkRect2D generatedSrcRect = {
+          { 0, 0 },
+          { generatedInfo.imageExtent.width, generatedInfo.imageExtent.height } };
+        VkRect2D fallbackSrcRect = {
           { int32_t(m_srcRect.left), int32_t(m_srcRect.top) },
           { uint32_t(m_srcRect.right - m_srcRect.left),
             uint32_t(m_srcRect.bottom - m_srcRect.top) } };
@@ -936,7 +939,7 @@ namespace dxvk {
         } else {
           // Keep the acquired WSI image valid if a generation pass cannot be recorded.
           m_blitter->presentImage(m_context.ptr(), m_imageViews.at(generatedImageIndex),
-            generatedDstRect, swapImageView, generatedSrcRect);
+            generatedDstRect, swapImageView, fallbackSrcRect);
         }
 
         if (m_hud != nullptr)
