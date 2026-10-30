@@ -32,6 +32,10 @@ no descriptors were bound, and no compute dispatch or generated output occurred.
 
 The recovered 3.1 pass graph, resource topology, generation timestamps, and remaining integration gates are documented in [LSFG_CHAIN_RECOVERY.md](LSFG_CHAIN_RECOVERY.md). This advances the graph reconstruction beyond static shader reflection, but does not yet implement or validate compute dispatch.
 
+## Shader variant index map
+
+The candidate base/+49/+98 archive ID correspondence for the recovered chain shaders is recorded in [LSFG_VARIANT_MAP.md](LSFG_VARIANT_MAP.md). Treat it as an index hypothesis, not proof of equivalent shader behavior or runtime variant selection. The descriptor families remain separate.
+
 ## Shader archive audit
 
 A static audit of the supplied archive is recorded in [`LSFG_SHADER_AUDIT.md`](LSFG_SHADER_AUDIT.md). It distinguishes 202 DXBC-derived modules from 98 original SPIR-V modules and documents their incompatible descriptor-binding conventions. This metadata is not yet a recovered execution graph; no dispatch should be inferred from it alone.
