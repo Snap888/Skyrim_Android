@@ -134,7 +134,7 @@ static bool reflect(const std::vector<uint32_t> &c, std::vector<RefBinding> &out
         if (!id_bind.count(v.id)) continue;
         uint32_t set = id_set.count(v.id) ? id_set[v.id] : 0;
         uint32_t binding = id_bind[v.id];
-        if (set > 7 || binding > 63) return fail("descriptor set/binding out of supported range", v.id, set > 7 ? set : binding);
+        if (set > 31) return fail("descriptor set index exceeds safety limit", v.id, set);
         auto pit = pointer_pointee.find(v.type);
         if (pit == pointer_pointee.end()) return fail("descriptor variable has no OpTypePointer", v.id, v.type);
         uint32_t tid = pit->second, count = 1;
