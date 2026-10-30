@@ -207,7 +207,7 @@ static void write_extended_metadata(FILE *out, unsigned shader_id,
     if (!out) return;
     struct ImageType { uint32_t sampled_type, dim, depth, arrayed, ms, sampled, format; };
     std::unordered_map<uint32_t, ImageType> images;
-    std::unordered_map<uint32_t, uint32_t> ptr_pointee, type_op, array_elem;
+    std::unordered_map<uint32_t, uint32_t> ptr_pointee, type_op, array_elem, sampled_image_type;
     std::unordered_map<uint32_t, uint32_t> array_stride, struct_members;
     std::unordered_map<uint64_t, uint32_t> member_offset, member_matrix_stride;
     struct Variable { uint32_t type, id, storage; };
@@ -224,7 +224,9 @@ static void write_extended_metadata(FILE *out, unsigned shader_id,
             type_op[a[1]] = op;
         } else if (op == 32 && len >= 4) {
             ptr_pointee[a[1]] = a[3]; type_op[a[1]] = op;
-        } else if (op == 28 && len >= 4) {
+        } else if (op == 27 && len >= 3) { // OpTypeSampledImage
+            sampled_image_type[a[1]] = a[2]; type_op[a[1]] = op;
+        } else if ((op == 28 || op == 29) && len >= 3) { // OpTypeArray / RuntimeArray
             array_elem[a[1]] = a[2]; type_op[a[1]] = op;
         } else if (op == 30 && len >= 2) {
             type_op[a[1]] = op; struct_members[a[1]] = len - 2;
@@ -244,20 +246,21 @@ static void write_extended_metadata(FILE *out, unsigned shader_id,
         if (p == ptr_pointee.end()) continue;
         uint32_t base = p->second;
         while (array_elem.count(base)) base = array_elem[base];
+        if (sampled_image_type.count(base)) base = sampled_image_type[base];
         auto im = images.find(base);
         if (im != images.end()) {
             const auto &x = im->second;
             fprintf(out, "image\\t%u\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t%u\\t%u\\t%u\\t%u\\t%u\\t%u\\t%u\\n",
                     shader_id, base, x.dim, x.depth, x.arrayed, x.ms, x.sampled, x.format);
         }
-        if ((v.storage == 2 || v.storage == 9) && struct_members.count(base)) {
+        if ((v.storage == 2 || v.storage == 9 || v.storage == 12) && struct_members.count(base)) {
             uint32_t members = struct_members[base];
             for (uint32_t m = 0; m < members; ++m) {
                 uint64_t key = member_key(base, m);
                 uint32_t off = member_offset.count(key) ? member_offset[key] : UINT32_MAX;
                 uint32_t ms = member_matrix_stride.count(key) ? member_matrix_stride[key] : UINT32_MAX;
                 fprintf(out, "%s\\t%u\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t%u\\t%u\\t%u\\t%u\\t%u\\t%u\\t%u\\n",
-                        v.storage == 9 ? "push_member" : "ubo_member",
+                        v.storage == 9 ? "push_member" : (v.storage == 12 ? "ssbo_member" : "ubo_member"),
                         shader_id, base, m, off, ms, 0u, 0u, 0u);
             }
         }
