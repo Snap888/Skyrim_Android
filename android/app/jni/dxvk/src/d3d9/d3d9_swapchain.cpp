@@ -12,6 +12,13 @@ extern "C" void lsfg_step3g_set_copy_hook(LsfgCopyHook hook) {
 }
 
 namespace dxvk {
+  Rc<DxvkImageView> lsfg_step3g_generate_impl(
+    DxvkContext*, DxvkDevice*, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
+}
+extern "C" unsigned lsfg_host_generation_count(void);
+extern "C" bool lsfg_step3g_can_generate(void);
+
+namespace dxvk {
 
 #ifndef DXVK_NATIVE
   struct D3D9WindowData {
@@ -873,7 +880,7 @@ namespace dxvk {
 
       /* LSFG step 3g-a: copy swapchain -> history inside same DXVK cmd list */
       {
-        if (g_lsfgCopyHook
+        if (i == 0 && g_lsfgCopyHook
          && (info.imageUsage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT))
           g_lsfgCopyHook(
               m_context.ptr(),
@@ -888,6 +895,55 @@ namespace dxvk {
         m_context->signal(m_frameLatencySignal, m_frameId);
 
       SubmitPresent(sync, i);
+    }
+
+    /* LSFG: append generated presentations after the source frame. */
+    const uint32_t lsfgGenerations = lsfg_host_generation_count();
+    if (lsfgGenerations && lsfg_step3g_can_generate()) {
+      for (uint32_t generation = 0; generation < lsfgGenerations; generation++) {
+        SynchronizePresent();
+
+        vk::PresenterInfo generatedInfo = m_presenter->info();
+        vk::PresenterSync generatedSync;
+        uint32_t generatedImageIndex = 0;
+        VkResult generatedStatus = m_presenter->acquireNextImage(generatedSync, generatedImageIndex);
+        while (generatedStatus != VK_SUCCESS && generatedStatus != VK_SUBOPTIMAL_KHR) {
+          RecreateSwapChain(m_vsync);
+          generatedInfo = m_presenter->info();
+          generatedStatus = m_presenter->acquireNextImage(generatedSync, generatedImageIndex);
+        }
+
+        m_context->beginRecording(m_device->createCommandList());
+
+        VkRect2D generatedSrcRect = {
+          { int32_t(m_srcRect.left), int32_t(m_srcRect.top) },
+          { uint32_t(m_srcRect.right - m_srcRect.left),
+            uint32_t(m_srcRect.bottom - m_srcRect.top) } };
+        VkRect2D generatedDstRect = {
+          { int32_t(m_dstRect.left), int32_t(m_dstRect.top) },
+          { uint32_t(m_dstRect.right - m_dstRect.left),
+            uint32_t(m_dstRect.bottom - m_dstRect.top) } };
+
+        Rc<DxvkImageView> generatedView = lsfg_step3g_generate_impl(
+          m_context.ptr(), m_device.ptr(),
+          generatedInfo.imageExtent.width, generatedInfo.imageExtent.height,
+          static_cast<uint32_t>(generatedInfo.format.format),
+          lsfgGenerations, generation);
+
+        if (generatedView != nullptr) {
+          m_blitter->presentImage(m_context.ptr(), m_imageViews.at(generatedImageIndex),
+            generatedDstRect, generatedView, generatedSrcRect);
+        } else {
+          // Keep the acquired WSI image valid if a generation pass cannot be recorded.
+          m_blitter->presentImage(m_context.ptr(), m_imageViews.at(generatedImageIndex),
+            generatedDstRect, swapImageView, generatedSrcRect);
+        }
+
+        if (m_hud != nullptr)
+          m_hud->render(m_context, generatedInfo.format, generatedInfo.imageExtent);
+
+        SubmitPresent(generatedSync, generation + 1);
+      }
     }
 
     SyncFrameLatency();

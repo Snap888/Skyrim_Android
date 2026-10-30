@@ -16,6 +16,7 @@
 #include "dxvk_sampler.h"
 #include "lsfg_dxvk_shader.h"
 #include "lsfg_dxvk_shared.h"
+#include "lsfg_dxvk_generation.h"
 
 extern "C" int  lsfg_step3d_frames_ready(void);
 extern "C" void *lsfg_step3d_get_image(int idx);
@@ -52,6 +53,7 @@ static char g_mipmap_cache_dir[512];
 static VkImage g_hist_handle[2]{};
 static DxvkDevice* g_wrap_device;
 static unsigned g_wrap_generation;
+static unsigned g_wrap_frames;
 
 
 struct LsfgConstants {
@@ -304,6 +306,7 @@ extern "C" void lsfg_step3g_copy_impl(
         g_hist_handle[1] = VK_NULL_HANDLE;
         g_wrap_device = device;
         g_wrap_generation = generation;
+        g_wrap_frames = 0;
         g_history_mask = 0;
         g_slot_copies[0] = 0;
         g_slot_copies[1] = 0;
@@ -417,4 +420,39 @@ extern "C" void lsfg_step3g_copy_impl(
                  n, slot, slot_n, w, h, vkfmt);
     }
     g_pp++;
+    g_wrap_frames++;
+}
+
+
+extern "C" bool lsfg_step3g_can_generate(void) {
+    return lsfg_host_active() && g_wrap_frames >= 3
+        && g_hist_view[0] != nullptr && g_hist_view[1] != nullptr
+        && lsfgSharedPassesReady();
+}
+
+namespace dxvk {
+
+Rc<DxvkImageView> lsfg_step3g_generate_impl(
+        DxvkContext* context, DxvkDevice* device,
+        uint32_t width, uint32_t height, uint32_t format,
+        uint32_t generationCount, uint32_t generationIndex) {
+    if (!lsfg_step3g_can_generate() || !context || !device)
+        return Rc<DxvkImageView>();
+
+    const char* cacheDir = lsfg_host_cache_dir();
+    const uint32_t frameIndex = g_pp - 1u;
+    Rc<DxvkImageView> target = getLsfgGenerationTarget(
+        device, width, height, static_cast<VkFormat>(format), g_wrap_generation);
+    if (target == nullptr)
+        return Rc<DxvkImageView>();
+
+    if (!dispatchLsfgGeneration(
+            context, device, cacheDir, g_hist_view, target,
+            width, height, frameIndex, generationCount, generationIndex,
+            lsfg_host_flow_scale(), g_wrap_generation))
+        return Rc<DxvkImageView>();
+
+    return target;
+}
+
 }

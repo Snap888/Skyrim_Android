@@ -26,6 +26,7 @@ bool lsfg_host_active(void);
 int  lsfg_host_extract_count(void);
 void lsfg_host_on_frame(void);
 float lsfg_host_flow_scale(void);
+unsigned lsfg_host_generation_count(void);
 
 #ifdef __cplusplus
 }

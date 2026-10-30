@@ -137,6 +137,12 @@ void lsfg_host_shutdown(void) {
     lsfg_log_close();
 }
 
+unsigned lsfg_host_generation_count(void) {
+    if (!g_inited || g_cfg.multiplier <= 1) return 0;
+    unsigned count = (unsigned)(g_cfg.multiplier - 1);
+    return count > 3 ? 3 : count;
+}
+
 float lsfg_host_flow_scale(void) {
     return g_cfg.flow_scale > 0.0f ? g_cfg.flow_scale : 0.70f;
 }
