@@ -1,9 +1,6 @@
-/* Step 3h-j: light FG path for Adreno (mipmaps + generate only)
- * Full 25-pass crashes driver during vkCreateComputePipelines.
- * 1 pipeline per present frame. Inject when gen fence signals.
- * Config: fg_live=1, fg_inject=1, fg_throttle=30 (max 120)
- *
- * CRITICAL: never memset() PassRt — it contains std::vector.
+/* Step 3h-j: LIGHT FG (mipmaps + generate only) — Adreno-safe
+ * NO std::vector for PassRt — fixed arrays only (heap corruption fix)
+ * Config: fg_live=1, fg_inject=1, fg_throttle<=120
  */
 #include "lsfg_log.h"
 
@@ -33,20 +30,26 @@ static const PassDef k_light[] = {
     { "p_mipmaps",  255 },
     { "p_generate", 256 },
 };
+enum { N_LIGHT = 2, MAX_BINDS = 24, CMD_SLOTS = 2 };
 
-struct BindInfo { uint32_t binding; VkDescriptorType type; };
-struct PassRt {
-    uint32_t id = 0;
-    VkShaderModule sm = VK_NULL_HANDLE;
-    VkDescriptorSetLayout dsl = VK_NULL_HANDLE;
-    VkPipelineLayout pl = VK_NULL_HANDLE;
-    VkPipeline pipe = VK_NULL_HANDLE;
-    VkDescriptorSet ds = VK_NULL_HANDLE;
-    std::vector<BindInfo> binds;
-    int ok = 0;
+struct BindInfo {
+    uint32_t binding;
+    VkDescriptorType type;
 };
 
-enum { CMD_SLOTS = 2 };
+/* POD-ish: fixed binds[], no std::vector inside PassRt */
+struct PassRt {
+    uint32_t id;
+    VkShaderModule sm;
+    VkDescriptorSetLayout dsl;
+    VkPipelineLayout pl;
+    VkPipeline pipe;
+    VkDescriptorSet ds;
+    BindInfo binds[MAX_BINDS];
+    int nbinds;
+    int ok;
+};
+
 static VkDevice g_dev = VK_NULL_HANDLE;
 static VkPhysicalDevice g_phys = VK_NULL_HANDLE;
 static uint32_t g_qfam;
@@ -58,7 +61,10 @@ static VkDescriptorPool g_dpool = VK_NULL_HANDLE;
 static VkSampler g_sampler = VK_NULL_HANDLE;
 static VkBuffer g_ubo = VK_NULL_HANDLE;
 static VkDeviceMemory g_ubo_mem = VK_NULL_HANDLE;
-static std::vector<PassRt> g_passes;
+
+static PassRt g_pass[N_LIGHT];
+static int g_npass = 0;
+
 static int g_ready;
 static VkImage g_gen = VK_NULL_HANDLE;
 static VkDeviceMemory g_gen_mem = VK_NULL_HANDLE;
@@ -72,7 +78,7 @@ static int g_inflight = -1;
 static int g_gen_ready;
 static int g_logged;
 static int g_build_phase;
-static size_t g_pipe_i;
+static int g_pipe_i;
 static int g_pipe_ok;
 static int g_build_fail;
 
@@ -89,8 +95,8 @@ static bool load_spv(const char *path, std::vector<uint32_t> &out) {
     return ok && out[0] == 0x07230203u;
 }
 
-static void reflect(const std::vector<uint32_t> &c, std::vector<BindInfo> &out) {
-    out.clear();
+static void reflect(const std::vector<uint32_t> &c, BindInfo *out, int *nout) {
+    *nout = 0;
     std::unordered_map<uint32_t, uint32_t> id_bind, id_type, type_pointee;
     std::unordered_map<uint32_t, int> type_kind;
     for (size_t i = 5; i < c.size();) {
@@ -112,7 +118,10 @@ static void reflect(const std::vector<uint32_t> &c, std::vector<BindInfo> &out) 
     std::sort(binds.begin(), binds.end());
     binds.erase(std::unique(binds.begin(), binds.end()), binds.end());
     for (uint32_t b : binds) {
-        BindInfo bi{}; bi.binding = b; bi.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        if (*nout >= MAX_BINDS) break;
+        BindInfo bi{};
+        bi.binding = b;
+        bi.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
         for (auto &kv : id_bind) {
             if (kv.second != b) continue;
             auto it = id_type.find(kv.first);
@@ -129,9 +138,9 @@ static void reflect(const std::vector<uint32_t> &c, std::vector<BindInfo> &out) 
             }
             break;
         }
-        out.push_back(bi);
+        out[(*nout)++] = bi;
     }
-    for (int i = (int)out.size() - 1; i >= 0; i--) {
+    for (int i = *nout - 1; i >= 0; i--) {
         if (out[i].type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE) {
             out[i].type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
             break;
@@ -220,8 +229,7 @@ static bool ensure_shared(VkDevice dev, VkPhysicalDevice phys) {
 }
 
 static bool build_pass(VkDevice dev, const char *cache, const PassDef &def, PassRt *p) {
-    /* Never memset PassRt — contains std::vector (was corrupting g_passes.size()) */
-    *p = PassRt{};
+    memset(p, 0, sizeof(*p)); /* OK: no std::vector inside PassRt */
     p->id = def.id;
     char path[700];
     snprintf(path, sizeof path, "%s/%u.spv", cache, def.id);
@@ -230,7 +238,8 @@ static bool build_pass(VkDevice dev, const char *cache, const PassDef &def, Pass
         lsfg_log("W", "step3h-j: load_spv fail %s", path);
         return false;
     }
-    reflect(code, p->binds);
+    reflect(code, p->binds, &p->nbinds);
+    lsfg_log("I", "step3h-j: id=%u nbinds=%d", def.id, p->nbinds);
     VkShaderModuleCreateInfo smci{};
     smci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     smci.codeSize = code.size() * 4; smci.pCode = code.data();
@@ -238,17 +247,20 @@ static bool build_pass(VkDevice dev, const char *cache, const PassDef &def, Pass
         lsfg_log("W", "step3h-j: CreateShaderModule fail id=%u", def.id);
         return false;
     }
-    std::vector<VkDescriptorSetLayoutBinding> lbs;
-    for (auto &b : p->binds) {
+    VkDescriptorSetLayoutBinding lbs[MAX_BINDS];
+    int nlbs = 0;
+    for (int i = 0; i < p->nbinds; i++) {
         VkDescriptorSetLayoutBinding lb{};
-        lb.binding = b.binding; lb.descriptorType = b.type;
-        lb.descriptorCount = 1; lb.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-        lbs.push_back(lb);
+        lb.binding = p->binds[i].binding;
+        lb.descriptorType = p->binds[i].type;
+        lb.descriptorCount = 1;
+        lb.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+        lbs[nlbs++] = lb;
     }
     VkDescriptorSetLayoutCreateInfo dlci{};
     dlci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    dlci.bindingCount = (uint32_t)lbs.size();
-    dlci.pBindings = lbs.empty() ? nullptr : lbs.data();
+    dlci.bindingCount = (uint32_t)nlbs;
+    dlci.pBindings = nlbs ? lbs : nullptr;
     if (vkCreateDescriptorSetLayout(dev, &dlci, nullptr, &p->dsl) != VK_SUCCESS) return false;
     VkPipelineLayoutCreateInfo plci{};
     plci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -269,39 +281,40 @@ static bool build_pass(VkDevice dev, const char *cache, const PassDef &def, Pass
 }
 
 static void update_ds(VkDevice dev, PassRt *p, VkImageView h0, VkImageView h1) {
-    if (!p->ok || !p->ds || p->binds.empty()) return;
-    std::vector<VkWriteDescriptorSet> writes;
-    std::vector<VkDescriptorImageInfo> imgs;
-    std::vector<VkDescriptorBufferInfo> bufs;
-    imgs.reserve(p->binds.size() + 4);
+    if (!p->ok || !p->ds || p->nbinds <= 0) return;
+    VkWriteDescriptorSet writes[MAX_BINDS];
+    VkDescriptorImageInfo imgs[MAX_BINDS];
+    VkDescriptorBufferInfo bufs[MAX_BINDS];
+    int nw = 0, ni = 0, nb = 0;
     int si = 0;
-    for (auto &b : p->binds) {
+    for (int i = 0; i < p->nbinds; i++) {
+        BindInfo &b = p->binds[i];
         VkWriteDescriptorSet w{};
         w.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         w.dstSet = p->ds; w.dstBinding = b.binding; w.descriptorCount = 1;
         w.descriptorType = b.type;
         if (b.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
             VkDescriptorBufferInfo bb{}; bb.buffer = g_ubo; bb.range = 256;
-            bufs.push_back(bb); w.pBufferInfo = &bufs.back();
+            bufs[nb] = bb; w.pBufferInfo = &bufs[nb]; nb++;
         } else if (b.type == VK_DESCRIPTOR_TYPE_SAMPLER) {
             VkDescriptorImageInfo ii{}; ii.sampler = g_sampler; ii.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-            imgs.push_back(ii); w.pImageInfo = &imgs.back();
+            imgs[ni] = ii; w.pImageInfo = &imgs[ni]; ni++;
         } else if (b.type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE) {
             VkImageView v = (p->id == 256) ? g_gen_view : (h0 ? h0 : g_gen_view);
             VkDescriptorImageInfo ii{}; ii.imageView = v; ii.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-            imgs.push_back(ii); w.pImageInfo = &imgs.back();
+            imgs[ni] = ii; w.pImageInfo = &imgs[ni]; ni++;
         } else {
             VkImageView v = (si == 0) ? h0 : ((si == 1) ? h1 : h0);
             si++;
             VkDescriptorImageInfo ii{};
             ii.imageView = v ? v : g_gen_view;
             ii.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-            imgs.push_back(ii); w.pImageInfo = &imgs.back();
+            imgs[ni] = ii; w.pImageInfo = &imgs[ni]; ni++;
         }
-        writes.push_back(w);
+        writes[nw++] = w;
     }
-    if (!writes.empty())
-        vkUpdateDescriptorSets(dev, (uint32_t)writes.size(), writes.data(), 0, nullptr);
+    if (nw > 0)
+        vkUpdateDescriptorSets(dev, (uint32_t)nw, writes, 0, nullptr);
 }
 
 static void barrier_img(VkCommandBuffer cmd, VkImage img) {
@@ -322,10 +335,9 @@ static void barrier_img(VkCommandBuffer cmd, VkImage img) {
 }
 
 static bool finish_pool(VkDevice dev, uint32_t qfam) {
-    size_t npass = g_passes.size();
-    lsfg_log("I", "step3h-j: finish_pool begin passes=%zu qfam=%u", npass, qfam);
-    if (npass == 0 || npass > 64) {
-        lsfg_log("W", "step3h-j: passes count corrupt/empty (%zu) — abort FG", npass);
+    lsfg_log("I", "step3h-j: finish_pool begin passes=%d qfam=%u", g_npass, qfam);
+    if (g_npass < 1 || g_npass > N_LIGHT) {
+        lsfg_log("W", "step3h-j: bad pass count %d — abort FG", g_npass);
         return false;
     }
     VkDescriptorPoolSize sizes[4] = {};
@@ -335,14 +347,15 @@ static bool finish_pool(VkDevice dev, uint32_t qfam) {
     sizes[3].type = VK_DESCRIPTOR_TYPE_SAMPLER; sizes[3].descriptorCount = 16;
     VkDescriptorPoolCreateInfo dpci{};
     dpci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    dpci.maxSets = (uint32_t)npass + 4;
+    dpci.maxSets = (uint32_t)g_npass + 4;
     dpci.poolSizeCount = 4; dpci.pPoolSizes = sizes;
     if (vkCreateDescriptorPool(dev, &dpci, nullptr, &g_dpool) != VK_SUCCESS) {
         lsfg_log("W", "step3h-j: descriptor pool fail");
         return false;
     }
     lsfg_log("I", "step3h-j: descriptor pool OK");
-    for (auto &p : g_passes) {
+    for (int i = 0; i < g_npass; i++) {
+        PassRt &p = g_pass[i];
         if (!p.ok || !p.dsl) continue;
         VkDescriptorSetAllocateInfo dsai{};
         dsai.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -387,7 +400,7 @@ static void build_tick(VkDevice dev, VkPhysicalDevice phys, uint32_t qfam) {
     if (!cache || !*cache) { g_build_fail = 1; return; }
 
     if (g_build_phase == 0) {
-        lsfg_log("I", "=== LSFG step 3h-j: LIGHT chain (mipmaps+generate, 1 pipe/frame) ===");
+        lsfg_log("I", "=== LSFG step 3h-j: LIGHT chain (fixed-array, no vector) ===");
         if (!ensure_shared(dev, phys)) {
             lsfg_log("W", "step3h-j: shared fail");
             g_build_fail = 1;
@@ -403,7 +416,8 @@ static void build_tick(VkDevice dev, VkPhysicalDevice phys, uint32_t qfam) {
             g_build_fail = 1;
             return;
         }
-        g_passes.clear();
+        memset(g_pass, 0, sizeof(g_pass));
+        g_npass = 0;
         g_pipe_i = 0;
         g_pipe_ok = 0;
         g_build_phase = 2;
@@ -411,31 +425,32 @@ static void build_tick(VkDevice dev, VkPhysicalDevice phys, uint32_t qfam) {
     }
 
     if (g_build_phase == 2) {
-        const size_t ndefs = sizeof(k_light) / sizeof(k_light[0]);
-        if (g_pipe_i < ndefs) {
+        if (g_pipe_i < N_LIGHT) {
             const PassDef &def = k_light[g_pipe_i];
-            lsfg_log("I", "step3h-j: creating pipe %zu/%zu id=%u %s ...",
-                     g_pipe_i + 1, ndefs, def.id, def.name);
-            PassRt p{};
+            lsfg_log("I", "step3h-j: creating pipe %d/%d id=%u %s ...",
+                     g_pipe_i + 1, N_LIGHT, def.id, def.name);
+            PassRt tmp;
+            int idx = g_pipe_i;
             g_pipe_i++;
-            if (!build_pass(dev, cache, def, &p)) {
+            if (!build_pass(dev, cache, def, &tmp)) {
                 lsfg_log("W", "step3h-j: pipe FAIL id=%u %s", def.id, def.name);
             } else {
+                g_pass[idx] = tmp;
+                g_npass = idx + 1;
                 g_pipe_ok++;
-                g_passes.push_back(std::move(p));
-                lsfg_log("I", "step3h-j: pipe OK id=%u %s (ok=%d size=%zu)",
-                         def.id, def.name, g_pipe_ok, g_passes.size());
+                lsfg_log("I", "step3h-j: pipe OK id=%u %s (ok=%d npass=%d)",
+                         def.id, def.name, g_pipe_ok, g_npass);
             }
             return;
         }
-        lsfg_log("I", "step3h-j: pipelines ok=%d/%zu size=%zu mode=light",
-                 g_pipe_ok, ndefs, g_passes.size());
-        if (g_pipe_ok < 1 || g_passes.empty()) {
+        lsfg_log("I", "step3h-j: pipelines ok=%d/%d npass=%d mode=light-fixed",
+                 g_pipe_ok, N_LIGHT, g_npass);
+        if (g_pipe_ok < 1 || g_npass < 1) {
             g_build_fail = 1;
             return;
         }
         g_build_phase = 3;
-        return; /* finish_pool next frame — safer */
+        return;
     }
 
     if (g_build_phase == 3) {
@@ -446,7 +461,7 @@ static void build_tick(VkDevice dev, VkPhysicalDevice phys, uint32_t qfam) {
         }
         g_ready = 1;
         g_build_phase = 4;
-        lsfg_log("I", "step3h-j: READY live=%d inject=%d throttle=%u stages=%d mode=light",
+        lsfg_log("I", "step3h-j: READY live=%d inject=%d throttle=%u stages=%d mode=light-fixed",
                  g_fg_live, g_fg_inject, g_throttle, g_pipe_ok);
         lsfg_log("I", "step3h-j: async 1-in-flight, NO WaitIdle — present-safe");
         lsfg_log("I", "NEXT: wait for frame#30 then submit; inject when gen fence signals");
@@ -476,7 +491,8 @@ static bool submit_full(VkDevice dev) {
     VkImageView h0 = (VkImageView)lsfg_step3d_get_view(0);
     VkImageView h1 = (VkImageView)lsfg_step3d_get_view(1);
     if (!h0 || !h1 || !g_gen_view) return false;
-    for (auto &p : g_passes) update_ds(dev, &p, h0, h1);
+    for (int i = 0; i < g_npass; i++)
+        update_ds(dev, &g_pass[i], h0, h1);
     VkCommandBufferBeginInfo bi{};
     bi.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     bi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -485,10 +501,11 @@ static bool submit_full(VkDevice dev) {
     barrier_img(g_cmd[s], (VkImage)lsfg_step3d_get_image(1));
     uint32_t w = lsfg_step3d_fb_width(); uint32_t h = lsfg_step3d_fb_height();
     if (w < 8) w = 8; if (h < 8) h = 8;
-    for (auto &p : g_passes) {
+    for (int i = 0; i < g_npass; i++) {
+        PassRt &p = g_pass[i];
         if (!p.ok || !p.pipe) continue;
         vkCmdBindPipeline(g_cmd[s], VK_PIPELINE_BIND_POINT_COMPUTE, p.pipe);
-        if (p.ds && !p.binds.empty())
+        if (p.ds && p.nbinds > 0)
             vkCmdBindDescriptorSets(g_cmd[s], VK_PIPELINE_BIND_POINT_COMPUTE, p.pl, 0, 1, &p.ds, 0, nullptr);
         vkCmdDispatch(g_cmd[s], (w + 7) / 8, (h + 7) / 8, 1);
         barrier_img(g_cmd[s], g_gen);
@@ -559,5 +576,5 @@ extern "C" void lsfg_step3hj_note_inject(void) {
         lsfg_log("I", "step3h-j: INJECT #%u (gen→swapchain)", g_inject_n);
 }
 extern "C" void lsfg_step3hj_install(void) {
-    lsfg_log("I", "LSFG: step3h-j LIGHT FG + inject installer ready");
+    lsfg_log("I", "LSFG: step3h-j LIGHT FG + inject installer ready (fixed-array)");
 }
