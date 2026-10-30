@@ -173,97 +173,30 @@ static bool reflect(const std::vector<uint32_t> &c, std::vector<RefBinding> &out
     return true;
 }
 
+// Startup-safe reflection only. Creating hundreds of Vulkan pipelines here
+// blocks the game's present thread while the driver compiles shaders.
+// Actual pipeline creation belongs in a controlled, incremental runtime path.
 static bool probe_reflected_layout(VkDevice dev, const std::vector<uint32_t> &code,
                                    unsigned id, int *binding_count) {
+    (void)dev;
     std::vector<RefBinding> bindings;
     char reflect_error[192] = {};
     if (!reflect(code, bindings, reflect_error, sizeof(reflect_error))) {
-        lsfg_log("W", "step3d: id=%u descriptor reflection unsupported/invalid (%s); layout skipped", id, reflect_error[0] ? reflect_error : "unspecified");
+        lsfg_log("W", "step3d: id=%u descriptor reflection unsupported/invalid (%s)",
+                 id, reflect_error[0] ? reflect_error : "unspecified");
         return false;
     }
-    uint32_t max_set = 0;
-    for (const auto &b : bindings) if (b.set > max_set) max_set = b.set;
-    if (!g_phys) {
-        lsfg_log("W", "step3d: id=%u physical device unavailable for descriptor-set limit check", id);
-        return false;
-    }
-    VkPhysicalDeviceProperties device_props{};
-    vkGetPhysicalDeviceProperties(g_phys, &device_props);
-    if (!bindings.empty() && max_set >= device_props.limits.maxBoundDescriptorSets) {
-        lsfg_log("W", "step3d: id=%u set index %u exceeds maxBoundDescriptorSets=%u", id, max_set, device_props.limits.maxBoundDescriptorSets);
-        return false;
-    }
-    std::vector<VkDescriptorSetLayout> sets;
-    VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
-    bool ok = true;
-    if (!bindings.empty()) {
-        sets.resize((size_t)max_set + 1, VK_NULL_HANDLE);
-        for (uint32_t set = 0; set <= max_set && ok; set++) {
-            std::vector<VkDescriptorSetLayoutBinding> entries;
-            for (const auto &b : bindings) if (b.set == set) {
-                VkDescriptorSetLayoutBinding e{};
-                e.binding = b.binding;
-                e.descriptorType = b.type;
-                e.descriptorCount = b.count;
-                e.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-                entries.push_back(e);
-            }
-            VkDescriptorSetLayoutCreateInfo ci{};
-            ci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-            ci.bindingCount = (uint32_t)entries.size();
-            ci.pBindings = entries.empty() ? nullptr : entries.data();
-            ok = vkCreateDescriptorSetLayout(dev, &ci, nullptr, &sets[set]) == VK_SUCCESS;
-        }
-    }
-    if (ok) {
-        VkPipelineLayoutCreateInfo lci{};
-        lci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        lci.setLayoutCount = (uint32_t)sets.size();
-        lci.pSetLayouts = sets.empty() ? nullptr : sets.data();
-        ok = vkCreatePipelineLayout(dev, &lci, nullptr, &pipeline_layout) == VK_SUCCESS;
-    }
-    if (ok) {
-        VkShaderModuleCreateInfo sci{};
-        sci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        sci.codeSize = code.size() * sizeof(uint32_t);
-        sci.pCode = code.data();
-        VkShaderModule module = VK_NULL_HANDLE;
-        ok = vkCreateShaderModule(dev, &sci, nullptr, &module) == VK_SUCCESS;
-        if (ok) {
-            VkComputePipelineCreateInfo pci{};
-            pci.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-            pci.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-            pci.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-            pci.stage.module = module;
-            ComputeInfo info{};
-            if (!get_compute_info(code, info)) {
-                ok = false;
-            } else {
-                pci.stage.pName = info.entry;
-                pci.layout = pipeline_layout;
-                VkPipeline pipeline = VK_NULL_HANDLE;
-                ok = vkCreateComputePipelines(dev, VK_NULL_HANDLE, 1, &pci, nullptr, &pipeline) == VK_SUCCESS;
-                if (pipeline) vkDestroyPipeline(dev, pipeline, nullptr);
-            }
-            vkDestroyShaderModule(dev, module, nullptr);
-        }
-    }
-    if (pipeline_layout) vkDestroyPipelineLayout(dev, pipeline_layout, nullptr);
-    for (auto layout : sets) if (layout) vkDestroyDescriptorSetLayout(dev, layout, nullptr);
     if (binding_count) *binding_count = (int)bindings.size();
-    if (ok) {
-        char buf[384];
-        int n = snprintf(buf, sizeof buf, "step3d: id=%u reflected-layout OK bindings=%zu", id, bindings.size());
-        for (const auto &b : bindings) {
-            if (n >= (int)sizeof(buf)-1) break;
-            n += snprintf(buf+n, sizeof(buf)-(size_t)n, " [s%u:b%u t%d x%u]",
-                          b.set, b.binding, (int)b.type, b.count);
-        }
-        lsfg_log("I", "%s", buf);
-    } else {
-        lsfg_log("W", "step3d: id=%u reflected layout/pipeline probe failed", id);
+    char buf[384];
+    int n = snprintf(buf, sizeof buf, "step3d: id=%u reflection OK bindings=%zu",
+                     id, bindings.size());
+    for (const auto &b : bindings) {
+        if (n >= (int)sizeof(buf)-1) break;
+        n += snprintf(buf+n, sizeof(buf)-(size_t)n, " [s%u:b%u t%d x%u]",
+                      b.set, b.binding, (int)b.type, b.count);
     }
-    return ok;
+    lsfg_log("I", "%s", buf);
+    return true;
 }
 
 struct ShaderRole { const char *name; unsigned id; };
