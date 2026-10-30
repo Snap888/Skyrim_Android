@@ -92,14 +92,19 @@ static void lsfg_step3g_copy_impl(
                  n, w, h, g_pp & 1);
     }
     g_pp++;
-    lsfg_step3gb_after_copy(reinterpret_cast<void*>(device->handle()),
-                           lsfg_step3e_queue_family());
+    /* FREEZE FIX: do not run GPU probe cascade on present path.
+     * 3g-b had vkQueueWaitIdle; 3h-c→3h-h submitted full 25-pass chains
+     * back-to-back on the same queue as Present → image freezes after first frames.
+     * History copy above is enough for now. Re-enable via fg_probe=1 later. */
+    static int g_cascade_logged;
+    if (!g_cascade_logged) {
+        g_cascade_logged = 1;
+        lsfg_log("I", "step3g: probe cascade DISABLED (3gb/3hc/3hi) — present stays live");
+        lsfg_log("I", "step3g: only history ping-pong runs; set rebuild when FG inject is ready");
+    }
+    /* Optional: graph build only (no QueueSubmit) */
     lsfg_step3hb_after_copy(reinterpret_cast<void*>(device->handle()),
                            lsfg_step3e_queue_family());
-    lsfg_step3hc_after_copy(reinterpret_cast<void*>(device->handle()),
-                           lsfg_step3e_queue_family());
-    lsfg_step3hi_on_frame(reinterpret_cast<void*>(device->handle()),
-                          lsfg_step3e_queue_family());
 }
 
 extern "C" void lsfg_step3g_install(void) {
