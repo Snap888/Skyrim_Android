@@ -121,56 +121,10 @@ extern "C" void lsfg_step3g_copy_impl(
         srcImg, sub, VkOffset3D{ 0, 0, 0 },
         VkExtent3D{ w, h, 1 });
 
-    // Sample history pixels at the center on the first copy and every 120 copies
-    // per slot. The readback is recorded in this same DXVK command list and
-    // inspected only after its GPU fence completes.
-    unsigned slot_copy_index = g_slot_copies[slot].load();
-    if (slot_copy_index == 0 || (slot_copy_index % 120) == 0) {
-        DxvkBufferCreateInfo bi{};
-        bi.size   = 16;
-        bi.usage  = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-        bi.stages = VK_PIPELINE_STAGE_HOST_BIT;
-        bi.access = VK_ACCESS_HOST_READ_BIT;
-
-        Rc<DxvkBuffer> readback = device->createBuffer(bi,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-        VkMemoryPropertyFlags required = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
-                                       | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-        if (readback != nullptr && (readback->memFlags() & required) == required) {
-            const uint32_t sample_x = w / 2;
-            const uint32_t sample_y = h / 2;
-            ctx->copyImageToBuffer(
-                readback, 0, 4, 4, dstImg, sub,
-                VkOffset3D{ (int32_t)sample_x, (int32_t)sample_y, 0 },
-                VkExtent3D{ 2, 2, 1 });
-
-            ctx->addCompletionCallback([readback, slot, generation, slot_copy_index, sample_x, sample_y](VkResult status) {
-                if (status != VK_SUCCESS) {
-                    lsfg_log("W", "step3g: history[%u] readback #%u completion failed status=%d",
-                             slot, slot_copy_index, (int)status);
-                    return;
-                }
-
-                const uint8_t* p = static_cast<const uint8_t*>(readback->mapPtr(0));
-                uint32_t checksum = 0;
-                for (unsigned i = 0; i < 16; i++)
-                    checksum += p[i];
-
-                lsfg_log("I", "step3g: GPU readback slot[%u] gen=%u copy=%u xy=%u,%u checksum=%u "
-                         "p0=%u,%u,%u,%u p1=%u,%u,%u,%u p2=%u,%u,%u,%u p3=%u,%u,%u,%u",
-                         slot, generation, slot_copy_index, sample_x, sample_y, checksum,
-                         (unsigned)p[0], (unsigned)p[1], (unsigned)p[2], (unsigned)p[3],
-                         (unsigned)p[4], (unsigned)p[5], (unsigned)p[6], (unsigned)p[7],
-                         (unsigned)p[8], (unsigned)p[9], (unsigned)p[10], (unsigned)p[11],
-                         (unsigned)p[12], (unsigned)p[13], (unsigned)p[14], (unsigned)p[15]);
-            });
-            lsfg_log("I", "step3g: scheduled 2x2 GPU readback for history[%u] copy=%u at %u,%u",
-                     slot, slot_copy_index, sample_x, sample_y);
-        } else {
-            lsfg_log("W", "step3g: readback skipped for history[%u]: host-coherent memory unavailable", slot);
-        }
-    }
+    // Keep the frame path free of diagnostic GPU readbacks. The copy
+    // completion/readback probe was useful to validate image contents, but
+    // allocating buffers and scheduling transfer readbacks periodically adds
+    // work to the game's command stream and is no longer needed.
 
     unsigned n = ++g_copy_n;
     unsigned slot_n = ++g_slot_copies[slot];
