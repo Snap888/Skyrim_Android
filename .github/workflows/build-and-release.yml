@@ -1,1 +1,311 @@
-PLACEHOLDER
+name: Build & Publish APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version name (например 0.24). Пусто = из build.gradle"
+        required: false
+        type: string
+      dual:
+        description: "Также собрать dual-версию"
+        required: false
+        type: boolean
+        default: false
+      create_release:
+        description: "Создать GitHub Release"
+        required: false
+        type: boolean
+        default: true
+      gen_url:
+        description: "URL на архив gen/ (tar.xz / tar.gz / zip). Обязательно, если gen/ нет в runner"
+        required: false
+        type: string
+
+  push:
+    tags:
+      - "v*"
+
+env:
+  NDK_VERSION: "29.0.14206865"
+  CMAKE_VERSION: "3.22.1"
+  JAVA_VERSION: "17"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Restore d3d9_swapchain (LSFG extern C)
+        run: |
+          set -e
+          curl -fsSL -o android/app/jni/dxvk/src/d3d9/d3d9_swapchain.cpp \
+            "https://raw.githubusercontent.com/Snap888/Skyrim_Android/ecb603b331e6d35be326b640635497175e306941/android/app/jni/dxvk/src/d3d9/d3d9_swapchain.cpp"
+          python3 -c '
+          from pathlib import Path
+          p = Path("android/app/jni/dxvk/src/d3d9/d3d9_swapchain.cpp")
+          src = p.read_text()
+          if "lsfg_step3hj_should_inject" not in src.split("namespace dxvk")[0]:
+              src = src.replace(
+                  "namespace dxvk {",
+                  "extern \"C\" int  lsfg_step3hj_should_inject(void);\n"
+                  "extern \"C\" void lsfg_step3hj_insert_inject(void*, void*, void*, uint32_t, uint32_t, uint32_t);\n\n"
+                  "namespace dxvk {",
+                  1)
+          old = "    for (uint32_t i = 0; i < SyncInterval || i < 1; i++) {"
+          new = (
+              "    const bool lsfgExtra = (lsfg_step3hj_should_inject() != 0) && (SyncInterval <= 1);\n"
+              "    const uint32_t presentLoops = lsfgExtra ? 2u : ((SyncInterval < 1u) ? 1u : SyncInterval);\n"
+              "\n"
+              "    for (uint32_t i = 0; i < presentLoops; i++) {"
+          )
+          if old not in src:
+              raise SystemExit("swapchain present loop not found")
+          src = src.replace(old, new, 1)
+          src = src.replace(
+              "        extern void lsfg_step3hj_insert_inject(void*, void*, void*, uint32_t, uint32_t, uint32_t);\n",
+              "")
+          src = src.replace(
+              "      if (i + 1 >= SyncInterval)\n        m_context->signal(m_frameLatencySignal, m_frameId);",
+              "      if (i + 1 >= presentLoops)\n        m_context->signal(m_frameLatencySignal, m_frameId);",
+              1)
+          p.write_text(src)
+          print("swapchain OK", p.stat().st_size)
+          '
+
+      - name: Restore lsfg_step3hj (Adreno-safe GPU chain)
+        run: |
+          set -e
+          curl -fsSL -o android/app/jni/lsfg/lsfg_step3hj.cpp \
+            "https://raw.githubusercontent.com/Snap888/Skyrim_Android/445743cde0593a36e073dd93e70482016ab23925/android/app/jni/lsfg/lsfg_step3hj.cpp"
+          python3 << 'PY'
+          from pathlib import Path
+          p = Path("android/app/jni/lsfg/lsfg_step3hj.cpp")
+          src = p.read_text()
+          old = """static bool ensure_imgs(VkDevice dev, VkPhysicalDevice phys, uint32_t w, uint32_t h) {
+    if (g_imgs_ok && g_gen) return true;
+    if (!create_img(dev, phys, w, h, VK_FORMAT_R8G8B8A8_UNORM, &g_gen, &g_gen_mem, &g_gen_view))
+        return false;
+    uint32_t mw = w, mh = h;"""
+          new = """static bool ensure_imgs(VkDevice dev, VkPhysicalDevice phys, uint32_t w, uint32_t h) {
+    if (g_imgs_ok && g_gen) return true;
+    uint32_t cap = 1280;
+    if (w > cap || h > cap) {
+        if (w >= h) { h = (uint32_t)((uint64_t)h * cap / w); w = cap; }
+        else        { w = (uint32_t)((uint64_t)w * cap / h); h = cap; }
+        if (w < 1) w = 1; if (h < 1) h = 1;
+        lsfg_log("I", "step3h-j: intermediate capped to %ux%u (Adreno-safe)", w, h);
+    }
+    if (!create_img(dev, phys, w, h, VK_FORMAT_R8G8B8A8_UNORM, &g_gen, &g_gen_mem, &g_gen_view))
+        return false;
+    uint32_t mw = w, mh = h;"""
+          if old not in src:
+              raise SystemExit("ensure_imgs pattern missing")
+          src = src.replace(old, new, 1)
+          old = """static void poll_fence(VkDevice dev) {
+    if (g_inflight < 0) return;
+    if (vkGetFenceStatus(dev, g_fence[g_inflight]) == VK_SUCCESS) {
+        g_gen_ready = 1;
+        g_inflight = -1;
+    }
+}"""
+          new = """static void poll_fence(VkDevice dev) {
+    if (g_inflight < 0) return;
+    VkResult st = vkGetFenceStatus(dev, g_fence[g_inflight]);
+    if (st == VK_SUCCESS) {
+        g_gen_ready = 1;
+        g_inflight = -1;
+        return;
+    }
+    static unsigned s_busy;
+    if (st == VK_NOT_READY) {
+        s_busy++;
+        if (s_busy > 120) {
+            lsfg_log("E", "step3h-j: fence busy >120 frames — GPU hang risk, FG OFF");
+            g_fg_live = 0; g_fg_inject = 0; g_inflight = -1; g_gen_ready = 0; s_busy = 0;
+        }
+    } else {
+        lsfg_log("W", "step3h-j: fence status %d — disable FG", (int)st);
+        g_fg_live = 0; g_fg_inject = 0; g_inflight = -1; g_gen_ready = 0; s_busy = 0;
+    }
+}"""
+          if old not in src:
+              raise SystemExit("poll_fence pattern missing")
+          src = src.replace(old, new, 1)
+          if "static int g_cooldown;" not in src:
+              src = src.replace(
+                  "static unsigned g_inject_n;",
+                  "static unsigned g_inject_n;\nstatic int g_cooldown;",
+                  1)
+          old = """static bool submit_full(VkDevice dev) {
+    if (!g_ready || g_inflight >= 0) return false;"""
+          new = """static bool submit_full(VkDevice dev) {
+    if (!g_ready || g_inflight >= 0) return false;
+    if (g_cooldown > 0) { g_cooldown--; return false; }"""
+          if old not in src:
+              raise SystemExit("submit_full guard missing")
+          src = src.replace(old, new, 1)
+          old = """extern "C" void lsfg_step3hj_note_inject(void) {
+    g_inject_n++;
+    g_gen_ready = 0;
+    if (g_inject_n <= 5 || g_inject_n == 60 || (g_inject_n % 300) == 0)
+        lsfg_log("I", "step3h-j: INJECT #%u (gen→swapchain GPU)", g_inject_n);
+}"""
+          new = """extern "C" void lsfg_step3hj_note_inject(void) {
+    g_inject_n++;
+    g_gen_ready = 0;
+    g_cooldown = 3;
+    if (g_inject_n <= 5 || g_inject_n == 60 || (g_inject_n % 300) == 0)
+        lsfg_log("I", "step3h-j: INJECT #%u (gen→swapchain GPU)", g_inject_n);
+}"""
+          if old not in src:
+              raise SystemExit("note_inject missing")
+          src = src.replace(old, new, 1)
+          src = src.replace("if (n < 10) return;", "if (n < 30) return;", 1)
+          src = src.replace(
+              "if (g_fg_live && g_throttle < 2) g_throttle = 2;",
+              "if (g_fg_live && g_throttle < 4) g_throttle = 4;",
+              1)
+          p.write_text(src)
+          print("step3hj Adreno-safe OK", p.stat().st_size)
+          PY
+
+      - name: Restore / download gen/
+        run: |
+          set -e
+          if [ -d "gen" ] && [ -n "$(ls -A gen 2>/dev/null)" ]; then
+            echo "gen/ уже есть на runner"
+            find gen -name '*.c' | wc -l
+            exit 0
+          fi
+
+          if [ -z "${{ github.event.inputs.gen_url }}" ]; then
+            echo "::error::Каталог gen/ отсутствует."
+            exit 1
+          fi
+
+          echo "Скачиваю gen из ${{ github.event.inputs.gen_url }}"
+          mkdir -p /tmp/gen_dl
+          curl -L --fail --retry 3 -o /tmp/gen_dl/gen.archive "${{ github.event.inputs.gen_url }}"
+
+          if file /tmp/gen_dl/gen.archive | grep -q 'XZ\|xz'; then
+            tar -xJf /tmp/gen_dl/gen.archive
+          elif file /tmp/gen_dl/gen.archive | grep -q 'gzip\|Gzip'; then
+            tar -xzf /tmp/gen_dl/gen.archive
+          elif file /tmp/gen_dl/gen.archive | grep -q 'Zip\|zip'; then
+            unzip -q /tmp/gen_dl/gen.archive
+          else
+            tar -xJf /tmp/gen_dl/gen.archive || tar -xzf /tmp/gen_dl/gen.archive
+          fi
+
+          if [ ! -d "gen" ] || [ -z "$(ls -A gen 2>/dev/null)" ]; then
+            echo "::error::После распаковки gen/ всё ещё пуст."
+            exit 1
+          fi
+
+          echo "gen/ успешно восстановлен, файлов C: $(find gen -name '*.c' | wc -l)"
+          rm -rf /tmp/gen_dl
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
+
+      - name: Install NDK, CMake, platforms
+        run: |
+          sdkmanager --install \
+            "platforms;android-34" \
+            "build-tools;34.0.0" \
+            "cmake;${{ env.CMAKE_VERSION }}" \
+            "ndk;${{ env.NDK_VERSION }}"
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Determine version
+        id: ver
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VER="${{ github.event.inputs.version }}"
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VER="${GITHUB_REF#refs/tags/v}"
+          else
+            VER=$(grep -oP 'versionName\s+"\K[^"]+' android/app/build.gradle | head -1 || true)
+            VER=${VER:-"0.0.0"}
+          fi
+          echo "version=$VER" >> $GITHUB_OUTPUT
+          echo "Сборка версии: $VER"
+
+      - name: Build main APK
+        working-directory: android
+        run: |
+          ./gradlew assembleDebug \
+            -PndkVersion=${{ env.NDK_VERSION }} \
+            --no-daemon \
+            --stacktrace
+
+      - name: Build dual APK (optional)
+        if: github.event.inputs.dual == 'true'
+        working-directory: android
+        run: |
+          ./gradlew assembleDebug \
+            -PndkVersion=${{ env.NDK_VERSION }} \
+            -Pdual=true \
+            --no-daemon \
+            --stacktrace
+
+      - name: Prepare artifacts
+        id: prep
+        run: |
+          VER="${{ steps.ver.outputs.version }}"
+          mkdir -p dist
+          MAIN_APK=$(find android/app/build/outputs/apk -name "app-debug.apk" | head -1)
+          if [ -z "$MAIN_APK" ]; then
+            echo "::error::APK не найден"
+            exit 1
+          fi
+          cp "$MAIN_APK" "dist/Skyrim-${VER}.apk"
+          echo "main_apk=dist/Skyrim-${VER}.apk" >> $GITHUB_OUTPUT
+          ls -lh dist/
+
+      - name: Upload APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Skyrim-APK-${{ steps.ver.outputs.version }}
+          path: dist/*.apk
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: |
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.ver.outputs.version }}
+          name: Skyrim for Android ${{ steps.ver.outputs.version }}
+          body: |
+            ## Skyrim for Android ${{ steps.ver.outputs.version }}
+
+            **APK:** `Skyrim-${{ steps.ver.outputs.version }}.apk`
+          files: |
+            dist/Skyrim-*.apk
+          draft: false
+          prerelease: false
+          generate_release_notes: true
