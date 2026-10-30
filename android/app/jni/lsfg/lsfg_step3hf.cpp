@@ -1,10 +1,5 @@
 /* Step 3h-f: multi-pass on dedicated cmd buffers (not DXVK present list).
- *
- * FPS rules:
- *  - Never block present path with long vkWaitForFences
- *  - Probe-only by default (one multi-pass submit)
- *  - Double-buffered cmd buffers for future per-frame FG without stall
- *  - Present inject installed but DISABLED
+ * FPS-safe: probe once, non-blocking fence, inject off.
  */
 #include "lsfg_log.h"
 
@@ -33,6 +28,7 @@ extern "C" const char *lsfg_host_cache_dir(void);
 extern "C" int lsfg_role_perf_mode(void);
 extern "C" uint32_t lsfg_role_mipmaps_id(void);
 extern "C" uint32_t lsfg_role_generate_id(void);
+extern "C" void lsfg_step3hg_after_secondary(void *device, unsigned qfam);
 
 enum { CMD_SLOTS = 2 };
 
@@ -352,6 +348,7 @@ extern "C" void lsfg_step3hf_after_pyramid(void *device, unsigned qfam) {
         lsfg_log("I", "step3h-f: order mipmaps -> generate on secondary cmd buffer");
         lsfg_log("I", "NEXT step 3h-g: full alpha/beta/gamma/delta chain + optional present inject");
         lsfg_log("I", "NOTE: per-frame FG still OFF — FPS safe");
+        lsfg_step3hg_after_secondary((void*)g_dev, g_qfam);
     }
 }
 
