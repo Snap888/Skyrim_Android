@@ -337,12 +337,15 @@ Rc<DxvkShader> createLsfgComputeShader(
   }
 
   SpirvCodeBuffer spirv(uint32_t(code.size()), code.data());
-  return device->createShader(
+  Rc<DxvkShader> shader = device->createShader(
     VK_SHADER_STAGE_COMPUTE_BIT,
     uint32_t(slots.size()),
     slots.data(),
     iface,
     spirv);
+  if (shader != nullptr)
+    device->registerShader(shader);
+  return shader;
 }
 
 } // namespace dxvk
