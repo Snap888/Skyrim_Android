@@ -14,6 +14,7 @@ extern "C" void lsfg_set_step3g_copy_hook(void (*fn)(void*, void*, void*, uint32
 extern "C" void lsfg_step3gb_after_copy(void *device, unsigned qfam);
 extern "C" void lsfg_step3hb_after_copy(void *device, unsigned qfam);
 extern "C" void lsfg_step3hc_after_copy(void *device, unsigned qfam);
+extern "C" void lsfg_step3hi_on_frame(void *device, unsigned qfam);
 extern "C" unsigned lsfg_step3e_queue_family(void);
 
 using namespace dxvk;
@@ -44,7 +45,7 @@ static void lsfg_step3g_copy_impl(
     if (srcImg->info().format != histFmt) {
         if (!g_logged) {
             g_logged = 1;
-            lsfg_log("W", "step3g: format mismatch src=0x%x hist=0x%x \u2014 skip copy",
+            lsfg_log("W", "step3g: format mismatch src=0x%x hist=0x%x — skip copy",
                      (unsigned)srcImg->info().format, (unsigned)histFmt);
         }
         return;
@@ -97,6 +98,8 @@ static void lsfg_step3g_copy_impl(
                            lsfg_step3e_queue_family());
     lsfg_step3hc_after_copy(reinterpret_cast<void*>(device->handle()),
                            lsfg_step3e_queue_family());
+    lsfg_step3hi_on_frame(reinterpret_cast<void*>(device->handle()),
+                          lsfg_step3e_queue_family());
 }
 
 extern "C" void lsfg_step3g_install(void) {
