@@ -137,6 +137,10 @@ void lsfg_host_shutdown(void) {
     lsfg_log_close();
 }
 
+float lsfg_host_flow_scale(void) {
+    return g_cfg.flow_scale > 0.0f ? g_cfg.flow_scale : 0.70f;
+}
+
 bool lsfg_host_active(void) {
     return g_inited != 0;
 }
