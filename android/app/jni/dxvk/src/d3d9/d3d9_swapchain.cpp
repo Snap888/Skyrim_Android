@@ -924,9 +924,6 @@ namespace dxvk {
 
         m_context->beginRecording(m_device->createCommandList());
 
-        VkRect2D generatedSrcRect = {
-          { 0, 0 },
-          { generatedInfo.imageExtent.width, generatedInfo.imageExtent.height } };
         VkRect2D fallbackSrcRect = {
           { int32_t(m_srcRect.left), int32_t(m_srcRect.top) },
           { uint32_t(m_srcRect.right - m_srcRect.left),
@@ -944,6 +941,17 @@ namespace dxvk {
 
         const bool generationFailed = generatedView == nullptr || *generatedView == nullptr;
         if (!generationFailed) {
+          const VkExtent3D generatedExtent = (*generatedView)->mipLevelExtent(0);
+          VkRect2D generatedSrcRect = {
+            { 0, 0 },
+            { generatedExtent.width, generatedExtent.height } };
+          if (generatedExtent.width != generatedInfo.imageExtent.width
+           || generatedExtent.height != generatedInfo.imageExtent.height) {
+            Logger::warn(str::format("LSFG: generated image extent ",
+              generatedExtent.width, "x", generatedExtent.height,
+              " differs from swapchain ", generatedInfo.imageExtent.width,
+              "x", generatedInfo.imageExtent.height, "; scaling to full output"));
+          }
           m_blitter->presentImage(m_context.ptr(), m_imageViews.at(generatedImageIndex),
             generatedDstRect, *generatedView, generatedSrcRect);
         } else {
