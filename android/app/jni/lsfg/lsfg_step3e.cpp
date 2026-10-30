@@ -1,5 +1,6 @@
 #include "lsfg_log.h"
 #include "lsfg_host.h"
+#include "lsfg_present.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -12,7 +13,6 @@
 #endif
 
 extern "C" void lsfg_set_present_image_hook(void (*fn)(void*, void*, uint32_t, uint32_t, uint32_t));
-extern void lsfg_host_on_present_ex(uint32_t width, uint32_t height, uint32_t vk_format, void *vk_device);
 static std::atomic<unsigned> g_n{0};
 static int g_logged_init;
 static int g_3f_logged;
