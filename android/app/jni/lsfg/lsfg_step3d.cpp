@@ -413,6 +413,17 @@ extern "C" void lsfg_step3d_run(void *device, const char *cache_dir, uint32_t w,
     audit_shader_roles(cache_dir);
     lsfg_log("I", "=== LSFG step 3d: descriptor reflection + frame pair ===");
 
+    // Export the CPU reflection results as plain metadata. This deliberately
+    // excludes shader bytecode and is useful for offline pass/layout analysis.
+    char metadata_path[700];
+    snprintf(metadata_path, sizeof metadata_path, "%s/lsfg_reflection.tsv", cache_dir);
+    FILE *metadata = fopen(metadata_path, "w");
+    if (metadata) {
+        fprintf(metadata, "kind\\tid\\tentry\\tlocal_x\\tlocal_y\\tlocal_z\\tlocal_size_known\\tset\\tbinding\\tdescriptor_type\\tcount\\n");
+    } else {
+        lsfg_log("W", "step3d: cannot write reflection metadata %s", metadata_path);
+    }
+
     int manifest_entries = 0;
     int cn = 0, wb = 0, maxb = 0, reflection_ok = 0, reflection_fail = 0;
     char line[256];
@@ -448,8 +459,25 @@ extern "C" void lsfg_step3d_run(void *device, const char *cache_dir, uint32_t w,
         int count = 0;
         if (reflect_shader_layout(dev, code, id, &count)) reflection_ok++;
         else reflection_fail++;
+
+        if (metadata) {
+            fprintf(metadata, "shader\\t%u\\t%s\\t%u\\t%u\\t%u\\t%d\\t\\t\\t\\t\\n",
+                    id, info.entry[0] ? info.entry : "",
+                    info.local_x, info.local_y, info.local_z,
+                    info.has_local_size ? 1 : 0);
+            if (reflected) {
+                for (const auto &b : binds) {
+                    fprintf(metadata, "binding\\t%u\\t\\t\\t\\t\\t\\t%u\\t%u\\t%d\\t%u\\n",
+                            id, b.set, b.binding, (int)b.type, b.count);
+                }
+            }
+        }
     }
     fclose(f);
+    if (metadata) {
+        fclose(metadata);
+        lsfg_log("I", "step3d: CPU reflection metadata written to %s", metadata_path);
+    }
     lsfg_log("I", "step3d manifest audit: entries=%d compute_spv=%d with_bindings=%d max_bindings=%d reflection_ok=%d reflection_failed=%d", manifest_entries, cn, wb, maxb, reflection_ok, reflection_fail);
     lsfg_log("I", "step3d history_images_allocated=%d extent=%ux%u phys=%p queue=%p",
              g_fb_ready, g_fb_w, g_fb_h, (void*)g_phys, (void*)g_queue);
