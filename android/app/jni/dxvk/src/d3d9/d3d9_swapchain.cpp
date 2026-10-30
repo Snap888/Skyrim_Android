@@ -942,7 +942,8 @@ namespace dxvk {
           lsfgGenerations, generation);
         auto* generatedView = static_cast<Rc<DxvkImageView>*>(generatedOpaque);
 
-        if (generatedView != nullptr && *generatedView != nullptr) {
+        const bool generationFailed = generatedView == nullptr || *generatedView == nullptr;
+        if (!generationFailed) {
           m_blitter->presentImage(m_context.ptr(), m_imageViews.at(generatedImageIndex),
             generatedDstRect, *generatedView, generatedSrcRect);
         } else {
@@ -956,6 +957,8 @@ namespace dxvk {
           m_hud->render(m_context, generatedInfo.format, generatedInfo.imageExtent);
 
         SubmitPresent(generatedSync, generation + 1);
+        if (generationFailed)
+          break;
       }
     }
 
