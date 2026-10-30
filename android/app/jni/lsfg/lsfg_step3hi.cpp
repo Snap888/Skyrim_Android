@@ -1,7 +1,7 @@
 /* Step 3h-i: per-frame FG with pacing (OFF by default).
- * - Promote last SAMPLED → STORAGE (DXVK SPIR-V write targets)
- * - Double-buffered cmd, timeout=0 fence
- * - Enable via lsfg.conf: fg_live=1
+ * CRITICAL: full 25-pass every frame → ~0.1 FPS on Adreno.
+ * Live path = LIGHT (mipmaps+generate only) + throttle (default 30).
+ * Config: fg_live=1, fg_throttle=30, fg_light=1
  */
 #include "lsfg_log.h"
 
@@ -83,6 +83,8 @@ static int g_logged_live;
 static std::atomic<unsigned> g_frame_n{0};
 static unsigned g_submit_n;
 static unsigned g_skip_n;
+static unsigned g_throttle = 30;
+static int g_light = 1;
 
 static bool load_spv(const char *path, std::vector<uint32_t> &out) {
     FILE *f = fopen(path, "rb");
@@ -101,7 +103,6 @@ static void reflect(const std::vector<uint32_t> &c, std::vector<BindInfo> &out) 
     out.clear();
     std::unordered_map<uint32_t, uint32_t> id_bind, id_type, type_pointee;
     std::unordered_map<uint32_t, int> type_kind;
-
     for (size_t i = 5; i < c.size();) {
         uint32_t w = c[i], op = w & 0xffff, len = w >> 16;
         if (!len) break;
@@ -123,12 +124,10 @@ static void reflect(const std::vector<uint32_t> &c, std::vector<BindInfo> &out) 
         }
         i += len;
     }
-
     std::vector<uint32_t> binds;
     for (auto &kv : id_bind) binds.push_back(kv.second);
     std::sort(binds.begin(), binds.end());
     binds.erase(std::unique(binds.begin(), binds.end()), binds.end());
-
     for (uint32_t b : binds) {
         BindInfo bi{};
         bi.binding = b;
@@ -151,7 +150,6 @@ static void reflect(const std::vector<uint32_t> &c, std::vector<BindInfo> &out) 
         }
         out.push_back(bi);
     }
-
     int last_sampled = -1;
     for (int i = (int)out.size() - 1; i >= 0; i--) {
         if (out[i].type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE) {
@@ -181,7 +179,6 @@ static bool ensure_shared(VkDevice dev, VkPhysicalDevice phys) {
     sci.minFilter = VK_FILTER_LINEAR;
     sci.addressModeU = sci.addressModeV = sci.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     if (vkCreateSampler(dev, &sci, nullptr, &g_sampler) != VK_SUCCESS) return false;
-
     VkBufferCreateInfo bci{};
     bci.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bci.size = 256;
@@ -217,13 +214,11 @@ static bool build_pass(VkDevice dev, const char *cache, const PassDef &def, Pass
     std::vector<uint32_t> code;
     if (!load_spv(path, code)) return false;
     reflect(code, p->binds);
-
     VkShaderModuleCreateInfo smci{};
     smci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     smci.codeSize = code.size() * 4;
     smci.pCode = code.data();
     if (vkCreateShaderModule(dev, &smci, nullptr, &p->sm) != VK_SUCCESS) return false;
-
     std::vector<VkDescriptorSetLayoutBinding> lbs;
     for (auto &b : p->binds) {
         VkDescriptorSetLayoutBinding lb{};
@@ -238,13 +233,11 @@ static bool build_pass(VkDevice dev, const char *cache, const PassDef &def, Pass
     dlci.bindingCount = (uint32_t)lbs.size();
     dlci.pBindings = lbs.empty() ? nullptr : lbs.data();
     if (vkCreateDescriptorSetLayout(dev, &dlci, nullptr, &p->dsl) != VK_SUCCESS) return false;
-
     VkPipelineLayoutCreateInfo plci{};
     plci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     plci.setLayoutCount = 1;
     plci.pSetLayouts = &p->dsl;
     if (vkCreatePipelineLayout(dev, &plci, nullptr, &p->pl) != VK_SUCCESS) return false;
-
     VkComputePipelineCreateInfo pci{};
     pci.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
     pci.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -270,12 +263,10 @@ static void update_ds(VkDevice dev, PassRt *p,
     imgs.reserve(p->binds.size() + 4);
     bufs.reserve(4);
     writes.reserve(p->binds.size());
-
     int si = 0, fi = 0, n_storage = 0;
     for (auto &b : p->binds)
         if (b.type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE) n_storage++;
     int storage_i = 0;
-
     for (auto &b : p->binds) {
         VkWriteDescriptorSet w{};
         w.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -283,7 +274,6 @@ static void update_ds(VkDevice dev, PassRt *p,
         w.dstBinding = b.binding;
         w.descriptorCount = 1;
         w.descriptorType = b.type;
-
         if (b.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
             VkDescriptorBufferInfo bb{};
             bb.buffer = g_ubo; bb.offset = 0; bb.range = 256;
@@ -298,10 +288,8 @@ static void update_ds(VkDevice dev, PassRt *p,
         } else if (b.type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE) {
             VkImageView v = gen0;
             if (n_storage > 1) {
-                if (storage_i < nflow && flows[storage_i])
-                    v = flows[storage_i];
-                else
-                    v = gen0;
+                if (storage_i < nflow && flows[storage_i]) v = flows[storage_i];
+                else v = gen0;
                 storage_i++;
             }
             VkDescriptorImageInfo ii{};
@@ -413,11 +401,14 @@ static bool build(VkDevice dev, VkPhysicalDevice phys, uint32_t qfam) {
     }
 
     g_ready = 1;
-    lsfg_log("I", "step3h-i: READY fg_live=%d present=%d slots=%d",
-             g_fg_live, lsfg_step3hh_present_enabled(), CMD_SLOTS);
+    lsfg_log("I", "step3h-i: READY fg_live=%d light=%d throttle=%u present=%d",
+             g_fg_live, g_light, g_throttle, lsfg_step3hh_present_enabled());
     if (!g_fg_live) {
         lsfg_log("I", "step3h-i: per-frame OFF — set fg_live=1 in port/lsfg.conf to enable");
-        lsfg_log("I", "NOTE: enabling will run full 25-pass chain async (may cost GPU time)");
+        lsfg_log("I", "NOTE: fg_live uses LIGHT path (2 passes) + throttle (default 30)");
+    } else {
+        lsfg_log("W", "step3h-i: LIVE ON light=%d throttle=%u — full 25-pass disabled for FPS",
+                 g_light, g_throttle);
     }
     return true;
 }
@@ -430,10 +421,8 @@ static bool submit_frame(VkDevice dev) {
     int s = g_slot % CMD_SLOTS;
     g_slot++;
 
-    if (vkWaitForFences(dev, 1, &g_fence[s], VK_TRUE, 0) == VK_TIMEOUT) {
-        g_skip_n++;
+    if (vkWaitForFences(dev, 1, &g_fence[s], VK_TRUE, 0) == VK_TIMEOUT)
         return false;
-    }
     vkResetFences(dev, 1, &g_fence[s]);
     vkResetCommandBuffer(g_cmd[s], 0);
 
@@ -462,8 +451,11 @@ static bool submit_frame(VkDevice dev) {
     uint32_t fw = (w * 70) / 100; if (fw < 8) fw = 8;
     uint32_t fh = (h * 70) / 100; if (fh < 8) fh = 8;
 
+    int dispatched = 0;
     for (auto &p : g_passes) {
         if (!p.ok || !p.pipe) continue;
+        if (g_light && p.id != 255 && p.id != 256)
+            continue;
         vkCmdBindPipeline(g_cmd[s], VK_PIPELINE_BIND_POINT_COMPUTE, p.pipe);
         if (p.ds && !p.binds.empty())
             vkCmdBindDescriptorSets(g_cmd[s], VK_PIPELINE_BIND_POINT_COMPUTE, p.pl, 0, 1, &p.ds, 0, nullptr);
@@ -471,7 +463,9 @@ static bool submit_frame(VkDevice dev) {
         vkCmdDispatch(g_cmd[s],
             is_gen ? ((w + 7) / 8) : ((fw + 7) / 8),
             is_gen ? ((h + 7) / 8) : ((fh + 7) / 8), 1);
+        dispatched++;
     }
+    if (!dispatched) return false;
     vkEndCommandBuffer(g_cmd[s]);
 
     VkSubmitInfo si{};
@@ -489,6 +483,18 @@ extern "C" void lsfg_step3hi_set_phys(void *phys) {
 
 extern "C" void lsfg_step3hi_set_live(int live) {
     g_fg_live = live ? 1 : 0;
+    if (g_fg_live && g_throttle < 1)
+        g_throttle = 30;
+}
+
+extern "C" void lsfg_step3hi_set_throttle(int n) {
+    if (n < 1) n = 1;
+    if (n > 600) n = 600;
+    g_throttle = (unsigned)n;
+}
+
+extern "C" void lsfg_step3hi_set_light(int light) {
+    g_light = light ? 1 : 0;
 }
 
 extern "C" int lsfg_step3hi_live(void) { return g_fg_live; }
@@ -514,10 +520,16 @@ extern "C" void lsfg_step3hi_on_frame(void *device, unsigned qfam) {
 
     if (n < 3) return;
 
+    if (g_throttle > 1 && (n % g_throttle) != 0) {
+        g_skip_n++;
+        return;
+    }
+
     bool ok = submit_frame(g_dev);
-    if (n == 3 || n == 60 || n == 300 || (n % 1800) == 0) {
-        lsfg_log("I", "step3h-i: frame #%u submit=%d total_ok=%u skip=%u",
-                 n, ok ? 1 : 0, g_submit_n, g_skip_n);
+    if (!ok) g_skip_n++;
+    if (n <= 5 || n == 60 || n == 300 || (n % 1800) == 0) {
+        lsfg_log("I", "step3h-i: frame #%u submit=%d ok=%u skip=%u light=%d throttle=%u",
+                 n, ok ? 1 : 0, g_submit_n, g_skip_n, g_light, g_throttle);
     }
 }
 
