@@ -133,3 +133,40 @@ The latest user-supplied excerpt expands the visible copied-SPIR-V reflection th
 ### Runtime update (2026-10-30 20:25)
 
 A later user-supplied log extends reflection observations through copied-SPIR-V IDs 388–400. It records distinct Alpha, Delta, and Beta candidate interfaces; the detailed per-ID table and arithmetic candidate comparisons are in [LSFG_VARIANT_MAP.md](LSFG_VARIANT_MAP.md). The same excerpt reports 300/300 successful CPU reflections and, at copy #1800, 1800 aggregate DXVK command-list completions with 900 copies per history slot. It still reports no GPU pipeline creation, descriptor binding, compute dispatch, or generated frames. These results validate neither history pixel contents nor shader equivalence/runtime selection.
+
+
+## snap-patch-2 experiment review (2026-10-30)
+
+The older `snap-patch-2` branch was reviewed for reusable implementation work. Its
+`lsfg_step3g.cpp` contains a WSI injection helper that wraps a generated
+`VkImage` as a DXVK image and records `DxvkContext::copyImage()` into the
+presentation command stream. The idea of doing final output composition inside
+the existing DXVK command list is sound, but the helper is not a complete
+frame-generation implementation: it assumes a generated image already exists,
+does not establish that image's producer/consumer synchronization, and only
+copies a compatible RGBA8 region. The current `snap-patch-3` tree does not
+contain the `step3hj` family or that injection hook, so no unverified code was
+blindly copied.
+
+The older branch's asynchronous `step3hj` experiment also uses a direct
+`vkQueueSubmit` path for independently recorded work. That path is not adopted:
+it can race DXVK's queued history copies and bypasses DXVK command-list resource
+tracking. Any future async compute must be integrated with DXVK's own command
+submission/lifetime model, not added as a second submit stream from present.
+
+The old branch's `step3hg` pass map and `step3he` resource experiments are
+useful research references, not runtime proof. Their pass order and resource
+semantics must be reconciled against the recovered chain, actual SPIR-V
+instructions, descriptor layouts, image formats/usages, and constant-buffer
+layouts before implementation.
+
+### Current next implementation gate
+
+The offline comparator `tools/compare_lsfg_spirv.py` now compares the
+candidate base/+98 module pairs without modifying or committing shader cache
+contents. Use it on the user's runtime cache first. After binary comparison,
+the next required artifact is a per-shader metadata dump that includes complete
+SPIR-V types, image formats, descriptor arrays, push constants, and UBO member
+offsets. Only then should DXVK compute pipeline/layout creation and dispatch be
+implemented. The current branch still has no LSFG compute dispatch or generated
+frame output.
