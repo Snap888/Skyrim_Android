@@ -75,3 +75,32 @@ Do not build one pipeline per arithmetic triple and do not dispatch all three va
 - copied SPIR-V retains the embedded HLSL-style bindings (including bindings 0, 16/17, 32+, and 48+ where present).
 
 The current Android branch still has no LSFG compute pipeline, descriptor binding, or dispatch. No generated frames are produced. This map is documentation for the next static comparison step only.
+
+
+## Runtime reflection evidence: IDs 348–400 (2026-10-30 19:44)
+
+The user supplied a runtime reflection excerpt for IDs 348–400. All listed modules reported `entry=main` and `reflection OK`. The following structural patterns are directly visible in that log:
+
+| Candidate group | IDs | Workgroup | Reflected interface |
+|---|---|---|---|
+| Beta candidate set for base 299–301, +49 | 348–350 | 8×8×1 | sampler b16; sampled b32–b33; storage b48–b49 |
+| Beta candidate set for base 299–301, +98 | 397–399 | 8×8×1 | sampler b16; sampled b32–b33; storage b48–b49 |
+| Beta candidate for base 302, +49 | 351 | 32×32×1 | UBO b0; sampler b16; sampled b32–b33; storage b48–b53 |
+| Beta candidate for base 302, +98 | 400 | 32×32×1 | UBO b0; sampler b16; sampled b32–b33; storage b48–b53 |
+
+This is useful evidence that the +49 and +98 candidates in these specific groups have matching reflected workgroup sizes and descriptor interfaces. It does **not** establish identical SPIR-V instructions, image formats, UBO layouts/values, or runtime selection. In particular, the different interfaces between IDs 348–350 and 351 show that even adjacent IDs within the same logical Beta family are not one universal pipeline layout.
+
+The wider excerpt also shows substantial interface variation among the copied modules:
+- ID 353: 32×32×1, UBO b0, sampler b16, sampled b32, storage b48–b54.
+- ID 354: 16×16×1, UBO b0, samplers b16/b17, sampled b32–b36, storage b48.
+- IDs 355–356: 8×8×1, UBO b0, samplers b16/b17, many sampled resources, and multiple storage outputs.
+- ID 373: 8×8×1, sampler b16, sampled b32–b43, storage b48–b49.
+- IDs 377 and 400: 32×32×1; their exact binding sets differ (377 includes UBO b0, sampler b16, sampled b32/b33, storage b48–b53; 400 has the same visible shape).
+- ID 378: 8×8×1, UBO b0, samplers b16/b17, sampled b32–b36, storage b48–b50.
+- IDs 383, 387, and 395 include UBO b0 and sampler b16/b17 but have distinct sampled/storage counts.
+
+The excerpt's summary again reports 300/300 reflection success. Runtime then allocated history at 2448×1080 and recorded copies to two persistent slots; at copy #60 and #300, completion counts matched the per-slot recorded counts. It still explicitly reports CPU reflection only, no GPU pipelines/descriptors/dispatch, and zero generated frames. The history log also says pixel contents have not been read back.
+
+### Consequence
+
+The next comparison should prioritize actual binary comparisons for the observed candidate pairs (348↔397, 349↔398, 350↔399, 351↔400), followed by full SPIR-V type/image/UBO reflection. Do not merge their layouts solely because the visible interfaces match. Preserve a distinct layout per reflected interface until the full metadata and runtime selection are known.
