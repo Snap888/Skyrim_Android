@@ -123,3 +123,8 @@ The latest user-supplied runtime log reports:
 - The same run still reports `CPU reflection only; no GPU pipelines created, no descriptors bound, no dispatch submitted` and `generated_frames=0`.
 
 This is stronger evidence that the DXVK command-list copy path remains active over a long session. It is not evidence that history pixels are correct, that any LSFG compute pass ran, or that an interpolated frame was produced. The next blocker is unchanged: recover the Windows runtime's actual shader/pass selection, resource bindings, constant-buffer contents, and dispatch sequence. Until those values are known, enabling guessed compute dispatches would be unsafe and would not constitute a correct LSFG implementation.
+
+
+### Runtime reflection variant observation (2026-10-30 19:44)
+
+The latest user-supplied excerpt expands the visible copied-SPIR-V reflection through IDs 348–400. It shows matching workgroup/interface signatures for candidate pairs 348↔397, 349↔398, 350↔399, and 351↔400, while also showing distinct layouts and workgroup sizes across other IDs. The details and limitations are recorded in [LSFG_VARIANT_MAP.md](LSFG_VARIANT_MAP.md). Matching reflection signatures are not proof of byte identity or runtime selection.
