@@ -208,7 +208,7 @@ static bool createImage(
   DxvkImageViewCreateInfo viewInfo{};
   viewInfo.type = VK_IMAGE_VIEW_TYPE_2D;
   viewInfo.format = format;
-  viewInfo.usage = usage;
+  viewInfo.usage = usage & (VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
   viewInfo.aspect = VK_IMAGE_ASPECT_COLOR_BIT;
   viewInfo.minLevel = 0;
   viewInfo.numLevels = 1;
