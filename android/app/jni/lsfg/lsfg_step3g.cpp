@@ -122,12 +122,19 @@ extern "C" void lsfg_step3hj_insert_inject_impl(
     Rc<DxvkImage> dstImg = wsiView->image();
     if (dstImg == nullptr) return;
 
+    /* Gen intermediate is capped (see step3hj). Never claim full FB size. */
+    uint32_t cw = w, ch = h;
+    if (dstImg->info().extent.width < cw) cw = dstImg->info().extent.width;
+    if (dstImg->info().extent.height < ch) ch = dstImg->info().extent.height;
+    if (cw > 960) cw = 960;
+    if (ch > 960) ch = 960;
+
     DxvkImageCreateInfo ii{};
     ii.type        = VK_IMAGE_TYPE_2D;
     ii.format      = VK_FORMAT_R8G8B8A8_UNORM;
     ii.flags       = 0;
     ii.sampleCount = VK_SAMPLE_COUNT_1_BIT;
-    ii.extent      = { w, h, 1 };
+    ii.extent      = { cw, ch, 1 };
     ii.numLayers   = 1;
     ii.mipLevels   = 1;
     ii.usage       = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT
@@ -141,9 +148,11 @@ extern "C" void lsfg_step3hj_insert_inject_impl(
     /* Cache external wrapper — allocating every present leaks and confuses DXVK. */
     static Rc<DxvkImage> s_genWrap;
     static VkImage s_genVkCached = VK_NULL_HANDLE;
-    if (s_genVkCached != genVk || s_genWrap == nullptr) {
+    static uint32_t s_cw, s_ch;
+    if (s_genVkCached != genVk || s_genWrap == nullptr || s_cw != cw || s_ch != ch) {
         s_genWrap = new DxvkImage(device->vkd(), ii, genVk);
         s_genVkCached = genVk;
+        s_cw = cw; s_ch = ch;
     }
 
     VkImageSubresourceLayers sub{};
@@ -151,13 +160,6 @@ extern "C" void lsfg_step3hj_insert_inject_impl(
     sub.mipLevel       = 0;
     sub.baseArrayLayer = 0;
     sub.layerCount     = 1;
-
-    uint32_t cw = w, ch = h;
-    if (dstImg->info().extent.width < cw) cw = dstImg->info().extent.width;
-    if (dstImg->info().extent.height < ch) ch = dstImg->info().extent.height;
-    /* Cap inject extent to gen size if intermediates were downscaled. */
-    if (cw > 1280) cw = 1280;
-    if (ch > 1280) ch = 1280;
 
     ctx->copyImage(
         dstImg, sub, VkOffset3D{ 0, 0, 0 },
