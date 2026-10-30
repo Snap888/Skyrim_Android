@@ -13,6 +13,7 @@
 #include "dxvk_sampler.h"
 #include "lsfg_dxvk_shader.h"
 #include "lsfg_dxvk_shared.h"
+#include "lsfg_log.h"
 
 namespace dxvk {
 
@@ -600,6 +601,10 @@ bool dispatchLsfgGeneration(
   bindImage(context, 8, targetView);
   context->bindShader(VK_SHADER_STAGE_COMPUTE_BIT, g_generateShader);
   context->dispatch((width + 15u) >> 4, (height + 15u) >> 4, 1);
+  if (frameIndex < 3u || (frameIndex % 300u) == 0u) {
+    lsfg_log("I", "step3j: generate command recorded source_frame=%u generation=%u/%u slot=%u extent=%ux%u",
+             frameIndex, generationIndex + 1u, generationCount, slot, width, height);
+  }
   return true;
 }
 
