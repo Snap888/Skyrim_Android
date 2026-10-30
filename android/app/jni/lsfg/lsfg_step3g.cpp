@@ -15,6 +15,7 @@
 #include "dxvk_buffer.h"
 #include "dxvk_sampler.h"
 #include "lsfg_dxvk_shader.h"
+#include "lsfg_dxvk_shared.h"
 
 extern "C" int  lsfg_step3d_frames_ready(void);
 extern "C" void *lsfg_step3d_get_image(int idx);
@@ -361,7 +362,10 @@ extern "C" void lsfg_step3g_copy_impl(
 
     const char *cache_dir = lsfg_host_cache_dir();
     if (dispatch_mipmaps(ctx, device, cache_dir, slot, w, h, generation)) {
-        unsigned frame_index = unsigned(g_pp);
+        unsigned frame_index = g_pp;
+        dispatchLsfgSharedPasses(ctx, device, cache_dir, g_flow_views,
+                                 g_flow_extent, frame_index,
+                                 lsfg_host_flow_scale(), generation);
         if (frame_index < 2 || (frame_index % 300) == 0) {
             lsfg_log("I", "step3h: mipmaps dispatch frame=%u history_slot=%u groups=%ux%u",
                      frame_index, slot, (g_flow_extent.width + 63u) >> 6,
