@@ -1,6 +1,7 @@
-/* Step 3h-j: LIGHT FG (mipmaps + generate only) — Adreno-safe
- * NO std::vector for PassRt — fixed arrays only (heap corruption fix)
- * Config: fg_live=1, fg_inject=1, fg_throttle<=120
+/* Step 3h-j: LIGHT FG — Adreno-safe
+ * Fixed arrays (no vector). Gen content = hist-copy (prev frame)
+ * until full optical-flow chain is wired. Proves inject end-to-end.
+ * Config: fg_live=1, fg_inject=1, fg_throttle=2..30
  */
 #include "lsfg_log.h"
 
@@ -229,7 +230,7 @@ static bool ensure_shared(VkDevice dev, VkPhysicalDevice phys) {
 }
 
 static bool build_pass(VkDevice dev, const char *cache, const PassDef &def, PassRt *p) {
-    memset(p, 0, sizeof(*p)); /* OK: no std::vector inside PassRt */
+    memset(p, 0, sizeof(*p));
     p->id = def.id;
     char path[700];
     snprintf(path, sizeof path, "%s/%u.spv", cache, def.id);
@@ -461,10 +462,10 @@ static void build_tick(VkDevice dev, VkPhysicalDevice phys, uint32_t qfam) {
         }
         g_ready = 1;
         g_build_phase = 4;
-        lsfg_log("I", "step3h-j: READY live=%d inject=%d throttle=%u stages=%d mode=light-fixed",
+        lsfg_log("I", "step3h-j: READY live=%d inject=%d throttle=%u stages=%d mode=hist-copy",
                  g_fg_live, g_fg_inject, g_throttle, g_pipe_ok);
         lsfg_log("I", "step3h-j: async 1-in-flight, NO WaitIdle — present-safe");
-        lsfg_log("I", "NEXT: wait for frame#30 then submit; inject when gen fence signals");
+        lsfg_log("I", "NEXT: hist-copy FG (prev frame→gen→WSI); throttle frames between submits");
     }
 }
 
@@ -477,6 +478,10 @@ static void poll_fence(VkDevice dev) {
     }
 }
 
+/* Primary light FG: copy older history frame → gen (frame-duplication FG).
+ * Real LSFG generate needs full flow chain; without it shaders write garbage.
+ * hist-copy is visually correct and proves inject path end-to-end.
+ */
 static bool submit_full(VkDevice dev) {
     if (!g_ready || !g_fg_live) return false;
     VkQueue q = (VkQueue)lsfg_step3d_get_queue();
@@ -488,35 +493,47 @@ static bool submit_full(VkDevice dev) {
     if (vkWaitForFences(dev, 1, &g_fence[s], VK_TRUE, 0) == VK_TIMEOUT) return false;
     vkResetFences(dev, 1, &g_fence[s]);
     vkResetCommandBuffer(g_cmd[s], 0);
-    VkImageView h0 = (VkImageView)lsfg_step3d_get_view(0);
-    VkImageView h1 = (VkImageView)lsfg_step3d_get_view(1);
-    if (!h0 || !h1 || !g_gen_view) return false;
-    for (int i = 0; i < g_npass; i++)
-        update_ds(dev, &g_pass[i], h0, h1);
+
+    VkImage srcHist = (VkImage)lsfg_step3d_get_image(0);
+    if (!srcHist || !g_gen) return false;
+
+    uint32_t w = lsfg_step3d_fb_width();
+    uint32_t h = lsfg_step3d_fb_height();
+    if (w < 8) w = 8;
+    if (h < 8) h = 8;
+
     VkCommandBufferBeginInfo bi{};
     bi.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     bi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    vkBeginCommandBuffer(g_cmd[s], &bi);
-    barrier_img(g_cmd[s], (VkImage)lsfg_step3d_get_image(0));
-    barrier_img(g_cmd[s], (VkImage)lsfg_step3d_get_image(1));
-    uint32_t w = lsfg_step3d_fb_width(); uint32_t h = lsfg_step3d_fb_height();
-    if (w < 8) w = 8; if (h < 8) h = 8;
-    for (int i = 0; i < g_npass; i++) {
-        PassRt &p = g_pass[i];
-        if (!p.ok || !p.pipe) continue;
-        vkCmdBindPipeline(g_cmd[s], VK_PIPELINE_BIND_POINT_COMPUTE, p.pipe);
-        if (p.ds && p.nbinds > 0)
-            vkCmdBindDescriptorSets(g_cmd[s], VK_PIPELINE_BIND_POINT_COMPUTE, p.pl, 0, 1, &p.ds, 0, nullptr);
-        vkCmdDispatch(g_cmd[s], (w + 7) / 8, (h + 7) / 8, 1);
-        barrier_img(g_cmd[s], g_gen);
-    }
+    if (vkBeginCommandBuffer(g_cmd[s], &bi) != VK_SUCCESS) return false;
+
+    barrier_img(g_cmd[s], srcHist);
+    barrier_img(g_cmd[s], g_gen);
+
+    VkImageCopy reg{};
+    reg.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    reg.srcSubresource.layerCount = 1;
+    reg.dstSubresource = reg.srcSubresource;
+    reg.extent = { w, h, 1 };
+
+    vkCmdCopyImage(g_cmd[s],
+                   srcHist, VK_IMAGE_LAYOUT_GENERAL,
+                   g_gen,   VK_IMAGE_LAYOUT_GENERAL,
+                   1, &reg);
+
     barrier_img(g_cmd[s], g_gen);
     vkEndCommandBuffer(g_cmd[s]);
+
     VkSubmitInfo si{};
     si.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    si.commandBufferCount = 1; si.pCommandBuffers = &g_cmd[s];
+    si.commandBufferCount = 1;
+    si.pCommandBuffers = &g_cmd[s];
     if (vkQueueSubmit(q, 1, &si, g_fence[s]) != VK_SUCCESS) return false;
-    g_inflight = s; g_gen_ready = 0; g_submit_n++;
+    g_inflight = s;
+    g_gen_ready = 0;
+    g_submit_n++;
+    if (g_submit_n <= 5 || (g_submit_n % 60) == 0)
+        lsfg_log("I", "step3h-j: hist-copy submit #%u %ux%u (prev frame → gen)", g_submit_n, w, h);
     return true;
 }
 
@@ -557,11 +574,11 @@ extern "C" void lsfg_step3hj_on_frame(void *device, unsigned qfam) {
         return;
     }
     if (!g_ready) return;
-    if (n < 30) return;
+    if (n < 10) return;
     if (g_throttle > 1 && (n % g_throttle) != 0) { g_skip_n++; return; }
     bool ok = submit_full(g_dev);
     if (!ok) g_skip_n++;
-    if (n == 30 || n == 60 || n == 120 || n == 300 || (n % 600) == 0)
+    if (n == 10 || n == 30 || n == 60 || n == 120 || n == 300 || (n % 600) == 0)
         lsfg_log("I", "step3h-j: frame #%u submit=%d ok=%u skip=%u inflight=%d gen=%d inject=%d",
                  n, ok ? 1 : 0, g_submit_n, g_skip_n, g_inflight, g_gen_ready, g_fg_inject);
 }
@@ -573,8 +590,8 @@ extern "C" void lsfg_step3hj_note_inject(void) {
     g_inject_n++;
     g_gen_ready = 0;
     if (g_inject_n <= 5 || g_inject_n == 60 || (g_inject_n % 300) == 0)
-        lsfg_log("I", "step3h-j: INJECT #%u (gen→swapchain)", g_inject_n);
+        lsfg_log("I", "step3h-j: INJECT #%u (gen→swapchain hist-copy)", g_inject_n);
 }
 extern "C" void lsfg_step3hj_install(void) {
-    lsfg_log("I", "LSFG: step3h-j LIGHT FG + inject installer ready (fixed-array)");
+    lsfg_log("I", "LSFG: step3h-j LIGHT FG + inject installer ready (hist-copy mode)");
 }
