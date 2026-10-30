@@ -37,28 +37,24 @@ extern "C" void lsfg_step3e_on_image(void *device, void *image,
     unsigned n = ++g_n;
     if (!g_logged_init) {
         g_logged_init = 1;
-        lsfg_log("I", "=== LSFG step 3e/3f: present-image hook LIVE (real VkImage) ===");
-        lsfg_log("I", "step3f: first real image %ux%u fmt=0x%x image=%p device=%p",
+        lsfg_log("I", "=== LSFG step 3e: real present-image hook LIVE ===");
+        lsfg_log("I", "step3e: first real WSI image %ux%u fmt=0x%x image=%p device=%p",
                  w, h, vkfmt, image, device);
     }
 
     /*
-     * Do not submit raw Vulkan command buffers from this present hook.
-     * DXVK owns and asynchronously submits work to this queue; a direct
-     * vkQueueSubmit here is not coordinated with its submission queue.
-     * The old step3f probe also cleared history[0], potentially racing
-     * with the DXVK history copy and destroying the pixels being tested.
-     * Keep this hook observational until diagnostics can be inserted into
-     * the DXVK command list with proper resource/layout tracking.
+     * History allocation is host-owned and does not submit work. All image
+     * copies and compute passes are recorded later into DXVK's active command
+     * list, so this hook must never call vkQueueSubmit or clear a live frame.
      */
     if (!g_3f_logged) {
         g_3f_logged = 1;
-        lsfg_log("I", "=== LSFG step 3f: observational present hook ===");
-        lsfg_log("I", "step3f: raw queue submit/history clear disabled; waiting for DXVK cmd-stream probe");
+        lsfg_log("I", "=== LSFG step 3f: DXVK-owned history and compute path ===");
+        lsfg_log("I", "step3f: step3d prepares two frame images; step3g records the copy and GPU passes");
     }
 
     if (n == 1 || n == 60 || n == 300 || (n % 1800) == 0) {
-        lsfg_log("I", "step3f: image #%u %ux%u fmt=0x%x img=%p history_probe=disabled",
+        lsfg_log("I", "step3f: WSI image #%u %ux%u fmt=0x%x img=%p history=step3d",
                  n, w, h, vkfmt, image);
     }
 }
