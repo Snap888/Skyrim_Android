@@ -222,16 +222,18 @@ namespace dxvk {
     const DxvkImageCreateInfo& srcInfo = srcView->imageInfo();
     VkExtent3D extent = srcView->mipLevelExtent(0);
 
+    VkFormat historyFormat = srcView->info().format;
+
     if (m_blendHistoryImage == nullptr
      || m_blendHistoryImage->info().extent != extent
-     || m_blendHistoryImage->info().format != srcInfo.format) {
+     || m_blendHistoryImage->info().format != historyFormat) {
       m_blendHistoryValid = false;
       m_blendHistoryImage = nullptr;
       m_blendHistoryView = nullptr;
 
       DxvkImageCreateInfo imageInfo;
       imageInfo.type        = VK_IMAGE_TYPE_2D;
-      imageInfo.format      = srcInfo.format;
+      imageInfo.format      = historyFormat;
       imageInfo.flags       = 0;
       imageInfo.sampleCount = VK_SAMPLE_COUNT_1_BIT;
       imageInfo.extent      = extent;
@@ -251,7 +253,7 @@ namespace dxvk {
 
       DxvkImageViewCreateInfo viewInfo;
       viewInfo.type      = VK_IMAGE_VIEW_TYPE_2D;
-      viewInfo.format    = srcInfo.format;
+      viewInfo.format    = historyFormat;
       viewInfo.usage     = VK_IMAGE_USAGE_SAMPLED_BIT;
       viewInfo.aspect    = VK_IMAGE_ASPECT_COLOR_BIT;
       viewInfo.minLevel  = 0;
