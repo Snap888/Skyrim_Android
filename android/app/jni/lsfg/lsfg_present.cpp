@@ -196,8 +196,12 @@ void lsfg_host_on_present_ex(uint32_t width, uint32_t height, uint32_t vk_format
         lsfg_log("I", "STATUS: hook receives frames; dimensions from SDL window");
     }
     if (dev) {
-        validate_spirv_on_device(dev);
-        try_build_compute_pipelines(dev);
+        // Keep expensive driver shader/pipeline compilation off the game's
+        // present thread. step3d performs CPU-side SPIR-V reflection only.
+        if (false) {
+            validate_spirv_on_device(dev);
+            try_build_compute_pipelines(dev);
+        }
         lsfg_step3d_run(dev, g_cache_dir, width, height);
     }
     if (g_present_n == 60 || g_present_n == 300 || (g_present_n % 1800) == 0) {
