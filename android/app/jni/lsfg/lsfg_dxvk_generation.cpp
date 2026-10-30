@@ -66,6 +66,7 @@ static Rc<DxvkSampler> g_whiteBorderSampler;
 static Rc<DxvkSampler> g_edgeSampler;
 static Rc<DxvkBuffer> g_generateConstants[GenerationSlots];
 static Image g_dummyMotion;
+static bool g_dummyCleared = false;
 static GammaState g_gamma[MipLevels];
 static DeltaState g_delta[DeltaInstances];
 
@@ -102,6 +103,7 @@ static void clearResources() {
   g_whiteBorderSampler = Rc<DxvkSampler>();
   g_edgeSampler = Rc<DxvkSampler>();
   g_dummyMotion = Image();
+  g_dummyCleared = false;
 
   for (auto& gamma : g_gamma) {
     for (auto& image : gamma.temp1) image = Image();
@@ -558,6 +560,16 @@ bool dispatchLsfgGeneration(
 
   const uint32_t slot = generationSlot(generationCount, generationIndex);
   if (slot >= GenerationSlots) return false;
+
+  if (!g_dummyCleared) {
+    VkClearValue clearValue{};
+    clearValue.color.float32[0] = 0.0f;
+    clearValue.color.float32[1] = 0.0f;
+    clearValue.color.float32[2] = 0.0f;
+    clearValue.color.float32[3] = 0.0f;
+    context->clearImageViewCs(g_dummyMotion.view, { 0, 0, 0 }, { 1, 1, 1 }, clearValue);
+    g_dummyCleared = true;
+  }
 
   // DXVK tracks image hazards and inserts the required compute barriers. Keep
   // gamma/delta interleaved at each level to preserve WinNative's paired order.
