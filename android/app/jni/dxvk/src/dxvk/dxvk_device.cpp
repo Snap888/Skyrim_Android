@@ -345,6 +345,20 @@ namespace dxvk {
     return DxvkDeviceQueue { queue, family, index };
   }
   
+
+  /* C++ linkage wrappers — swapchain declares these without extern "C" */
+  void* lsfg_get_present_image_hook() {
+    return reinterpret_cast<void*>(g_lsfg_present_image_hook);
+  }
+
+  void lsfg_step3g_insert_copy(
+      void* ctx, void* src_view, void* device,
+      uint32_t w, uint32_t h, uint32_t vkfmt) {
+    if (g_lsfg_step3g_copy_hook)
+      g_lsfg_step3g_copy_hook(ctx, src_view, device, w, h, vkfmt);
+  }
+
+
 }
 
 /* C ABI trampolines — public symbols for PresentImage / swapchain */
