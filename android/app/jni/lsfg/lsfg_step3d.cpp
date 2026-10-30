@@ -57,11 +57,17 @@ struct ComputeInfo {
 
 static bool get_compute_info(const std::vector<uint32_t> &c, ComputeInfo &info) {
     memset(&info, 0, sizeof(info));
+    uint32_t compute_entry_id = 0;
+    std::unordered_map<uint32_t, uint32_t> literal_constants;
+    struct PendingMode { uint32_t entry, mode, x, y, z; bool ids; };
+    std::vector<PendingMode> modes;
+
     for (size_t i = 5; i < c.size();) {
         uint32_t w = c[i], op = w & 0xffffu, len = w >> 16;
         if (!len || i + len > c.size()) return false;
         const uint32_t *a = c.data() + i;
         if (op == 15 && len >= 4 && a[1] == 5) { // OpEntryPoint GLCompute
+            compute_entry_id = a[2];
             size_t out = 0;
             const unsigned char *name = reinterpret_cast<const unsigned char *>(a + 3);
             size_t bytes = (size_t)(len - 3) * sizeof(uint32_t);
@@ -70,13 +76,34 @@ static bool get_compute_info(const std::vector<uint32_t> &c, ComputeInfo &info) 
                 out++;
             }
             info.entry[out] = 0;
+        } else if ((op == 43 || op == 50) && len >= 4) { // OpConstant / OpSpecConstant
+            literal_constants[a[2]] = a[3];
         } else if (op == 16 && len >= 6 && a[2] == 17) { // OpExecutionMode LocalSize
-            info.local_x = a[3];
-            info.local_y = a[4];
-            info.local_z = a[5];
-            info.has_local_size = true;
+            modes.push_back({a[1], a[2], a[3], a[4], a[5], false});
+        } else if (op == 331 && len >= 6 && a[2] == 38) { // OpExecutionModeId LocalSizeId
+            modes.push_back({a[1], a[2], a[3], a[4], a[5], true});
         }
         i += len;
+    }
+
+    for (const auto &mode : modes) {
+        if (mode.entry != compute_entry_id) continue;
+        if (!mode.ids) {
+            info.local_x = mode.x;
+            info.local_y = mode.y;
+            info.local_z = mode.z;
+        } else {
+            auto x = literal_constants.find(mode.x);
+            auto y = literal_constants.find(mode.y);
+            auto z = literal_constants.find(mode.z);
+            if (x == literal_constants.end() || y == literal_constants.end() || z == literal_constants.end())
+                continue; // Specialization-dependent sizes are intentionally unresolved.
+            info.local_x = x->second;
+            info.local_y = y->second;
+            info.local_z = z->second;
+        }
+        info.has_local_size = info.local_x && info.local_y && info.local_z;
+        if (info.has_local_size) break;
     }
     return info.entry[0] != 0;
 }
