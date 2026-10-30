@@ -176,7 +176,7 @@ static bool reflect(const std::vector<uint32_t> &c, std::vector<RefBinding> &out
 // Startup-safe reflection only. Creating hundreds of Vulkan pipelines here
 // blocks the game's present thread while the driver compiles shaders.
 // Actual pipeline creation belongs in a controlled, incremental runtime path.
-static bool probe_reflected_layout(VkDevice dev, const std::vector<uint32_t> &code,
+static bool reflect_shader_layout(VkDevice dev, const std::vector<uint32_t> &code,
                                    unsigned id, int *binding_count) {
     (void)dev;
     std::vector<RefBinding> bindings;
@@ -387,7 +387,7 @@ extern "C" void lsfg_step3d_run(void *device, const char *cache_dir, uint32_t w,
     lsfg_log("I", "=== LSFG step 3d: descriptor reflection + frame pair ===");
 
     int manifest_entries = 0;
-    int cn = 0, wb = 0, maxb = 0, layout_ok = 0, layout_fail = 0;
+    int cn = 0, wb = 0, maxb = 0, reflection_ok = 0, reflection_fail = 0;
     char line[256];
     /* Audit every manifest entry: shader IDs and variants are not guaranteed
        to be ordered, and a fixed sample can miss the actual LSFG pass set. */
@@ -419,14 +419,14 @@ extern "C" void lsfg_step3d_run(void *device, const char *cache_dir, uint32_t w,
             if ((int)binds.size() > maxb) maxb = (int)binds.size();
         }
         int count = 0;
-        if (probe_reflected_layout(dev, code, id, &count)) layout_ok++;
-        else layout_fail++;
+        if (reflect_shader_layout(dev, code, id, &count)) reflection_ok++;
+        else reflection_fail++;
     }
     fclose(f);
-    lsfg_log("I", "step3d manifest audit: entries=%d compute_spv=%d with_bindings=%d max_bindings=%d layout_pipeline_ok=%d failed=%d", manifest_entries, cn, wb, maxb, layout_ok, layout_fail);
+    lsfg_log("I", "step3d manifest audit: entries=%d compute_spv=%d with_bindings=%d max_bindings=%d reflection_ok=%d reflection_failed=%d", manifest_entries, cn, wb, maxb, reflection_ok, reflection_fail);
     lsfg_log("I", "step3d frames: ready=%d %ux%u phys=%p queue=%p",
              g_fb_ready, g_fb_w, g_fb_h, (void*)g_phys, (void*)g_queue);
-    lsfg_log("I", "step3d: layout/pipeline probes only; no descriptors bound and no dispatch submitted");
+    lsfg_log("I", "step3d: CPU reflection only; no GPU pipelines created, no descriptors bound, no dispatch submitted");
 }
 
 extern "C" int lsfg_step3d_frames_ready(void) { return g_fb_ready; }
