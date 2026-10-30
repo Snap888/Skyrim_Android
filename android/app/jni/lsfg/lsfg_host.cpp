@@ -27,12 +27,16 @@ extern "C" void lsfg_step3hg_install(void);
 extern "C" void lsfg_step3hh_install(void);
 extern "C" void lsfg_step3hi_install(void);
 extern "C" void lsfg_step3hi_set_live(int live);
+extern "C" void lsfg_step3hi_set_throttle(int n);
+extern "C" void lsfg_step3hi_set_light(int light);
 
 static LsfgConfig g_cfg;
 static int g_inited;
 static int g_logged_frame;
 static int g_extract_count;
 static int g_fg_live_cfg;
+static int g_fg_throttle_cfg = 30;
+static int g_fg_light_cfg = 1;
 
 bool lsfg_load_config(const char *game_dir, LsfgConfig *out) {
     memset(out, 0, sizeof(*out));
@@ -42,6 +46,8 @@ bool lsfg_load_config(const char *game_dir, LsfgConfig *out) {
     if (!game_dir || !*game_dir) return false;
 
     g_fg_live_cfg = 0;
+    g_fg_throttle_cfg = 30;
+    g_fg_light_cfg = 1;
     lsfg_log_open(game_dir);
 
     char path[768];
@@ -68,14 +74,17 @@ bool lsfg_load_config(const char *game_dir, LsfgConfig *out) {
         else if (!strcmp(key, "dll_path")) snprintf(out->dll_path, sizeof out->dll_path, "%s", val);
         else if (!strcmp(key, "shader_cache")) snprintf(out->shader_cache, sizeof out->shader_cache, "%s", val);
         else if (!strcmp(key, "fg_live")) g_fg_live_cfg = atoi(val);
+        else if (!strcmp(key, "fg_throttle")) g_fg_throttle_cfg = atoi(val);
+        else if (!strcmp(key, "fg_light")) g_fg_light_cfg = atoi(val);
     }
     fclose(f);
     if (out->multiplier < 1) out->multiplier = 1;
     if (out->multiplier > 4) out->multiplier = 4;
     if (!out->shader_cache[0] && game_dir[0])
         snprintf(out->shader_cache, sizeof out->shader_cache, "%s/port/lsfg_spirv", game_dir);
-    LOGI("config enabled=%d mult=%d flow=%.2f perf=%d fg_live=%d",
-         out->enabled, out->multiplier, out->flow_scale, out->performance, g_fg_live_cfg);
+    LOGI("config enabled=%d mult=%d flow=%.2f perf=%d fg_live=%d throttle=%d light=%d",
+         out->enabled, out->multiplier, out->flow_scale, out->performance,
+         g_fg_live_cfg, g_fg_throttle_cfg, g_fg_light_cfg);
     LOGI("dll=%s", out->dll_path);
     LOGI("cache=%s", out->shader_cache);
     return true;
@@ -148,9 +157,11 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     lsfg_step3hg_install();
     lsfg_step3hh_install();
     lsfg_step3hi_install();
+    lsfg_step3hi_set_throttle(g_fg_throttle_cfg);
+    lsfg_step3hi_set_light(g_fg_light_cfg);
     lsfg_step3hi_set_live(g_fg_live_cfg);
 
-    LOGI("STEP3: 3e/3g/3h-a..i installed (per-frame FG off unless fg_live=1)");
+    LOGI("STEP3: 3e/3g/3h-a..i installed (live=light+throttle unless configured)");
     g_inited = 1;
     return true;
 }
