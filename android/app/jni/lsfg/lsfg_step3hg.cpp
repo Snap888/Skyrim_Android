@@ -25,6 +25,7 @@ extern "C" unsigned lsfg_step3d_fb_width(void);
 extern "C" unsigned lsfg_step3d_fb_height(void);
 extern "C" const char *lsfg_host_cache_dir(void);
 extern "C" int lsfg_role_perf_mode(void);
+extern "C" void lsfg_step3hh_after_chain(void *device, unsigned qfam);
 
 struct PassDef {
     const char *name;
@@ -371,6 +372,7 @@ extern "C" void lsfg_step3hg_after_secondary(void *device, unsigned qfam) {
         lsfg_log("I", "step3h-g: order mipmaps->alpha->beta->gamma->delta->generate");
         lsfg_log("I", "NEXT step 3h-h: correct per-pass bindings + present inject (optional)");
         lsfg_log("I", "NOTE: per-frame FG still OFF — FPS safe");
+        lsfg_step3hh_after_chain((void*)g_dev, g_qfam);
     }
 }
 
