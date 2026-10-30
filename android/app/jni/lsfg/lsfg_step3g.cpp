@@ -320,6 +320,19 @@ extern "C" void lsfg_step3g_copy_impl(
         lsfg_log("I", "step3g: reset persistent history wrappers generation=%u", generation);
     }
 
+    if (g_hist_wrap[slot] != nullptr && g_hist_handle[slot] != histVk) {
+        g_hist_wrap[0] = Rc<DxvkImage>();
+        g_hist_wrap[1] = Rc<DxvkImage>();
+        g_hist_view[0] = Rc<DxvkImageView>();
+        g_hist_view[1] = Rc<DxvkImageView>();
+        g_hist_handle[0] = VK_NULL_HANDLE;
+        g_hist_handle[1] = VK_NULL_HANDLE;
+        g_wrap_frames = 0;
+        g_history_mask = 0;
+        reset_mipmap_resources();
+        lsfg_log("I", "step3g: history VkImage handles changed; restarting frame warmup");
+    }
+
     if (g_hist_wrap[slot] == nullptr || g_hist_handle[slot] != histVk) {
         DxvkImageCreateInfo ii{};
         ii.type        = VK_IMAGE_TYPE_2D;
