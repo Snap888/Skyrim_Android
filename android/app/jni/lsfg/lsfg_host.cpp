@@ -21,6 +21,7 @@ extern "C" void lsfg_step3h_pin_roles(const char *cache, int performance);
 extern "C" void lsfg_step3hb_install(void);
 extern "C" void lsfg_step3hc_install(void);
 extern "C" void lsfg_step3hd_install(void);
+extern "C" void lsfg_step3he_install(void);
 extern "C" void lsfg_step3hb_set_phys(void *phys);
 extern "C" void lsfg_step3e_set_queue(void *queue, unsigned family);
 
@@ -136,8 +137,9 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     lsfg_step3hb_install();
     lsfg_step3hc_install();
     lsfg_step3hd_install();
+    lsfg_step3he_install();
 
-    LOGI("STEP3: 3e/3g/3h-a..d installed (per-frame FG off)");
+    LOGI("STEP3: 3e/3g/3h-a..e installed (per-frame FG off)");
     g_inited = 1;
     return true;
 }
