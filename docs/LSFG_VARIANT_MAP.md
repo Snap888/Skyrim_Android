@@ -136,3 +136,28 @@ The new +98 candidates make these comparisons useful next:
 - Beta: 347↔396, plus the previously noted 348↔397, 349↔398, 350↔399, 351↔400.
 
 Matching binding signatures should be treated as layout clues only. Before pipeline creation, compare the actual SPIR-V instructions and complete type/format/UBO metadata, and establish which module the Windows runtime actually selects.
+
+
+## Offline binary comparison tool
+
+Use `tools/compare_lsfg_spirv.py` against a runtime shader-cache directory containing
+files named `<resource-id>.spv`. The default comparisons cover the candidate
+base/+98 pairs for Alpha, Delta, and Beta:
+
+```sh
+python3 tools/compare_lsfg_spirv.py /path/to/lsfg_spirv
+```
+
+To compare selected pairs only:
+
+```sh
+python3 tools/compare_lsfg_spirv.py /path/to/lsfg_spirv --pairs 339:388 340:389
+```
+
+If SPIRV-Tools is installed, the script also records disassembly-text hashes.
+It does not modify the cache or upload/commit shader binaries. A byte-identical
+pair is strong evidence that the files are the same module; differing hashes
+show only that the binaries differ. Equal disassembly text is not proof of
+runtime selection or algorithmic equivalence, and different disassembly text
+does not by itself prove different visual behavior. Missing/invalid modules are
+reported as unavailable rather than silently treated as unequal.
