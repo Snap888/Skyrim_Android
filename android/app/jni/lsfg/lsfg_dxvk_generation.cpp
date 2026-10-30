@@ -526,11 +526,12 @@ Rc<DxvkImageView> getLsfgGenerationTarget(
     const VkImageUsageFlags usage = VK_IMAGE_USAGE_STORAGE_BIT
       | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     const VkPipelineStageFlags stages = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
-      | VK_PIPELINE_STAGE_TRANSFER_BIT;
+      | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT;
     const VkAccessFlags access = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT
       | VK_ACCESS_TRANSFER_READ_BIT;
     if (!createImage(device, { width, height }, format, g_target, usage, stages, access)) {
       g_target = Image();
+      g_targetDevice = nullptr; // allow a later frame to retry allocation
       return Rc<DxvkImageView>();
     }
   }
