@@ -1,53 +1,77 @@
-# LSFG implementation status (`snap-patch-2`)
+# LSFG implementation status (`snap-patch-3`)
 
 ## Goal
 
-In-process **Lossless Scaling Frame Generation** on the **Android Vulkan present path**
-(after DXVK), using the user's own `Lossless.dll` as a **shader data source only**.
+In-process Lossless Scaling Frame Generation on the Android Vulkan path after DXVK.
+The user's `Lossless.dll` is treated as a shader-data source; it is not loaded as a
+Windows DLL on Android. No proprietary DLL or extracted shader payload is committed.
 
-Reference design: WinNative `docs/lsfg-frame-generation.md` / Eden LSFG (not MediaProjection).
+## Current verified implementation
 
-## Done in this branch (scaffold)
+| Stage | Location | Status |
+|---|---|---|
+| Host config/bootstrap | `android/app/jni/lsfg/lsfg_host.*`, `runtime/lsfg_bootstrap.c` | Implemented scaffold |
+| DXVK present integration | `android/app/jni/lsfg/lsfg_present.cpp` | Receives present notifications |
+| RCDATA extraction | `android/app/jni/lsfg/lsfg_extract.cpp` | Implemented; runtime log reported 300 resources extracted |
+| DXBC to SPIR-V translation | `android/app/jni/lsfg/lsfg_translate.cpp` | Implemented; runtime log reported 300 modules processed |
+| CPU-side SPIR-V reflection | `android/app/jni/lsfg/lsfg_step3d.cpp` | Descriptor metadata and workgroup-size audit; no GPU pipelines |
+| History image allocation | `android/app/jni/lsfg/lsfg_step3d.cpp` | Two RGBA8 images allocated |
+| Game-frame history copies | `android/app/jni/lsfg/lsfg_step3g.cpp` | Copies recorded through `DxvkContext::copyImage()` |
+| Completion observation | `dxvk_context.*`, `dxvk_cmdlist.*`, `dxvk_queue.cpp` | Fence completion callbacks wired |
+| Compute pipeline/descriptors/dispatch | — | **Not implemented** |
+| Generated-frame output and pacing | — | **Not implemented** |
 
-| Item | Location |
-|------|----------|
-| Host config load + init/shutdown stubs | `android/app/jni/lsfg/lsfg_host.*` |
-| Link `lsfg_host` into `libmain` | `jni/lsfg/CMakeLists.txt`, `jni/game/CMakeLists.txt` |
-| Bootstrap helper | `runtime/lsfg_bootstrap.c` |
-| Feasibility notes | `docs/LSFG_VK_INTEGRATION.md` |
+The runtime log previously supplied for this branch reported 300 successful CPU
+reflection results, history-copy completion callbacks, and no reported copy
+failures. These observations do not establish that the copied pixel contents are
+correct. The same log explicitly reported that no GPU pipelines were created,
+no descriptors were bound, and no compute dispatch or generated output occurred.
 
-## Wire-up required in `runtime/platform_sdl.c`
+## DXVK completion callback audit
 
-```c
-// end of platform_init(), after load_key_script():
-{ extern void lsfg_bootstrap(void); lsfg_bootstrap(); }
+`DxvkContext::addCompletionCallback` appends a callback to the active command
+list. The submission queue's finish thread waits for the command-list fence,
+calls `notifyCompletion(status)`, then notifies signals, resets the command list,
+and recycles it. This is the correct point for CPU-side completion accounting;
+callbacks must not record more commands into the completed command list.
 
-// start of platform_present_hook():
-{ extern void lsfg_bootstrap_frame(void); lsfg_bootstrap_frame(); }
-```
+The callback proves command-list retirement status, not image pixel validity.
+Keep callback captures small and independent of transient stack state. Do not
+submit Vulkan work or wait for the device from the callback.
 
-`runtime/lsfg_bootstrap.c` is picked up by `file(GLOB RT_SRC ${PORT}/runtime/*.c)`.
+## Resize and resource lifetime caveat
 
-## Launcher (add if missing)
+`lsfg_step3d.cpp:create_fb()` currently calls `vkDeviceWaitIdle()` before
+destroying history images on a size change. This avoids freeing images that may
+still be referenced by in-flight DXVK command lists, but can stall the caller
+during resize. It must not be replaced by immediate destruction or by clearing
+the persistent wrappers alone: DXVK command lists may still reference the
+external VkImages and their backing memory.
 
-On Play, write `port/lsfg.conf`:
+A future non-blocking resize implementation needs explicit deferred retirement
+of each old image, image view, and allocation until every command list that
+references that generation has completed. The wrapper's shared ownership alone
+does not own/destroy the externally-created VkImage or its VkDeviceMemory.
 
-```
-enabled=1
-multiplier=2
-flow_scale=0.70
-performance=1
-dll_path=<game>/port/Lossless.dll
-shader_cache=<game>/port/lsfg_spirv
-```
+## Next implementation gates
 
-Copy `Lossless.dll` to `<game>/port/Lossless.dll`. Do not commit the DLL.
+1. Keep the existing CPU-only path stable; do not compile hundreds of pipelines
+   from the present hook.
+2. Extend reflection to capture names, member offsets, push-constant blocks,
+   image dimensions/formats, and specialization-dependent metadata. Preserve
+   unknown values rather than guessing.
+3. Correlate shader metadata with the actual LSFG pass/resource graph. A list of
+   shader modules or symbolic role names alone is not sufficient to infer
+   dispatch order or resource bindings.
+4. Create pipelines incrementally on a controlled path, using the exact
+   descriptor layouts and push constants established by reflection.
+5. Record dispatches and barriers through DXVK-managed command recording and
+   lifetime tracking. Do not call an independent `vkQueueSubmit` from present.
+6. Add a verified output path and frame pacing only after the compute graph is
+   correct and GPU output can be validated.
 
-## Not done yet
+## Build and validation policy
 
-1. Extract RCDATA from DLL → SPIR-V cache
-2. Vulkan feature probe
-3. DXVK present hook (real interpolation)
-4. FPS pacing with multiplier
-
-Until then, logcat tag `skyrim-lsfg` only reports config / DLL found.
+No CI workflow, APK build, release, or device test is implied by this document.
+Do not commit `Lossless.dll`, extracted proprietary resources, or runtime shader
+cache files.
