@@ -103,3 +103,15 @@ does not own/destroy the externally-created VkImage or its VkDeviceMemory.
 No CI workflow, APK build, release, or device test is implied by this document.
 Do not commit `Lossless.dll`, extracted proprietary resources, or runtime shader
 cache files.
+
+## Latest Android runtime observation (2026-10-30)
+
+The latest user-supplied runtime log reports:
+
+- 300/300 compute SPIR-V modules passed CPU reflection; maximum reflected descriptor count was 20.
+- The two DXVK history slots were created at 2448×1080.
+- History-copy command lists completed through copy #5400, with completion counters matching the submitted copy count at the sampled checkpoints (#1, #60, #300, #1800, #3600, and #5400).
+- The log does not report a copy failure in the supplied excerpt.
+- The same run still reports `CPU reflection only; no GPU pipelines created, no descriptors bound, no dispatch submitted` and `generated_frames=0`.
+
+This is stronger evidence that the DXVK command-list copy path remains active over a long session. It is not evidence that history pixels are correct, that any LSFG compute pass ran, or that an interpolated frame was produced. The next blocker is unchanged: recover the Windows runtime's actual shader/pass selection, resource bindings, constant-buffer contents, and dispatch sequence. Until those values are known, enabling guessed compute dispatches would be unsafe and would not constitute a correct LSFG implementation.
