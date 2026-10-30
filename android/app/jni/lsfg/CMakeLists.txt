@@ -15,6 +15,7 @@ add_library(lsfg_host STATIC
     lsfg_step3he.cpp
     lsfg_step3hf.cpp
     lsfg_step3hg.cpp
+    lsfg_step3hh.cpp
     dxbc_options_stub.cpp
 )
 target_include_directories(lsfg_host PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
