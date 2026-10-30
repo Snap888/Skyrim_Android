@@ -419,7 +419,7 @@ extern "C" void lsfg_step3d_run(void *device, const char *cache_dir, uint32_t w,
     snprintf(metadata_path, sizeof metadata_path, "%s/lsfg_reflection.tsv", cache_dir);
     FILE *metadata = fopen(metadata_path, "w");
     if (metadata) {
-        fprintf(metadata, "kind\\tid\\tentry\\tlocal_x\\tlocal_y\\tlocal_z\\tlocal_size_known\\tset\\tbinding\\tdescriptor_type\\tcount\\n");
+        fprintf(metadata, "kind\tid\tentry\tlocal_x\tlocal_y\tlocal_z\tlocal_size_known\tset\tbinding\tdescriptor_type\tcount\n");
     } else {
         lsfg_log("W", "step3d: cannot write reflection metadata %s", metadata_path);
     }
@@ -461,13 +461,13 @@ extern "C" void lsfg_step3d_run(void *device, const char *cache_dir, uint32_t w,
         else reflection_fail++;
 
         if (metadata) {
-            fprintf(metadata, "shader\\t%u\\t%s\\t%u\\t%u\\t%u\\t%d\\t\\t\\t\\t\\n",
+            fprintf(metadata, "shader\t%u\t%s\t%u\t%u\t%u\t%d\t\t\t\t\n",
                     id, info.entry[0] ? info.entry : "",
                     info.local_x, info.local_y, info.local_z,
                     info.has_local_size ? 1 : 0);
             if (reflected) {
                 for (const auto &b : binds) {
-                    fprintf(metadata, "binding\\t%u\\t\\t\\t\\t\\t\\t%u\\t%u\\t%d\\t%u\\n",
+                    fprintf(metadata, "binding\t%u\t\t\t\t\t\t%u\t%u\t%d\t%u\n",
                             id, b.set, b.binding, (int)b.type, b.count);
                 }
             }
