@@ -12,6 +12,7 @@
 #endif
 
 extern "C" void lsfg_set_present_image_hook(void (*fn)(void*, void*, uint32_t, uint32_t, uint32_t));
+extern void lsfg_host_on_present_ex(uint32_t width, uint32_t height, uint32_t vk_format, void *vk_device);
 static std::atomic<unsigned> g_n{0};
 static int g_logged_init;
 static int g_3f_logged;
@@ -30,6 +31,8 @@ extern "C" void lsfg_step3e_on_image(void *device, void *image,
         g_null_skipped++;
         return;
     }
+
+    lsfg_host_on_present_ex(w, h, vkfmt, device);
 
     unsigned n = ++g_n;
     if (!g_logged_init) {

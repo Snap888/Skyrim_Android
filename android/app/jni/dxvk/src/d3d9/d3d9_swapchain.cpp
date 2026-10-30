@@ -877,7 +877,7 @@ namespace dxvk {
         extern void* lsfg_get_present_image_hook(void);
         auto hook = reinterpret_cast<void(*)(void*,void*,uint32_t,uint32_t,uint32_t)>(
             lsfg_get_present_image_hook());
-        if (hook) {
+        if (i == 0 && hook) {
           vk::PresenterImage pi = m_presenter->getImage(imageIndex);
           hook(reinterpret_cast<void*>(m_device->handle()),
                reinterpret_cast<void*>(pi.image),
