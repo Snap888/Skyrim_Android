@@ -21,6 +21,9 @@ static int g_pp;
 static int g_logged;
 static unsigned g_history_mask;
 static std::atomic<unsigned> g_slot_copies[2]{};
+static std::atomic<unsigned> g_slot_completed[2]{};
+static std::atomic<unsigned> g_copy_completed{0};
+static std::atomic<unsigned> g_copy_failed{0};
 static Rc<DxvkImage> g_hist_wrap[2];
 static VkImage g_hist_handle[2]{};
 static DxvkDevice* g_wrap_device;
@@ -121,12 +124,30 @@ extern "C" void lsfg_step3g_copy_impl(
         srcImg, sub, VkOffset3D{ 0, 0, 0 },
         VkExtent3D{ w, h, 1 });
 
-    // Keep the frame path free of diagnostic GPU readbacks. The copy
-    // completion/readback probe was useful to validate image contents, but
-    // allocating buffers and scheduling transfer readbacks periodically adds
-    // work to the game's command stream and is no longer needed.
-
+    // The callback belongs to this DXVK command list. It runs only after the
+    // command-list fence signals, before DXVK recycles its resources. This is
+    // deliberately non-blocking and does not submit work to Vulkan directly.
     unsigned n = ++g_copy_n;
+    ctx->addCompletionCallback([slot, n](VkResult status) {
+        if (status == VK_SUCCESS) {
+            unsigned completed = ++g_copy_completed;
+            unsigned slotCompleted = ++g_slot_completed[slot];
+            if (completed == 1 || completed == 60 || completed == 300
+                || (completed % 1800) == 0) {
+                lsfg_log("I", "step3g: GPU command-list completion #%u copy=%u slot[%u] slot_completed=%u",
+                         completed, n, slot, slotCompleted);
+            }
+        } else {
+            unsigned failed = ++g_copy_failed;
+            lsfg_log("E", "step3g: GPU command-list completion failed copy=%u slot[%u] VkResult=%d failures=%u",
+                     n, slot, (int)status, failed);
+        }
+    });
+
+    // Completion counters above confirm fence retirement, not pixel values.
+    // Pixel-content validation was performed separately by the earlier
+    // readback diagnostic; no readback is scheduled on the present path.
+
     unsigned slot_n = ++g_slot_copies[slot];
     const unsigned slot_bit = 1u << slot;
     if (!(g_history_mask & slot_bit)) {
