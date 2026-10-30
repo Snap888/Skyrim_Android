@@ -183,6 +183,16 @@ static bool probe_reflected_layout(VkDevice dev, const std::vector<uint32_t> &co
     }
     uint32_t max_set = 0;
     for (const auto &b : bindings) if (b.set > max_set) max_set = b.set;
+    if (!g_phys) {
+        lsfg_log("W", "step3d: id=%u physical device unavailable for descriptor-set limit check", id);
+        return false;
+    }
+    VkPhysicalDeviceProperties device_props{};
+    vkGetPhysicalDeviceProperties(g_phys, &device_props);
+    if (!bindings.empty() && max_set >= device_props.limits.maxBoundDescriptorSets) {
+        lsfg_log("W", "step3d: id=%u set index %u exceeds maxBoundDescriptorSets=%u", id, max_set, device_props.limits.maxBoundDescriptorSets);
+        return false;
+    }
     std::vector<VkDescriptorSetLayout> sets;
     VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
     bool ok = true;
