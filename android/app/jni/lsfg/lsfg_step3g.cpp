@@ -138,7 +138,13 @@ extern "C" void lsfg_step3hj_insert_inject_impl(
     ii.layout      = VK_IMAGE_LAYOUT_GENERAL;
     ii.shared      = VK_TRUE;
 
-    Rc<DxvkImage> srcImg = new DxvkImage(device->vkd(), ii, genVk);
+    /* Cache external wrapper — allocating every present leaks and confuses DXVK. */
+    static Rc<DxvkImage> s_genWrap;
+    static VkImage s_genVkCached = VK_NULL_HANDLE;
+    if (s_genVkCached != genVk || s_genWrap == nullptr) {
+        s_genWrap = new DxvkImage(device->vkd(), ii, genVk);
+        s_genVkCached = genVk;
+    }
 
     VkImageSubresourceLayers sub{};
     sub.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -149,10 +155,13 @@ extern "C" void lsfg_step3hj_insert_inject_impl(
     uint32_t cw = w, ch = h;
     if (dstImg->info().extent.width < cw) cw = dstImg->info().extent.width;
     if (dstImg->info().extent.height < ch) ch = dstImg->info().extent.height;
+    /* Cap inject extent to gen size if intermediates were downscaled. */
+    if (cw > 1280) cw = 1280;
+    if (ch > 1280) ch = 1280;
 
     ctx->copyImage(
         dstImg, sub, VkOffset3D{ 0, 0, 0 },
-        srcImg, sub, VkOffset3D{ 0, 0, 0 },
+        s_genWrap, sub, VkOffset3D{ 0, 0, 0 },
         VkExtent3D{ cw, ch, 1 });
 
     lsfg_step3hj_note_inject();
