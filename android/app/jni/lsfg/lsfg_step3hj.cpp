@@ -1,6 +1,7 @@
-/* Step 3h-j: LIGHT FG — Adreno-safe
- * Fixed arrays (no vector). Gen content = hist-copy (prev frame)
- * until full optical-flow chain is wired. Proves inject end-to-end.
+/* Step 3h-j: LIGHT FG GPU chain (Adreno-safe)
+ * Real compute: mipmaps(255) → generate(256), not hist-copy.
+ * Motion/detail start as cleared dummies (flow chain later);
+ * generate still runs the real SPIR-V path with hist0/hist1.
  * Config: fg_live=1, fg_inject=1, fg_throttle=2..30
  */
 #include "lsfg_log.h"
@@ -11,6 +12,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <atomic>
+#include <stdint.h>
 
 #ifdef __ANDROID__
 #include <vulkan/vulkan.h>
@@ -31,14 +33,18 @@ static const PassDef k_light[] = {
     { "p_mipmaps",  255 },
     { "p_generate", 256 },
 };
-enum { N_LIGHT = 2, MAX_BINDS = 24, CMD_SLOTS = 2 };
+enum {
+    N_LIGHT = 2,
+    MAX_BINDS = 24,
+    CMD_SLOTS = 2,
+    MIP_LEVELS = 7,
+};
 
 struct BindInfo {
     uint32_t binding;
     VkDescriptorType type;
 };
 
-/* POD-ish: fixed binds[], no std::vector inside PassRt */
 struct PassRt {
     uint32_t id;
     VkShaderModule sm;
@@ -50,6 +56,20 @@ struct PassRt {
     int nbinds;
     int ok;
 };
+
+/* Matches WinNative / lsfg-vk LsfgConstants (48 bytes). */
+struct LsfgConstants {
+    uint32_t input_offset[2];
+    uint32_t first_iter;
+    uint32_t first_iter_s;
+    uint32_t advanced_color_kind;
+    uint32_t hdr_support;
+    float resolution_inv_scale;
+    float timestamp;
+    float ui_threshold;
+    uint32_t padding[3];
+};
+static_assert(sizeof(LsfgConstants) == 48, "LsfgConstants size");
 
 static VkDevice g_dev = VK_NULL_HANDLE;
 static VkPhysicalDevice g_phys = VK_NULL_HANDLE;
@@ -70,9 +90,20 @@ static int g_ready;
 static VkImage g_gen = VK_NULL_HANDLE;
 static VkDeviceMemory g_gen_mem = VK_NULL_HANDLE;
 static VkImageView g_gen_view = VK_NULL_HANDLE;
+
+static VkImage g_mip[MIP_LEVELS] = {};
+static VkDeviceMemory g_mip_mem[MIP_LEVELS] = {};
+static VkImageView g_mip_view[MIP_LEVELS] = {};
+static uint32_t g_mip_w[MIP_LEVELS] = {}, g_mip_h[MIP_LEVELS] = {};
+static VkImage g_motion = VK_NULL_HANDLE, g_detail1 = VK_NULL_HANDLE, g_detail2 = VK_NULL_HANDLE;
+static VkDeviceMemory g_motion_mem = VK_NULL_HANDLE, g_detail1_mem = VK_NULL_HANDLE, g_detail2_mem = VK_NULL_HANDLE;
+static VkImageView g_motion_view = VK_NULL_HANDLE, g_detail1_view = VK_NULL_HANDLE, g_detail2_view = VK_NULL_HANDLE;
 static int g_imgs_ok;
+static int g_cleared;
+
 static int g_fg_live, g_fg_inject;
 static unsigned g_throttle = 30;
+static float g_flow_scale = 0.7f;
 static std::atomic<unsigned> g_frame_n{0};
 static unsigned g_submit_n, g_skip_n, g_inject_n;
 static int g_inflight = -1;
@@ -185,17 +216,90 @@ static bool create_img(VkDevice dev, VkPhysicalDevice phys, uint32_t w, uint32_t
     return vkCreateImageView(dev, &vci, nullptr, view) == VK_SUCCESS;
 }
 
+static void barrier_img(VkCommandBuffer cmd, VkImage img) {
+    if (!img) return;
+    VkImageMemoryBarrier b{};
+    b.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    b.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+    b.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT;
+    b.oldLayout = b.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+    b.srcQueueFamilyIndex = b.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    b.image = img;
+    b.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    b.subresourceRange.levelCount = 1; b.subresourceRange.layerCount = 1;
+    vkCmdPipelineBarrier(cmd,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
+        0, 0, nullptr, 0, nullptr, 1, &b);
+}
+
+static void barrier_undef_to_general(VkCommandBuffer cmd, VkImage img) {
+    if (!img) return;
+    VkImageMemoryBarrier b{};
+    b.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    b.srcAccessMask = 0;
+    b.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+    b.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    b.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+    b.srcQueueFamilyIndex = b.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    b.image = img;
+    b.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    b.subresourceRange.levelCount = 1; b.subresourceRange.layerCount = 1;
+    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
+        0, 0, nullptr, 0, nullptr, 1, &b);
+}
+
 static bool ensure_imgs(VkDevice dev, VkPhysicalDevice phys) {
     if (g_imgs_ok) return true;
     uint32_t w = lsfg_step3d_fb_width(); uint32_t h = lsfg_step3d_fb_height();
     if (w < 16) w = 16; if (h < 16) h = 16;
+
     if (!create_img(dev, phys, w, h, VK_FORMAT_R8G8B8A8_UNORM, &g_gen, &g_gen_mem, &g_gen_view)) {
         lsfg_log("W", "step3h-j: gen out alloc fail %ux%u", w, h);
         return false;
     }
+
+    uint32_t fw = (uint32_t)((float)w * g_flow_scale);
+    uint32_t fh = (uint32_t)((float)h * g_flow_scale);
+    if (fw < 8) fw = 8; if (fh < 8) fh = 8;
+
+    for (int i = 0; i < MIP_LEVELS; i++) {
+        g_mip_w[i] = fw >> i; if (g_mip_w[i] < 1) g_mip_w[i] = 1;
+        g_mip_h[i] = fh >> i; if (g_mip_h[i] < 1) g_mip_h[i] = 1;
+        if (!create_img(dev, phys, g_mip_w[i], g_mip_h[i], VK_FORMAT_R8_UNORM,
+                        &g_mip[i], &g_mip_mem[i], &g_mip_view[i])) {
+            lsfg_log("W", "step3h-j: mip L%d alloc fail", i);
+            return false;
+        }
+    }
+
+    if (!create_img(dev, phys, fw, fh, VK_FORMAT_R16G16B16A16_SFLOAT,
+                    &g_motion, &g_motion_mem, &g_motion_view)) return false;
+    if (!create_img(dev, phys, fw, fh, VK_FORMAT_R16G16B16A16_SFLOAT,
+                    &g_detail1, &g_detail1_mem, &g_detail1_view)) return false;
+    if (!create_img(dev, phys, fw, fh, VK_FORMAT_R16G16B16A16_SFLOAT,
+                    &g_detail2, &g_detail2_mem, &g_detail2_view)) return false;
+
     g_imgs_ok = 1;
-    lsfg_log("I", "step3h-j: intermediates LIGHT gen=%ux%u", w, h);
+    lsfg_log("I", "step3h-j: GPU intermediates gen=%ux%u flow=%ux%u mips=%d",
+             w, h, fw, fh, MIP_LEVELS);
     return true;
+}
+
+static void upload_ubo(float timestamp) {
+    if (!g_ubo_mem) return;
+    void *map = nullptr;
+    if (vkMapMemory(g_dev, g_ubo_mem, 0, sizeof(LsfgConstants), 0, &map) != VK_SUCCESS)
+        return;
+    LsfgConstants c{};
+    c.first_iter = 1;
+    c.first_iter_s = 1;
+    c.resolution_inv_scale = (g_flow_scale > 0.01f) ? (1.0f / g_flow_scale) : 1.0f;
+    c.timestamp = timestamp;
+    c.ui_threshold = 0.5f;
+    memcpy(map, &c, sizeof(c));
+    vkUnmapMemory(g_dev, g_ubo_mem);
 }
 
 static bool ensure_shared(VkDevice dev, VkPhysicalDevice phys) {
@@ -207,7 +311,8 @@ static bool ensure_shared(VkDevice dev, VkPhysicalDevice phys) {
     if (vkCreateSampler(dev, &sci, nullptr, &g_sampler) != VK_SUCCESS) return false;
     VkBufferCreateInfo bci{};
     bci.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bci.size = 256; bci.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    bci.size = sizeof(LsfgConstants);
+    bci.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     if (vkCreateBuffer(dev, &bci, nullptr, &g_ubo) != VK_SUCCESS) return false;
     VkMemoryRequirements mr; vkGetBufferMemoryRequirements(dev, g_ubo, &mr);
     VkMemoryAllocateInfo mai{};
@@ -217,15 +322,7 @@ static bool ensure_shared(VkDevice dev, VkPhysicalDevice phys) {
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     if (vkAllocateMemory(dev, &mai, nullptr, &g_ubo_mem) != VK_SUCCESS) return false;
     vkBindBufferMemory(dev, g_ubo, g_ubo_mem, 0);
-    void *map = nullptr;
-    if (vkMapMemory(dev, g_ubo_mem, 0, 256, 0, &map) == VK_SUCCESS) {
-        memset(map, 0, 256);
-        float *f = (float*)map;
-        f[0] = 0.5f;
-        f[1] = (float)lsfg_step3d_fb_width();
-        f[2] = (float)lsfg_step3d_fb_height();
-        vkUnmapMemory(dev, g_ubo_mem);
-    }
+    upload_ubo(0.5f);
     return true;
 }
 
@@ -287,7 +384,14 @@ static void update_ds(VkDevice dev, PassRt *p, VkImageView h0, VkImageView h1) {
     VkDescriptorImageInfo imgs[MAX_BINDS];
     VkDescriptorBufferInfo bufs[MAX_BINDS];
     int nw = 0, ni = 0, nb = 0;
-    int si = 0;
+    int si = 0, so = 0;
+
+    VkImageView gen_sampled[8] = {
+        h0, h1, g_motion_view, g_detail1_view, g_detail2_view, h0, h1, g_gen_view
+    };
+    VkImageView mip_storage[MIP_LEVELS];
+    for (int i = 0; i < MIP_LEVELS; i++) mip_storage[i] = g_mip_view[i];
+
     for (int i = 0; i < p->nbinds; i++) {
         BindInfo &b = p->binds[i];
         VkWriteDescriptorSet w{};
@@ -295,18 +399,34 @@ static void update_ds(VkDevice dev, PassRt *p, VkImageView h0, VkImageView h1) {
         w.dstSet = p->ds; w.dstBinding = b.binding; w.descriptorCount = 1;
         w.descriptorType = b.type;
         if (b.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
-            VkDescriptorBufferInfo bb{}; bb.buffer = g_ubo; bb.range = 256;
+            VkDescriptorBufferInfo bb{};
+            bb.buffer = g_ubo; bb.range = sizeof(LsfgConstants);
             bufs[nb] = bb; w.pBufferInfo = &bufs[nb]; nb++;
         } else if (b.type == VK_DESCRIPTOR_TYPE_SAMPLER) {
-            VkDescriptorImageInfo ii{}; ii.sampler = g_sampler; ii.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+            VkDescriptorImageInfo ii{};
+            ii.sampler = g_sampler; ii.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
             imgs[ni] = ii; w.pImageInfo = &imgs[ni]; ni++;
         } else if (b.type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE) {
-            VkImageView v = (p->id == 256) ? g_gen_view : (h0 ? h0 : g_gen_view);
-            VkDescriptorImageInfo ii{}; ii.imageView = v; ii.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+            VkImageView v = VK_NULL_HANDLE;
+            if (p->id == 256) {
+                v = g_gen_view;
+            } else {
+                if (so < MIP_LEVELS) v = mip_storage[so];
+                else v = g_gen_view;
+                so++;
+            }
+            VkDescriptorImageInfo ii{};
+            ii.imageView = v ? v : g_gen_view;
+            ii.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
             imgs[ni] = ii; w.pImageInfo = &imgs[ni]; ni++;
         } else {
-            VkImageView v = (si == 0) ? h0 : ((si == 1) ? h1 : h0);
-            si++;
+            VkImageView v;
+            if (p->id == 255) {
+                v = h1 ? h1 : h0;
+            } else {
+                v = gen_sampled[si < 8 ? si : 0];
+                si++;
+            }
             VkDescriptorImageInfo ii{};
             ii.imageView = v ? v : g_gen_view;
             ii.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
@@ -316,23 +436,6 @@ static void update_ds(VkDevice dev, PassRt *p, VkImageView h0, VkImageView h1) {
     }
     if (nw > 0)
         vkUpdateDescriptorSets(dev, (uint32_t)nw, writes, 0, nullptr);
-}
-
-static void barrier_img(VkCommandBuffer cmd, VkImage img) {
-    if (!img) return;
-    VkImageMemoryBarrier b{};
-    b.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    b.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
-    b.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT;
-    b.oldLayout = b.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-    b.srcQueueFamilyIndex = b.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    b.image = img;
-    b.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    b.subresourceRange.levelCount = 1; b.subresourceRange.layerCount = 1;
-    vkCmdPipelineBarrier(cmd,
-        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
-        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
-        0, 0, nullptr, 0, nullptr, 1, &b);
 }
 
 static bool finish_pool(VkDevice dev, uint32_t qfam) {
@@ -387,7 +490,7 @@ static bool finish_pool(VkDevice dev, uint32_t qfam) {
         fci.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fci.flags = VK_FENCE_CREATE_SIGNALED_BIT;
         if (vkCreateFence(dev, &fci, nullptr, &g_fence[i]) != VK_SUCCESS) {
-            lsfg_log("W", "step3h-j: fence fail slot=%d", i);
+            lsfg_log("W", "step3h-j: fence fail");
             return false;
         }
     }
@@ -396,64 +499,51 @@ static bool finish_pool(VkDevice dev, uint32_t qfam) {
 }
 
 static void build_tick(VkDevice dev, VkPhysicalDevice phys, uint32_t qfam) {
-    if (g_ready || g_build_fail) return;
     const char *cache = lsfg_host_cache_dir();
-    if (!cache || !*cache) { g_build_fail = 1; return; }
-
+    if (!cache || !cache[0]) {
+        lsfg_log("W", "step3h-j: no cache dir");
+        g_build_fail = 1;
+        return;
+    }
     if (g_build_phase == 0) {
-        lsfg_log("I", "=== LSFG step 3h-j: LIGHT chain (fixed-array, no vector) ===");
-        if (!ensure_shared(dev, phys)) {
-            lsfg_log("W", "step3h-j: shared fail");
+        lsfg_log("I", "=== LSFG step 3h-j: LIGHT GPU chain (mipmaps+generate) ===");
+        if (!ensure_imgs(dev, phys) || !ensure_shared(dev, phys)) {
             g_build_fail = 1;
             return;
         }
+        g_pipe_i = 0;
+        g_pipe_ok = 0;
+        g_npass = 0;
         g_build_phase = 1;
         return;
     }
-
     if (g_build_phase == 1) {
-        if (!ensure_imgs(dev, phys)) {
-            lsfg_log("W", "step3h-j: image alloc fail");
+        if (g_pipe_i >= N_LIGHT) {
+            g_build_phase = 3;
+            return;
+        }
+        const PassDef &def = k_light[g_pipe_i];
+        lsfg_log("I", "step3h-j: creating pipe %d/%d id=%u %s ...",
+                 g_pipe_i + 1, N_LIGHT, def.id, def.name);
+        PassRt tmp{};
+        if (!build_pass(dev, cache, def, &tmp)) {
+            lsfg_log("W", "step3h-j: pipe FAIL id=%u — abort", def.id);
             g_build_fail = 1;
             return;
         }
-        memset(g_pass, 0, sizeof(g_pass));
-        g_npass = 0;
-        g_pipe_i = 0;
-        g_pipe_ok = 0;
-        g_build_phase = 2;
+        g_pass[g_npass] = tmp;
+        g_npass++;
+        g_pipe_ok++;
+        lsfg_log("I", "step3h-j: pipe OK id=%u %s (ok=%d npass=%d)",
+                 def.id, def.name, g_pipe_ok, g_npass);
+        g_pipe_i++;
+        if (g_pipe_i >= N_LIGHT) {
+            lsfg_log("I", "step3h-j: pipelines ok=%d/%d npass=%d mode=gpu-light",
+                     g_pipe_ok, N_LIGHT, g_npass);
+            g_build_phase = 3;
+        }
         return;
     }
-
-    if (g_build_phase == 2) {
-        if (g_pipe_i < N_LIGHT) {
-            const PassDef &def = k_light[g_pipe_i];
-            lsfg_log("I", "step3h-j: creating pipe %d/%d id=%u %s ...",
-                     g_pipe_i + 1, N_LIGHT, def.id, def.name);
-            PassRt tmp;
-            int idx = g_pipe_i;
-            g_pipe_i++;
-            if (!build_pass(dev, cache, def, &tmp)) {
-                lsfg_log("W", "step3h-j: pipe FAIL id=%u %s", def.id, def.name);
-            } else {
-                g_pass[idx] = tmp;
-                g_npass = idx + 1;
-                g_pipe_ok++;
-                lsfg_log("I", "step3h-j: pipe OK id=%u %s (ok=%d npass=%d)",
-                         def.id, def.name, g_pipe_ok, g_npass);
-            }
-            return;
-        }
-        lsfg_log("I", "step3h-j: pipelines ok=%d/%d npass=%d mode=light-fixed",
-                 g_pipe_ok, N_LIGHT, g_npass);
-        if (g_pipe_ok < 1 || g_npass < 1) {
-            g_build_fail = 1;
-            return;
-        }
-        g_build_phase = 3;
-        return;
-    }
-
     if (g_build_phase == 3) {
         if (!finish_pool(dev, qfam)) {
             lsfg_log("W", "step3h-j: finish_pool failed — FG disabled");
@@ -462,10 +552,10 @@ static void build_tick(VkDevice dev, VkPhysicalDevice phys, uint32_t qfam) {
         }
         g_ready = 1;
         g_build_phase = 4;
-        lsfg_log("I", "step3h-j: READY live=%d inject=%d throttle=%u stages=%d mode=hist-copy",
+        lsfg_log("I", "step3h-j: READY live=%d inject=%d throttle=%u stages=%d mode=gpu-mip+gen",
                  g_fg_live, g_fg_inject, g_throttle, g_pipe_ok);
         lsfg_log("I", "step3h-j: async 1-in-flight, NO WaitIdle — present-safe");
-        lsfg_log("I", "NEXT: hist-copy FG (prev frame→gen→WSI); throttle frames between submits");
+        lsfg_log("I", "NEXT: GPU dispatch mipmaps→generate; inject when fence signals");
     }
 }
 
@@ -478,50 +568,87 @@ static void poll_fence(VkDevice dev) {
     }
 }
 
-/* Primary light FG: copy older history frame → gen (frame-duplication FG).
- * Real LSFG generate needs full flow chain; without it shaders write garbage.
- * hist-copy is visually correct and proves inject path end-to-end.
- */
+static uint32_t groups(uint32_t size) {
+    return (size + 15u) / 16u;
+}
+
 static bool submit_full(VkDevice dev) {
-    if (!g_ready || !g_fg_live) return false;
+    if (!g_ready || g_npass < 2) return false;
+    if (g_inflight >= 0) return false;
+
     VkQueue q = (VkQueue)lsfg_step3d_get_queue();
     if (!q) return false;
-    poll_fence(dev);
-    if (g_inflight >= 0) return false;
-    int s = g_slot % CMD_SLOTS;
-    g_slot++;
-    if (vkWaitForFences(dev, 1, &g_fence[s], VK_TRUE, 0) == VK_TIMEOUT) return false;
-    vkResetFences(dev, 1, &g_fence[s]);
-    vkResetCommandBuffer(g_cmd[s], 0);
 
-    VkImage srcHist = (VkImage)lsfg_step3d_get_image(0);
-    if (!srcHist || !g_gen) return false;
+    VkImageView h0 = (VkImageView)lsfg_step3d_get_view(0);
+    VkImageView h1 = (VkImageView)lsfg_step3d_get_view(1);
+    if (!h0 && !h1) return false;
+    if (!h0) h0 = h1;
+    if (!h1) h1 = h0;
 
     uint32_t w = lsfg_step3d_fb_width();
     uint32_t h = lsfg_step3d_fb_height();
-    if (w < 8) w = 8;
-    if (h < 8) h = 8;
+    if (w < 16) w = 16;
+    if (h < 16) h = 16;
+
+    int s = g_slot % CMD_SLOTS;
+    if (vkGetFenceStatus(dev, g_fence[s]) != VK_SUCCESS)
+        return false;
+    vkResetFences(dev, 1, &g_fence[s]);
+    vkResetCommandBuffer(g_cmd[s], 0);
+
+    upload_ubo(0.5f);
+    update_ds(dev, &g_pass[0], h0, h1);
+    update_ds(dev, &g_pass[1], h0, h1);
 
     VkCommandBufferBeginInfo bi{};
     bi.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     bi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     if (vkBeginCommandBuffer(g_cmd[s], &bi) != VK_SUCCESS) return false;
 
-    barrier_img(g_cmd[s], srcHist);
-    barrier_img(g_cmd[s], g_gen);
+    if (!g_cleared) {
+        barrier_undef_to_general(g_cmd[s], g_gen);
+        for (int i = 0; i < MIP_LEVELS; i++)
+            barrier_undef_to_general(g_cmd[s], g_mip[i]);
+        barrier_undef_to_general(g_cmd[s], g_motion);
+        barrier_undef_to_general(g_cmd[s], g_detail1);
+        barrier_undef_to_general(g_cmd[s], g_detail2);
+        VkClearColorValue z{};
+        VkImageSubresourceRange sr{};
+        sr.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        sr.levelCount = 1; sr.layerCount = 1;
+        vkCmdClearColorImage(g_cmd[s], g_motion, VK_IMAGE_LAYOUT_GENERAL, &z, 1, &sr);
+        vkCmdClearColorImage(g_cmd[s], g_detail1, VK_IMAGE_LAYOUT_GENERAL, &z, 1, &sr);
+        vkCmdClearColorImage(g_cmd[s], g_detail2, VK_IMAGE_LAYOUT_GENERAL, &z, 1, &sr);
+        barrier_img(g_cmd[s], g_motion);
+        barrier_img(g_cmd[s], g_detail1);
+        barrier_img(g_cmd[s], g_detail2);
+        g_cleared = 1;
+    }
 
-    VkImageCopy reg{};
-    reg.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    reg.srcSubresource.layerCount = 1;
-    reg.dstSubresource = reg.srcSubresource;
-    reg.extent = { w, h, 1 };
+    VkImage hist0 = (VkImage)lsfg_step3d_get_image(0);
+    VkImage hist1 = (VkImage)lsfg_step3d_get_image(1);
+    if (hist0) barrier_img(g_cmd[s], hist0);
+    if (hist1) barrier_img(g_cmd[s], hist1);
 
-    vkCmdCopyImage(g_cmd[s],
-                   srcHist, VK_IMAGE_LAYOUT_GENERAL,
-                   g_gen,   VK_IMAGE_LAYOUT_GENERAL,
-                   1, &reg);
+    {
+        PassRt &p = g_pass[0];
+        vkCmdBindPipeline(g_cmd[s], VK_PIPELINE_BIND_POINT_COMPUTE, p.pipe);
+        vkCmdBindDescriptorSets(g_cmd[s], VK_PIPELINE_BIND_POINT_COMPUTE, p.pl, 0, 1, &p.ds, 0, nullptr);
+        uint32_t gw = groups(g_mip_w[0] ? g_mip_w[0] : w);
+        uint32_t gh = groups(g_mip_h[0] ? g_mip_h[0] : h);
+        vkCmdDispatch(g_cmd[s], gw, gh, 1);
+        for (int i = 0; i < MIP_LEVELS; i++)
+            barrier_img(g_cmd[s], g_mip[i]);
+    }
 
-    barrier_img(g_cmd[s], g_gen);
+    {
+        PassRt &p = g_pass[1];
+        vkCmdBindPipeline(g_cmd[s], VK_PIPELINE_BIND_POINT_COMPUTE, p.pipe);
+        vkCmdBindDescriptorSets(g_cmd[s], VK_PIPELINE_BIND_POINT_COMPUTE, p.pl, 0, 1, &p.ds, 0, nullptr);
+        vkCmdDispatch(g_cmd[s], groups(w), groups(h), 1);
+        barrier_img(g_cmd[s], g_gen);
+    }
+
     vkEndCommandBuffer(g_cmd[s]);
 
     VkSubmitInfo si{};
@@ -529,11 +656,13 @@ static bool submit_full(VkDevice dev) {
     si.commandBufferCount = 1;
     si.pCommandBuffers = &g_cmd[s];
     if (vkQueueSubmit(q, 1, &si, g_fence[s]) != VK_SUCCESS) return false;
+
     g_inflight = s;
+    g_slot = (s + 1) % CMD_SLOTS;
     g_gen_ready = 0;
     g_submit_n++;
     if (g_submit_n <= 5 || (g_submit_n % 60) == 0)
-        lsfg_log("I", "step3h-j: hist-copy submit #%u %ux%u (prev frame → gen)", g_submit_n, w, h);
+        lsfg_log("I", "step3h-j: GPU dispatch #%u %ux%u mipmaps→generate", g_submit_n, w, h);
     return true;
 }
 
@@ -590,8 +719,8 @@ extern "C" void lsfg_step3hj_note_inject(void) {
     g_inject_n++;
     g_gen_ready = 0;
     if (g_inject_n <= 5 || g_inject_n == 60 || (g_inject_n % 300) == 0)
-        lsfg_log("I", "step3h-j: INJECT #%u (gen→swapchain hist-copy)", g_inject_n);
+        lsfg_log("I", "step3h-j: INJECT #%u (gen→swapchain GPU)", g_inject_n);
 }
 extern "C" void lsfg_step3hj_install(void) {
-    lsfg_log("I", "LSFG: step3h-j LIGHT FG + inject installer ready (hist-copy mode)");
+    lsfg_log("I", "LSFG: step3h-j LIGHT GPU chain installer ready (mipmaps+generate)");
 }
