@@ -231,7 +231,7 @@ namespace dxvk::hud {
 
     m_gameFps = uint32_t((gameDelta * 1'000'000ull) / elapsedUs);
     m_generatedFps = uint32_t((generatedDelta * 1'000'000ull) / elapsedUs);
-    m_outputFps = m_gameFps + m_generatedFps;
+    m_outputFps = uint32_t(((gameDelta + generatedDelta) * 1'000'000ull) / elapsedUs);
 
     m_prevGameFrames = gameFrames;
     m_prevGeneratedFrames = generatedFrames;
