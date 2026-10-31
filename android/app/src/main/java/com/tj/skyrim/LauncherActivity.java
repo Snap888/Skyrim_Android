@@ -115,6 +115,7 @@ public class LauncherActivity extends Activity {
     private static final String[] HUD_VERTICAL = {"Top", "Bottom"};
     private static final String[] LSFG_MULTIPLIER = {"x2", "x3", "x4"};
     private static final String[] LSFG_MODE = {"Performance", "Stability", "Low"};
+    private static final String[] GAME_FPS_LIMIT = {"Unlimited", "30 FPS", "40 FPS", "45 FPS", "50 FPS", "60 FPS", "90 FPS", "120 FPS"};
 
     @Override
     protected void onCreate(Bundle b) {
@@ -274,6 +275,10 @@ public class LauncherActivity extends Activity {
         });
         spinner(root, "lsfgMode", "Generation mode", LSFG_MODE, 1);
         text(root, "Performance: reduced compute load. Stability: full selected quality. Low: half-resolution flow.", 13, false);
+
+        text(root, "Game frame rate limit (DXVK)", 20, true);
+        spinner(root, "gameFpsLimit", "Maximum game FPS", GAME_FPS_LIMIT, 0);
+        text(root, "Limits the original game's frame rate before LSFG. Generated frames are not capped by this setting. Use Unlimited to disable the limiter.", 13, false);
 
         preset.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             boolean first = true;
@@ -566,7 +571,9 @@ public class LauncherActivity extends Activity {
             try (BufferedReader r = new BufferedReader(new InputStreamReader(new FileInputStream(config)))) {
                 String line;
                 while ((line = r.readLine()) != null) {
-                    if (!line.trim().toLowerCase(java.util.Locale.ROOT).startsWith("dxvk.hud")) lines.add(line);
+                    String normalized = line.trim().toLowerCase(java.util.Locale.ROOT);
+                    if (normalized.startsWith("dxvk.hud") || normalized.startsWith("d3d9.maxframerate")) continue;
+                    lines.add(line);
                 }
             }
         }
@@ -585,6 +592,10 @@ public class LauncherActivity extends Activity {
         } else {
             lines.add("dxvk.hud = disabled");
         }
+
+        int[] fpsValues = {0, 30, 40, 45, 50, 60, 90, 120};
+        int gameFpsLimit = fpsValues[Math.max(0, Math.min(sel("gameFpsLimit"), fpsValues.length - 1))];
+        lines.add("d3d9.maxFrameRate = " + gameFpsLimit);
 
         try (Writer w = new OutputStreamWriter(new FileOutputStream(config))) {
             for (String line : lines) w.write(line + "\n");
