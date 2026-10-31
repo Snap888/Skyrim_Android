@@ -602,6 +602,13 @@ bool dispatchLsfgGeneration(
   bindImage(context, 8, targetView);
   context->bindShader(VK_SHADER_STAGE_COMPUTE_BIT, g_generateShader);
   context->dispatch((width + 15u) >> 4, (height + 15u) >> 4, 1);
+
+  // The final compute pass writes targetView as a storage image. The next
+  // consumer is the fragment shader in DxvkSwapchainBlitter, which only
+  // samples the image and does not trigger the graphics storage hazard path.
+  // Flush the pending compute post-barriers before sampling it for presentation.
+  context->flushComputeBarriers();
+
   if (frameIndex < 3u || (frameIndex % 300u) == 0u) {
     lsfg_log("I", "step3j: generate command recorded source_frame=%u generation=%u/%u slot=%u extent=%ux%u",
              frameIndex, generationIndex + 1u, generationCount, slot, width, height);
