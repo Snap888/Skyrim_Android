@@ -84,6 +84,8 @@ namespace dxvk::hud {
     HudItemSet            m_hudItems;
 
     float                 m_scale;
+    std::string           m_hudAlign;
+    std::string           m_hudVertical;
 
     void setupRendererState(
       const Rc<DxvkContext>&  ctx,
