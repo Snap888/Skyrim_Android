@@ -56,6 +56,10 @@ namespace dxvk::hud {
       pos = end + 1;
     }
 
+    // Always expose LSFG FPS counters on this Android fork, even if the
+    // launcher provides a DXVK_HUD value that omits fps.
+    m_enabled.insert("fps");
+
     if (m_enabled.find("full") != m_enabled.end())
       m_enableFull = true;
     
