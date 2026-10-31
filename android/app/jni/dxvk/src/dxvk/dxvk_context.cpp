@@ -1464,6 +1464,12 @@ namespace dxvk {
   }
   
   
+  void DxvkContext::flushComputeBarriers() {
+    this->spillRenderPass(true);
+    m_execBarriers.recordCommands(m_cmd);
+  }
+
+
   void DxvkContext::dispatchIndirect(
           VkDeviceSize      offset) {
     auto bufferSlice = m_state.id.argBuffer.getSliceHandle(
