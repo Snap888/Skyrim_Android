@@ -1,9 +1,22 @@
 #include "dxvk_hud_item.h"
 
+#include <atomic>
 #include <iomanip>
 #include <version.h>
 
 namespace dxvk::hud {
+
+  static std::atomic<uint64_t> g_lsfgGameFrames{0};
+  static std::atomic<uint64_t> g_lsfgGeneratedFrames{0};
+
+  void addLsfgGameFrame() {
+    g_lsfgGameFrames.fetch_add(1, std::memory_order_relaxed);
+  }
+
+  void addLsfgGeneratedFrame() {
+    g_lsfgGeneratedFrames.fetch_add(1, std::memory_order_relaxed);
+  }
+
 
   HudItem::~HudItem() {
 
@@ -209,16 +222,12 @@ namespace dxvk::hud {
   }
 
 
-  extern "C" void dxvk_lsfg_get_frame_counts(
-      uint64_t* gameFrames, uint64_t* generatedFrames);
-
   HudLsfgFpsItem::HudLsfgFpsItem() { }
   HudLsfgFpsItem::~HudLsfgFpsItem() { }
 
   void HudLsfgFpsItem::update(dxvk::high_resolution_clock::time_point time) {
-    uint64_t gameFrames = 0;
-    uint64_t generatedFrames = 0;
-    dxvk_lsfg_get_frame_counts(&gameFrames, &generatedFrames);
+    const uint64_t gameFrames = g_lsfgGameFrames.load(std::memory_order_relaxed);
+    const uint64_t generatedFrames = g_lsfgGeneratedFrames.load(std::memory_order_relaxed);
 
     auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(
       time - m_lastUpdate);
