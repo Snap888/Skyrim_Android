@@ -56,10 +56,6 @@ namespace dxvk::hud {
       pos = end + 1;
     }
 
-    // Always expose LSFG FPS counters on this Android fork, even if the
-    // launcher provides a DXVK_HUD value that omits fps.
-    m_enabled.insert("fps");
-
     if (m_enabled.find("full") != m_enabled.end())
       m_enableFull = true;
     
@@ -83,9 +79,7 @@ namespace dxvk::hud {
   }
 
 
-  void HudItemSet::render(HudRenderer& renderer) {
-    HudPos position = { 8.0f, 8.0f };
-
+  void HudItemSet::render(HudRenderer& renderer, HudPos position) {
     for (const auto& item : m_items)
       position = item->render(renderer, position);
   }
@@ -226,7 +220,8 @@ namespace dxvk::hud {
   }
 
 
-  HudLsfgFpsItem::HudLsfgFpsItem() { }
+  HudLsfgFpsItem::HudLsfgFpsItem(bool showGame, bool showGenerated, bool showOutput)
+  : m_showGame(showGame), m_showGenerated(showGenerated), m_showOutput(showOutput) { }
   HudLsfgFpsItem::~HudLsfgFpsItem() { }
 
   void HudLsfgFpsItem::update(dxvk::high_resolution_clock::time_point time) {
@@ -257,23 +252,28 @@ namespace dxvk::hud {
           HudPos       position) {
     position.y += 16.0f;
 
-    // Render each metric as one string. Fixed X offsets caused values to
-    // overlap long labels on high-density / narrow Android displays.
-    renderer.drawText(16.0f, position,
-      { 1.0f, 0.25f, 0.25f, 1.0f },
-      str::format("Game FPS: ", m_gameFps));
+    // Render each enabled metric as one string; no fixed label/value offsets.
+    if (m_showGame) {
+      renderer.drawText(16.0f, position,
+        { 1.0f, 0.25f, 0.25f, 1.0f },
+        str::format("Game FPS: ", m_gameFps));
+      position.y += 20.0f;
+    }
 
-    position.y += 20.0f;
-    renderer.drawText(16.0f, position,
-      { 0.25f, 1.0f, 0.5f, 1.0f },
-      str::format("FG submit FPS: ", m_generatedFps));
+    if (m_showGenerated) {
+      renderer.drawText(16.0f, position,
+        { 0.25f, 1.0f, 0.5f, 1.0f },
+        str::format("FG submit FPS: ", m_generatedFps));
+      position.y += 20.0f;
+    }
 
-    position.y += 20.0f;
-    renderer.drawText(16.0f, position,
-      { 0.25f, 0.75f, 1.0f, 1.0f },
-      str::format("Output submit FPS: ", m_outputFps));
+    if (m_showOutput) {
+      renderer.drawText(16.0f, position,
+        { 0.25f, 0.75f, 1.0f, 1.0f },
+        str::format("Output submit FPS: ", m_outputFps));
+      position.y += 20.0f;
+    }
 
-    position.y += 8.0f;
     return position;
   }
 
