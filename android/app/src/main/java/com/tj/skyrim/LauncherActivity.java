@@ -22,6 +22,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.AdapterView;
@@ -29,6 +30,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -42,10 +44,13 @@ import java.util.Map;
  * are written to SkyrimPrefs.ini (where the game reads them) before the game
  * starts; the folder is passed to the native side as argv[1]. */
 public class LauncherActivity extends Activity {
-    private static final int REQ_FOLDER = 1, REQ_PERM = 2;
+    private static final int REQ_FOLDER = 1, REQ_PERM = 2, REQ_DLL = 3;
     private SharedPreferences prefs;
     private TextView folderText, folderStatus;
     private Button playButton;
+    private Button pickDllButton;
+    private TextView dllText, lsfgQualityValue;
+    private SeekBar lsfgQuality;
     private boolean pendingPick, pendingPlay;  /* continue once the storage prompt is answered */
     private boolean askedAllFiles;
     private final Map<String, Spinner> spinners = new LinkedHashMap<>();
@@ -108,6 +113,8 @@ public class LauncherActivity extends Activity {
     private static final String[] HUD_SIZE = {"Small", "Normal", "Large"};
     private static final String[] HUD_ALIGN = {"Left", "Center", "Right"};
     private static final String[] HUD_VERTICAL = {"Top", "Bottom"};
+    private static final String[] LSFG_MULTIPLIER = {"x2", "x3", "x4"};
+    private static final String[] LSFG_MODE = {"Performance", "Stability", "Low"};
 
     @Override
     protected void onCreate(Bundle b) {
@@ -237,6 +244,36 @@ public class LauncherActivity extends Activity {
         check(root, "hudGenerated", "FG submit FPS", true);
         check(root, "hudOutput", "Output submit FPS", true);
 
+        text(root, "Lossless Scaling Frame Generation", 20, true);
+        check(root, "lsfgEnabled", "Enable LSFG frame generation", false);
+        text(root, "Lossless.dll", 16, false);
+        dllText = text(root, prefs.getString("lsfgDllName", "No DLL selected"), 14, false);
+        pickDllButton = new Button(this);
+        pickDllButton.setText("Choose Lossless.dll");
+        pickDllButton.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("*/*");
+            startActivityForResult(intent, REQ_DLL);
+        });
+        root.addView(pickDllButton);
+        spinner(root, "lsfgMultiplier", "Generated frames", LSFG_MULTIPLIER, 0);
+        text(root, "Generation quality", 16, false);
+        lsfgQuality = new SeekBar(this);
+        lsfgQuality.setMax(9);
+        lsfgQuality.setProgress(Math.max(0, Math.min(9, prefs.getInt("lsfgQuality", 6))));
+        root.addView(lsfgQuality);
+        lsfgQualityValue = text(root, "", 14, false);
+        updateLsfgQualityLabel();
+        lsfgQuality.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                updateLsfgQualityLabel();
+            }
+            @Override public void onStartTrackingTouch(SeekBar bar) {}
+            @Override public void onStopTrackingTouch(SeekBar bar) {}
+        });
+        spinner(root, "lsfgMode", "Generation mode", LSFG_MODE, 1);
+
         preset.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             boolean first = true;
             @Override public void onItemSelected(AdapterView<?> p, View v, int pos, long id) {
@@ -254,6 +291,11 @@ public class LauncherActivity extends Activity {
         lp.topMargin = dp(16);
         root.addView(playButton, lp);
         setContentView(sv);
+    }
+
+    private void updateLsfgQualityLabel() {
+        if (lsfgQualityValue != null && lsfgQuality != null)
+            lsfgQualityValue.setText(String.format(java.util.Locale.US, "%.1f", (lsfgQuality.getProgress() + 1) / 10.0f));
     }
 
     /* Choosing a preset sets the detail options to what the PC launcher's preset does. */
@@ -324,6 +366,16 @@ public class LauncherActivity extends Activity {
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
+        if (req == REQ_DLL) {
+            if (res == RESULT_OK && data != null && data.getData() != null) {
+                try {
+                    copyLosslessDll(data.getData());
+                } catch (Exception e) {
+                    folderStatus.setText("Could not import Lossless.dll: " + e.getMessage());
+                }
+            }
+            return;
+        }
         if (req != REQ_FOLDER || res != RESULT_OK || data == null || data.getData() == null) return;
         String path = treeToPath(data.getData());
         if (path == null) {
@@ -339,6 +391,46 @@ public class LauncherActivity extends Activity {
     }
 
     /* content://...tree/primary:Games/Skyrim -> /storage/emulated/0/Games/Skyrim */
+    private void copyLosslessDll(Uri uri) throws Exception {
+        File dir = new File(getFilesDir(), "lsfg");
+        if (!dir.exists() && !dir.mkdirs()) throw new java.io.IOException("cannot create app LSFG folder");
+        File target = new File(dir, "Lossless.dll");
+        File temp = new File(dir, "Lossless.dll.tmp");
+        try (InputStream in = getContentResolver().openInputStream(uri)) {
+            if (in == null) throw new java.io.IOException("selected file cannot be opened");
+            byte[] head = new byte[2];
+            int got = in.read(head);
+            if (got != 2 || head[0] != 'M' || head[1] != 'Z')
+                throw new java.io.IOException("selected file is not a Windows PE DLL (MZ header missing)");
+            try (FileOutputStream out = new FileOutputStream(temp)) {
+                out.write(head);
+                byte[] buffer = new byte[1 << 16];
+                for (int n; (n = in.read(buffer)) > 0; ) out.write(buffer, 0, n);
+                out.getFD().sync();
+            }
+        }
+        if (target.exists() && !target.delete()) {
+            temp.delete();
+            throw new java.io.IOException("cannot replace previous DLL");
+        }
+        if (!temp.renameTo(target)) {
+            temp.delete();
+            throw new java.io.IOException("cannot move imported DLL into app storage");
+        }
+        File cache = new File(getNoBackupFilesDir(), "lsfg/cache");
+        deleteTree(cache);
+        prefs.edit().putString("lsfgDllName", "Lossless.dll (app storage)").apply();
+        dllText.setText("Lossless.dll (app storage)");
+        folderStatus.setText("Lossless.dll imported into private app storage");
+    }
+
+    private static void deleteTree(File file) {
+        if (file == null || !file.exists()) return;
+        File[] children = file.listFiles();
+        if (children != null) for (File child : children) deleteTree(child);
+        file.delete();
+    }
+
     private static String treeToPath(Uri tree) {
         String id;
         try { id = DocumentsContract.getTreeDocumentId(tree); } catch (Exception e) { return null; }
@@ -423,6 +515,7 @@ public class LauncherActivity extends Activity {
         SharedPreferences.Editor e = prefs.edit();
         for (Map.Entry<String, Spinner> s : spinners.entrySet()) e.putInt(s.getKey(), s.getValue().getSelectedItemPosition());
         for (Map.Entry<String, CheckBox> c : checks.entrySet()) e.putBoolean(c.getKey(), c.getValue().isChecked());
+        if (lsfgQuality != null) e.putInt("lsfgQuality", lsfgQuality.getProgress());
         e.apply();
     }
 
@@ -431,6 +524,11 @@ public class LauncherActivity extends Activity {
     private void play() {
         if (!hasStorage()) { pendingPlay = true; requestStorage(); return; }
         saveChoices();
+        if (checks.get("lsfgEnabled").isChecked()
+                && !new File(getFilesDir(), "lsfg/Lossless.dll").isFile()) {
+            folderStatus.setText("LSFG is enabled: choose a valid Lossless.dll first.");
+            return;
+        }
         String folder = prefs.getString("folder", null);
         File save = new File(folder, "port/save");
         File iniDir = new File(save, "Documents/My Games/Skyrim");
@@ -438,6 +536,7 @@ public class LauncherActivity extends Activity {
         try {
             writePrefs(new File(folder), new File(iniDir, "SkyrimPrefs.ini"));
             writeDxvkHudConfig(new File(folder));
+            writeLsfgConfig(new File(folder));
             // the native side builds the same mode list from this aspect (see modes())
             int[] av = ASPECT_V[sel("aspect")];
             try (Writer w = new OutputStreamWriter(new FileOutputStream(new File(save, "display.cfg")))) {
@@ -487,6 +586,28 @@ public class LauncherActivity extends Activity {
 
         try (Writer w = new OutputStreamWriter(new FileOutputStream(config))) {
             for (String line : lines) w.write(line + "\n");
+        }
+    }
+
+    /* LSFG reads only user-supplied Lossless.dll; shader/cache files are kept
+     * in app-private storage and never copied into the game folder. */
+    private void writeLsfgConfig(File game) throws Exception {
+        File port = new File(game, "port");
+        if (!port.exists() && !port.mkdirs()) throw new java.io.IOException("cannot create port config folder");
+        File dll = new File(getFilesDir(), "lsfg/Lossless.dll");
+        File cache = new File(getNoBackupFilesDir(), "lsfg/cache");
+        if (!cache.exists() && !cache.mkdirs()) throw new java.io.IOException("cannot create private LSFG cache");
+        int multiplier = sel("lsfgMultiplier") + 2;
+        float quality = (lsfgQuality.getProgress() + 1) / 10.0f;
+        int mode = sel("lsfgMode"); // 0 performance, 1 stability, 2 low GPU load
+        File config = new File(port, "lsfg.conf");
+        try (Writer w = new OutputStreamWriter(new FileOutputStream(config))) {
+            w.write("enabled=" + (checks.get("lsfgEnabled").isChecked() ? "1" : "0") + "\n");
+            w.write("multiplier=" + multiplier + "\n");
+            w.write(String.format(java.util.Locale.US, "flow_scale=%.1f\\n", quality));
+            w.write("performance=" + mode + "\n");
+            w.write("dll_path=" + dll.getAbsolutePath() + "\n");
+            w.write("shader_cache=" + cache.getAbsolutePath() + "\n");
         }
     }
 
