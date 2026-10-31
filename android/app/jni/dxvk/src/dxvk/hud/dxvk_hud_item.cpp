@@ -209,6 +209,63 @@ namespace dxvk::hud {
   }
 
 
+  extern "C" void dxvk_lsfg_get_frame_counts(
+      uint64_t* gameFrames, uint64_t* generatedFrames);
+
+  HudLsfgFpsItem::HudLsfgFpsItem() { }
+  HudLsfgFpsItem::~HudLsfgFpsItem() { }
+
+  void HudLsfgFpsItem::update(dxvk::high_resolution_clock::time_point time) {
+    uint64_t gameFrames = 0;
+    uint64_t generatedFrames = 0;
+    dxvk_lsfg_get_frame_counts(&gameFrames, &generatedFrames);
+
+    auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(
+      time - m_lastUpdate);
+    if (elapsed.count() < UpdateInterval)
+      return;
+
+    const uint64_t gameDelta = gameFrames - m_prevGameFrames;
+    const uint64_t generatedDelta = generatedFrames - m_prevGeneratedFrames;
+    const uint64_t elapsedUs = uint64_t(elapsed.count());
+
+    m_gameFps = uint32_t((gameDelta * 1'000'000ull) / elapsedUs);
+    m_generatedFps = uint32_t((generatedDelta * 1'000'000ull) / elapsedUs);
+    m_outputFps = m_gameFps + m_generatedFps;
+
+    m_prevGameFrames = gameFrames;
+    m_prevGeneratedFrames = generatedFrames;
+    m_lastUpdate = time;
+  }
+
+
+  HudPos HudLsfgFpsItem::render(
+          HudRenderer& renderer,
+          HudPos       position) {
+    position.y += 16.0f;
+
+    renderer.drawText(16.0f, position,
+      { 1.0f, 0.25f, 0.25f, 1.0f }, "Game FPS:");
+    renderer.drawText(16.0f, { position.x + 120.0f, position.y },
+      { 1.0f, 1.0f, 1.0f, 1.0f }, str::format(m_gameFps));
+
+    position.y += 20.0f;
+    renderer.drawText(16.0f, position,
+      { 0.25f, 1.0f, 0.5f, 1.0f }, "Generated FPS:");
+    renderer.drawText(16.0f, { position.x + 160.0f, position.y },
+      { 1.0f, 1.0f, 1.0f, 1.0f }, str::format(m_generatedFps));
+
+    position.y += 20.0f;
+    renderer.drawText(16.0f, position,
+      { 0.25f, 0.75f, 1.0f, 1.0f }, "Output FPS:");
+    renderer.drawText(16.0f, { position.x + 120.0f, position.y },
+      { 1.0f, 1.0f, 1.0f, 1.0f }, str::format(m_outputFps));
+
+    position.y += 8.0f;
+    return position;
+  }
+
+
   HudFrameTimeItem::HudFrameTimeItem() { }
   HudFrameTimeItem::~HudFrameTimeItem() { }
 
