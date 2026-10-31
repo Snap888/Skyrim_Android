@@ -168,6 +168,48 @@ Rc<DxvkShader> createLsfgComputeShader(
     return Rc<DxvkShader>();
   }
 
+  // LSFG's host-side binder uses a compact, declaration-order-independent
+  // slot convention: UBOs, samplers, sampled images, then storage images.
+  // DXBC-translated modules encode the same resources at bindings such as
+  // 800/816/832/1088, while embedded SPIR-V uses 0/16/32/48. Compact the
+  // sorted binding numbers and rewrite OpDecorate Binding in the module so
+  // the Vulkan shader interface and DXVK resource-slot metadata stay aligned.
+  std::vector<uint32_t> orderedBindings;
+  orderedBindings.reserve(descriptorBinding.size());
+  for (const auto& entry : descriptorBinding)
+    orderedBindings.push_back(entry.second);
+  std::sort(orderedBindings.begin(), orderedBindings.end());
+  orderedBindings.erase(
+    std::unique(orderedBindings.begin(), orderedBindings.end()),
+    orderedBindings.end());
+
+  if (orderedBindings.size() > MaxNumResourceSlots) {
+    setError(error, "LSFG shader has too many descriptor bindings");
+    return Rc<DxvkShader>();
+  }
+
+  std::unordered_map<uint32_t, uint32_t> normalizedBindings;
+  for (uint32_t i = 0; i < orderedBindings.size(); i++)
+    normalizedBindings.emplace(orderedBindings[i], i);
+
+  std::vector<uint32_t> normalizedCode = code;
+  for (size_t i = 5; i < normalizedCode.size();) {
+    const uint32_t word = normalizedCode[i];
+    const uint32_t op = word & 0xffffu;
+    const uint32_t len = word >> 16;
+    if (!len || i + len > normalizedCode.size()) {
+      setError(error, "malformed SPIR-V while normalizing descriptor bindings", uint32_t(i));
+      return Rc<DxvkShader>();
+    }
+
+    if (op == 71 && len >= 4 && normalizedCode[i + 2] == 33) {
+      auto binding = descriptorBinding.find(normalizedCode[i + 1]);
+      if (binding != descriptorBinding.end())
+        normalizedCode[i + 3] = normalizedBindings.at(binding->second);
+    }
+    i += len;
+  }
+
   // DxvkContext sources push-constant bytes from its D3D state. LSFG has
   // no D3D constant-state provider, so reject these modules instead of
   // dispatching with unrelated or uninitialized push-constant data.
@@ -260,11 +302,7 @@ Rc<DxvkShader> createLsfgComputeShader(
       return Rc<DxvkShader>();
     }
 
-    const uint32_t binding = descriptorBinding[v.id];
-    if (binding >= MaxNumResourceSlots) {
-      setError(error, "descriptor binding exceeds DXVK resource slot limit", v.id);
-      return Rc<DxvkShader>();
-    }
+    const uint32_t binding = normalizedBindings.at(descriptorBinding[v.id]);
 
     VkDescriptorType descriptorType = VK_DESCRIPTOR_TYPE_MAX_ENUM;
     VkImageViewType viewType = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
@@ -336,7 +374,7 @@ Rc<DxvkShader> createLsfgComputeShader(
     }
   }
 
-  SpirvCodeBuffer spirv(uint32_t(code.size()), code.data());
+  SpirvCodeBuffer spirv(uint32_t(normalizedCode.size()), normalizedCode.data());
   Rc<DxvkShader> shader = device->createShader(
     VK_SHADER_STAGE_COMPUTE_BIT,
     uint32_t(slots.size()),
