@@ -236,7 +236,7 @@ static bool write_source_stamp(const char *cache_dir, uint64_t hash, uint64_t si
     snprintf(tmp, sizeof tmp, "%s/source.meta.tmp", cache_dir);
     FILE *f = fopen(tmp, "w");
     if (!f) return false;
-    bool ok = fprintf(f, "%llx %llu\\n", (unsigned long long)hash, (unsigned long long)size) > 0;
+    bool ok = fprintf(f, "%llx %llu\n", (unsigned long long)hash, (unsigned long long)size) > 0;
     if (ok) ok = fflush(f) == 0;
     if (fclose(f) != 0) ok = false;
     if (!ok || rename(tmp, path) != 0) { remove(tmp); return false; }
