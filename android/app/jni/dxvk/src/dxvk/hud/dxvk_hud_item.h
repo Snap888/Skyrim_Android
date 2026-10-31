@@ -212,6 +212,24 @@ namespace dxvk::hud {
   /**
    * \brief HUD item to display the frame rate
    */
+  class HudLsfgFpsItem : public HudItem {
+    constexpr static int64_t UpdateInterval = 500'000;
+  public:
+    HudLsfgFpsItem();
+    ~HudLsfgFpsItem();
+    void update(dxvk::high_resolution_clock::time_point time);
+    HudPos render(HudRenderer& renderer, HudPos position);
+  private:
+    uint64_t m_prevGameFrames = 0;
+    uint64_t m_prevGeneratedFrames = 0;
+    uint32_t m_gameFps = 0;
+    uint32_t m_generatedFps = 0;
+    uint32_t m_outputFps = 0;
+    dxvk::high_resolution_clock::time_point m_lastUpdate
+      = dxvk::high_resolution_clock::now();
+  };
+
+
   class HudFrameTimeItem : public HudItem {
     constexpr static size_t NumDataPoints = 300;
   public:
