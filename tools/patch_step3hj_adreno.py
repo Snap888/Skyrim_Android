@@ -2,6 +2,7 @@
 """Adreno-safe patches for lsfg_step3hj.cpp:
 - Cap intermediates to 960
 - Dispatch groups match intermediate size (fixes OOB hang)
+- vkQueueWaitIdle before submit (serialize with DXVK on same queue)
 - Fence watchdog, inject cooldown, throttle floor
 """
 from pathlib import Path
@@ -93,6 +94,14 @@ src = src.replace(
     'lsfg_log("I", "step3h-j: GPU dispatch #%u %ux%u (fb %ux%u) mipmaps→generate", g_submit_n, dw, dh, w, h);',
     1)
 
+# Serialize queue submit with DXVK (same graphics queue — Adreno hang without this)
+old = """    if (vkQueueSubmit(q, 1, &si, g_fence[s]) != VK_SUCCESS) return false;"""
+new = """    vkQueueWaitIdle(q); /* serialize with DXVK submits on same queue */
+    if (vkQueueSubmit(q, 1, &si, g_fence[s]) != VK_SUCCESS) return false;"""
+if old not in src:
+    raise SystemExit("vkQueueSubmit pattern missing")
+src = src.replace(old, new, 1)
+
 old = """static void poll_fence(VkDevice dev) {
     if (g_inflight < 0) return;
     if (vkGetFenceStatus(dev, g_fence[g_inflight]) == VK_SUCCESS) {
@@ -148,7 +157,7 @@ old = '''extern "C" void lsfg_step3hj_note_inject(void) {
 new = '''extern "C" void lsfg_step3hj_note_inject(void) {
     g_inject_n++;
     g_gen_ready = 0;
-    g_cooldown = 6; /* frames before next submit after inject */
+    g_cooldown = 8; /* frames before next submit after inject */
     if (g_inject_n <= 5 || g_inject_n == 60 || (g_inject_n % 300) == 0)
         lsfg_log("I", "step3h-j: INJECT #%u (gen→swapchain GPU)", g_inject_n);
 }'''
@@ -156,16 +165,16 @@ if old not in src:
     raise SystemExit("note_inject missing")
 src = src.replace(old, new, 1)
 
-src = src.replace("if (n < 10) return;", "if (n < 60) return;", 1)
+src = src.replace("if (n < 10) return;", "if (n < 90) return;", 1)
 src = src.replace(
     "if (g_fg_live && g_throttle < 2) g_throttle = 2;",
-    "if (g_fg_live && g_throttle < 6) g_throttle = 6;",
+    "if (g_fg_live && g_throttle < 8) g_throttle = 8;",
     1)
 
 p.write_text(src)
 print("step3hj Adreno-safe OK", p.stat().st_size)
 # sanity
-for s in ["g_iw", "groups(dw)", "intermediate capped", "g_cooldown", "fence busy", "GPU dispatch"]:
+for s in ["g_iw", "groups(dw)", "intermediate capped", "g_cooldown", "fence busy", "GPU dispatch", "vkQueueWaitIdle"]:
     if s not in src:
         raise SystemExit(f"missing after patch: {s}")
 print("sanity OK")
