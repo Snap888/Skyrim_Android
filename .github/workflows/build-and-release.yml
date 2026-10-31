@@ -88,6 +88,14 @@ jobs:
           curl -fsSL -o android/app/jni/lsfg/lsfg_step3hj.cpp \
             "https://raw.githubusercontent.com/Snap888/Skyrim_Android/445743cde0593a36e073dd93e70482016ab23925/android/app/jni/lsfg/lsfg_step3hj.cpp"
           python3 tools/patch_step3hj_adreno.py
+          if ! grep -q 'groups(dw)' android/app/jni/lsfg/lsfg_step3hj.cpp; then
+            echo "::error::step3hj missing groups(dw) — OOB fix not applied"
+            exit 1
+          fi
+          if ! grep -q 'vkQueueWaitIdle' android/app/jni/lsfg/lsfg_step3hj.cpp; then
+            echo "::error::step3hj missing vkQueueWaitIdle"
+            exit 1
+          fi
           echo "step3hj restored+patched $(wc -c < android/app/jni/lsfg/lsfg_step3hj.cpp) bytes"
 
       - name: Restore / download gen/
