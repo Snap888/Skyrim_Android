@@ -65,6 +65,9 @@ bool lsfg_load_config(const char *game_dir, LsfgConfig *out) {
     fclose(f);
     if (out->multiplier < 1) out->multiplier = 1;
     if (out->multiplier > 4) out->multiplier = 4;
+    if (out->flow_scale < 0.1f) out->flow_scale = 0.1f;
+    if (out->flow_scale > 1.0f) out->flow_scale = 1.0f;
+    if (out->performance < 0 || out->performance > 2) out->performance = 1;
     if (!out->shader_cache[0] && game_dir[0])
         snprintf(out->shader_cache, sizeof out->shader_cache, "%s/port/lsfg_spirv", game_dir);
     LOGI("config enabled=%d mult=%d flow=%.2f perf=%d",
@@ -154,7 +157,16 @@ unsigned lsfg_host_generation_count(void) {
 }
 
 float lsfg_host_flow_scale(void) {
-    return g_cfg.flow_scale > 0.0f ? g_cfg.flow_scale : 0.70f;
+    const float quality = g_cfg.flow_scale >= 0.1f && g_cfg.flow_scale <= 1.0f
+        ? g_cfg.flow_scale : 0.70f;
+
+    // Mode is a compute-resolution policy layered over the quality slider:
+    // Performance trades spatial detail for lower GPU cost; Stability keeps
+    // the requested quality; Low uses half-resolution flow for constrained GPUs.
+    static const float modeScale[] = { 0.75f, 1.0f, 0.5f };
+    const unsigned mode = (g_cfg.performance >= 0 && g_cfg.performance <= 2)
+        ? (unsigned)g_cfg.performance : 1u;
+    return quality * modeScale[mode];
 }
 
 bool lsfg_host_active(void) {
