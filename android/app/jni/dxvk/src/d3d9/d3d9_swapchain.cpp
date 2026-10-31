@@ -4,6 +4,19 @@
 
 #include "d3d9_hud.h"
 
+#include <atomic>
+
+static std::atomic<uint64_t> g_lsfgGameFrames{0};
+static std::atomic<uint64_t> g_lsfgGeneratedFrames{0};
+
+extern "C" void dxvk_lsfg_get_frame_counts(
+    uint64_t* gameFrames, uint64_t* generatedFrames) {
+  if (gameFrames)
+    *gameFrames = g_lsfgGameFrames.load(std::memory_order_relaxed);
+  if (generatedFrames)
+    *generatedFrames = g_lsfgGeneratedFrames.load(std::memory_order_relaxed);
+}
+
 /* LSFG callback registration keeps DXVK independent of lsfg_host at link time. */
 using LsfgCopyHook = void (*)(void*, void*, void*, uint32_t, uint32_t, uint32_t);
 static LsfgCopyHook g_lsfgCopyHook = nullptr;
@@ -826,6 +839,7 @@ namespace dxvk {
 
   void D3D9SwapChainEx::PresentImage(UINT SyncInterval) {
     m_parent->Flush();
+    g_lsfgGameFrames.fetch_add(1, std::memory_order_relaxed);
 
     // Retrieve the image and image view to present
     auto swapImage = m_backBuffers[0]->GetCommonTexture()->GetImage();
@@ -965,6 +979,8 @@ namespace dxvk {
           m_hud->render(m_context, generatedInfo.format, generatedInfo.imageExtent);
 
         SubmitPresent(generatedSync, generation + 1);
+        if (!generationFailed)
+          g_lsfgGeneratedFrames.fetch_add(1, std::memory_order_relaxed);
         if (generationFailed)
           break;
       }
