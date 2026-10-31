@@ -251,13 +251,13 @@ namespace dxvk::hud {
 
     position.y += 20.0f;
     renderer.drawText(16.0f, position,
-      { 0.25f, 1.0f, 0.5f, 1.0f }, "Generated FPS:");
+      { 0.25f, 1.0f, 0.5f, 1.0f }, "FG submit FPS:");
     renderer.drawText(16.0f, { position.x + 160.0f, position.y },
       { 1.0f, 1.0f, 1.0f, 1.0f }, str::format(m_generatedFps));
 
     position.y += 20.0f;
     renderer.drawText(16.0f, position,
-      { 0.25f, 0.75f, 1.0f, 1.0f }, "Output FPS:");
+      { 0.25f, 0.75f, 1.0f, 1.0f }, "Output submit FPS:");
     renderer.drawText(16.0f, { position.x + 120.0f, position.y },
       { 1.0f, 1.0f, 1.0f, 1.0f }, str::format(m_outputFps));
 
