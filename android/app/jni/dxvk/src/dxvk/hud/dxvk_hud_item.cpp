@@ -257,22 +257,21 @@ namespace dxvk::hud {
           HudPos       position) {
     position.y += 16.0f;
 
+    // Render each metric as one string. Fixed X offsets caused values to
+    // overlap long labels on high-density / narrow Android displays.
     renderer.drawText(16.0f, position,
-      { 1.0f, 0.25f, 0.25f, 1.0f }, "Game FPS:");
-    renderer.drawText(16.0f, { position.x + 120.0f, position.y },
-      { 1.0f, 1.0f, 1.0f, 1.0f }, str::format(m_gameFps));
+      { 1.0f, 0.25f, 0.25f, 1.0f },
+      str::format("Game FPS: ", m_gameFps));
 
     position.y += 20.0f;
     renderer.drawText(16.0f, position,
-      { 0.25f, 1.0f, 0.5f, 1.0f }, "FG submit FPS:");
-    renderer.drawText(16.0f, { position.x + 160.0f, position.y },
-      { 1.0f, 1.0f, 1.0f, 1.0f }, str::format(m_generatedFps));
+      { 0.25f, 1.0f, 0.5f, 1.0f },
+      str::format("FG submit FPS: ", m_generatedFps));
 
     position.y += 20.0f;
     renderer.drawText(16.0f, position,
-      { 0.25f, 0.75f, 1.0f, 1.0f }, "Output submit FPS:");
-    renderer.drawText(16.0f, { position.x + 120.0f, position.y },
-      { 1.0f, 1.0f, 1.0f, 1.0f }, str::format(m_outputFps));
+      { 0.25f, 0.75f, 1.0f, 1.0f },
+      str::format("Output submit FPS: ", m_outputFps));
 
     position.y += 8.0f;
     return position;
