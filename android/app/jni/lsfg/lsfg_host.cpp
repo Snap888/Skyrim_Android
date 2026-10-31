@@ -61,6 +61,7 @@ bool lsfg_load_config(const char *game_dir, LsfgConfig *out) {
         else if (!strcmp(key, "performance")) out->performance = atoi(val);
         else if (!strcmp(key, "dll_path")) snprintf(out->dll_path, sizeof out->dll_path, "%s", val);
         else if (!strcmp(key, "shader_cache")) snprintf(out->shader_cache, sizeof out->shader_cache, "%s", val);
+        else if (!strcmp(key, "state_cache")) snprintf(out->state_cache, sizeof out->state_cache, "%s", val);
     }
     fclose(f);
     if (out->multiplier < 1) out->multiplier = 1;
@@ -74,6 +75,9 @@ bool lsfg_load_config(const char *game_dir, LsfgConfig *out) {
          out->enabled, out->multiplier, out->flow_scale, out->performance);
     LOGI("dll=%s", out->dll_path);
     LOGI("cache=%s", out->shader_cache);
+    LOGI("DXVK state cache=%s", out->state_cache);
+    if (out->state_cache[0])
+        setenv("DXVK_STATE_CACHE_PATH", out->state_cache, 1);
     return true;
 }
 
