@@ -474,19 +474,19 @@ public class LauncherActivity extends Activity {
             String[] scales = {"0.75", "1.0", "1.25"};
             String[] aligns = {"left", "center", "right"};
             String[] vertical = {"top", "bottom"};
-            String hud = "fps, scale=" + scales[Math.min(sel("hudSize"), 2)]
-                    + ", align=" + aligns[Math.min(sel("hudAlign"), 2)]
-                    + ", vertical=" + vertical[Math.min(sel("hudVertical"), 1)]
-                    + ", game=" + (checks.get("hudGame").isChecked() ? "1" : "0")
-                    + ", fg=" + (checks.get("hudGenerated").isChecked() ? "1" : "0")
-                    + ", output=" + (checks.get("hudOutput").isChecked() ? "1" : "0");
+            String hud = "fps,scale=" + scales[Math.min(sel("hudSize"), 2)]
+                    + ",align=" + aligns[Math.min(sel("hudAlign"), 2)]
+                    + ",vertical=" + vertical[Math.min(sel("hudVertical"), 1)]
+                    + ",game=" + (checks.get("hudGame").isChecked() ? "1" : "0")
+                    + ",fg=" + (checks.get("hudGenerated").isChecked() ? "1" : "0")
+                    + ",output=" + (checks.get("hudOutput").isChecked() ? "1" : "0");
             lines.add("dxvk.hud = " + hud);
         } else {
             lines.add("dxvk.hud =");
         }
 
         try (Writer w = new OutputStreamWriter(new FileOutputStream(config))) {
-            for (String line : lines) w.write(line + "\\n");
+            for (String line : lines) w.write(line + "\n");
         }
     }
 
