@@ -12,6 +12,10 @@
 
 namespace dxvk::hud {
 
+  void addLsfgGameFrame();
+  void addLsfgGeneratedFrame();
+
+
   /**
    * \brief HUD item
    *
