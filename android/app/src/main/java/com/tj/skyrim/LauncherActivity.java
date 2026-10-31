@@ -595,8 +595,11 @@ public class LauncherActivity extends Activity {
         File port = new File(game, "port");
         if (!port.exists() && !port.mkdirs()) throw new java.io.IOException("cannot create port config folder");
         File dll = new File(getFilesDir(), "lsfg/Lossless.dll");
-        File cache = new File(getNoBackupFilesDir(), "lsfg/cache");
+        File privateRoot = new File(getNoBackupFilesDir(), "lsfg");
+        File cache = new File(privateRoot, "cache");
+        File dxvkCache = new File(privateRoot, "dxvk");
         if (!cache.exists() && !cache.mkdirs()) throw new java.io.IOException("cannot create private LSFG cache");
+        if (!dxvkCache.exists() && !dxvkCache.mkdirs()) throw new java.io.IOException("cannot create private DXVK cache");
         int multiplier = sel("lsfgMultiplier") + 2;
         float quality = (lsfgQuality.getProgress() + 1) / 10.0f;
         int mode = sel("lsfgMode"); // 0 performance, 1 stability, 2 low GPU load
@@ -608,6 +611,7 @@ public class LauncherActivity extends Activity {
             w.write("performance=" + mode + "\n");
             w.write("dll_path=" + dll.getAbsolutePath() + "\n");
             w.write("shader_cache=" + cache.getAbsolutePath() + "\n");
+            w.write("state_cache=" + dxvkCache.getAbsolutePath() + "\n");
         }
     }
 
