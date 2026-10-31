@@ -17,6 +17,7 @@ typedef struct LsfgConfig {
     int performance;
     char dll_path[512];
     char shader_cache[512];
+    char state_cache[512];
 } LsfgConfig;
 
 bool lsfg_load_config(const char *game_dir, LsfgConfig *out);
