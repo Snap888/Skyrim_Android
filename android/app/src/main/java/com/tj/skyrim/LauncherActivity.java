@@ -273,6 +273,7 @@ public class LauncherActivity extends Activity {
             @Override public void onStopTrackingTouch(SeekBar bar) {}
         });
         spinner(root, "lsfgMode", "Generation mode", LSFG_MODE, 1);
+        text(root, "Performance: reduced compute load. Stability: full selected quality. Low: half-resolution flow.", 13, false);
 
         preset.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             boolean first = true;
@@ -398,12 +399,13 @@ public class LauncherActivity extends Activity {
         File temp = new File(dir, "Lossless.dll.tmp");
         try (InputStream in = getContentResolver().openInputStream(uri)) {
             if (in == null) throw new java.io.IOException("selected file cannot be opened");
-            byte[] head = new byte[2];
-            int got = in.read(head);
-            if (got != 2 || head[0] != 'M' || head[1] != 'Z')
+            int first = in.read();
+            int second = in.read();
+            if (first != 'M' || second != 'Z')
                 throw new java.io.IOException("selected file is not a Windows PE DLL (MZ header missing)");
             try (FileOutputStream out = new FileOutputStream(temp)) {
-                out.write(head);
+                out.write(first);
+                out.write(second);
                 byte[] buffer = new byte[1 << 16];
                 for (int n; (n = in.read(buffer)) > 0; ) out.write(buffer, 0, n);
                 out.getFD().sync();
