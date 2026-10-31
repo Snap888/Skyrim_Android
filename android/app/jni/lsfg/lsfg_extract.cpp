@@ -201,6 +201,70 @@ static int walk_res(const uint8_t *file, size_t fsz,
     return 0;
 }
 
+
+static bool source_fingerprint(const char *path, uint64_t *out_hash, uint64_t *out_size) {
+    if (!path || !*path || !out_hash || !out_size) return false;
+    FILE *f = fopen(path, "rb");
+    if (!f) return false;
+    uint64_t hash = 14695981039346656037ull, size = 0;
+    uint8_t buffer[16384];
+    size_t n;
+    while ((n = fread(buffer, 1, sizeof(buffer), f)) != 0) {
+        for (size_t i = 0; i < n; i++) { hash ^= buffer[i]; hash *= 1099511628211ull; }
+        size += n;
+    }
+    bool ok = !ferror(f);
+    fclose(f);
+    if (!ok || size == 0) return false;
+    *out_hash = hash; *out_size = size;
+    return true;
+}
+
+static bool source_stamp_matches(const char *cache_dir, uint64_t hash, uint64_t size) {
+    char path[800]; snprintf(path, sizeof path, "%s/source.meta", cache_dir);
+    FILE *f = fopen(path, "r");
+    if (!f) return false;
+    unsigned long long h = 0, n = 0;
+    bool ok = fscanf(f, "%llx %llu", &h, &n) == 2;
+    fclose(f);
+    return ok && h == (unsigned long long)hash && n == (unsigned long long)size;
+}
+
+static bool write_source_stamp(const char *cache_dir, uint64_t hash, uint64_t size) {
+    char path[800], tmp[840];
+    snprintf(path, sizeof path, "%s/source.meta", cache_dir);
+    snprintf(tmp, sizeof tmp, "%s/source.meta.tmp", cache_dir);
+    FILE *f = fopen(tmp, "w");
+    if (!f) return false;
+    bool ok = fprintf(f, "%llx %llu\\n", (unsigned long long)hash, (unsigned long long)size) > 0;
+    if (ok) ok = fflush(f) == 0;
+    if (fclose(f) != 0) ok = false;
+    if (!ok || rename(tmp, path) != 0) { remove(tmp); return false; }
+    return true;
+}
+
+static void invalidate_cache(const char *cache_dir) {
+    char manifest_path[800]; snprintf(manifest_path, sizeof manifest_path, "%s/manifest.txt", cache_dir);
+    FILE *f = fopen(manifest_path, "r");
+    if (f) {
+        char line[256];
+        while (fgets(line, sizeof line, f)) {
+            unsigned id = 0;
+            if (sscanf(line, "%u", &id) != 1) continue;
+            char blob[900], spirv[900];
+            snprintf(blob, sizeof blob, "%s/rcdata_%u.bin", cache_dir, id);
+            snprintf(spirv, sizeof spirv, "%s/%u.spv", cache_dir, id);
+            remove(blob); remove(spirv);
+        }
+        fclose(f);
+    }
+    const char *names[] = { "manifest.txt", "manifest.txt.tmp", "manifest_spirv.txt", "manifest_spirv.txt.tmp" };
+    for (unsigned i = 0; i < sizeof(names) / sizeof(names[0]); i++) {
+        char path[800]; snprintf(path, sizeof path, "%s/%s", cache_dir, names[i]); remove(path);
+    }
+    LOGI("extract: selected DLL changed; invalidated cached RCDATA and SPIR-V");
+}
+
 bool lsfg_extract_cache_ready(const char *cache_dir) {
     if (!cache_dir || !*cache_dir) return false;
     char path[800];
@@ -238,8 +302,15 @@ bool lsfg_extract_cache_ready(const char *cache_dir) {
 int lsfg_extract_dll(const char *dll_path, const char *cache_dir) {
     if (!dll_path || !*dll_path || !cache_dir || !*cache_dir) return -1;
 
-    if (lsfg_extract_cache_ready(cache_dir)) {
-        LOGI("extract: cache already present at %s", cache_dir);
+    uint64_t source_hash = 0, source_size = 0;
+    if (!source_fingerprint(dll_path, &source_hash, &source_size)) {
+        LOGE("extract: cannot fingerprint DLL %s", dll_path);
+        return -1;
+    }
+
+    if (lsfg_extract_cache_ready(cache_dir)
+        && source_stamp_matches(cache_dir, source_hash, source_size)) {
+        LOGI("extract: cache matches selected DLL at %s", cache_dir);
         char path[800];
         snprintf(path, sizeof path, "%s/manifest.txt", cache_dir);
         FILE *f = fopen(path, "r");
@@ -249,6 +320,8 @@ int lsfg_extract_dll(const char *dll_path, const char *cache_dir) {
         if (f) fclose(f);
         return n;
     }
+
+    invalidate_cache(cache_dir);
 
     if (mkdir_p(cache_dir) != 0) {
         LOGE("extract: mkdir %s failed: %s", cache_dir, strerror(errno));
@@ -344,6 +417,9 @@ int lsfg_extract_dll(const char *dll_path, const char *cache_dir) {
     if (result >= 0 && manifest_close_ok) {
         if (rename(man_tmp_path2, man_path2) != 0) {
             LOGE("extract: cannot publish manifest: %s", strerror(errno));
+            result = -1;
+        } else if (!write_source_stamp(cache_dir, source_hash, source_size)) {
+            LOGE("extract: cannot publish DLL source fingerprint");
             result = -1;
         }
     } else {
