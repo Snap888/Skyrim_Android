@@ -1,8 +1,8 @@
 # Skyrim Android — документация работ и карта LSFG
 
 > Документ описывает состояние ветки `snap-patch-3` на commit
-> [`1da46f68f1d8`](https://github.com/Snap888/Skyrim_Android/commit/1da46f68f1d8a68c4ce8ff0e1f4b826d5337f20a)
-> (30 октября 2026). Это инженерный журнал и карта проекта, а не заявление
+> [`acd029f8e829`](https://github.com/Snap888/Skyrim_Android/commit/acd029f8e8291f699a4e568e8db7a8710380fbad)
+> (31 октября 2026). Это инженерный журнал и карта проекта, а не заявление
 > о подтверждённой работоспособности frame generation на устройстве.
 
 ## 1. Назначение проекта
@@ -31,6 +31,7 @@ Lossless Scaling Frame Generation (LSFG) в графический путь Andr
 | LSFG config/bootstrap | Реализовано | Чтение конфигурации и регистрация DXVK hooks описаны в коде |
 | Извлечение RCDATA | Реализовано | В ранее присланном runtime-логе извлечено 300 ресурсов |
 | DXBC → SPIR-V | Реализовано | Ранее логировалась обработка 300 модулей |
+| Descriptor binding normalization | Реализована в LSFG shader adapter | Требуется runtime-проверка созданных pipeline/descriptors |
 | SPIR-V reflection / TSV | Реализовано | Ранее отражение прошло для 300/300 модулей |
 | Два frame-history изображения | Реализовано | Ранее логировались оба слота и длительные серии completion callbacks |
 | Mipmaps compute | Реализован вызов DXVK dispatch | Требуется повторный runtime-log на актуальном HEAD |
@@ -247,8 +248,17 @@ runtime selection.
 | `df8f683` | Present generated output по полному WSI extent |
 | `91d82db` | Отклонение generation targets с несовпадающим history extent |
 | `1da46f6` | Остановка generation burst после неудачного dispatch |
+| `820bed6` | Flush compute→fragment barriers перед sampling generated target |
+| `acd029f` | Нормализация SPIR-V Binding decorations и DXVK resource slots |
 
-Текущий branch HEAD на момент документа: `1da46f68f1d8a68c4ce8ff0e1f4b826d5337f20a`.
+Текущий branch HEAD на момент документа: `acd029f8e8291f699a4e568e8db7a8710380fbad`.
+
+Последнее исправление устраняет несоответствие между binding-номерами исходных
+LSFG shader modules (DXBC-translated: 800/816/832/1088; embedded SPIR-V: 0/16/32/48)
+и компактными слотами, используемыми DXVK binder. Адаптер теперь перенумеровывает
+binding decorations в SPIR-V и соответствующие `DxvkResourceSlot` одинаково.
+Это исправляет интерфейс дескрипторов на уровне кода, но ещё не подтверждает
+успешную компиляцию APK или корректные GPU-пиксели на устройстве.
 
 ## 7. План работ / roadmap
 
