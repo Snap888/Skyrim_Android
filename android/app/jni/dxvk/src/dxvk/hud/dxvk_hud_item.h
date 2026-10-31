@@ -75,7 +75,13 @@ namespace dxvk::hud {
      * \returns Base offset for next item
      */
     void render(
-            HudRenderer&      renderer);
+            HudRenderer&      renderer,
+            HudPos            position = { 8.0f, 8.0f });
+
+    std::string getOptionString(const char* option, const std::string& fallback) const {
+      auto entry = m_options.find(option);
+      return entry == m_options.end() ? fallback : entry->second;
+    }
 
     /**
      * \brief Creates a HUD item if enabled
@@ -220,7 +226,7 @@ namespace dxvk::hud {
   class HudLsfgFpsItem : public HudItem {
     constexpr static int64_t UpdateInterval = 500'000;
   public:
-    HudLsfgFpsItem();
+    HudLsfgFpsItem(bool showGame = true, bool showGenerated = true, bool showOutput = true);
     ~HudLsfgFpsItem();
     void update(dxvk::high_resolution_clock::time_point time);
     HudPos render(HudRenderer& renderer, HudPos position);
@@ -230,6 +236,9 @@ namespace dxvk::hud {
     uint32_t m_gameFps = 0;
     uint32_t m_generatedFps = 0;
     uint32_t m_outputFps = 0;
+    bool m_showGame = true;
+    bool m_showGenerated = true;
+    bool m_showOutput = true;
     dxvk::high_resolution_clock::time_point m_lastUpdate
       = dxvk::high_resolution_clock::now();
   };
