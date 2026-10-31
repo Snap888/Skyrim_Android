@@ -105,6 +105,9 @@ public class LauncherActivity extends Activity {
     private static final String[] BLUR = {"Low", "Medium", "High"};
     private static final String[] FADE = {"Short", "Medium", "Far", "Very far"};
     private static final String[] FADE_V = {"2.5", "4.5", "6.5", "9.0"};
+    private static final String[] HUD_SIZE = {"Small", "Normal", "Large"};
+    private static final String[] HUD_ALIGN = {"Left", "Center", "Right"};
+    private static final String[] HUD_VERTICAL = {"Top", "Bottom"};
 
     @Override
     protected void onCreate(Bundle b) {
@@ -224,6 +227,16 @@ public class LauncherActivity extends Activity {
         check(root, "vsync", "Vertical sync", true);
         check(root, "touch", "Touch controls", true);
         check(root, "nintendo", "Nintendo button layout (A/B, X/Y swapped)", false);
+
+        text(root, "LSFG FPS HUD", 20, true);
+        check(root, "hudEnabled", "Show FPS HUD", true);
+        spinner(root, "hudSize", "Font size", HUD_SIZE, 1);
+        spinner(root, "hudAlign", "Horizontal position", HUD_ALIGN, 0);
+        spinner(root, "hudVertical", "Vertical position", HUD_VERTICAL, 0);
+        check(root, "hudGame", "Game FPS", true);
+        check(root, "hudGenerated", "FG submit FPS", true);
+        check(root, "hudOutput", "Output submit FPS", true);
+
         preset.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             boolean first = true;
             @Override public void onItemSelected(AdapterView<?> p, View v, int pos, long id) {
@@ -424,6 +437,7 @@ public class LauncherActivity extends Activity {
         iniDir.mkdirs();
         try {
             writePrefs(new File(folder), new File(iniDir, "SkyrimPrefs.ini"));
+            writeDxvkHudConfig(new File(folder));
             // the native side builds the same mode list from this aspect (see modes())
             int[] av = ASPECT_V[sel("aspect")];
             try (Writer w = new OutputStreamWriter(new FileOutputStream(new File(save, "display.cfg")))) {
@@ -440,6 +454,40 @@ public class LauncherActivity extends Activity {
         i.putExtra("game", folder);
         startActivity(i);
         finish();
+    }
+
+    /* DXVK reads dxvk.conf beside the game executable. Preserve unrelated
+     * user options and replace only the HUD line managed by this launcher. */
+    private void writeDxvkHudConfig(File game) throws Exception {
+        File config = new File(game, "dxvk.conf");
+        List<String> lines = new ArrayList<>();
+        if (config.isFile()) {
+            try (BufferedReader r = new BufferedReader(new InputStreamReader(new FileInputStream(config)))) {
+                String line;
+                while ((line = r.readLine()) != null) {
+                    if (!line.trim().toLowerCase(java.util.Locale.ROOT).startsWith("dxvk.hud")) lines.add(line);
+                }
+            }
+        }
+
+        if (checks.get("hudEnabled").isChecked()) {
+            String[] scales = {"0.75", "1.0", "1.25"};
+            String[] aligns = {"left", "center", "right"};
+            String[] vertical = {"top", "bottom"};
+            String hud = "fps, scale=" + scales[Math.min(sel("hudSize"), 2)]
+                    + ", align=" + aligns[Math.min(sel("hudAlign"), 2)]
+                    + ", vertical=" + vertical[Math.min(sel("hudVertical"), 1)]
+                    + ", game=" + (checks.get("hudGame").isChecked() ? "1" : "0")
+                    + ", fg=" + (checks.get("hudGenerated").isChecked() ? "1" : "0")
+                    + ", output=" + (checks.get("hudOutput").isChecked() ? "1" : "0");
+            lines.add("dxvk.hud = " + hud);
+        } else {
+            lines.add("dxvk.hud =");
+        }
+
+        try (Writer w = new OutputStreamWriter(new FileOutputStream(config))) {
+            for (String line : lines) w.write(line + "\\n");
+        }
     }
 
     /* SkyrimPrefs.ini: keep what is there, start from the chosen preset file
