@@ -37,7 +37,7 @@ namespace dxvk::hud {
 
     addItem<HudVersionItem>("version", -1);
     addItem<HudDeviceInfoItem>("devinfo", -1, m_device);
-    addItem<HudFpsItem>("fps", -1);
+    addItem<HudLsfgFpsItem>("fps", -1);
     addItem<HudFrameTimeItem>("frametimes", -1);
     addItem<HudSubmissionStatsItem>("submissions", -1, device);
     addItem<HudDrawCallStatsItem>("drawcalls", -1, device);
