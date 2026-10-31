@@ -258,7 +258,7 @@ static void invalidate_cache(const char *cache_dir) {
         }
         fclose(f);
     }
-    const char *names[] = { "manifest.txt", "manifest.txt.tmp", "manifest_spirv.txt", "manifest_spirv.txt.tmp" };
+    const char *names[] = { "manifest.txt", "manifest.txt.tmp", "manifest_spirv.txt", "manifest_spirv.txt.tmp", "source.meta", "source.meta.tmp" };
     for (unsigned i = 0; i < sizeof(names) / sizeof(names[0]); i++) {
         char path[800]; snprintf(path, sizeof path, "%s/%s", cache_dir, names[i]); remove(path);
     }
