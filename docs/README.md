@@ -174,10 +174,11 @@ Reference topology, восстановленная по WinNative:
 |---|---|
 | `enabled` | Включает LSFG при ненулевом значении |
 | `multiplier` | Ограничивается диапазоном 1–4; число generated frames равно multiplier − 1, максимум 3 |
-| `flow_scale` | Масштаб flow pyramid; если не задан или <= 0, используется 0.70 |
-| `performance` | Читается из config; отдельные режимы производительности в этом README не заявляются |
-| `dll_path` | Путь к пользовательской `Lossless.dll` |
-| `shader_cache` | Каталог shader cache; по умолчанию `<game_dir>/port/lsfg_spirv` |
+| `flow_scale` | Качество 0.1–1.0; задаёт базовый масштаб flow pyramid |
+| `performance` | Режим: 0 = Performance (0.75 × quality), 1 = Stability (1.0 × quality), 2 = Low (0.5 × quality) |
+| `dll_path` | Путь к копии выбранной пользователем `Lossless.dll` во внутреннем хранилище приложения |
+| `shader_cache` | Каталог извлечённых RCDATA/SPIR-V в `noBackupFilesDir/lsfg/cache` |
+| `state_cache` | Каталог DXVK pipeline state cache в `noBackupFilesDir/lsfg/dxvk` |
 
 Пример:
 
@@ -186,13 +187,34 @@ enabled=1
 multiplier=2
 flow_scale=0.70
 performance=1
-dll_path=/storage/emulated/0/Skyrim/Lossless.dll
-shader_cache=/storage/emulated/0/Skyrim/port/lsfg_spirv
+dll_path=/data/user/0/<package>/files/lsfg/Lossless.dll
+shader_cache=/data/user/0/<package>/no_backup/lsfg/cache
+state_cache=/data/user/0/<package>/no_backup/lsfg/dxvk
 ```
 
-Путь в примере нужно заменить на фактическую папку игры на устройстве.
-Если конфигурация отсутствует, LSFG не включается. При `multiplier=1`
-генерируемых кадров нет.
+Пути в примере иллюстративные: лаунчер записывает реальные абсолютные пути
+для текущей установки. Если конфигурация отсутствует, LSFG не включается.
+При `multiplier=1` генерируемых кадров нет.
+
+### 4.1 Настройки в Android Launcher
+
+- **Enable LSFG frame generation** включает/отключает host bootstrap.
+- **Choose Lossless.dll** открывает системный SAF picker. Выбранный файл
+  проверяется по MZ-заголовку и копируется в
+  `getFilesDir()/lsfg/Lossless.dll`; Windows DLL не исполняется на Android.
+- **Generated frames**: x2/x3/x4 соответствуют `multiplier=2/3/4`.
+- **Generation quality**: SeekBar 0.1–1.0 с шагом 0.1; значение записывается
+  в `flow_scale`.
+- **Generation mode**: Performance использует 75% выбранного flow scale,
+  Stability — 100%, Low — 50%. Это меняет разрешение flow compute, а не
+  количество generated frames.
+- RCDATA/SPIR-V cache находится в приватном `noBackupFilesDir/lsfg/cache`;
+  DXVK pipeline cache — в `noBackupFilesDir/lsfg/dxvk`.
+- При замене Lossless.dll shader cache очищается, чтобы не использовать
+  ресурсы от предыдущего DLL. Временные history/generation images создаются
+  в GPU memory и не сохраняются как файлы.
+- Конфигурация `port/lsfg.conf` и диагностический `port/lsfg.log` остаются
+  рядом с игрой, чтобы их можно было приложить к runtime-отчёту.
 
 ## 5. Shader archive и reflection
 
