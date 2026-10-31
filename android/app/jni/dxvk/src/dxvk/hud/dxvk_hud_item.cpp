@@ -29,10 +29,15 @@ namespace dxvk::hud {
 
 
   HudItemSet::HudItemSet(const Rc<DxvkDevice>& device) {
-    std::string configStr = env::getEnvVar("DXVK_HUD");
+    // An explicit dxvk.conf setting from the Android launcher takes priority.
+    // DXVK_HUD remains the fallback when no HUD option was configured.
+    std::string configStr = device->config().hud;
 
     if (configStr.empty())
-      configStr = device->config().hud;
+      configStr = env::getEnvVar("DXVK_HUD");
+
+    if (configStr.empty())
+      configStr = "fps";
 
     std::string::size_type pos = 0;
     std::string::size_type end = 0;
