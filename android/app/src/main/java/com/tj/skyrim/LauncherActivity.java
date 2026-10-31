@@ -482,7 +482,7 @@ public class LauncherActivity extends Activity {
                     + ",output=" + (checks.get("hudOutput").isChecked() ? "1" : "0");
             lines.add("dxvk.hud = " + hud);
         } else {
-            lines.add("dxvk.hud =");
+            lines.add("dxvk.hud = disabled");
         }
 
         try (Writer w = new OutputStreamWriter(new FileOutputStream(config))) {
