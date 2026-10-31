@@ -9,9 +9,9 @@ namespace dxvk {
     numCompilerThreads    = config.getOption<int32_t> ("dxvk.numCompilerThreads",     0);
     useRawSsbo            = config.getOption<Tristate>("dxvk.useRawSsbo",             Tristate::Auto);
     halveNvidiaHVVHeap    = config.getOption<Tristate>("dxvk.halveNvidiaHVVHeap",     Tristate::Auto);
-    // Show the LSFG FPS HUD by default on this Android fork. Explicit dxvk.hud
-    // configuration and DXVK_HUD environment overrides remain supported.
-    hud                   = config.getOption<std::string>("dxvk.hud", "fps");
+    // Keep the default empty so HudItemSet can distinguish an explicit
+    // dxvk.conf value from the DXVK_HUD environment fallback.
+    hud                   = config.getOption<std::string>("dxvk.hud", "");
   }
 
 }
