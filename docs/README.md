@@ -262,9 +262,11 @@ binding decorations в SPIR-V и соответствующие `DxvkResourceSlo
 
 ## FPS HUD для проверки LSFG
 
-В DXVK HUD добавлен трёхстрочный счётчик. Для включения добавьте
-`DXVK_HUD=1` в окружение запуска DXVK (или эквивалентную настройку
-`dxvk.hud = 1` в `dxvk.conf`):
+В Android-ветке FPS HUD включён по умолчанию через fallback
+`dxvk.hud = fps`. Поэтому он должен отображаться без отдельного
+`dxvk.conf`. Его можно явно включить через `dxvk.hud = 1` или
+`DXVK_HUD=1` в окружении процесса DXVK. Переменная окружения Termux
+не влияет на уже запущенное Android-приложение.
 
 - **Game FPS** — число вызовов исходного D3D9 `PresentImage` за секунду.
 - **FG submit FPS** — число успешно сформированных generated images,
