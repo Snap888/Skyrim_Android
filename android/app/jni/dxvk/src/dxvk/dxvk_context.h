@@ -545,6 +545,14 @@ namespace dxvk {
             uint32_t          x,
             uint32_t          y,
             uint32_t          z);
+
+    /**
+     * rief Flushes pending resource hazards after compute work
+     *
+     * Used when compute outputs are consumed by a graphics pass that
+     * does not declare storage descriptors.
+     */
+    void flushComputeBarriers();
     
     /**
      * \brief Indirect dispatch call
