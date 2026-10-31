@@ -9,7 +9,9 @@ namespace dxvk::hud {
   : m_device        (device),
     m_renderer      (device),
     m_hudItems      (device),
-    m_scale         (m_hudItems.getOption<float>("scale", 1.0f)) {
+    m_scale         (m_hudItems.getOption<float>("scale", 1.0f)),
+    m_hudAlign      (m_hudItems.getOptionString("align", "left")),
+    m_hudVertical   (m_hudItems.getOptionString("vertical", "top")) {
     // Sanitize scaling factor
     if (m_scale < 0.01f)
       m_scale = 1.0f;
@@ -37,7 +39,10 @@ namespace dxvk::hud {
 
     addItem<HudVersionItem>("version", -1);
     addItem<HudDeviceInfoItem>("devinfo", -1, m_device);
-    addItem<HudLsfgFpsItem>("fps", -1);
+    addItem<HudLsfgFpsItem>("fps", -1,
+      m_hudItems.getOption<float>("game", 1.0f) > 0.5f,
+      m_hudItems.getOption<float>("fg", 1.0f) > 0.5f,
+      m_hudItems.getOption<float>("output", 1.0f) > 0.5f);
     addItem<HudFrameTimeItem>("frametimes", -1);
     addItem<HudSubmissionStatsItem>("submissions", -1, device);
     addItem<HudDrawCallStatsItem>("drawcalls", -1, device);
@@ -107,7 +112,20 @@ namespace dxvk::hud {
 
 
   void Hud::renderHudElements(const Rc<DxvkContext>& ctx) {
-    m_hudItems.render(m_renderer);
+    const float width = float(m_renderer.surfaceSize().width) / m_renderer.scale();
+    const float height = float(m_renderer.surfaceSize().height) / m_renderer.scale();
+    HudPos position = { 8.0f, 8.0f };
+
+    // The LSFG block is approximately 220 logical pixels wide and 76 high.
+    if (m_hudAlign == "center")
+      position.x = std::max(8.0f, (width - 220.0f) * 0.5f);
+    else if (m_hudAlign == "right")
+      position.x = std::max(8.0f, width - 228.0f);
+
+    if (m_hudVertical == "bottom")
+      position.y = std::max(8.0f, height - 76.0f);
+
+    m_hudItems.render(m_renderer, position);
   }
   
 }
