@@ -604,7 +604,7 @@ public class LauncherActivity extends Activity {
         try (Writer w = new OutputStreamWriter(new FileOutputStream(config))) {
             w.write("enabled=" + (checks.get("lsfgEnabled").isChecked() ? "1" : "0") + "\n");
             w.write("multiplier=" + multiplier + "\n");
-            w.write(String.format(java.util.Locale.US, "flow_scale=%.1f\\n", quality));
+            w.write(String.format(java.util.Locale.US, "flow_scale=%.1f\n", quality));
             w.write("performance=" + mode + "\n");
             w.write("dll_path=" + dll.getAbsolutePath() + "\n");
             w.write("shader_cache=" + cache.getAbsolutePath() + "\n");
