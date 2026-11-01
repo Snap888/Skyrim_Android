@@ -176,7 +176,7 @@ extern "C" int hud_screen_crosshair(void);
 extern "C" void bridge_view_rect(float *x0, float *y0, float *x1, float *y1);
 extern "C" int platform_text_input(int toggle);
 
-extern void platform_quick_action(int load);
+extern "C" void platform_quick_action(int load);
 
 extern "C" void touch_handle_event(const SDL_Event *e) {
     if (!available()) return;
