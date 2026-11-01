@@ -604,11 +604,14 @@ bool dispatchLsfgGeneration(
       continue;
     }
 
+    // Match WinNative: finish all Gamma stages before the paired Delta pass.
+    for (uint32_t stage = 0; stage < 5; stage++) {
+      if (!dispatchGammaStep(context, frameIndex, slot, i, stage))
+        return false;
+    }
+
     const uint32_t deltaIndex = i - FirstDeltaLevel;
     for (uint32_t stage = 0; stage < 10; stage++) {
-      if (stage < 5
-          && !dispatchGammaStep(context, frameIndex, slot, i, stage))
-        return false;
       if (!dispatchDeltaStep(context, frameIndex, slot, deltaIndex, stage))
         return false;
     }
