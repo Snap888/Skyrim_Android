@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cstdlib>
+#include <cstring>
 #include <iomanip>
 #include <version.h>
 
