@@ -1,9 +1,9 @@
 /* xWMA decode via FFmpeg for Skyrim (tag 0x0161 / 0x0162).
  *
- * XAudio2 gives raw WMA frames of nBlockAlign bytes. Feeding them one-by-one
- * often yields only a few decoded frames (rare voice snippets). Strategy:
- *  1) try continuous feed of the whole buffer (decoder self-syncs)
- *  2) if almost empty, retry with block_align packets
+ * xWMA data is a sequence of fixed-size compressed packets (block_align).
+ * Submit each packet separately, preserving decoder state across packets.
+ * XAUDIO2_BUFFER_WMA::pDecodedPacketCumulativeBytes is decoded PCM byte
+ * accounting (the RIFF dpds table), never compressed input offsets.
  */
 #ifdef LB_HAS_FFMPEG
 
