@@ -143,7 +143,7 @@ public class SkyrimActivity extends SDLActivity {
     }
 
     private void showOverlayMenu() {
-        String[] items = { "LSFG settings", "Android keyboard", "Gamepad overlay: " + (gamepadOverlayEnabled ? "ON" : "OFF"), "Gamepad buttons editor", "Legacy touch controls editor" };
+        String[] items = { "LSFG settings", "Android keyboard", "Gamepad overlay: " + (gamepadOverlayEnabled ? "ON" : "OFF"), "Gamepad buttons editor", "Arrange gamepad controls", "Legacy touch controls editor" };
         new AlertDialog.Builder(this)
                 .setTitle("Skyrim overlay")
                 .setItems(items, (dialog, which) -> {
@@ -155,6 +155,14 @@ public class SkyrimActivity extends SDLActivity {
                         setGamepadOverlayEnabled(!gamepadOverlayEnabled);
                     } else if (which == 3) {
                         showGamepadControlsEditor();
+                    } else if (which == 4) {
+                        if (gamepadOverlay != null) {
+                            boolean editing = !gamepadOverlay.isLayoutEditMode();
+                            gamepadOverlay.setLayoutEditMode(editing);
+                            android.widget.Toast.makeText(this,
+                                    editing ? "Drag controls to reposition. Open menu to finish." : "Control layout saved",
+                                    android.widget.Toast.LENGTH_LONG).show();
+                        }
                     } else {
                         touchEditorEnabled = !touchEditorEnabled;
                         nativeSetTouchEditor(touchEditorEnabled);
