@@ -111,7 +111,14 @@ static AVCodecContext *open_ctx(const AVCodec *codec, int channels, int rate,
         memcpy(ctx->extradata, extradata, (size_t)extradata_size);
         ctx->extradata_size = extradata_size;
     }
-    if (avcodec_open2(ctx, codec, NULL) < 0) {
+    int open_err = avcodec_open2(ctx, codec, NULL);
+    if (open_err < 0) {
+        xa_err("avcodec_open2", open_err);
+        fprintf(stderr,
+                "xwma_ffmpeg: codec open rejected tag=%04x ch=%d rate=%d block_align=%d avg_bps=%d extra=%d\n",
+                codec->id == AV_CODEC_ID_WMAPRO ? 0x0162 : 0x0161,
+                channels, ctx->sample_rate, ctx->block_align, avg_bps,
+                extradata_size);
         avcodec_free_context(&ctx);
         return NULL;
     }
