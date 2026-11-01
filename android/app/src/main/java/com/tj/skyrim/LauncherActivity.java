@@ -11,6 +11,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.system.Os;
 import android.provider.DocumentsContract;
 import android.provider.Settings;
 import android.util.TypedValue;
@@ -299,6 +300,11 @@ public class LauncherActivity extends Activity {
         text(root, "Game frame rate limit (DXVK)", 20, true);
         spinner(root, "gameFpsLimit", "Maximum game FPS", GAME_FPS_LIMIT, 0);
         text(root, "Limits the original game's frame rate before LSFG. Generated frames are not capped by this setting. Use Unlimited to disable the limiter.", 13, false);
+
+        text(root, "DXVK Performance A/B test", 20, true);
+        check(root, "dxvkPerfEnabled", "Write separate DXVK benchmark log", false);
+        spinner(root, "dxvkPerfRun", "Test pass", new String[] {"A — LSFG OFF", "B — LSFG ON"}, 0);
+        text(root, "The CSV log is saved in the selected Skyrim folder under port/dxvk_perf_off.csv or port/dxvk_perf_on.csv. The selected pass also forces LSFG OFF/ON for this run.", 13, false);
 
         preset.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             boolean first = true;
@@ -608,9 +614,11 @@ public class LauncherActivity extends Activity {
     private void play() {
         if (!hasStorage()) { pendingPlay = true; requestStorage(); return; }
         saveChoices();
-        if (checks.get("lsfgEnabled").isChecked()
-                && !new File(getFilesDir(), "lsfg/Lossless.dll").isFile()) {
-            folderStatus.setText("LSFG is enabled: choose a valid Lossless.dll first.");
+        boolean perfEnabled = checks.get("dxvkPerfEnabled").isChecked();
+        boolean perfLsfgOn = sel("dxvkPerfRun") == 1;
+        boolean effectiveLsfgEnabled = perfEnabled ? perfLsfgOn : checks.get("lsfgEnabled").isChecked();
+        if (effectiveLsfgEnabled && !new File(getFilesDir(), "lsfg/Lossless.dll").isFile()) {
+            folderStatus.setText("LSFG is enabled for this run: choose a valid Lossless.dll first.");
             return;
         }
         String folder = prefs.getString("folder", null);
@@ -620,8 +628,9 @@ public class LauncherActivity extends Activity {
         try {
             writePrefs(new File(folder), new File(iniDir, "SkyrimPrefs.ini"));
             writeDxvkHudConfig(new File(folder));
-            writeLsfgConfig(new File(folder));
+            writeLsfgConfig(new File(folder), effectiveLsfgEnabled);
             writeGpuDriverConfig(new File(folder));
+            configureDxvkPerfEnvironment(new File(folder), perfEnabled, perfLsfgOn);
             // the native side builds the same mode list from this aspect (see modes())
             int[] av = ASPECT_V[sel("aspect")];
             try (Writer w = new OutputStreamWriter(new FileOutputStream(new File(save, "display.cfg")))) {
@@ -638,6 +647,25 @@ public class LauncherActivity extends Activity {
         i.putExtra("game", folder);
         startActivity(i);
         finish();
+    }
+
+    /* Configure benchmark variables in this app process before SDL loads DXVK.
+     * The CSV is intentionally stored beside the other port diagnostics. */
+    private void configureDxvkPerfEnvironment(File game, boolean enabled, boolean lsfgOn) throws Exception {
+        if (!enabled) {
+            Os.unsetenv("DXVK_PERF_LOG");
+            Os.unsetenv("DXVK_PERF_RUN");
+            return;
+        }
+        File port = new File(game, "port");
+        if (!port.exists() && !port.mkdirs()) throw new java.io.IOException("cannot create port log folder");
+        String run = lsfgOn ? "lsfg_on" : "lsfg_off";
+        File log = new File(port, lsfgOn ? "dxvk_perf_on.csv" : "dxvk_perf_off.csv");
+        if (log.exists() && !log.delete()) throw new java.io.IOException("cannot reset previous benchmark log: " + log);
+        if (!log.createNewFile()) throw new java.io.IOException("cannot create benchmark log: " + log);
+        if (!log.delete()) throw new java.io.IOException("cannot prepare benchmark log: " + log);
+        Os.setenv("DXVK_PERF_RUN", run, true);
+        Os.setenv("DXVK_PERF_LOG", log.getAbsolutePath(), true);
     }
 
     /* DXVK reads dxvk.conf beside the game executable. Preserve unrelated
@@ -683,7 +711,7 @@ public class LauncherActivity extends Activity {
 
     /* LSFG reads only user-supplied Lossless.dll; shader/cache files are kept
      * in app-private storage and never copied into the game folder. */
-    private void writeLsfgConfig(File game) throws Exception {
+    private void writeLsfgConfig(File game, boolean enabled) throws Exception {
         File port = new File(game, "port");
         if (!port.exists() && !port.mkdirs()) throw new java.io.IOException("cannot create port config folder");
         File dll = new File(getFilesDir(), "lsfg/Lossless.dll");
@@ -697,7 +725,7 @@ public class LauncherActivity extends Activity {
         int mode = sel("lsfgMode"); // 0 performance, 1 stability, 2 low GPU load
         File config = new File(port, "lsfg.conf");
         try (Writer w = new OutputStreamWriter(new FileOutputStream(config))) {
-            w.write("enabled=" + (checks.get("lsfgEnabled").isChecked() ? "1" : "0") + "\n");
+            w.write("enabled=" + (enabled ? "1" : "0") + "\n");
             w.write("multiplier=" + multiplier + "\n");
             w.write(String.format(java.util.Locale.US, "flow_scale=%.1f\n", quality));
             w.write("performance=" + mode + "\n");
