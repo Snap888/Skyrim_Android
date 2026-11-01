@@ -57,7 +57,7 @@ struct Finger { SDL_FingerID id; int button; bool stick, right_stick; float x, y
 Finger g_fingers[10];
 float g_stick_x, g_stick_y, g_rstick_x, g_rstick_y;   // knob offsets, -1..1
 bool g_available, g_decided, g_seen, g_was_on;
-bool g_touch_on = true;       // the player's choice, kept in <save>/touch.cfg
+bool g_touch_on = false;      // legacy native touch controls are opt-in; Android overlay is separate
 uint16_t g_buttons;
 float g_aspect = 16.f / 9.f;  // width / height of the screen
 
