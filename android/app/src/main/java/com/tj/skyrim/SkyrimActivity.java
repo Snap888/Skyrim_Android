@@ -126,6 +126,26 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
                 android.widget.Toast.LENGTH_SHORT).show();
     }
 
+    private boolean hasPhysicalGamepad() {
+        for (int id : InputDevice.getDeviceIds()) {
+            InputDevice device = InputDevice.getDevice(id);
+            if (device != null && (device.getSources() & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD) return true;
+        }
+        return false;
+    }
+
+    private void refreshPhysicalGamepadState() {
+        physicalGamepadConnected = hasPhysicalGamepad();
+        if (gamepadOverlay != null) {
+            boolean visible = gamepadOverlayEnabled && (!physicalGamepadConnected || forceOverlayVisible);
+            gamepadOverlay.setVisibility(visible ? android.view.View.VISIBLE : android.view.View.GONE);
+        }
+    }
+
+    @Override public void onInputDeviceAdded(int deviceId) { refreshPhysicalGamepadState(); }
+    @Override public void onInputDeviceRemoved(int deviceId) { refreshPhysicalGamepadState(); }
+    @Override public void onInputDeviceChanged(int deviceId) { refreshPhysicalGamepadState(); }
+
     private boolean touchEditorEnabled;
 
     private void addOverlayMenuButton() {
