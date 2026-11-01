@@ -5,6 +5,7 @@ import android.app.ApplicationExitInfo;
 import android.app.Presentation;
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.hardware.display.DisplayManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -14,6 +15,13 @@ import android.view.Display;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.WindowManager;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.SeekBar;
+import android.widget.Spinner;
+import android.widget.TextView;
+import android.app.AlertDialog;
 import java.io.File;
 import java.io.FileWriter;
 import java.util.Date;
@@ -37,6 +45,7 @@ public class SkyrimActivity extends SDLActivity {
     protected void onCreate(Bundle savedInstanceState) {
         saveLastExit();
         super.onCreate(savedInstanceState);
+        addLsfgOverlayButton();
         if (BuildConfig.DUAL) startHudScreen();
     }
 
@@ -44,6 +53,113 @@ public class SkyrimActivity extends SDLActivity {
     protected void onDestroy() {
         if (hudScreen != null) { hudScreen.dismiss(); hudScreen = null; }
         super.onDestroy();
+    }
+
+    // ---- In-game LSFG controls ------------------------------------------------
+    private static native int[] nativeGetLsfgSettings();
+    private static native boolean nativeSetLsfgSettings(int multiplier, int flowPercent, int performance);
+
+    private int dp(float value) {
+        return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
+    }
+
+    private void addLsfgOverlayButton() {
+        if (mLayout == null) return;
+        Button button = new Button(this);
+        button.setText("LSFG");
+        button.setTextSize(12);
+        button.setAllCaps(false);
+        button.setTextColor(Color.WHITE);
+        button.setPadding(dp(10), 0, dp(10), 0);
+        GradientDrawable background = new GradientDrawable();
+        background.setColor(Color.argb(220, 24, 31, 43));
+        background.setCornerRadius(dp(10));
+        background.setStroke(dp(1), Color.argb(220, 100, 180, 255));
+        button.setBackground(background);
+        button.setElevation(dp(8));
+        android.widget.RelativeLayout.LayoutParams params =
+                new android.widget.RelativeLayout.LayoutParams(dp(64), dp(42));
+        params.addRule(android.widget.RelativeLayout.ALIGN_PARENT_TOP);
+        params.addRule(android.widget.RelativeLayout.ALIGN_PARENT_LEFT);
+        params.setMargins(dp(12), dp(12), 0, 0);
+        mLayout.addView(button, params);
+        button.setOnClickListener(v -> showLsfgSettings());
+    }
+
+    private void showLsfgSettings() {
+        int[] current = nativeGetLsfgSettings();
+        if (current == null || current.length < 4 || current[0] == 0) {
+            new AlertDialog.Builder(this)
+                    .setTitle("LSFG")
+                    .setMessage("LSFG backend is not active. Check port/lsfg.conf and Lossless.dll, then restart the game.")
+                    .setPositiveButton("OK", null)
+                    .show();
+            return;
+        }
+
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(20), dp(8), dp(20), dp(4));
+
+        TextView status = new TextView(this);
+        status.setText("Changes apply during gameplay and are saved for the next launch.");
+        status.setTextSize(13);
+        panel.addView(status);
+
+        TextView multiplierLabel = new TextView(this);
+        multiplierLabel.setText("Frame generation");
+        multiplierLabel.setPadding(0, dp(16), 0, dp(4));
+        panel.addView(multiplierLabel);
+        Spinner multiplier = new Spinner(this);
+        multiplier.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
+                new String[] { "2x", "3x", "4x" }));
+        multiplier.setSelection(Math.max(0, Math.min(2, current[1] - 2)));
+        panel.addView(multiplier);
+
+        TextView flowLabel = new TextView(this);
+        flowLabel.setPadding(0, dp(16), 0, 0);
+        panel.addView(flowLabel);
+        SeekBar flow = new SeekBar(this);
+        flow.setMax(60);
+        flow.setProgress(Math.max(0, Math.min(60, current[2] - 40)));
+        panel.addView(flow);
+        Runnable updateFlowLabel = () -> flowLabel.setText("Flow quality: " + (flow.getProgress() + 40) + "%");
+        updateFlowLabel.run();
+        flow.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar bar, int value, boolean fromUser) {
+                updateFlowLabel.run();
+            }
+            @Override public void onStartTrackingTouch(SeekBar bar) {}
+            @Override public void onStopTrackingTouch(SeekBar bar) {}
+        });
+
+        TextView modeLabel = new TextView(this);
+        modeLabel.setText("GPU mode");
+        modeLabel.setPadding(0, dp(16), 0, dp(4));
+        panel.addView(modeLabel);
+        Spinner mode = new Spinner(this);
+        mode.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
+                new String[] { "Performance", "Balanced", "Low GPU load" }));
+        mode.setSelection(Math.max(0, Math.min(2, current[3])));
+        panel.addView(mode);
+
+        new AlertDialog.Builder(this)
+                .setTitle("LSFG dynamic settings")
+                .setView(panel)
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Apply", (dialog, which) -> {
+                    int mult = multiplier.getSelectedItemPosition() + 2;
+                    int quality = flow.getProgress() + 40;
+                    int perf = mode.getSelectedItemPosition();
+                    if (!nativeSetLsfgSettings(mult, quality, perf)) {
+                        android.widget.Toast.makeText(this, "Could not apply LSFG settings",
+                                android.widget.Toast.LENGTH_SHORT).show();
+                    } else {
+                        android.widget.Toast.makeText(this, "LSFG settings applied",
+                                android.widget.Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .show();
     }
 
     // ---- Dual build: the HUD on the second display (runtime/hud_screen.cpp) ----

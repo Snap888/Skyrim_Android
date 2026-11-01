@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <atomic>
 
 #define LOGI(...) lsfg_log("I", __VA_ARGS__)
 #define LOGW(...) lsfg_log("W", __VA_ARGS__)
@@ -25,7 +26,11 @@ extern "C" void lsfg_step3g_set_generation_hooks(
     void* (*)(void*, void*, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t));
 
 static LsfgConfig g_cfg;
-static int g_inited;
+static std::atomic<int> g_inited{0};
+static std::atomic<int> g_multiplier{2};
+static std::atomic<int> g_flow_percent{70};
+static std::atomic<int> g_performance{1};
+static char g_config_path[768];
 static int g_logged_frame;
 static int g_extract_count;
 
@@ -40,6 +45,7 @@ bool lsfg_load_config(const char *game_dir, LsfgConfig *out) {
 
     char path[768];
     snprintf(path, sizeof path, "%s/port/lsfg.conf", game_dir);
+    snprintf(g_config_path, sizeof g_config_path, "%s", path);
     FILE *f = fopen(path, "r");
     if (!f) {
         LOGI("no %s — LSFG off", path);
@@ -87,6 +93,9 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     g_extract_count = 0;
     if (!cfg) return false;
     g_cfg = *cfg;
+    g_multiplier.store(cfg->multiplier, std::memory_order_relaxed);
+    g_flow_percent.store((int)(cfg->flow_scale * 100.0f + 0.5f), std::memory_order_relaxed);
+    g_performance.store(cfg->performance, std::memory_order_relaxed);
 
     LOGI("=== LSFG host init ===");
     LOGI("STATUS: step1 extract + step2 SPIR-V + step3 present hook");
@@ -149,32 +158,74 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
 }
 
 void lsfg_host_shutdown(void) {
-    if (g_inited) LOGI("LSFG shutdown");
-    g_inited = 0;
+    if (g_inited.load(std::memory_order_acquire)) LOGI("LSFG shutdown");
+    g_inited.store(0, std::memory_order_release);
     lsfg_log_close();
 }
 
 unsigned lsfg_host_generation_count(void) {
-    if (!g_inited || g_cfg.multiplier <= 1) return 0;
-    unsigned count = (unsigned)(g_cfg.multiplier - 1);
+    if (!g_inited.load(std::memory_order_acquire)) return 0;
+    const int multiplier = g_multiplier.load(std::memory_order_relaxed);
+    if (multiplier <= 1) return 0;
+    unsigned count = (unsigned)(multiplier - 1);
     return count > 3 ? 3 : count;
 }
 
 float lsfg_host_flow_scale(void) {
-    const float quality = g_cfg.flow_scale >= 0.1f && g_cfg.flow_scale <= 1.0f
-        ? g_cfg.flow_scale : 0.70f;
-
-    // Mode is a compute-resolution policy layered over the quality slider:
-    // Performance trades spatial detail for lower GPU cost; Stability keeps
-    // the requested quality; Low uses half-resolution flow for constrained GPUs.
+    const float quality = (float)g_flow_percent.load(std::memory_order_relaxed) / 100.0f;
     static const float modeScale[] = { 0.75f, 1.0f, 0.5f };
-    const unsigned mode = (g_cfg.performance >= 0 && g_cfg.performance <= 2)
-        ? (unsigned)g_cfg.performance : 1u;
+    const int selected = g_performance.load(std::memory_order_relaxed);
+    const unsigned mode = selected >= 0 && selected <= 2 ? (unsigned)selected : 1u;
     return quality * modeScale[mode];
 }
 
+int lsfg_host_get_settings(int *multiplier, int *flow_percent, int *performance) {
+    if (multiplier) *multiplier = g_multiplier.load(std::memory_order_relaxed);
+    if (flow_percent) *flow_percent = g_flow_percent.load(std::memory_order_relaxed);
+    if (performance) *performance = g_performance.load(std::memory_order_relaxed);
+    return g_inited.load(std::memory_order_acquire) ? 1 : 0;
+}
+
+bool lsfg_host_update_settings(int multiplier, int flow_percent, int performance) {
+    if (!g_inited.load(std::memory_order_acquire)) return false;
+    if (multiplier < 2 || multiplier > 4 || flow_percent < 40 || flow_percent > 100
+        || performance < 0 || performance > 2) return false;
+
+    // The UI thread updates atomics only. Vulkan resources are rebuilt lazily
+    // by the DXVK render thread after it observes a changed effective scale.
+    g_multiplier.store(multiplier, std::memory_order_release);
+    g_flow_percent.store(flow_percent, std::memory_order_release);
+    g_performance.store(performance, std::memory_order_release);
+    g_cfg.multiplier = multiplier;
+    g_cfg.flow_scale = (float)flow_percent / 100.0f;
+    g_cfg.performance = performance;
+
+    if (g_config_path[0]) {
+        char temporary[800];
+        snprintf(temporary, sizeof temporary, "%s.tmp", g_config_path);
+        FILE *file = fopen(temporary, "w");
+        if (file) {
+            fprintf(file, "enabled=%d\nmultiplier=%d\nflow_scale=%.2f\nperformance=%d\n",
+                    g_cfg.enabled, multiplier, (double)g_cfg.flow_scale, performance);
+            if (g_cfg.dll_path[0]) fprintf(file, "dll_path=%s\n", g_cfg.dll_path);
+            if (g_cfg.shader_cache[0]) fprintf(file, "shader_cache=%s\n", g_cfg.shader_cache);
+            if (g_cfg.state_cache[0]) fprintf(file, "state_cache=%s\n", g_cfg.state_cache);
+            const int ok = fclose(file) == 0 && rename(temporary, g_config_path) == 0;
+            if (!ok) {
+                remove(temporary);
+                LOGW("could not persist live settings to %s", g_config_path);
+            }
+        } else {
+            LOGW("could not open live settings file %s", temporary);
+        }
+    }
+    LOGI("live settings applied multiplier=%dx flow=%.2f performance=%d",
+         multiplier, (double)g_cfg.flow_scale, performance);
+    return true;
+}
+
 bool lsfg_host_active(void) {
-    return g_inited != 0;
+    return g_inited.load(std::memory_order_acquire) != 0;
 }
 
 int lsfg_host_extract_count(void) {

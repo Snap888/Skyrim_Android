@@ -17,6 +17,8 @@
 #include <sys/stat.h>
 #ifdef __ANDROID__
 #include <SDL2/SDL.h>
+#include <jni.h>
+#include "lsfg_host.h"
 #endif
 
 uint8_t *MEM;
@@ -25,6 +27,29 @@ char g_game_dir[1024] = ".";
 char g_save_dir[1024] = "./save";
 uint32_t g_image_size;
 uint32_t g_entry;
+
+#ifdef __ANDROID__
+JNIEXPORT jintArray JNICALL
+Java_com_tj_skyrim_SkyrimActivity_nativeGetLsfgSettings(JNIEnv *env, jclass clazz) {
+    (void)clazz;
+    int multiplier = 2, flow_percent = 70, performance = 1;
+    int active = lsfg_host_get_settings(&multiplier, &flow_percent, &performance);
+    jint values[4] = { active, multiplier, flow_percent, performance };
+    jintArray result = (*env)->NewIntArray(env, 4);
+    if (result) (*env)->SetIntArrayRegion(env, result, 0, 4, values);
+    return result;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_tj_skyrim_SkyrimActivity_nativeSetLsfgSettings(
+        JNIEnv *env, jclass clazz, jint multiplier, jint flow_percent, jint performance) {
+    (void)env;
+    (void)clazz;
+    return lsfg_host_update_settings(multiplier, flow_percent, performance)
+        ? JNI_TRUE : JNI_FALSE;
+}
+#endif
+
 
 void rt_fatal(const char *fmt, ...) {
     va_list ap;

@@ -28,6 +28,8 @@ int  lsfg_host_extract_count(void);
 void lsfg_host_on_frame(void);
 float lsfg_host_flow_scale(void);
 unsigned lsfg_host_generation_count(void);
+int lsfg_host_get_settings(int *multiplier, int *flow_percent, int *performance);
+bool lsfg_host_update_settings(int multiplier, int flow_percent, int performance);
 
 #ifdef __cplusplus
 }
