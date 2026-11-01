@@ -9,6 +9,9 @@
 #include <cstdlib>
 #include <fstream>
 #include <mutex>
+#include <thread>
+
+extern "C" int lsfg_host_game_fps_limit(void);
 
 /* LSFG callback registration keeps DXVK independent of lsfg_host at link time. */
 using LsfgCopyHook = void (*)(void*, void*, void*, uint32_t, uint32_t, uint32_t);
@@ -1065,6 +1068,23 @@ namespace dxvk {
     }
 
     SyncFrameLatency();
+
+    SyncFrameLatency();
+
+    // Experimental game-only pacing, once per D3D9 Present after LSFG outputs.
+    // This throttles the next game frame, not individual generated presents.
+    const int gameFpsLimit = lsfg_host_game_fps_limit();
+    if (gameFpsLimit > 0) {
+      const auto interval = std::chrono::nanoseconds(1000000000ll / gameFpsLimit);
+      const auto now = std::chrono::steady_clock::now();
+      if (m_gameFpsDeadline.time_since_epoch().count() == 0
+       || now - m_gameFpsDeadline > interval * 2)
+        m_gameFpsDeadline = now;
+      m_gameFpsDeadline += interval;
+      std::this_thread::sleep_until(m_gameFpsDeadline);
+    } else {
+      m_gameFpsDeadline = std::chrono::steady_clock::time_point{};
+    }
 
     // Rotate swap chain buffers so that the back
     // buffer at index 0 becomes the front buffer.
