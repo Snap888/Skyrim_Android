@@ -302,7 +302,7 @@ Java_com_tj_skyrim_SkyrimActivity_nativeSetLegacyTouchEnabled(JNIEnv *, jobject,
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_tj_skyrim_SkyrimActivity_nativeSetVirtualPad(JNIEnv *, jobject, jint buttons,
+Java_com_tj_skyrim_SkyrimActivity_nativeQuickAction(JNIEnv *, jobject, jboolean load) {\n    push_quick_key(load == JNI_TRUE ? SDL_SCANCODE_F9 : SDL_SCANCODE_F5);\n}\n\nextern "C" JNIEXPORT void JNICALL\nJava_com_tj_skyrim_SkyrimActivity_nativeSetVirtualPad(JNIEnv *, jobject, jint buttons,
         jint lx, jint ly, jint rx, jint ry, jint lt, jint rt) {
     input_set_virtual((uint16_t)buttons, (int16_t)lx, (int16_t)ly,
             (int16_t)rx, (int16_t)ry, (uint8_t)lt, (uint8_t)rt);
