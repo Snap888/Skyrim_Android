@@ -250,8 +250,9 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
                     val old = positions[name] ?: continue
                     val control = controls.first { it.name == name }
                     val scale = min(width,height).toFloat().coerceAtLeast(1f)
-                    val nx = (old.first + (e.getX(i)-prev.first)/width).coerceIn(control.rx*scale/width,1f-control.rx*scale/width)
-                    val ny = (old.second + (e.getY(i)-prev.second)/height).coerceIn(control.ry*scale/height,1f-control.ry*scale/height)
+                    val factor = sizes[name] ?: 1f
+                    val nx = (old.first + (e.getX(i)-prev.first)/width).coerceIn(control.rx*factor*scale/width,1f-control.rx*factor*scale/width)
+                    val ny = (old.second + (e.getY(i)-prev.second)/height).coerceIn(control.ry*factor*scale/height,1f-control.ry*factor*scale/height)
                     positions[name] = Pair(nx,ny)
                     lastTouch[pid] = Pair(e.getX(i),e.getY(i))
                     continue
