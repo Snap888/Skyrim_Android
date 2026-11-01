@@ -1,8 +1,11 @@
 /* xWMA via FFmpeg for Skyrim Android.
  *
- * WAVEFORMATEX.nBlockAlign (e.g. 2230) does NOT match actual xWMA packet
- * sizes (46..1594). Wrong block_align -> noise. Derive BA from packet table.
- * Reject under-decoded large buffers instead of playing crackle.
+ * Crackling: WAVEFORMATEX.nBlockAlign (e.g. 2230) does NOT match actual
+ * xWMA packet sizes (46..1594). Feeding with wrong block_align corrupts WMA.
+ *
+ * Fix: derive effective block_align from the packet table (min size >= 32).
+ * Prefer whole-buffer; only then feed real packets with matching BA.
+ * Reject under-decoded large buffers instead of playing noise.
  */
 #ifdef LB_HAS_FFMPEG
 
@@ -103,6 +106,7 @@ static AVCodecContext *open_ctx(const AVCodec *codec, int channels, int rate,
     ctx->channels = channels > 0 ? channels : 2;
     ctx->channel_layout = av_get_default_channel_layout(ctx->channels);
 #endif
+    /* Must be non-zero for WMAV2 open; value should match feed packet sizes. */
     ctx->block_align = block_align > 0 ? block_align : 1;
     if (avg_bps > 0) ctx->bit_rate = (int64_t)avg_bps * 8;
     ctx->request_sample_fmt = AV_SAMPLE_FMT_FLTP;
@@ -144,24 +148,30 @@ static int feed_block(AVCodecContext *ctx, const uint8_t *p, int psz,
     return drain(ctx, frame, channels, pcm, len, cap);
 }
 
+/* block_align from format often mismatches real xWMA packets — derive from table. */
 static int effective_block_align(int fmt_ba, const uint32_t *cum, uint32_t n, uint32_t size)
 {
     if (!cum || n < 1) return fmt_ba > 0 ? fmt_ba : 1;
     uint32_t prev = 0;
-    uint32_t min_ps = UINT32_MAX, cnt = 0;
+    uint32_t min_ps = UINT32_MAX, max_ps = 0, sum = 0, cnt = 0;
     for (uint32_t i = 0; i < n; i++) {
         uint32_t end = cum[i];
         if (end > size) end = size;
         if (end <= prev) continue;
         uint32_t psz = end - prev;
         prev = end;
-        if (psz < 32) continue;
+        if (psz < 32) continue; /* skip tiny/junk */
         if (psz < min_ps) min_ps = psz;
+        if (psz > max_ps) max_ps = psz;
+        sum += psz;
         cnt++;
         if (prev >= size) break;
     }
     if (cnt == 0) return fmt_ba > 0 ? fmt_ba : 1;
-    return (int)min_ps;
+    /* Prefer the minimum real packet size — FFmpeg compares against block_align. */
+    int ba = (int)min_ps;
+    if (fmt_ba > 0 && fmt_ba < ba && fmt_ba >= 32) ba = fmt_ba;
+    return ba > 0 ? ba : 1;
 }
 
 static int duration_ok(size_t len, int channels, int rate, uint32_t size, int avg_bps)
@@ -175,6 +185,7 @@ static int duration_ok(size_t len, int channels, int rate, uint32_t size, int av
 
     double exp_sec = (avg_bps > 0) ? (double)size / (double)avg_bps : 0;
     if (exp_sec <= 0.1) return sec >= 0.02;
+    /* Large streams: require at least 25% of expected length (avoid 1s of noise). */
     return sec >= exp_sec * 0.25;
 }
 
@@ -220,6 +231,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
     int used_packets = 0;
     const char *how = NULL;
 
+    /* Pass 1: whole buffer with effective BA */
     {
         AVCodecContext *ctx = open_ctx(codec, channels, rate, ba, avg_bps,
                                        extradata, extradata_size);
@@ -232,13 +244,14 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
                 how = "whole";
             else {
                 if (len && size >= 48 * 1024)
-                    fprintf(stderr, "xwma_ffmpeg: whole reject samples=%zu size=%u\n",
+                    fprintf(stderr, "xwma_ffmpeg: whole reject samples=%zu size=%u (too short)\n",
                             len / (size_t)channels, size);
                 clear_pcm(&pcm, &len, &cap);
             }
         }
     }
 
+    /* Pass 2: each packet from table, with matching effective BA (no undersize feed) */
     if (!len && cum_bytes && packet_count > 0 && packet_count < 100000) {
         AVCodecContext *ctx = open_ctx(codec, channels, rate, ba, avg_bps,
                                        extradata, extradata_size);
@@ -274,6 +287,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
         }
     }
 
+    /* Pass 3: slice by effective BA */
     if (!len && ba >= 32) {
         AVCodecContext *ctx = open_ctx(codec, channels, rate, ba, avg_bps,
                                        extradata, extradata_size);
