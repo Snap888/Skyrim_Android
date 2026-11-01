@@ -246,9 +246,11 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
         LinearLayout actions = new LinearLayout(this);
         actions.setGravity(android.view.Gravity.CENTER_VERTICAL);
         Button arrange = new Button(this);
-        arrange.setText(gamepadOverlay.isLayoutEditMode() ? "Finish layout" : "Arrange controls");
+        arrange.setText(gamepadOverlay.isLayoutEditMode() ? "Finish layout" : "Arrange");
+        Button appearance = new Button(this); appearance.setText("Size / shape");
         Button close = new Button(this); close.setText("Done");
         actions.addView(arrange, new LinearLayout.LayoutParams(0, dp(48), 1));
+        actions.addView(appearance, new LinearLayout.LayoutParams(0, dp(48), 1));
         actions.addView(close, new LinearLayout.LayoutParams(0, dp(48), 1));
         root.addView(actions);
 
@@ -327,6 +329,7 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
                 android.widget.Toast.makeText(this, "Layout saved", android.widget.Toast.LENGTH_SHORT).show();
             }
         });
+        appearance.setOnClickListener(v -> showGamepadAppearanceEditor());
         close.setOnClickListener(v -> dialog.dismiss());
         dialog.show();
         if (dialog.getWindow() != null) {
@@ -334,6 +337,82 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
             dialog.getWindow().setLayout(Math.min(getResources().getDisplayMetrics().widthPixels - dp(24), dp(560)),
                     Math.min(getResources().getDisplayMetrics().heightPixels - dp(48), dp(680)));
         }
+    }
+
+    private void showGamepadAppearanceEditor() {
+        if (gamepadOverlay == null) return;
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(18), dp(12), dp(18), dp(8));
+
+        TextView controlLabel = editorText("CONTROL", 12, true);
+        panel.addView(controlLabel);
+        Spinner control = new Spinner(this);
+        String[] names = gamepadOverlay.controlNames().toArray(new String[0]);
+        control.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, names));
+        panel.addView(control);
+
+        TextView sizeLabel = editorText("SIZE: 100%", 13, true);
+        sizeLabel.setPadding(0, dp(18), 0, 0);
+        panel.addView(sizeLabel);
+        SeekBar size = new SeekBar(this);
+        size.setMax(120); // 60% .. 180%, in one-percent steps
+        panel.addView(size);
+
+        TextView shapeLabel = editorText("BUTTON SHAPE", 12, true);
+        shapeLabel.setPadding(0, dp(14), 0, dp(4));
+        panel.addView(shapeLabel);
+        String[] shapeNames = { "Circle", "Square", "Rectangle — sharp corners", "Rectangle — rounded corners" };
+        String[] shapeValues = { "circle", "square", "rect", "rounded_rect" };
+        Spinner shape = new Spinner(this);
+        shape.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, shapeNames));
+        panel.addView(shape);
+
+        final boolean[] updating = { false };
+        Runnable loadSelected = () -> {
+            String name = (String) control.getSelectedItem();
+            if (name == null) return;
+            updating[0] = true;
+            float currentSize = gamepadOverlay.controlSize(name);
+            int progress = Math.max(0, Math.min(120, Math.round((currentSize - 0.6f) * 100f)));
+            size.setProgress(progress);
+            sizeLabel.setText("SIZE: " + Math.round((0.6f + progress / 100f) * 100f) + "%");
+            String currentShape = gamepadOverlay.controlShape(name);
+            int selected = 0;
+            for (int i = 0; i < shapeValues.length; i++) if (shapeValues[i].equals(currentShape)) selected = i;
+            shape.setSelection(selected);
+            updating[0] = false;
+        };
+        control.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(android.widget.AdapterView<?> parent, android.view.View view, int position, long id) {
+                loadSelected.run();
+            }
+            @Override public void onNothingSelected(android.widget.AdapterView<?> parent) {}
+        });
+        size.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                float value = 0.6f + progress / 100f;
+                sizeLabel.setText("SIZE: " + Math.round(value * 100f) + "%");
+                if (!updating[0]) {
+                    String name = (String) control.getSelectedItem();
+                    if (name != null) gamepadOverlay.configureAppearance(name, value, shapeValues[shape.getSelectedItemPosition()]);
+                }
+            }
+            @Override public void onStartTrackingTouch(SeekBar bar) {}
+            @Override public void onStopTrackingTouch(SeekBar bar) {}
+        });
+        shape.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(android.widget.AdapterView<?> parent, android.view.View view, int position, long id) {
+                if (!updating[0]) {
+                    String name = (String) control.getSelectedItem();
+                    if (name != null) gamepadOverlay.configureAppearance(name, 0.6f + size.getProgress() / 100f, shapeValues[position]);
+                }
+            }
+            @Override public void onNothingSelected(android.widget.AdapterView<?> parent) {}
+        });
+        loadSelected.run();
+        new AlertDialog.Builder(this).setTitle("Control appearance").setView(panel)
+                .setPositiveButton("Done", null).show();
     }
 
     private void saveGamepadControlSettings(android.content.SharedPreferences prefs) {
