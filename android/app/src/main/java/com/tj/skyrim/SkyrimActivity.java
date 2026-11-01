@@ -45,6 +45,7 @@ public class SkyrimActivity extends SDLActivity {
     protected void onCreate(Bundle savedInstanceState) {
         saveLastExit();
         super.onCreate(savedInstanceState);
+        addGamepadOverlay();
         addOverlayMenuButton();
         if (BuildConfig.DUAL) startHudScreen();
     }
@@ -52,6 +53,7 @@ public class SkyrimActivity extends SDLActivity {
     @Override
     protected void onDestroy() {
         if (hudScreen != null) { hudScreen.dismiss(); hudScreen = null; }
+        if (!mBrokenLibraries) nativeSetVirtualPad(0, 0, 0, 0, 0, 0, 0);
         super.onDestroy();
     }
 
@@ -64,6 +66,25 @@ public class SkyrimActivity extends SDLActivity {
     }
 
     private static native void nativeSetTouchEditor(boolean enabled);
+    private native void nativeSetLegacyTouchEnabled(boolean enabled);
+    private native void nativeSetVirtualPad(int buttons, int lx, int ly, int rx, int ry, int lt, int rt);
+    private GamepadOverlayView gamepadOverlay;
+
+    private void addGamepadOverlay() {
+        if (mLayout == null) return;
+        // The old D3D9 touch renderer remains compiled for rollback, but is
+        // switched off so only this Android/Kotlin overlay is visible.
+        nativeSetLegacyTouchEnabled(false);
+        gamepadOverlay = new GamepadOverlayView(this, (buttons, lx, ly, rx, ry, lt, rt) ->
+                nativeSetVirtualPad(buttons, lx, ly, rx, ry, lt, rt));
+        gamepadOverlay.setContentDescription("Virtual Xbox gamepad controls");
+        gamepadOverlay.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null);
+        android.widget.RelativeLayout.LayoutParams p = new android.widget.RelativeLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT);
+        mLayout.addView(gamepadOverlay, p);
+        gamepadOverlay.bringToFront();
+    }
     private boolean touchEditorEnabled;
 
     private void addOverlayMenuButton() {
