@@ -1,13 +1,8 @@
-/* xWMA decode via FFmpeg (WMAV2/WMAPRO) for Skyrim on Android.
+/* xWMA via FFmpeg for Skyrim Android.
  *
- * Crackling root cause: feeding xWMA packets smaller than block_align
- * ("Input packet size too small") corrupts decoder state → noise.
- *
- * Policy:
- *  1) Always set block_align at open (FFmpeg requires it).
- *  2) Prefer one continuous whole-buffer feed.
- *  3) Packet table only as MERGED chunks (>= block_align).
- *  4) Accept short voice frames (>= 1024 samples).
+ * WAVEFORMATEX.nBlockAlign (e.g. 2230) does NOT match actual xWMA packet
+ * sizes (46..1594). Wrong block_align -> noise. Derive BA from packet table.
+ * Reject under-decoded large buffers instead of playing crackle.
  */
 #ifdef LB_HAS_FFMPEG
 
@@ -108,7 +103,7 @@ static AVCodecContext *open_ctx(const AVCodec *codec, int channels, int rate,
     ctx->channels = channels > 0 ? channels : 2;
     ctx->channel_layout = av_get_default_channel_layout(ctx->channels);
 #endif
-    if (block_align > 0) ctx->block_align = block_align;
+    ctx->block_align = block_align > 0 ? block_align : 1;
     if (avg_bps > 0) ctx->bit_rate = (int64_t)avg_bps * 8;
     ctx->request_sample_fmt = AV_SAMPLE_FMT_FLTP;
 
@@ -149,16 +144,38 @@ static int feed_block(AVCodecContext *ctx, const uint8_t *p, int psz,
     return drain(ctx, frame, channels, pcm, len, cap);
 }
 
+static int effective_block_align(int fmt_ba, const uint32_t *cum, uint32_t n, uint32_t size)
+{
+    if (!cum || n < 1) return fmt_ba > 0 ? fmt_ba : 1;
+    uint32_t prev = 0;
+    uint32_t min_ps = UINT32_MAX, cnt = 0;
+    for (uint32_t i = 0; i < n; i++) {
+        uint32_t end = cum[i];
+        if (end > size) end = size;
+        if (end <= prev) continue;
+        uint32_t psz = end - prev;
+        prev = end;
+        if (psz < 32) continue;
+        if (psz < min_ps) min_ps = psz;
+        cnt++;
+        if (prev >= size) break;
+    }
+    if (cnt == 0) return fmt_ba > 0 ? fmt_ba : 1;
+    return (int)min_ps;
+}
+
 static int duration_ok(size_t len, int channels, int rate, uint32_t size, int avg_bps)
 {
     if (!len || channels < 1 || rate < 1) return 0;
     uint32_t frames = (uint32_t)(len / (size_t)channels);
     double sec = (double)frames / (double)rate;
+
     if (size < 16 * 1024 && frames >= 1024) return 1;
     if (size < 48 * 1024 && sec >= 0.02) return 1;
+
     double exp_sec = (avg_bps > 0) ? (double)size / (double)avg_bps : 0;
     if (exp_sec <= 0.1) return sec >= 0.02;
-    return (sec >= exp_sec * 0.10) || (sec >= 0.5);
+    return sec >= exp_sec * 0.25;
 }
 
 static void clear_pcm(int16_t **pcm, size_t *len, size_t *cap)
@@ -167,63 +184,6 @@ static void clear_pcm(int16_t **pcm, size_t *len, size_t *cap)
     *pcm = NULL;
     *len = 0;
     *cap = 0;
-}
-
-/* Feed data as fixed-size slices of block_align (no undersized packets). */
-static int feed_aligned(AVCodecContext *ctx, const uint8_t *data, uint32_t size,
-                        int block_align, AVPacket *pkt, AVFrame *frame, int channels,
-                        int16_t **pcm, size_t *len, size_t *cap)
-{
-    if (block_align < 16) block_align = 16;
-    uint32_t ba = (uint32_t)block_align;
-    int sent = 0;
-    for (uint32_t off = 0; off + 16 <= size; ) {
-        uint32_t psz = ba;
-        if (off + psz > size) {
-            /* last partial: only feed if >= half block or it's all we have */
-            psz = size - off;
-            if (psz < ba / 2 && off > 0) break;
-        }
-        if (feed_block(ctx, data + off, (int)psz, pkt, frame, channels, pcm, len, cap) >= 0)
-            sent++;
-        off += (psz >= ba) ? ba : psz;
-        if (off >= size) break;
-    }
-    avcodec_send_packet(ctx, NULL);
-    drain(ctx, frame, channels, pcm, len, cap);
-    return sent;
-}
-
-/* Merge XAUDIO2 packet table entries until each chunk is >= block_align. */
-static int feed_merged_packets(AVCodecContext *ctx, const uint8_t *data, uint32_t size,
-                               const uint32_t *cum_bytes, uint32_t packet_count,
-                               int block_align, AVPacket *pkt, AVFrame *frame, int channels,
-                               int16_t **pcm, size_t *len, size_t *cap)
-{
-    uint32_t ba = (block_align > 16) ? (uint32_t)block_align : 16;
-    int sent = 0;
-    uint32_t prev = 0, acc_off = 0, acc_sz = 0;
-    for (uint32_t i = 0; i < packet_count; i++) {
-        uint32_t end = cum_bytes[i];
-        if (end > size) end = size;
-        if (end <= prev) continue;
-        if (!acc_sz) acc_off = prev;
-        acc_sz += end - prev;
-        prev = end;
-        int is_last = (i + 1 == packet_count) || (prev >= size);
-        if (acc_sz >= ba || is_last) {
-            if (acc_sz >= 16) {
-                if (feed_block(ctx, data + acc_off, (int)acc_sz, pkt, frame, channels,
-                               pcm, len, cap) >= 0)
-                    sent++;
-            }
-            acc_sz = 0;
-        }
-        if (prev >= size) break;
-    }
-    avcodec_send_packet(ctx, NULL);
-    drain(ctx, frame, channels, pcm, len, cap);
-    return sent;
 }
 
 int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
@@ -242,6 +202,11 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
         return NULL;
     }
 
+    int ba = effective_block_align(block_align, cum_bytes, packet_count, size);
+    if (ba != block_align)
+        fprintf(stderr, "xwma_ffmpeg: ba fmt=%d -> effective=%d (packets=%u size=%u)\n",
+                block_align, ba, packet_count, size);
+
     size_t cap = 0, len = 0;
     int16_t *pcm = NULL;
     AVPacket *pkt = av_packet_alloc();
@@ -255,9 +220,8 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
     int used_packets = 0;
     const char *how = NULL;
 
-    /* Pass 1: continuous whole buffer (best quality when it works). */
     {
-        AVCodecContext *ctx = open_ctx(codec, channels, rate, block_align, avg_bps,
+        AVCodecContext *ctx = open_ctx(codec, channels, rate, ba, avg_bps,
                                        extradata, extradata_size);
         if (ctx) {
             feed_block(ctx, data, (int)size, pkt, frame, channels, &pcm, &len, &cap);
@@ -266,42 +230,71 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
             avcodec_free_context(&ctx);
             if (len && duration_ok(len, channels, rate, size, avg_bps))
                 how = "whole";
-            else
+            else {
+                if (len && size >= 48 * 1024)
+                    fprintf(stderr, "xwma_ffmpeg: whole reject samples=%zu size=%u\n",
+                            len / (size_t)channels, size);
                 clear_pcm(&pcm, &len, &cap);
+            }
         }
     }
 
-    /* Pass 2: merged packet table (never feed undersized packets). */
-    if (!len && cum_bytes && packet_count > 1 && packet_count < 100000) {
-        AVCodecContext *ctx = open_ctx(codec, channels, rate, block_align, avg_bps,
+    if (!len && cum_bytes && packet_count > 0 && packet_count < 100000) {
+        AVCodecContext *ctx = open_ctx(codec, channels, rate, ba, avg_bps,
                                        extradata, extradata_size);
         if (ctx) {
-            int sent = feed_merged_packets(ctx, data, size, cum_bytes, packet_count,
-                                           block_align, pkt, frame, channels,
-                                           &pcm, &len, &cap);
+            int sent = 0, skip = 0;
+            uint32_t prev = 0;
+            for (uint32_t i = 0; i < packet_count; i++) {
+                uint32_t end = cum_bytes[i];
+                if (end > size) end = size;
+                if (end <= prev) continue;
+                uint32_t psz = end - prev;
+                prev = end;
+                if (psz < 32) { skip++; continue; }
+                if (feed_block(ctx, data + (end - psz), (int)psz, pkt, frame, channels,
+                               &pcm, &len, &cap) >= 0)
+                    sent++;
+                if (prev >= size) break;
+            }
+            avcodec_send_packet(ctx, NULL);
+            drain(ctx, frame, channels, &pcm, &len, &cap);
             avcodec_free_context(&ctx);
-            fprintf(stderr, "xwma_ffmpeg: merged-pkts sent=%d samples=%zu size=%u\n",
-                    sent, len / (size_t)(channels > 0 ? channels : 1), size);
+            fprintf(stderr, "xwma_ffmpeg: packets sent=%d skip=%d samples=%zu ba=%d\n",
+                    sent, skip, len / (size_t)(channels > 0 ? channels : 1), ba);
             if (len && duration_ok(len, channels, rate, size, avg_bps)) {
-                how = "merged-pkts";
+                how = "packets";
                 used_packets = 1;
-            } else
+            } else {
+                if (len)
+                    fprintf(stderr, "xwma_ffmpeg: packets reject samples=%zu size=%u\n",
+                            len / (size_t)channels, size);
                 clear_pcm(&pcm, &len, &cap);
+            }
         }
     }
 
-    /* Pass 3: fixed block_align slices over the raw buffer. */
-    if (!len && block_align > 32) {
-        AVCodecContext *ctx = open_ctx(codec, channels, rate, block_align, avg_bps,
+    if (!len && ba >= 32) {
+        AVCodecContext *ctx = open_ctx(codec, channels, rate, ba, avg_bps,
                                        extradata, extradata_size);
         if (ctx) {
-            int sent = feed_aligned(ctx, data, size, block_align, pkt, frame, channels,
-                                    &pcm, &len, &cap);
+            int sent = 0;
+            for (uint32_t off = 0; off + 32 <= size; ) {
+                uint32_t psz = (uint32_t)ba;
+                if (off + psz > size) psz = size - off;
+                if (psz < 32) break;
+                if (feed_block(ctx, data + off, (int)psz, pkt, frame, channels,
+                               &pcm, &len, &cap) >= 0)
+                    sent++;
+                off += psz;
+            }
+            avcodec_send_packet(ctx, NULL);
+            drain(ctx, frame, channels, &pcm, &len, &cap);
             avcodec_free_context(&ctx);
-            fprintf(stderr, "xwma_ffmpeg: aligned sent=%d samples=%zu ba=%d\n",
-                    sent, len / (size_t)(channels > 0 ? channels : 1), block_align);
+            fprintf(stderr, "xwma_ffmpeg: sliced sent=%d samples=%zu ba=%d\n",
+                    sent, len / (size_t)(channels > 0 ? channels : 1), ba);
             if (len && duration_ok(len, channels, rate, size, avg_bps))
-                how = "aligned";
+                how = "sliced";
             else
                 clear_pcm(&pcm, &len, &cap);
         }
@@ -311,8 +304,8 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
     av_packet_free(&pkt);
 
     if (!pcm || !len) {
-        fprintf(stderr, "xwma_ffmpeg: FAILED tag=%04x size=%u ba=%d extra=%d packets=%u\n",
-                tag, size, block_align, extradata_size, packet_count);
+        fprintf(stderr, "xwma_ffmpeg: FAILED tag=%04x size=%u ba=%d/%d packets=%u\n",
+                tag, size, block_align, ba, packet_count);
         free(pcm);
         return NULL;
     }
