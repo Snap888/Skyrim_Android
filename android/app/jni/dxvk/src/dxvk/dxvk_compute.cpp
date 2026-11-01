@@ -134,8 +134,6 @@ namespace dxvk {
         int32_t(status)));
       Logger::err(str::format("  cs  : ", m_shaders.cs->debugName()));
       Logger::err(str::format("  descriptor bindings: ", m_layout->bindingCount()));
-      Logger::err(str::format("  specialization binding mask: ",
-        state.bsBindingMask.toString()));
       return VK_NULL_HANDLE;
     }
     
