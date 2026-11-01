@@ -34,6 +34,12 @@ static void xa_log(const char *fmt, ...) {
 #define XA_LOG(...) xa_log(__VA_ARGS__)
 
 #define PASS_FRAMES_MS 10
+/* Diagnostic isolation experiment: suppress large stereo xWMA streams (music),
+ * while leaving short/mono xWMA voice clips on the normal decoder path. */
+#ifndef XWMA_MUTE_LARGE_STEREO
+#define XWMA_MUTE_LARGE_STEREO 1
+#endif
+#define XWMA_MUSIC_MUTE_THRESHOLD (48u * 1024u)
 #define MAX_VOICES 1024
 #define MAX_QUEUE 64
 #define MAX_CH 8
@@ -648,6 +654,19 @@ SHIM(xs_SubmitSourceBuffer) {
         g_xa_xwma_submits++;
         uint32_t packet_count = bwma ? M32(bwma + 4) : 0;
         uint32_t *packet_info = bwma && packet_count ? (uint32_t *)(MEM + M32(bwma)) : NULL;
+#if XWMA_MUTE_LARGE_STEREO
+        /* Isolation test: avoid feeding suspect long stereo music streams to
+         * WMAV2. Keep mono/short xWMA clips (typically NPC dialogue) enabled. */
+        if (v->in_ch == 2 && x->bytes > XWMA_MUSIC_MUTE_THRESHOLD) {
+            x->nframes = 0;
+            x->decoded = NULL;
+            if (g_xa_xwma_submits <= 20 || g_xa_xwma_submits % 50 == 0) {
+                XA_LOG("xaudio2: xWMA MUTED stereo-large tag=%04x bytes=%u rate=%d packets=%u threshold=%u submit #%u",
+                       v->xwma_tag, x->bytes, v->rate, packet_count,
+                       XWMA_MUSIC_MUTE_THRESHOLD, g_xa_xwma_submits);
+            }
+        } else
+#endif
 #ifdef LB_HAS_FFMPEG
         /* decode xWMA packets -> PCM16 in x->decoded
          * packet_info = cumulative end offsets (XAUDIO2_BUFFER_WMA) */
