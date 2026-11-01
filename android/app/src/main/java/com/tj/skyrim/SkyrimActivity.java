@@ -45,7 +45,7 @@ public class SkyrimActivity extends SDLActivity {
     protected void onCreate(Bundle savedInstanceState) {
         saveLastExit();
         super.onCreate(savedInstanceState);
-        addLsfgOverlayButton();
+        addOverlayMenuButton();
         if (BuildConfig.DUAL) startHudScreen();
     }
 
@@ -63,10 +63,13 @@ public class SkyrimActivity extends SDLActivity {
         return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
     }
 
-    private void addLsfgOverlayButton() {
+    private static native void nativeSetTouchEditor(boolean enabled);
+    private boolean touchEditorEnabled;
+
+    private void addOverlayMenuButton() {
         if (mLayout == null) return;
         Button button = new Button(this);
-        button.setText("LSFG");
+        button.setText("☰");
         button.setTextSize(12);
         button.setAllCaps(false);
         button.setTextColor(Color.WHITE);
@@ -78,12 +81,32 @@ public class SkyrimActivity extends SDLActivity {
         button.setBackground(background);
         button.setElevation(dp(8));
         android.widget.RelativeLayout.LayoutParams params =
-                new android.widget.RelativeLayout.LayoutParams(dp(64), dp(42));
+                new android.widget.RelativeLayout.LayoutParams(dp(48), dp(42));
         params.addRule(android.widget.RelativeLayout.ALIGN_PARENT_TOP);
         params.addRule(android.widget.RelativeLayout.ALIGN_PARENT_LEFT);
         params.setMargins(dp(12), dp(12), 0, 0);
         mLayout.addView(button, params);
-        button.setOnClickListener(v -> showLsfgSettings());
+        button.setContentDescription("In-game menu");
+        button.setOnClickListener(v -> showOverlayMenu());
+    }
+
+    private void showOverlayMenu() {
+        String[] items = { "LSFG settings", "Android keyboard", "Touch controls editor" };
+        new AlertDialog.Builder(this)
+                .setTitle("Skyrim overlay")
+                .setItems(items, (dialog, which) -> {
+                    if (which == 0) showLsfgSettings();
+                    else if (which == 1) {
+                        // SDLActivity routes this request to Android's InputMethodManager.
+                        showTextInput(0, 0, 1, 1);
+                    } else {
+                        touchEditorEnabled = !touchEditorEnabled;
+                        nativeSetTouchEditor(touchEditorEnabled);
+                        android.widget.Toast.makeText(this,
+                                touchEditorEnabled ? "Touch editor enabled" : "Touch editor disabled",
+                                android.widget.Toast.LENGTH_SHORT).show();
+                    }
+                }).show();
     }
 
     private void showLsfgSettings() {
