@@ -1,6 +1,7 @@
 #include "dxvk_hud_item.h"
 
 #include <atomic>
+#include <cstdlib>
 #include <iomanip>
 #include <version.h>
 
@@ -152,6 +153,16 @@ namespace dxvk::hud {
       VK_VERSION_MAJOR(props.apiVersion), ".",
       VK_VERSION_MINOR(props.apiVersion), ".",
       VK_VERSION_PATCH(props.apiVersion));
+    const char* requested = std::getenv("SKYRIM_TURNIP_DRIVER_NAME");
+    const char* active = std::getenv("SKYRIM_TURNIP_DRIVER_ACTIVE");
+    if (requested && *requested) {
+      if (active && std::strcmp(active, "1") == 0)
+        m_driverStatus = str::format("Custom Vulkan ICD: ACTIVE (", requested, ")");
+      else
+        m_driverStatus = str::format("Custom Vulkan ICD: NOT ACTIVE (", requested, "; system fallback)");
+    } else {
+      m_driverStatus = "System Vulkan ICD";
+    }
   }
 
 
@@ -180,6 +191,12 @@ namespace dxvk::hud {
       { position.x, position.y },
       { 1.0f, 1.0f, 1.0f, 1.0f },
       m_vulkanVer);
+
+    position.y += 20.0f;
+    renderer.drawText(16.0f,
+      { position.x, position.y },
+      { 0.25f, 1.0f, 0.5f, 1.0f },
+      m_driverStatus);
 
     position.y += 8.0f;
     return position;
