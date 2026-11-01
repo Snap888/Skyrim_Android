@@ -86,12 +86,21 @@ public class SkyrimActivity extends SDLActivity {
                 android.view.ViewGroup.LayoutParams.MATCH_PARENT,
                 android.view.ViewGroup.LayoutParams.MATCH_PARENT);
         mLayout.addView(gamepadOverlay, p);
+        android.content.SharedPreferences prefs = getSharedPreferences("gamepad_overlay", MODE_PRIVATE);
+        gamepadOverlayEnabled = prefs.getBoolean("overlay_enabled", true);
+        gamepadDisabledControls.addAll(prefs.getStringSet("disabled_controls", java.util.Collections.emptySet()));
+        gamepadToggleControls.addAll(prefs.getStringSet("toggle_controls", java.util.Collections.emptySet()));
+        for (String name : gamepadOverlay.controlNames()) {
+            gamepadOverlay.configureControl(name, !gamepadDisabledControls.contains(name),
+                    gamepadToggleControls.contains(name));
+        }
         gamepadOverlay.bringToFront();
         gamepadOverlay.setVisibility(gamepadOverlayEnabled ? android.view.View.VISIBLE : android.view.View.GONE);
     }
 
     private void setGamepadOverlayEnabled(boolean enabled) {
         gamepadOverlayEnabled = enabled;
+        getSharedPreferences("gamepad_overlay", MODE_PRIVATE).edit().putBoolean("overlay_enabled", enabled).apply();
         if (gamepadOverlay != null) {
             gamepadOverlay.setVisibility(enabled ? android.view.View.VISIBLE : android.view.View.GONE);
         }
@@ -138,6 +147,8 @@ public class SkyrimActivity extends SDLActivity {
                         showTextInput(0, 0, 1, 1);
                     } else if (which == 2) {
                         setGamepadOverlayEnabled(!gamepadOverlayEnabled);
+                    } else if (which == 3) {
+                        showGamepadControlsEditor();
                     } else {
                         touchEditorEnabled = !touchEditorEnabled;
                         nativeSetTouchEditor(touchEditorEnabled);
@@ -181,6 +192,10 @@ public class SkyrimActivity extends SDLActivity {
                                 } else if (selected == 3) {
                                     gamepadToggleControls.add(name);
                                 }
+                                getSharedPreferences("gamepad_overlay", MODE_PRIVATE).edit()
+                                        .putStringSet("disabled_controls", new java.util.HashSet<>(gamepadDisabledControls))
+                                        .putStringSet("toggle_controls", new java.util.HashSet<>(gamepadToggleControls))
+                                        .apply();
                                 gamepadOverlay.configureControl(name,
                                         !gamepadDisabledControls.contains(name),
                                         gamepadToggleControls.contains(name));
