@@ -300,6 +300,13 @@ Java_com_tj_skyrim_SkyrimActivity_nativeSetLegacyTouchEnabled(JNIEnv *, jobject,
         input_set_virtual(0, 0, 0, 0, 0, 0, 0);
     }
 }
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_tj_skyrim_SkyrimActivity_nativeSetVirtualPad(JNIEnv *, jobject, jint buttons,
+        jint lx, jint ly, jint rx, jint ry, jint lt, jint rt) {
+    input_set_virtual((uint16_t)buttons, (int16_t)lx, (int16_t)ly,
+            (int16_t)rx, (int16_t)ry, (uint8_t)lt, (uint8_t)rt);
+}
 #endif
 
 // ---------------------------------------------------------------- drawing
