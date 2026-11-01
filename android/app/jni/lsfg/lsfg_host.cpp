@@ -228,6 +228,7 @@ bool lsfg_host_update_settings(int multiplier, int flow_percent, int performance
     g_cfg.multiplier = multiplier;
     g_cfg.flow_scale = (float)flow_percent / 100.0f;
     g_cfg.performance = performance;
+    g_cfg.game_fps_limit = game_fps_limit;
 
     if (g_config_path[0]) {
         char temporary[800];
