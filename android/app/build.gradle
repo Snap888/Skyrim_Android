@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'org.jetbrains.kotlin.android'
 
 // -Pdual=true builds "Skyrim Dual" (com.tj.skyrim.dual): the HUD and
 // favourites go to the second display. It installs next to the normal app;
