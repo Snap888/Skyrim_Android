@@ -164,7 +164,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
     if (packet_count) {
         if (size % packet_count) {
             fprintf(stderr,
-                    "xwma_ffmpeg: invalid packet layout size=%u packets=%u (not divisible)\\n",
+                    "xwma_ffmpeg: invalid packet layout size=%u packets=%u (not divisible)\n",
                     size, packet_count);
             return NULL;
         }
@@ -172,21 +172,21 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
     } else if (block_align > 0) {
         if (size % (uint32_t)block_align) {
             fprintf(stderr,
-                    "xwma_ffmpeg: invalid data size=%u block_align=%d (partial packet)\\n",
+                    "xwma_ffmpeg: invalid data size=%u block_align=%d (partial packet)\n",
                     size, block_align);
             return NULL;
         }
         packet_size = (uint32_t)block_align;
         packet_count = size / packet_size;
     } else {
-        fprintf(stderr, "xwma_ffmpeg: missing packet count and block_align\\n");
+        fprintf(stderr, "xwma_ffmpeg: missing packet count and block_align\n");
         return NULL;
     }
 
     if (!packet_size || packet_size > INT_MAX || !packet_count) return NULL;
     if (block_align > 0 && packet_size != (uint32_t)block_align) {
         fprintf(stderr,
-                "xwma_ffmpeg: packet size mismatch: XAUDIO2 packets=%u bytes, WAVEFORMAT block_align=%d\\n",
+                "xwma_ffmpeg: packet size mismatch: XAUDIO2 packets=%u bytes, WAVEFORMAT block_align=%d\n",
                 packet_size, block_align);
         return NULL;
     }
@@ -202,14 +202,14 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
             prev = value;
         }
         if (dpds_valid) dpds_last = prev;
-        else fprintf(stderr, "xwma_ffmpeg: invalid non-monotonic dpds table (%u packets)\\n",
+        else fprintf(stderr, "xwma_ffmpeg: invalid non-monotonic dpds table (%u packets)\n",
                      packet_count);
     }
 
     enum AVCodecID id = (tag == 0x0162) ? AV_CODEC_ID_WMAPRO : AV_CODEC_ID_WMAV2;
     const AVCodec *codec = avcodec_find_decoder(id);
     if (!codec) {
-        fprintf(stderr, "xwma_ffmpeg: no decoder tag=%04x\\n", tag);
+        fprintf(stderr, "xwma_ffmpeg: no decoder tag=%04x\n", tag);
         return NULL;
     }
 
@@ -227,7 +227,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
                                    avg_bps, extradata, extradata_size);
     if (!ctx) {
         fprintf(stderr,
-                "xwma_ffmpeg: open failed tag=%04x ch=%d rate=%d packet=%u extra=%d\\n",
+                "xwma_ffmpeg: open failed tag=%04x ch=%d rate=%d packet=%u extra=%d\n",
                 tag, channels, rate, packet_size, extradata_size);
         goto done;
     }
@@ -242,7 +242,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
         if (err < 0) {
             xa_err("packet decode", err);
             fprintf(stderr,
-                    "xwma_ffmpeg: packet %u/%u failed size=%u tag=%04x\\n",
+                    "xwma_ffmpeg: packet %u/%u failed size=%u tag=%04x\n",
                     i + 1, packet_count, packet_size, tag);
             avcodec_free_context(&ctx);
             goto done;
@@ -272,7 +272,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
         double sec_input = (avg_bps > 0)
             ? (double)size / (double)avg_bps : 0.0;
         fprintf(stderr,
-                "xwma_ffmpeg: packets=%u packet_size=%u pcm_frames=%u pcm=%.3fs input_est=%.3fs dpds=%.3fs tag=%04x ba=%d\\n",
+                "xwma_ffmpeg: packets=%u packet_size=%u pcm_frames=%u pcm=%.3fs input_est=%.3fs dpds=%.3fs tag=%04x ba=%d\n",
                 packet_count, packet_size, frames, sec_pcm, sec_input,
                 sec_dpds, tag, block_align);
     }
@@ -282,7 +282,7 @@ done:
     av_packet_free(&pkt);
 
     if (!pcm || !len) {
-        fprintf(stderr, "xwma_ffmpeg: FAILED tag=%04x size=%u packets=%u ba=%d extra=%d\\n",
+        fprintf(stderr, "xwma_ffmpeg: FAILED tag=%04x size=%u packets=%u ba=%d extra=%d\n",
                 tag, size, packet_count, block_align, extradata_size);
         free(pcm);
         return NULL;
