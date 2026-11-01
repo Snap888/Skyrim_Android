@@ -561,9 +561,15 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
         gameFps.setSelection(fpsSelection);
         panel.addView(gameFps);
 
+        // Keep the complete settings panel reachable on short screens and in landscape.
+        android.widget.ScrollView settingsScroll = new android.widget.ScrollView(this);
+        settingsScroll.setFillViewport(true);
+        settingsScroll.setVerticalScrollBarEnabled(true);
+        settingsScroll.addView(panel);
+
         new AlertDialog.Builder(this)
                 .setTitle("LSFG dynamic settings")
-                .setView(panel)
+                .setView(settingsScroll)
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Apply", (dialog, which) -> {
                     int selectedFrameMode = multiplier.getSelectedItemPosition();
