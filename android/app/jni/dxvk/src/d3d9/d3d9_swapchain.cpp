@@ -1069,8 +1069,6 @@ namespace dxvk {
 
     SyncFrameLatency();
 
-    SyncFrameLatency();
-
     // Experimental game-only pacing, once per D3D9 Present after LSFG outputs.
     // This throttles the next game frame, not individual generated presents.
     const int gameFpsLimit = lsfg_host_game_fps_limit();
