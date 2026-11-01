@@ -87,17 +87,17 @@ inline void lsfgGpuTimerEnd(DxvkContext* context, const LsfgGpuTimer& timer) {
     if (!file.good())
       return;
     if (writeHeader)
-      file << "frame,stage,gpu_ms,width,height,status\\n";
+      file << "frame,stage,gpu_ms,width,height,status\n";
 
     if (valid) {
       const double gpuMs = double(endData.timestamp.time - beginData.timestamp.time)
                          * timer.periodNs / 1000000.0;
       file << timer.frame << ',' << timer.stage << ',' << gpuMs << ','
-           << timer.width << ',' << timer.height << ",ok\\n";
+           << timer.width << ',' << timer.height << ",ok\n";
     } else {
       file << timer.frame << ',' << timer.stage << ",0,"
            << timer.width << ',' << timer.height << ",unavailable:"
-           << int(result) << ':' << int(beginStatus) << ':' << int(endStatus) << "\\n";
+           << int(result) << ':' << int(beginStatus) << ':' << int(endStatus) << "\n";
     }
   });
 }
