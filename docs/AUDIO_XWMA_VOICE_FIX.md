@@ -54,6 +54,21 @@ Interpretation:
 - Crackling remains while no large stereo buffers are active: investigate decoded mono/short buffers, the software mixer, SDL output and device routing.
 - Dialogue is also missing: inspect the actual voice channel count and buffer sizes; the 2ch/48 KiB heuristic may be too broad.
 
+## Decoder correction in progress
+
+The FFmpeg packet submission path now handles `AVERROR(EAGAIN)` correctly:
+it drains pending decoded frames and retries the same encoded packet instead of
+counting the packet as accepted and dropping it. The previous behavior could
+silently lose WMA packets and shorten decoded dialogue.
+
+The large-stereo mute experiment now encloses the entire decode/failure-check
+path. Muted buffers therefore no longer emit a misleading `xWMA decode FAILED`
+message.
+
+These changes are source-level fixes; they still require an Android build and
+on-device playback/log comparison. Packet-table semantics and exact packet
+boundaries remain under investigation.
+
 ## Not yet resolved
 
 - Correct xWMA packetization using cumulative packet byte offsets.
