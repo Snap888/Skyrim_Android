@@ -334,7 +334,7 @@ static void setup_gpu_driver(void) {
     char line[2048], driver_path[1024] = "", library_name[256] = "";
     int enabled = 0;
     while (fgets(line, sizeof(line), f)) {
-        char *nl = strpbrk(line, "\\r\\n");
+        char *nl = strpbrk(line, "\r\n");
         if (nl) *nl = 0;
         if (!strcmp(line, "enabled=1")) enabled = 1;
         else if (!strncmp(line, "driver_path=", 12))
