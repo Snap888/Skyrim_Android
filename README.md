@@ -25,6 +25,7 @@ The app opens on a launcher before the game starts:
 - **Antialiasing, Anisotropic filtering, Texture quality, Shadow detail, Decal quantity, Radial blur quality, Object fade distance, Vertical sync**: the same options as the PC launcher.
 - **Touch controls**: show or hide the on-screen buttons.
 - **Nintendo button layout**: swaps A/B and X/Y on physical controllers.
+- **Vulkan GPU driver**: select the Android system driver or import a compatible Turnip ZIP. Custom drivers are stored privately and loaded through libadrenotools; see [GPU driver notes](docs/GPU_DRIVER.md).
 
 # Instructions
 
