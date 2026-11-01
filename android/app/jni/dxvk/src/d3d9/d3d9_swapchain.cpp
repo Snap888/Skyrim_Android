@@ -64,9 +64,9 @@ namespace dxvk {
           stream.open(filePath.c_str(), std::ios::out | std::ios::app);
           if (stream) {
             stream << "=== DXVK_PERF_START run=" << run
-                   << " lsfg_mode_is_runtime_observed=true ===\\n";
+                   << " lsfg_mode_is_runtime_observed=true ===\n";
             stream << "columns: frame,avg_cpu_present_ms,min_cpu_present_ms,max_cpu_present_ms,"
-                      "lsfg_requested,lsfg_generated,width,height,vsync\\n";
+                      "lsfg_requested,lsfg_generated,width,height,vsync\n";
             stream.flush();
           }
         }
@@ -89,7 +89,7 @@ namespace dxvk {
                  << minMs << ',' << maxMs << ','
                  << requested << ',' << generated << ','
                  << width << ',' << height << ','
-                 << (vsync ? 1 : 0) << '\\n';
+                 << (vsync ? 1 : 0) << '\n';
           stream.flush();
           totalMs = 0.0;
           minMs = 1.0e30;
