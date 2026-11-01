@@ -40,6 +40,13 @@ Java_com_tj_skyrim_SkyrimActivity_nativeGetLsfgSettings(JNIEnv *env, jclass claz
     return result;
 }
 
+JNIEXPORT void JNICALL
+Java_com_tj_skyrim_SkyrimActivity_nativeSetTouchEditor(JNIEnv *env, jclass clazz, jboolean enabled) {
+    (void)env; (void)clazz;
+    extern void touch_set_edit_mode(int);
+    touch_set_edit_mode(enabled == JNI_TRUE);
+}
+
 JNIEXPORT jboolean JNICALL
 Java_com_tj_skyrim_SkyrimActivity_nativeSetLsfgSettings(
         JNIEnv *env, jclass clazz, jint multiplier, jint flow_percent, jint performance) {
