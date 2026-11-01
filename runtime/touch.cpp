@@ -180,14 +180,19 @@ static void push_quick_key(SDL_Scancode scancode) {
     SDL_Event e;
     SDL_zero(e);
     e.type = SDL_KEYDOWN;
+    e.key.timestamp = SDL_GetTicks();
+    e.key.windowID = SDL_GetWindowID((SDL_Window *)platform_window());
     e.key.state = SDL_PRESSED;
     e.key.repeat = 0;
     e.key.keysym.scancode = scancode;
     e.key.keysym.sym = SDL_GetKeyFromScancode(scancode);
-    SDL_PushEvent(&e);
+    e.key.keysym.mod = KMOD_NONE;
+    int down_result = SDL_PushEvent(&e);
     e.type = SDL_KEYUP;
+    e.key.timestamp = SDL_GetTicks();
     e.key.state = SDL_RELEASED;
-    SDL_PushEvent(&e);
+    int up_result = SDL_PushEvent(&e);
+    LOG("quick action: scancode=%d down=%d up=%d", (int)scancode, down_result, up_result);
 }
 
 extern "C" void touch_handle_event(const SDL_Event *e) {
