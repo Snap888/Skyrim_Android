@@ -63,3 +63,27 @@ Interpretation:
 - Engine shutdown mutex lifetime issue.
 
 No claim of audible success can be made until tested on-device. Keep `runtime/xaudio2.c` as the full implementation (not a stub); do not modify `gen/`.
+
+
+## Collect logs from the game/port folder
+
+The native runtime already redirects stderr to `<game>/port/log.txt`. This contains
+the XAudio2 and xWMA decoder messages (including `xWMA MUTED`, decoder pass
+results, FFmpeg packet errors and fatal runtime messages).
+
+A helper is provided at `port/collect_xwma_logs.sh`. Copy it into the installed
+game's `port/` directory next to `log.txt`, then run it from Termux:
+
+```sh
+cd "/storage/emulated/0/Skyrim/port"
+sh collect_xwma_logs.sh
+```
+
+It creates one timestamped `xwma-diagnostics-YYYYMMDD-HHMMSS.txt` file in
+that same directory. The report combines the complete runtime `log.txt`
+with filtered Android logcat entries for XAudio2, xWMA/FFmpeg, SDL/audio and
+crash diagnostics. The example path should be replaced with the actual game
+folder selected in the launcher.
+
+Run the game first, reproduce the issue (include both NPC dialogue and music),
+exit the game, then run the collector. Send the generated diagnostics file.
