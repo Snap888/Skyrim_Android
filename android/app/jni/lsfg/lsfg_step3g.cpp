@@ -1,6 +1,7 @@
 #include "lsfg_log.h"
 #include "lsfg_host.h"
 #include "lsfg_present.h"
+#include "lsfg_dxvk_gpu_profiler.h"
 
 #include <atomic>
 #include <stdint.h>
@@ -398,7 +399,12 @@ extern "C" void lsfg_step3g_copy_impl(
 
     const char *cache_dir = lsfg_host_cache_dir();
     bool shared_dispatched = false;
-    if (dispatch_mipmaps(ctx, device, cache_dir, slot, w, h, generation)) {
+    const LsfgGpuTimer mipmapTimer = lsfgGpuTimerBegin(
+        ctx, device, "Mipmaps", g_pp, w, h);
+    const bool mipmapDispatched = dispatch_mipmaps(
+        ctx, device, cache_dir, slot, w, h, generation);
+    lsfgGpuTimerEnd(ctx, mipmapTimer);
+    if (mipmapDispatched) {
         unsigned frame_index = g_pp;
         shared_dispatched = dispatchLsfgSharedPasses(
             ctx, device, cache_dir, g_flow_views, g_flow_extent,
