@@ -70,6 +70,8 @@ public class SkyrimActivity extends SDLActivity {
     private native void nativeSetVirtualPad(int buttons, int lx, int ly, int rx, int ry, int lt, int rt);
     private GamepadOverlayView gamepadOverlay;
     private boolean gamepadOverlayEnabled = true;
+    private final java.util.Set<String> gamepadDisabledControls = new java.util.HashSet<>();
+    private final java.util.Set<String> gamepadToggleControls = new java.util.HashSet<>();
 
     private void addGamepadOverlay() {
         if (mLayout == null) return;
@@ -126,7 +128,7 @@ public class SkyrimActivity extends SDLActivity {
     }
 
     private void showOverlayMenu() {
-        String[] items = { "LSFG settings", "Android keyboard", "Gamepad overlay: " + (gamepadOverlayEnabled ? "ON" : "OFF"), "Legacy touch controls editor" };
+        String[] items = { "LSFG settings", "Android keyboard", "Gamepad overlay: " + (gamepadOverlayEnabled ? "ON" : "OFF"), "Gamepad buttons editor", "Legacy touch controls editor" };
         new AlertDialog.Builder(this)
                 .setTitle("Skyrim overlay")
                 .setItems(items, (dialog, which) -> {
@@ -144,6 +146,47 @@ public class SkyrimActivity extends SDLActivity {
                                 android.widget.Toast.LENGTH_SHORT).show();
                     }
                 }).show();
+    }
+
+    private void showGamepadControlsEditor() {
+        if (gamepadOverlay == null) return;
+        String[] names = gamepadOverlay.controlNames().toArray(new String[0]);
+        String[] labels = new String[names.length];
+        for (int i = 0; i < names.length; i++) {
+            String name = names[i];
+            labels[i] = name + (gamepadDisabledControls.contains(name) ? "  [OFF]" : "  [ON]")
+                    + (gamepadToggleControls.contains(name) ? "  [LATCH]" : "  [HOLD]");
+        }
+        new AlertDialog.Builder(this)
+                .setTitle("Gamepad controls")
+                .setItems(labels, (dialog, which) -> {
+                    String name = names[which];
+                    boolean enabled = !gamepadDisabledControls.contains(name);
+                    boolean toggle = gamepadToggleControls.contains(name);
+                    String[] modes = enabled
+                            ? new String[] { "Disable button", "Enable button", "Momentary press (hold)", "Toggle / latch press" }
+                            : new String[] { "Enable button", "Disable button" };
+                    new AlertDialog.Builder(this)
+                            .setTitle(name + " settings")
+                            .setItems(modes, (d, selected) -> {
+                                if (!enabled) {
+                                    if (selected == 0) gamepadDisabledControls.remove(name);
+                                } else if (selected == 0) {
+                                    gamepadDisabledControls.add(name);
+                                    gamepadToggleControls.remove(name);
+                                } else if (selected == 1) {
+                                    gamepadDisabledControls.remove(name);
+                                } else if (selected == 2) {
+                                    gamepadToggleControls.remove(name);
+                                } else if (selected == 3) {
+                                    gamepadToggleControls.add(name);
+                                }
+                                gamepadOverlay.configureControl(name,
+                                        !gamepadDisabledControls.contains(name),
+                                        gamepadToggleControls.contains(name));
+                                showGamepadControlsEditor();
+                            }).show();
+                }).setNegativeButton("Close", null).show();
     }
 
     private void showLsfgSettings() {
