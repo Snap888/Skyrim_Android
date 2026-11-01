@@ -97,7 +97,7 @@ final class TurnipDriverManager {
     }
 
     private Driver readDriver(File dir) throws Exception {
-        File meta = findFile(dir, "meta.json");
+        File meta = new File(dir, "meta.json");
         if (meta == null) throw new java.io.IOException("meta.json is missing");
         byte[] bytes = new byte[(int)Math.min(meta.length(), 65536)];
         try (FileInputStream in = new FileInputStream(meta)) {
@@ -114,7 +114,7 @@ final class TurnipDriverManager {
         if (minApi > Build.VERSION.SDK_INT) throw new java.io.IOException("driver requires Android API " + minApi);
         if (library.contains("/") || library.contains("\\\\") || !library.endsWith(".so"))
             throw new java.io.IOException("invalid libraryName in meta.json");
-        File lib = findFile(dir, library);
+        File lib = new File(dir, library);
         if (lib == null || !lib.isFile()) throw new java.io.IOException(library + " is missing");
         try (RandomAccessFile elf = new RandomAccessFile(lib, "r")) {
             if (elf.length() < 20 || elf.readInt() != 0x7f454c46) throw new java.io.IOException("driver library is not ELF");
