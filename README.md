@@ -142,7 +142,10 @@ Everything the port writes goes into a `port` folder inside your Skyrim folder: 
 
 ## Controls
 - Bluetooth, USB, and integrated controllers should work fine (Xbox layout by default; see Nintendo button layout).
-- The touch overlay shows a stick, A/B/X/Y, shoulders, Start and Back.
+- The in-game top-left **☰** menu opens LSFG settings, the Android on-screen keyboard, and the touch-controls editor.
+- The touch overlay provides left and right analog sticks, a four-way D-pad, A/B/X/Y, LB/RB, analog LT/RT, Start and Back.
+- In **Touch controls editor**, drag a button or either stick to reposition it. The layout is saved as `port/save/touch_layout.cfg` and restored on the next launch. Tap the ☰ menu again and select the editor item to leave edit mode.
+- The keyboard can also be opened from the menu; the small native keyboard control remains available on the overlay.
 
 ## Troubleshooting
 `port/log.txt` in your Skyrim folder is rewritten on every launch, so please attach it if reporting a problem. It includes per-thread CPU use and a profile every 30 seconds.
