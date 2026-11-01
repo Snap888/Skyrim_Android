@@ -24,7 +24,7 @@ struct LsfgGpuTimer {
   uint64_t frame = 0;
   uint32_t width = 0;
   uint32_t height = 0;
-  const char* stage = nullptr;
+  std::string stage;
 };
 
 inline std::string lsfgGpuCsvPath() {
