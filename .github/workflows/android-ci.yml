@@ -1,0 +1,145 @@
+name: Android CI
+
+on:
+  push:
+    branches:
+      - snap-patch-3
+  pull_request:
+    branches:
+      - snap-patch-3
+  workflow_dispatch:
+    inputs:
+      gen_url:
+        description: "URL to a gen/ archive (tar.xz, tar.gz or zip) for a full APK build"
+        required: false
+        type: string
+      build_apk:
+        description: "Build the complete APK (requires gen/ or gen_url)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  JAVA_VERSION: "17"
+  NDK_VERSION: "29.0.14206865"
+  CMAKE_VERSION: "3.22.1"
+
+jobs:
+  java:
+    name: Android Java compilation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install Android platform
+        run: |
+          sdkmanager --install "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Compile launcher Java
+        working-directory: android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:compileDebugJavaWithJavac --no-daemon --stacktrace --console=plain
+
+  apk:
+    name: Full arm64 APK build
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_apk }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Restore generated game code
+        env:
+          GEN_URL: ${{ inputs.gen_url }}
+        run: |
+          set -euo pipefail
+          if [ -d gen ] && [ -n "$(find gen -type f -name '*.c' -print -quit)" ]; then
+            echo "Using gen/ from checkout."
+          elif [ -n "${GEN_URL}" ]; then
+            mkdir -p /tmp/gen
+            curl --fail --location --retry 3 "${GEN_URL}" -o /tmp/gen/archive
+            if file /tmp/gen/archive | grep -qi 'zip'; then
+              unzip -q /tmp/gen/archive -d /tmp/gen/unpacked
+            elif file /tmp/gen/archive | grep -qi 'gzip'; then
+              mkdir -p /tmp/gen/unpacked
+              tar -xzf /tmp/gen/archive -C /tmp/gen/unpacked
+            else
+              mkdir -p /tmp/gen/unpacked
+              tar -xJf /tmp/gen/archive -C /tmp/gen/unpacked
+            fi
+            if [ -d /tmp/gen/unpacked/gen ]; then
+              cp -a /tmp/gen/unpacked/gen ./gen
+            elif [ -n "$(find /tmp/gen/unpacked -type f -name '*.c' -print -quit)" ]; then
+              mkdir -p gen
+              find /tmp/gen/unpacked -type f -name '*.c' -exec cp {} gen/ \;
+            fi
+          else
+            echo "::error::gen/ is not stored in Git. Supply gen_url or use a runner containing gen/."
+            exit 1
+          fi
+          test -n "$(find gen -type f -name '*.c' -print -quit)" || {
+            echo "::error::The archive did not contain generated C sources."
+            exit 1
+          }
+          echo "Generated C files: $(find gen -type f -name '*.c' | wc -l)"
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install NDK and CMake
+        run: |
+          sdkmanager --install \
+            "platforms;android-34" \
+            "build-tools;34.0.0" \
+            "cmake;${{ env.CMAKE_VERSION }}" \
+            "ndk;${{ env.NDK_VERSION }}"
+
+      - name: Build APK
+        working-directory: android
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.logging.stacktrace=all"
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug \
+            -PndkVersion=${{ env.NDK_VERSION }} \
+            --no-daemon --stacktrace --info --console=plain
+
+      - name: Upload APK and native build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Skyrim-Android-${{ github.sha }}
+          path: |
+            android/app/build/outputs/apk/debug/*.apk
+            android/app/.cxx/**/CMakeFiles/CMakeError.log
+            android/app/.cxx/**/CMakeFiles/CMakeOutput.log
+          if-no-files-found: warn
+          retention-days: 14
