@@ -1,8 +1,8 @@
 # Skyrim Android — документация работ и карта LSFG
 
 > Документ описывает состояние ветки `snap-patch-3` на commit
-> [`acd029f8e829`](https://github.com/Snap888/Skyrim_Android/commit/acd029f8e8291f699a4e568e8db7a8710380fbad)
-> (31 октября 2026). Это инженерный журнал и карта проекта, а не заявление
+> [`98ac2957fede`](https://github.com/Snap888/Skyrim_Android/commit/98ac2957fede8c805375a86ecbcba91c79074091)
+> (1 ноября 2026). Это инженерный журнал и карта проекта, а не заявление
 > о подтверждённой работоспособности frame generation на устройстве.
 
 ## 1. Назначение проекта
@@ -272,8 +272,12 @@ runtime selection.
 | `1da46f6` | Остановка generation burst после неудачного dispatch |
 | `820bed6` | Flush compute→fragment barriers перед sampling generated target |
 | `acd029f` | Нормализация SPIR-V Binding decorations и DXVK resource slots |
+| `90ae4a9` | HUD: отображение активного Vulkan ICD в DXVK HUD |
+| `732407e` | Передача статуса custom Vulkan ICD в HUD |
+| `0317b57` | Исправление объявления string comparison для driver HUD |
+| `98ac295` | Документация статуса Vulkan driver HUD |
 
-Текущий branch HEAD на момент документа: `acd029f8e8291f699a4e568e8db7a8710380fbad`.
+Текущий branch HEAD на момент документа: `98ac2957fede8c805375a86ecbcba91c79074091`.
 
 Последнее исправление устраняет несоответствие между binding-номерами исходных
 LSFG shader modules (DXBC-translated: 800/816/832/1088; embedded SPIR-V: 0/16/32/48)
@@ -445,7 +449,61 @@ gradlew.bat assembleDebug "-PndkVersion=29.0.14206865"
 
 ---
 
-Последнее обновление: 2026-10-30. При изменении фактического состояния ветки
+Последнее обновление: 2026-11-01. При изменении фактического состояния ветки
 этот документ и таблица статуса должны обновляться по новым commits и runtime
 логам; не переносить старые диагностические выводы на более новый HEAD без
 повторной проверки.
+
+
+## Актуализация LSFG — 1 ноября 2026
+
+Последний просмотр исходников выполнен на ветке `snap-patch-3`, HEAD
+`98ac2957fede8c805375a86ecbcba91c79074091`. Это обновление фиксирует
+состояние кода и следующий этап диагностики; нового runtime-лога от APK,
+собранного с этого HEAD, в ходе этой проверки не получено.
+
+### Что подтверждено исходниками
+
+- `lsfg_step3g.cpp` чередует два history slots (`g_pp & 1`) и копирует
+  source image в backing VkImage через `DxvkContext::copyImage()`.
+- После копирования вызывается shader 255 (mipmaps), затем
+  `dispatchLsfgSharedPasses()` для общей Alpha/Beta подготовки.
+- Generate разрешается после warm-up (не менее трёх кадров с успешной общей
+  подготовкой), при наличии обоих history views и готовности shared resources.
+- `lsfg_step3g_generate_impl()` получает отдельный generation target и вызывает
+  `dispatchLsfgGeneration()` с frame index, generation count/index и flow scale.
+- Completion callbacks регистрируются на DXVK command list. Они подтверждают
+  статус завершения command list, но не читают и не проверяют пиксели.
+- В коде этой цепочки не добавлен самостоятельный `vkQueueSubmit`; compute
+  dispatches записываются через переданный `DxvkContext`.
+
+### Открытая проблема качества
+
+В последнем пользовательском описании статичная сцена выглядит чёткой, но
+быстрое движение камеры/объектов вызывает размытие и искажения, в том числе
+при x4. Это пользовательское наблюдение, а не результат воспроизведения в
+текущей сессии.
+
+Следующий аудит должен идти от данных, а не от новых счётчиков:
+1. проверить соответствие SPIR-V descriptor bindings реальным DXVK slots;
+2. сверить image formats, extents и mip-level размеры каждого pass;
+3. проверить Alpha history и Beta flow outputs, их временную последовательность;
+4. сверить Gamma/Delta входы, UBO layouts/values и timestamp каждого output;
+5. проверить target reuse/lifetime и producer-consumer barriers на реальном
+   DXVK command list.
+
+Не добавлять барьеры вслепую: сначала проверить существующие DXVK hazard
+tracking и точные read/write зависимости. Не менять WinNative pass order без
+подтверждённого расхождения.
+
+### Текущие ограничения подтверждения
+
+В этом просмотре проверены исходники, но не выполнялись Android NDK build,
+APK packaging, установка или GPU runtime test. Наличие вызовов dispatch в
+исходниках не доказывает успешное создание всех pipeline, корректность
+дескрипторов, успешное исполнение GPU или качество generated pixels.
+
+Для следующего runtime review необходимы:
+- полный `port/lsfg.log` с APK, собранного из актуального HEAD;
+- `port/log.txt` и logcat, если есть crash/hang/ошибка запуска;
+- тест сначала на x2, затем на x4, с коротким быстрым поворотом камеры.
