@@ -1,7 +1,7 @@
 /* xWMA decode via FFmpeg (WMAV2/WMAPRO) for Skyrim on Android.
  *
  * Crackling root cause: feeding xWMA packets smaller than block_align
- * ("Input packet size too small") corrupts decoder state -> noise.
+ * ("Input packet size too small") corrupts decoder state → noise.
  *
  * Policy:
  *  1) Always set block_align at open (FFmpeg requires it).
@@ -169,6 +169,7 @@ static void clear_pcm(int16_t **pcm, size_t *len, size_t *cap)
     *cap = 0;
 }
 
+/* Feed data as fixed-size slices of block_align (no undersized packets). */
 static int feed_aligned(AVCodecContext *ctx, const uint8_t *data, uint32_t size,
                         int block_align, AVPacket *pkt, AVFrame *frame, int channels,
                         int16_t **pcm, size_t *len, size_t *cap)
@@ -179,6 +180,7 @@ static int feed_aligned(AVCodecContext *ctx, const uint8_t *data, uint32_t size,
     for (uint32_t off = 0; off + 16 <= size; ) {
         uint32_t psz = ba;
         if (off + psz > size) {
+            /* last partial: only feed if >= half block or it's all we have */
             psz = size - off;
             if (psz < ba / 2 && off > 0) break;
         }
@@ -192,6 +194,7 @@ static int feed_aligned(AVCodecContext *ctx, const uint8_t *data, uint32_t size,
     return sent;
 }
 
+/* Merge XAUDIO2 packet table entries until each chunk is >= block_align. */
 static int feed_merged_packets(AVCodecContext *ctx, const uint8_t *data, uint32_t size,
                                const uint32_t *cum_bytes, uint32_t packet_count,
                                int block_align, AVPacket *pkt, AVFrame *frame, int channels,
@@ -252,6 +255,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
     int used_packets = 0;
     const char *how = NULL;
 
+    /* Pass 1: continuous whole buffer (best quality when it works). */
     {
         AVCodecContext *ctx = open_ctx(codec, channels, rate, block_align, avg_bps,
                                        extradata, extradata_size);
@@ -267,6 +271,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
         }
     }
 
+    /* Pass 2: merged packet table (never feed undersized packets). */
     if (!len && cum_bytes && packet_count > 1 && packet_count < 100000) {
         AVCodecContext *ctx = open_ctx(codec, channels, rate, block_align, avg_bps,
                                        extradata, extradata_size);
@@ -285,6 +290,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
         }
     }
 
+    /* Pass 3: fixed block_align slices over the raw buffer. */
     if (!len && block_align > 32) {
         AVCodecContext *ctx = open_ctx(codec, channels, rate, block_align, avg_bps,
                                        extradata, extradata_size);
