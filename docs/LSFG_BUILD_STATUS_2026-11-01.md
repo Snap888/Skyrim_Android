@@ -106,3 +106,50 @@ question is whether compute passes really commit and whether output pixels
 are correct.
 
 This change has not yet been built with Android NDK or tested on-device.
+
+## WinNative cross-check — 2026-11-01
+
+Compared the Android implementation against the current
+`Snap888/WinNative` LSFG implementation in
+`app/src/main/cpp/winlator/vk/lsfg/`:
+
+- Shader IDs match the reference arrays:
+  - Mipmaps: 255
+  - Alpha: 290–293
+  - Beta: 298–302
+  - Gamma: 280, 282–285
+  - Delta: 280, 286–289, 281, 294–297
+  - Generate: 256
+- Alpha uses three temporal output slots. Beta reads them in the same
+  `(history+1), (history+2), history` order and uses the same 8x8 / 32x32
+  dispatch split.
+- Gamma and Delta use the same per-stage descriptor roles, temporal indices,
+  intermediate image ordering, paired stage order, and motion/detail dependencies.
+- Generation slot calculation and slot timestamps match
+  `LsfgGenerationSlot` / `LsfgSlotTimestamp` in WinNative.
+- Internal image formats match the reference: RGBA8 intermediates, R8 flow,
+  and RGBA16F motion outputs. The UBO structure is 48 bytes in both sources.
+
+This is a source-level correspondence check, not proof of pixel-equivalent
+execution. The Android path still differs in synchronization implementation:
+it relies on DXVK command-list resource tracking instead of WinNative's
+explicit Vulkan barrier builder. That must be validated on device.
+
+## CI result for checked-dispatch commit
+
+GitHub Actions run
+[41266055424](https://github.com/Snap888/Skyrim_Android/actions/runs/41266055424)
+completed successfully. The Java compilation job passed. The full arm64 APK
+job was **skipped** because it only runs for an explicitly requested
+`workflow_dispatch` with `build_apk=true`; this run therefore did not compile
+the Android native C++/DXVK/LSFG sources.
+
+## Remaining blockers before a device test
+
+The source-level comparison did not identify a confirmed pass-order or
+descriptor-role mismatch against WinNative. Do not treat this as LSFG-ready:
+the native Android build has not run, compute pipeline creation has not been
+verified on device, and output pixels have not been read back or visually
+validated. Next work must focus on native compilation and runtime pipeline
+creation/failure details, followed by image-format/descriptor validation and
+a visual x2 motion test. No speculative shader variant substitutions were made.
