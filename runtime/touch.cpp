@@ -30,6 +30,12 @@ const Button k_buttons[] = {
     {"RB", 0x0200, 1, 0, -0.12f, 0.30f, 0.06f, 0xFFB0B0B0},
     {"Back", 0x0020, 0, 0, 0.36f, 0.07f, 0.045f, 0xFFD0D0D0},
     {"Start", 0x0010, 1, 0, -0.36f, 0.07f, 0.045f, 0xFFFFFFFF},
+    {"Up", 0x0001, 0, 1, 0.25f, -0.48f, 0.052f, 0xFFE0E0E0},
+    {"Down", 0x0002, 0, 1, 0.25f, -0.70f, 0.052f, 0xFFE0E0E0},
+    {"Left", 0x0004, 0, 1, 0.14f, -0.59f, 0.052f, 0xFFE0E0E0},
+    {"Right", 0x0008, 0, 1, 0.36f, -0.59f, 0.052f, 0xFFE0E0E0},
+    {"LT", 0, 0, 0, 0.15f, 0.20f, 0.055f, 0xFFB0B0B0},
+    {"RT", 0, 1, 0, -0.15f, 0.20f, 0.055f, 0xFFB0B0B0},
 };
 const int NB = sizeof k_buttons / sizeof k_buttons[0];
 const float STICK_X = 0.24f, STICK_Y = -0.26f, STICK_R = 0.17f; // from bottom-left
@@ -38,9 +44,9 @@ const float STICK_X = 0.24f, STICK_Y = -0.26f, STICK_R = 0.17f; // from bottom-l
 const Button k_kbd = {"Keyboard", 0, 0, 0, 0.08f, 0.07f, 0.045f, 0xFFE0E0E0};
 const int KBD = 100;          // Finger::button value for the keyboard button
 
-struct Finger { SDL_FingerID id; int button; bool stick; float x, y; bool used; };
+struct Finger { SDL_FingerID id; int button; bool stick, right_stick; float x, y; bool used; };
 Finger g_fingers[10];
-float g_stick_x, g_stick_y;   // knob offset, -1..1
+float g_stick_x, g_stick_y, g_rstick_x, g_rstick_y;   // knob offsets, -1..1
 bool g_available, g_decided, g_seen, g_was_on;
 bool g_touch_on = true;       // the player's choice, kept in <save>/touch.cfg
 uint16_t g_buttons;
@@ -96,6 +102,10 @@ void stick_pos(float *x, float *y) {
     *x = STICK_X / g_aspect;
     *y = 1 + STICK_Y;
 }
+void right_stick_pos(float *x, float *y) {
+    *x = 1.f - STICK_X / g_aspect;
+    *y = 1.f + STICK_Y;
+}
 
 int hit_button(float x, float y) {
     for (int i = 0; i < NB; i++) {
@@ -109,28 +119,38 @@ int hit_button(float x, float y) {
 
 void update() {
     uint16_t b = 0;
-    float sx = 0, sy = 0;
+    float sx = 0, sy = 0, rsx = 0, rsy = 0;
+    uint8_t lt = 0, rt = 0;
     for (auto &f : g_fingers) {
         if (!f.used) continue;
-        if (f.stick) {
+        if (f.stick || f.right_stick) {
             float cx, cy;
-            stick_pos(&cx, &cy);
-            sx = (f.x - cx) * g_aspect / STICK_R;
-            sy = (f.y - cy) / STICK_R;
-            float l = std::sqrt(sx * sx + sy * sy);
-            if (l > 1) { sx /= l; sy /= l; }
+            if (f.right_stick) right_stick_pos(&cx, &cy); else stick_pos(&cx, &cy);
+            float ax = (f.x - cx) * g_aspect / STICK_R;
+            float ay = (f.y - cy) / STICK_R;
+            float l = std::sqrt(ax * ax + ay * ay);
+            if (l > 1) { ax /= l; ay /= l; }
+            if (f.right_stick) { rsx = ax; rsy = ay; }
+            else { sx = ax; sy = ay; }
         } else {
             // a finger may slide between buttons
             if (f.button == KBD) continue;
             int h = hit_button(f.x, f.y);
             if (h >= 0) f.button = h;
-            if (f.button >= 0) b |= k_buttons[f.button].bit;
+            if (f.button >= 0) {
+                if (f.button == NB - 2) lt = 255;
+                else if (f.button == NB - 1) rt = 255;
+                else b |= k_buttons[f.button].bit;
+            }
         }
     }
     g_buttons = b;
     g_stick_x = sx;
     g_stick_y = sy;
-    input_set_virtual(b, (int16_t)(sx * 32767), (int16_t)(-sy * 32767), 0, 0, 0, 0);
+    g_rstick_x = rsx;
+    g_rstick_y = rsy;
+    input_set_virtual(b, (int16_t)(sx * 32767), (int16_t)(-sy * 32767),
+                      (int16_t)(rsx * 32767), (int16_t)(-rsy * 32767), lt, rt);
 }
 } // namespace
 
@@ -191,8 +211,9 @@ extern "C" void touch_handle_event(const SDL_Event *e) {
             return;
         }
         f->button = hit_button(x, y);
-        // anything on the left half that is not a button drives the stick
+        // Empty lower-left/right zones are independent analog sticks.
         f->stick = f->button < 0 && x < 0.5f;
+        f->right_stick = f->button < 0 && x >= 0.5f;
     }
     if (!f) return;
     f->x = x;
@@ -290,7 +311,7 @@ void touch_draw(IDirect3DDevice9 *d) {
     d->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
     d->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 
-    Vtx v[6 * (NB + 2 + 11)];
+    Vtx v[6 * (NB + 2 + 11 + 4)];
     int n = 0;
     // keyboard button: a disc with two rows of keys and a space bar
     {
@@ -313,11 +334,19 @@ void touch_draw(IDirect3DDevice9 *d) {
         quad(v + 6 * n++, sx + g_stick_x * STICK_R / g_aspect, sy + g_stick_y * STICK_R, STICK_R * 0.45f, w, h,
              0xD0FFFFFF);
     }
+    if (on) {
+        float rx, ry;
+        right_stick_pos(&rx, &ry);
+        quad(v + 6 * n++, rx, ry, STICK_R, w, h, 0x90FFFFFF);
+        quad(v + 6 * n++, rx + g_rstick_x * STICK_R / g_aspect,
+             ry + g_rstick_y * STICK_R, STICK_R * 0.45f, w, h, 0xD0FFFFFF);
+    }
     for (int i = 0; on && i < NB; i++) {
         float bx, by;
         button_pos(k_buttons[i], &bx, &by);
         uint32_t col = k_buttons[i].color;
-        uint32_t a = (g_buttons & k_buttons[i].bit) ? 0xF0 : 0x90;
+        uint32_t a = (i == NB - 2 || i == NB - 1) ? 0x90 :
+                     ((g_buttons & k_buttons[i].bit) ? 0xF0 : 0x90);
         quad(v + 6 * n++, bx, by, k_buttons[i].r, w, h, (col & 0xFFFFFF) | a << 24);
     }
     d->DrawPrimitiveUP(D3DPT_TRIANGLELIST, 2 * n, v, sizeof(Vtx));
