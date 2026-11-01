@@ -224,3 +224,61 @@ nested type sizes, member scalar/vector/matrix types, runtime image dimensions,
 actual VkImageView formats/usages, descriptor writes, or host-side constant
 buffer values. The change has been committed but has not been compiled or
 validated against the user's runtime cache/device.
+
+
+## Source audit update — 2026-11-01 (HEAD 98ac295)
+
+The current `snap-patch-3` source was re-read after the earlier historical
+notes in this file. The active implementation is no longer the CPU-reflection-
+only state described in the 2026-10-30 log excerpts. Those excerpts remain valid
+for the APK/runtime revision from which they were collected, but they must not
+be used to describe the current source tree.
+
+### Current frame-recording path
+
+In `android/app/jni/lsfg/lsfg_step3g.cpp`:
+
+1. The source frame is copied into alternating history slot `g_pp & 1`
+   through `DxvkContext::copyImage()`.
+2. Shader 255 mipmaps is dispatched using the slot's history view and seven
+   flow-pyramid storage views.
+3. `dispatchLsfgSharedPasses()` records the shared Alpha/Beta passes into the
+   same `DxvkContext`.
+4. A generation frame is permitted only after at least three consecutive
+   source-frame preparations, both history views exist, and shared resources
+   report ready.
+5. `lsfg_step3g_generate_impl()` obtains the offscreen generation target and
+   calls `dispatchLsfgGeneration()` with the current frame index and requested
+   interpolation index/count.
+6. Command-list completion callbacks count retirement status only; they do not
+   validate image contents.
+
+This documents the call path visible in source. It does not independently
+verify that every shader pipeline was created, every dispatch reached the GPU,
+or that the generated image contains correct pixels.
+
+### Current quality investigation
+
+The user reports sharp static scenes but blur/distortion during fast motion,
+including multiplier x4. The next investigation is resource/data correctness:
+descriptor slot mapping, image formats and extents, mip dimensions, Alpha
+history recurrence, Beta flow outputs, Gamma/Delta input mapping, constant
+buffer contents/timestamps, output target lifetime, and producer/consumer
+synchronization.
+
+Do not add speculative barriers: inspect DXVK's existing hazard tracking and
+the actual pass read/write sets first. Do not change the recovered WinNative
+pass order without evidence. Preserve the architectural constraints:
+- all GPU passes are recorded through the active DXVK command list/context;
+- no independent `vkQueueSubmit` from the present hook;
+- no extra shader `hist-copy` pass (the source-frame copy is a DXVK image copy);
+- the mipmaps → Alpha → Beta → Gamma/Delta → Generate topology remains the
+  reference until verified otherwise.
+
+### Validation state as of this source audit
+
+No Android build, APK packaging, or device test was performed as part of this
+source review. The current runtime behavior and visual quality therefore remain
+unverified for HEAD `98ac295`. The latest user-reported artifact issue is motion
+blur/distortion; obtain a fresh full `port/lsfg.log` from an APK built from
+this HEAD, plus `port/log.txt`/logcat if the app crashes or hangs.
