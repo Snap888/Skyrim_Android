@@ -182,3 +182,33 @@ The DXVK failure path was then split into explicit log cases:
 This distinguishes pipeline lookup from actual Vulkan pipeline compilation.
 The failure path still returns false to LSFG, so no subsequent pass is reported
 as dispatched after a failed commit.
+
+
+## In-game LSFG OFF control — source update (2026-11-01)
+
+The in-game LSFG settings panel now includes an ON/OFF slider. OFF maps to
+multiplier `1x`, disables the runtime LSFG present/generation gate, and makes
+the generation-count callback return zero. ON restores the selected 2x/3x/4x
+multiplier. The multiplier selector is disabled in the OFF position.
+
+The native host must remain initialized in the OFF state so the panel can
+reactivate LSFG during the same session and on launches where OFF was saved.
+The config therefore uses `enabled=1` for configured/available LSFG and
+`multiplier=1` for runtime OFF. A follow-up source correction removed the
+startup early-return for multiplier 1 and initializes the runtime gate from
+the saved multiplier only after the hooks/resources have been installed.
+
+Relevant commits: `96c6870`, `d263a7d`, `29f910f`, `17ec3ce`.
+Detailed behaviour is documented in [LSFG_IN_GAME_SETTINGS.md](LSFG_IN_GAME_SETTINGS.md).
+
+### Verification state
+
+- [x] Runtime OFF gate added to native host.
+- [x] In-game ON/OFF slider added; OFF maps to multiplier 1.
+- [x] Saved OFF state keeps host initialization available for re-enabling.
+- [ ] Java compilation confirmed for final documentation/source HEAD.
+- [ ] Android arm64 native build confirmed.
+- [ ] Device test confirms OFF bypasses generated frames and ON restores them.
+
+No APK packaging or device validation is claimed here. The latest changes
+must be built and tested by installing an APK from the final branch HEAD.
