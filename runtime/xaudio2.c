@@ -34,10 +34,10 @@ static void xa_log(const char *fmt, ...) {
 #define XA_LOG(...) xa_log(__VA_ARGS__)
 
 #define PASS_FRAMES_MS 10
-/* Diagnostic isolation experiment: suppress large stereo xWMA streams (music),
- * while leaving short/mono xWMA voice clips on the normal decoder path. */
+/* Optional diagnostic isolation switch. Keep disabled by default so music is
+ * decoded normally; define XWMA_MUTE_LARGE_STEREO=1 only for A/B diagnosis. */
 #ifndef XWMA_MUTE_LARGE_STEREO
-#define XWMA_MUTE_LARGE_STEREO 1
+#define XWMA_MUTE_LARGE_STEREO 0
 #endif
 #define XWMA_MUSIC_MUTE_THRESHOLD (48u * 1024u)
 #define MAX_VOICES 1024
