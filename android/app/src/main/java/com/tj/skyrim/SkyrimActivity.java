@@ -67,7 +67,8 @@ public class SkyrimActivity extends SDLActivity {
 
     private static native void nativeSetTouchEditor(boolean enabled);
     private native void nativeSetLegacyTouchEnabled(boolean enabled);
-    private native void nativeSetVirtualPad(int buttons, int lx, int ly, int rx, int ry, int lt, int rt);\n    private native void nativeQuickAction(boolean load);
+    private native void nativeSetVirtualPad(int buttons, int lx, int ly, int rx, int ry, int lt, int rt);
+    private native void nativeQuickAction(boolean load);\n    private native void nativeQuickAction(boolean load);
     private GamepadOverlayView gamepadOverlay;
     private boolean gamepadOverlayEnabled = true;
     private final java.util.Set<String> gamepadDisabledControls = new java.util.HashSet<>();
@@ -79,7 +80,8 @@ public class SkyrimActivity extends SDLActivity {
         // switched off so only this Android/Kotlin overlay is visible.
         nativeSetLegacyTouchEnabled(false);
         gamepadOverlay = new GamepadOverlayView(this, (buttons, lx, ly, rx, ry, lt, rt) ->
-                nativeSetVirtualPad(buttons, lx, ly, rx, ry, lt, rt));
+                nativeSetVirtualPad(buttons, lx, ly, rx, ry, lt, rt),
+                action -> nativeQuickAction("QUICK LOAD".equals(action)));
         gamepadOverlay.setContentDescription("Virtual Xbox gamepad controls");
         gamepadOverlay.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null);
         android.widget.RelativeLayout.LayoutParams p = new android.widget.RelativeLayout.LayoutParams(
@@ -174,8 +176,9 @@ public class SkyrimActivity extends SDLActivity {
                     String name = names[which];
                     boolean enabled = !gamepadDisabledControls.contains(name);
                     boolean toggle = gamepadToggleControls.contains(name);
+                    boolean oneShot = name.startsWith("QUICK ");
                     String[] modes = enabled
-                            ? new String[] { "Disable button", "Enable button", "Momentary press (hold)", "Toggle / latch press" }
+                            ? (oneShot ? new String[] { "Disable button", "Enable button", "Momentary action (tap)" } : new String[] { "Disable button", "Enable button", "Momentary press (hold)", "Toggle / latch press" })
                             : new String[] { "Enable button", "Disable button" };
                     new AlertDialog.Builder(this)
                             .setTitle(name + " settings")
