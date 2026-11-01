@@ -16,6 +16,10 @@ Youtube link below:
 - **Graphics:** a patched [dxvk-native](https://github.com/Joshua-Ashton/dxvk-native) (native-1.9.2b) translates D3D9 to Vulkan 1.1. You must meet this requirement for the game to even launch, but most devices support it nowadays.
 - **Platform:** SDL2 2.30.9 is used for the window, input, audio and the Android activity. There is an optional on-screen overlay for phones without a controller. XAudio2 is reimplemented on top of SDL2.
 
+## LSFG GPU profiler
+
+GPU-stage timing output and test instructions: [docs/LSFG_GPU_PROFILER.md](docs/LSFG_GPU_PROFILER.md).
+
 ## Port settings
 ![Launcher](images/launcher.png)
 The app opens on a launcher before the game starts:
