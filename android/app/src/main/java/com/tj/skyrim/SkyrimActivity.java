@@ -270,7 +270,7 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
             row.setBackground(editorBackground("#202c35", 9, "#28565a"));
             LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
                     android.view.ViewGroup.LayoutParams.MATCH_PARENT, dp(54));
-            rowLp.bottomMargin = dp(5); list.addView(row, rowLp);
+            rowLp.bottomMargin = dp(5);
 
             TextView label = editorText(name, 14, true);
             row.addView(label, new LinearLayout.LayoutParams(0, dp(42), 1));
@@ -324,16 +324,15 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
         arrange.setOnClickListener(v -> {
             boolean editing = !gamepadOverlay.isLayoutEditMode();
             gamepadOverlay.setLayoutEditMode(editing);
-            arrange.setText(editing ? "Finish layout" : "Arrange controls");
-            android.widget.Toast.makeText(this, editing ? "Drag controls, then tap Finish layout" : "Layout saved", android.widget.Toast.LENGTH_SHORT).show();
-        });
-        close.setOnClickListener(v -> dialog.dismiss());
-        dialog.setOnDismissListener(d -> {
-            if (gamepadOverlay.isLayoutEditMode()) {
-                gamepadOverlay.setLayoutEditMode(false);
+            if (editing) {
+                dialog.dismiss();
+                android.widget.Toast.makeText(this, "Drag controls on the game screen, then reopen Gamepad editor to finish", android.widget.Toast.LENGTH_LONG).show();
+            } else {
+                arrange.setText("Arrange controls");
                 android.widget.Toast.makeText(this, "Layout saved", android.widget.Toast.LENGTH_SHORT).show();
             }
         });
+        close.setOnClickListener(v -> dialog.dismiss());
         dialog.show();
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(editorBackground("#12191f", 14, "#238b8d"));
