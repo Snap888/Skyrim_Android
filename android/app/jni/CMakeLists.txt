@@ -1,5 +1,13 @@
 cmake_minimum_required(VERSION 3.18)
-project(skyrim C CXX)\n\ninclude(FetchContent)\nFetchContent_Declare(adrenotools\n    GIT_REPOSITORY https://github.com/Pipetto-crypto/libadrenotools.git\n    GIT_TAG 8483dfdaa2abf97ee89ad0e5f337e7b508550c6b\n    GIT_SUBMODULES_RECURSE TRUE\n)\nFetchContent_MakeAvailable(adrenotools)
+project(skyrim C CXX)
+
+include(FetchContent)
+FetchContent_Declare(adrenotools
+    GIT_REPOSITORY https://github.com/Pipetto-crypto/libadrenotools.git
+    GIT_TAG 8483dfdaa2abf97ee89ad0e5f337e7b508550c6b
+    GIT_SUBMODULES_RECURSE TRUE
+)
+FetchContent_MakeAvailable(adrenotools)
 set(CMAKE_CXX_STANDARD 17)
 # Each recompiled file needs 1-2 GB of RAM to compile; cap parallel jobs.
 set(LB_GEN_JOBS 3 CACHE STRING "parallel compiles of recompiled code")
