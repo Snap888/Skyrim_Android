@@ -443,8 +443,12 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
                     android.content.SharedPreferences.Editor edit = prefs.edit();
                     for (java.util.Map.Entry<String, ?> entry : all.entrySet()) {
                         String key = entry.getKey();
-                        if (key.startsWith(source + "_x_") || key.startsWith(source + "_y_")) {
-                            if (entry.getValue() instanceof Float) edit.putFloat(name + key.substring(source.length()), (Float) entry.getValue());
+                        if (key.startsWith(source + "_x_") || key.startsWith(source + "_y_")
+                                || key.startsWith(source + "_size_") || key.startsWith(source + "_shape_")) {
+                            if (entry.getValue() instanceof Float)
+                                edit.putFloat(name + key.substring(source.length()), (Float) entry.getValue());
+                            else if (entry.getValue() instanceof String)
+                                edit.putString(name + key.substring(source.length()), (String) entry.getValue());
                         }
                     }
                     java.util.Set<String> disabled = prefs.getStringSet(source + "_disabled_controls",
