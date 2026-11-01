@@ -578,12 +578,12 @@ public class LauncherActivity extends Activity {
         File config = new File(port, "gpu-driver.conf");
         try (Writer w = new OutputStreamWriter(new FileOutputStream(config))) {
             if (driver == null) {
-                w.write("enabled=0\\n");
+                w.write("enabled=0\n");
             } else {
-                w.write("enabled=1\\n");
-                w.write("driver_path=" + gpuDrivers.driverDirectory(driver.id) + "\\n");
-                w.write("library_name=" + driver.library + "\\n");
-                w.write("driver_name=" + driver.name.replace('\\n', ' ') + "\\n");
+                w.write("enabled=1\n");
+                w.write("driver_path=" + gpuDrivers.driverDirectory(driver.id) + "\n");
+                w.write("library_name=" + driver.library + "\n");
+                w.write("driver_name=" + driver.name.replace('\n', ' ') + "\n");
             }
         }
     }
