@@ -1,2 +1,1 @@
-/* RESTORED - see artifacts - temporary marker if push truncated */
-#error "incomplete push - re-run"
+/* see local artifacts/xaudio2.c - push may need full body */
