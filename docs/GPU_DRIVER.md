@@ -17,6 +17,16 @@ The launcher writes `port/gpu-driver.conf`. The native host reads it after chang
 
 If the custom driver cannot be opened, DXVK logs the error and falls back to the Android system Vulkan loader. Check both `port/log.txt` and logcat (tag `SkyrimVulkan`) to confirm which path was taken.
 
+## On-screen driver status
+
+In the launcher's **LSFG FPS HUD** section, enable **Show Vulkan driver information**. With the FPS HUD enabled, the overlay shows the Vulkan physical-device name, driver version, Vulkan API version, and ICD selection status:
+
+- `Custom Vulkan ICD: ACTIVE` means AdrenoTools returned a custom driver's `vkGetInstanceProcAddr` and DXVK is using that loader entry point.
+- `Custom Vulkan ICD: NOT ACTIVE` means a custom driver was requested but DXVK fell back to the system Vulkan loader.
+- `System Vulkan ICD` means no custom driver was requested.
+
+The device name and driver/API versions are queried from the physical device selected by Vulkan. `ACTIVE` confirms loader activation; it does not by itself certify stability or performance of the driver.
+
 ## Compatibility notes
 
 - The app currently builds only `arm64-v8a`; imported libraries must be AArch64.
