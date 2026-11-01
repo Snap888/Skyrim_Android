@@ -587,14 +587,20 @@ bool dispatchLsfgGeneration(
 
   // DXVK tracks image hazards and inserts the required compute barriers. Keep
   // gamma/delta interleaved at each level to preserve WinNative's paired order.
-  const LsfgGpuTimer gammaDeltaTimer = lsfgGpuTimerBegin(
-      context, device, "GammaDelta", frameIndex, width, height);
+  // Per-level timestamps identify the expensive pyramid levels without adding
+  // dispatches or changing the GPU work/order.
   for (uint32_t i = 0; i < MipLevels; i++) {
+    char stageName[24];
+    snprintf(stageName, sizeof(stageName), "GammaDelta_L%u", i);
+    const LsfgGpuTimer levelTimer = lsfgGpuTimerBegin(
+        context, device, stageName, frameIndex, width, height);
+
     if (i < FirstDeltaLevel) {
       for (uint32_t stage = 0; stage < 5; stage++) {
         if (!dispatchGammaStep(context, frameIndex, slot, i, stage))
           return false;
       }
+      lsfgGpuTimerEnd(context, levelTimer);
       continue;
     }
 
@@ -606,9 +612,8 @@ bool dispatchLsfgGeneration(
       if (!dispatchDeltaStep(context, frameIndex, slot, deltaIndex, stage))
         return false;
     }
+    lsfgGpuTimerEnd(context, levelTimer);
   }
-
-  lsfgGpuTimerEnd(context, gammaDeltaTimer);
 
   const LsfgGpuTimer generateTimer = lsfgGpuTimerBegin(
       context, device, "Generate", frameIndex, width, height);
