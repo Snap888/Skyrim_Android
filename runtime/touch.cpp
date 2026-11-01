@@ -414,7 +414,7 @@ void touch_draw(IDirect3DDevice9 *d) {
     d->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
     d->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 
-    Vtx v[6 * (NB + 2 + 11 + 4 + 220)];
+    Vtx v[6 * (NB + 2 + 11 + 4 + 800)];
     int n = 0;
     // keyboard button: a disc with two rows of keys and a space bar
     {
