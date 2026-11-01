@@ -4,6 +4,7 @@
 
 #include "d3d9_hud.h"
 
+#include <algorithm>
 #include <chrono>
 #include <cstdlib>
 #include <fstream>
@@ -68,7 +69,7 @@ namespace dxvk {
             stream << "=== DXVK_PERF_START run=" << run
                    << " lsfg_mode_is_runtime_observed=true ===\n";
             stream << "columns: frame,avg_cpu_present_ms,min_cpu_present_ms,max_cpu_present_ms,"
-                      "lsfg_requested,lsfg_generated,width,height,vsync\n";
+                      "avg_lsfg_requested,avg_lsfg_generated,width,height,vsync\n";
             stream.flush();
           }
         }
