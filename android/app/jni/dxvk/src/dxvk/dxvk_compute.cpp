@@ -124,10 +124,18 @@ namespace dxvk {
       t0 = dxvk::high_resolution_clock::now();
     
     VkPipeline pipeline = VK_NULL_HANDLE;
-    if (m_vkd->vkCreateComputePipelines(m_vkd->device(),
-          m_pipeMgr->m_cache->handle(), 1, &info, nullptr, &pipeline) != VK_SUCCESS) {
-      Logger::err("DxvkComputePipeline: Failed to compile pipeline");
+    const VkResult status = m_vkd->vkCreateComputePipelines(m_vkd->device(),
+      m_pipeMgr->m_cache->handle(), 1, &info, nullptr, &pipeline);
+    if (status != VK_SUCCESS) {
+      // Preserve the Vulkan result. Without it, dispatchChecked can only report
+      // that DXVK skipped the dispatch, not why pipeline creation failed.
+      Logger::err(str::format(
+        "DxvkComputePipeline: vkCreateComputePipelines failed: VkResult=",
+        int32_t(status)));
       Logger::err(str::format("  cs  : ", m_shaders.cs->debugName()));
+      Logger::err(str::format("  descriptor bindings: ", m_layout->bindingCount()));
+      Logger::err(str::format("  specialization binding mask: ",
+        state.bsBindingMask.toString()));
       return VK_NULL_HANDLE;
     }
     
