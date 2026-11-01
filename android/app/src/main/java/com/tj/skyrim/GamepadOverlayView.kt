@@ -49,10 +49,24 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
     private val prefs = context.getSharedPreferences("gamepad_overlay", Context.MODE_PRIVATE)
     private val positions = controls.associate { control ->
         control.name to Pair(
-            prefs.getFloat(prefs.getString("active_profile", "Default") + "_x_" + control.name, prefs.getFloat("x_" + control.name, control.x)),
-            prefs.getFloat(prefs.getString("active_profile", "Default") + "_y_" + control.name, prefs.getFloat("y_" + control.name, control.y))
+            prefs.getFloat(profileKey("x_", control.name), prefs.getFloat("x_" + control.name, control.x)),
+            prefs.getFloat(profileKey("y_", control.name), prefs.getFloat("y_" + control.name, control.y))
         )
     }.toMutableMap()
+
+    private fun profileKey(axis: String, name: String): String =
+        prefs.getString("active_profile", "Default").orEmpty() + "_" + axis + name
+
+    /** Change the active layout without restarting SDLActivity or the native game. */
+    fun reloadProfile() {
+        controls.forEach { c ->
+            positions[c.name] = Pair(
+                prefs.getFloat(profileKey("x_", c.name), prefs.getFloat("x_" + c.name, c.x)),
+                prefs.getFloat(profileKey("y_", c.name), prefs.getFloat("y_" + c.name, c.y))
+            )
+        }
+        invalidate()
+    }
     private var editMode = false
     private val dragging = HashMap<Int, String>()
     private val lastTouch = HashMap<Int, Pair<Float, Float>>()
