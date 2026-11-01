@@ -8,6 +8,7 @@
 #ifdef LB_HAS_FFMPEG
 
 #include <stdint.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
