@@ -34,6 +34,8 @@ const Button k_buttons[] = {
     {"Down", 0x0002, 0, 1, 0.25f, -0.70f, 0.052f, 0xFFE0E0E0},
     {"Left", 0x0004, 0, 1, 0.14f, -0.59f, 0.052f, 0xFFE0E0E0},
     {"Right", 0x0008, 0, 1, 0.36f, -0.59f, 0.052f, 0xFFE0E0E0},
+    {"QS", 0, 0, 0, 0.36f, 0.20f, 0.052f, 0xFFB0D0F0},
+    {"QL", 0, 1, 0, -0.36f, 0.20f, 0.052f, 0xFFF0C080},
     {"LT", 0, 0, 0, 0.15f, 0.20f, 0.055f, 0xFFB0B0B0},
     {"RT", 0, 1, 0, -0.15f, 0.20f, 0.055f, 0xFFB0B0B0},
 };
@@ -168,6 +170,20 @@ extern "C" int hud_screen_crosshair(void);
 extern "C" void bridge_view_rect(float *x0, float *y0, float *x1, float *y1);
 extern "C" int platform_text_input(int toggle);
 
+static void push_quick_key(SDL_Scancode scancode) {
+    SDL_Event e;
+    SDL_zero(e);
+    e.type = SDL_KEYDOWN;
+    e.key.state = SDL_PRESSED;
+    e.key.repeat = 0;
+    e.key.keysym.scancode = scancode;
+    e.key.keysym.sym = SDL_GetKeyFromScancode(scancode);
+    SDL_PushEvent(&e);
+    e.type = SDL_KEYUP;
+    e.key.state = SDL_RELEASED;
+    SDL_PushEvent(&e);
+}
+
 extern "C" void touch_handle_event(const SDL_Event *e) {
     if (!available()) return;
     bool on = enabled();
@@ -221,6 +237,8 @@ extern "C" void touch_handle_event(const SDL_Event *e) {
             return;
         }
         f->button = hit_button(x, y);
+        if (!g_edit_mode && f->button == NB - 4) push_quick_key(SDL_SCANCODE_F5);
+        if (!g_edit_mode && f->button == NB - 3) push_quick_key(SDL_SCANCODE_F9);
         // Empty lower-left/right zones are independent analog sticks.
         f->stick = f->button < 0 && x < 0.5f;
         f->right_stick = f->button < 0 && x >= 0.5f;
@@ -388,7 +406,7 @@ void touch_draw(IDirect3DDevice9 *d) {
         button_pos(k_buttons[i], &bx, &by);
         uint32_t col = k_buttons[i].color;
         uint32_t a = (i == NB - 2 || i == NB - 1) ? 0x90 :
-                     ((g_buttons & k_buttons[i].bit) ? 0xF0 : 0x90);
+                     (g_edit_mode ? 0xE0 : ((g_buttons & k_buttons[i].bit) ? 0xF0 : 0x90));
         quad(v + 6 * n++, bx, by, k_buttons[i].r, w, h, (col & 0xFFFFFF) | a << 24);
     }
     d->DrawPrimitiveUP(D3DPT_TRIANGLELIST, 2 * n, v, sizeof(Vtx));
