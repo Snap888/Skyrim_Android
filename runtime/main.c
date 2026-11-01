@@ -476,6 +476,9 @@ int main(int argc, char **argv) {
     if (!getenv("DXVK_STATE_CACHE_PATH")) setenv("DXVK_STATE_CACHE_PATH", g_save_dir, 1);
     /* 0.2.6: no compile status HUD (as in 0.1.5); DXVK_HUD=portstatus enables it. */
     check_game_dir();
+#ifdef __ANDROID__
+    setup_gpu_driver();
+#endif
 #ifdef GAME_MARVEL
     { extern void port_restore_defaults(void); port_restore_defaults(); }
 #endif
