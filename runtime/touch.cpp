@@ -14,6 +14,9 @@
 #include <strings.h>
 #include <cmath>
 #include <string>
+#ifdef __ANDROID__
+#include <jni.h>
+#endif
 
 extern "C" void input_set_virtual(uint16_t buttons, int16_t lx, int16_t ly, int16_t rx, int16_t ry,
                                   uint8_t lt, uint8_t rt);
@@ -286,6 +289,18 @@ extern "C" void touch_handle_event(const SDL_Event *e) {
     if (up) f->used = false;
     if (f->button != KBD && on) update();
 }
+
+
+#ifdef __ANDROID__
+extern "C" JNIEXPORT void JNICALL
+Java_com_tj_skyrim_SkyrimActivity_nativeSetLegacyTouchEnabled(JNIEnv *, jobject, jboolean enabled) {
+    g_touch_on = enabled == JNI_TRUE;
+    if (!g_touch_on) {
+        g_buttons = 0;
+        input_set_virtual(0, 0, 0, 0, 0, 0, 0);
+    }
+}
+#endif
 
 // ---------------------------------------------------------------- drawing
 namespace {
