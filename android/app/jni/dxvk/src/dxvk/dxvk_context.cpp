@@ -1446,21 +1446,31 @@ namespace dxvk {
           uint32_t x,
           uint32_t y,
           uint32_t z) {
-    if (this->commitComputeState()) {
+    this->dispatchChecked(x, y, z);
+  }
+
+
+  bool DxvkContext::dispatchChecked(
+          uint32_t x,
+          uint32_t y,
+          uint32_t z) {
+    const bool committed = this->commitComputeState();
+    if (committed) {
       this->commitComputeInitBarriers();
 
       m_queryManager.beginQueries(m_cmd,
         VK_QUERY_TYPE_PIPELINE_STATISTICS);
-      
+
       m_cmd->cmdDispatch(x, y, z);
-      
+
       m_queryManager.endQueries(m_cmd,
         VK_QUERY_TYPE_PIPELINE_STATISTICS);
-      
+
       this->commitComputePostBarriers();
     }
-    
+
     m_cmd->addStatCtr(DxvkStatCounter::CmdDispatchCalls, 1);
+    return committed;
   }
   
   

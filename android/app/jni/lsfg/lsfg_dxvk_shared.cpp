@@ -301,7 +301,7 @@ static void bindImage(DxvkContext* context, uint32_t slot, const FlowImage& imag
   context->bindResourceView(slot, image.view, nullptr);
 }
 
-static void dispatchAlpha(DxvkContext* context, const Rc<DxvkImageView>* flowViews,
+static bool dispatchAlpha(DxvkContext* context, const Rc<DxvkImageView>* flowViews,
                           uint32_t history) {
   for (unsigned stage = 0; stage < 4; stage++) {
     for (unsigned level = 0; level < AlphaLevels; level++) {
@@ -326,12 +326,16 @@ static void dispatchAlpha(DxvkContext* context, const Rc<DxvkImageView>* flowVie
       context->bindShader(VK_SHADER_STAGE_COMPUTE_BIT, g_alphaShaders[stage]);
       const VkExtent2D extent = stage < 2
         ? g_alphaTemp1[level].extent : g_alphaTemp3[level][0].extent;
-      context->dispatch((extent.width + 7u) >> 3, (extent.height + 7u) >> 3, 1);
+      if (!context->dispatchChecked((extent.width + 7u) >> 3, (extent.height + 7u) >> 3, 1)) {
+        lsfg_log("E", "step3i: Alpha dispatch failed stage=%u level=%u", stage, level);
+        return false;
+      }
     }
   }
+  return true;
 }
 
-static void dispatchBeta(DxvkContext* context, uint32_t history) {
+static bool dispatchBeta(DxvkContext* context, uint32_t history) {
   const VkExtent2D extent = g_betaTemp1[0].extent;
   const uint32_t groupsX = (extent.width + 7u) >> 3;
   const uint32_t groupsY = (extent.height + 7u) >> 3;
@@ -346,7 +350,10 @@ static void dispatchBeta(DxvkContext* context, uint32_t history) {
   for (unsigned i = 0; i < 2; i++)
     bindImage(context, binding++, g_betaTemp1[i]);
   context->bindShader(VK_SHADER_STAGE_COMPUTE_BIT, g_betaShaders[0]);
-  context->dispatch(groupsX, groupsY, 1);
+  if (!context->dispatchChecked(groupsX, groupsY, 1)) {
+    lsfg_log("E", "step3i: Beta dispatch failed stage=0");
+    return false;
+  }
 
   for (unsigned stage = 1; stage < 4; stage++) {
     context->bindResourceSampler(0, g_sampler);
@@ -357,7 +364,10 @@ static void dispatchBeta(DxvkContext* context, uint32_t history) {
     for (unsigned i = 0; i < 2; i++) bindImage(context, 1 + i, input[i]);
     for (unsigned i = 0; i < 2; i++) bindImage(context, 3 + i, output[i]);
     context->bindShader(VK_SHADER_STAGE_COMPUTE_BIT, g_betaShaders[stage]);
-    context->dispatch(groupsX, groupsY, 1);
+    if (!context->dispatchChecked(groupsX, groupsY, 1)) {
+      lsfg_log("E", "step3i: Beta dispatch failed stage=%u", stage);
+      return false;
+    }
   }
 
   context->bindResourceBuffer(0, DxvkBufferSlice(g_betaConstants));
@@ -365,7 +375,11 @@ static void dispatchBeta(DxvkContext* context, uint32_t history) {
   for (unsigned i = 0; i < 2; i++) bindImage(context, 2 + i, g_betaTemp2[i]);
   for (unsigned i = 0; i < BetaOutputs; i++) bindImage(context, 4 + i, g_betaOutputs[i]);
   context->bindShader(VK_SHADER_STAGE_COMPUTE_BIT, g_betaShaders[4]);
-  context->dispatch((extent.width + 31u) >> 5, (extent.height + 31u) >> 5, 1);
+  if (!context->dispatchChecked((extent.width + 31u) >> 5, (extent.height + 31u) >> 5, 1)) {
+    lsfg_log("E", "step3i: Beta dispatch failed stage=4");
+    return false;
+  }
+  return true;
 }
 
 } // anonymous namespace
@@ -385,8 +399,10 @@ bool dispatchLsfgSharedPasses(
     return false;
 
   const uint32_t history = frameIndex % HistorySlots;
-  dispatchAlpha(context, flowViews, history);
-  dispatchBeta(context, history);
+  if (!dispatchAlpha(context, flowViews, history))
+    return false;
+  if (!dispatchBeta(context, history))
+    return false;
   return true;
 }
 

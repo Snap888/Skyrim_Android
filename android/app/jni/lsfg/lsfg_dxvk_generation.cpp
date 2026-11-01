@@ -376,7 +376,7 @@ static void bindBuffer(DxvkContext* context, uint32_t slot, const Rc<DxvkBuffer>
   context->bindResourceBuffer(slot, DxvkBufferSlice(buffer));
 }
 
-static void dispatchGammaStep(DxvkContext* context, uint32_t frameIndex,
+static bool dispatchGammaStep(DxvkContext* context, uint32_t frameIndex,
                               uint32_t slot, uint32_t index, uint32_t stage) {
   const uint32_t level = MipLevels - 1u - index;
   const uint32_t history = frameIndex % HistorySlots;
@@ -421,10 +421,15 @@ static void dispatchGammaStep(DxvkContext* context, uint32_t frameIndex,
 
   context->bindShader(VK_SHADER_STAGE_COMPUTE_BIT, g_gammaShaders[stage]);
   const VkExtent2D extent = gamma.temp1[0].extent;
-  context->dispatch((extent.width + 7u) >> 3, (extent.height + 7u) >> 3, 1);
+  if (!context->dispatchChecked((extent.width + 7u) >> 3, (extent.height + 7u) >> 3, 1)) {
+    lsfg_log("E", "step3j: Gamma dispatch failed stage=%u level=%u shader=%u",
+             stage, level, stage == 0 ? 280u : 281u + stage);
+    return false;
+  }
+  return true;
 }
 
-static void dispatchDeltaStep(DxvkContext* context, uint32_t frameIndex,
+static bool dispatchDeltaStep(DxvkContext* context, uint32_t frameIndex,
                               uint32_t slot, uint32_t index, uint32_t stage) {
   const uint32_t level = MipLevels - 1u - (FirstDeltaLevel + index);
   const uint32_t gammaIndex = FirstDeltaLevel + index;
@@ -505,7 +510,13 @@ static void dispatchDeltaStep(DxvkContext* context, uint32_t frameIndex,
 
   context->bindShader(VK_SHADER_STAGE_COMPUTE_BIT, g_deltaShaders[stage]);
   const VkExtent2D extent = delta.temp1[0].extent;
-  context->dispatch((extent.width + 7u) >> 3, (extent.height + 7u) >> 3, 1);
+  if (!context->dispatchChecked((extent.width + 7u) >> 3, (extent.height + 7u) >> 3, 1)) {
+    static const uint32_t shaderIds[10] = { 280, 286, 287, 288, 289, 281, 294, 295, 296, 297 };
+    lsfg_log("E", "step3j: Delta dispatch failed stage=%u level=%u shader=%u",
+             stage, level, shaderIds[stage]);
+    return false;
+  }
+  return true;
 }
 
 } // anonymous namespace
@@ -577,16 +588,20 @@ bool dispatchLsfgGeneration(
   // gamma/delta interleaved at each level to preserve WinNative's paired order.
   for (uint32_t i = 0; i < MipLevels; i++) {
     if (i < FirstDeltaLevel) {
-      for (uint32_t stage = 0; stage < 5; stage++)
-        dispatchGammaStep(context, frameIndex, slot, i, stage);
+      for (uint32_t stage = 0; stage < 5; stage++) {
+        if (!dispatchGammaStep(context, frameIndex, slot, i, stage))
+          return false;
+      }
       continue;
     }
 
     const uint32_t deltaIndex = i - FirstDeltaLevel;
     for (uint32_t stage = 0; stage < 10; stage++) {
-      if (stage < 5)
-        dispatchGammaStep(context, frameIndex, slot, i, stage);
-      dispatchDeltaStep(context, frameIndex, slot, deltaIndex, stage);
+      if (stage < 5
+          && !dispatchGammaStep(context, frameIndex, slot, i, stage))
+        return false;
+      if (!dispatchDeltaStep(context, frameIndex, slot, deltaIndex, stage))
+        return false;
     }
   }
 
@@ -601,7 +616,11 @@ bool dispatchLsfgGeneration(
   bindImage(context, 7, g_delta[DeltaInstances - 1u].output2.view);
   bindImage(context, 8, targetView);
   context->bindShader(VK_SHADER_STAGE_COMPUTE_BIT, g_generateShader);
-  context->dispatch((width + 15u) >> 4, (height + 15u) >> 4, 1);
+  if (!context->dispatchChecked((width + 15u) >> 4, (height + 15u) >> 4, 1)) {
+    lsfg_log("E", "step3j: Generate dispatch was not committed shader=256 frame=%u",
+             frameIndex);
+    return false;
+  }
 
   // The final compute pass writes targetView as a storage image. The next
   // consumer is the fragment shader in DxvkSwapchainBlitter, which only

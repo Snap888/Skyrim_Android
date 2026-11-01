@@ -2,7 +2,7 @@
 
 Branch: `snap-patch-3`  
 Repository: [Snap888/Skyrim_Android](https://github.com/Snap888/Skyrim_Android)  
-Reviewed HEAD: [`98ac2957fede8c805375a86ecbcba91c79074091`](https://github.com/Snap888/Skyrim_Android/commit/98ac2957fede8c805375a86ecbcba91c79074091)
+Baseline HEAD before checked-dispatch patch: [`5832467751ec3f25214bad8d79414088b9791749`](https://github.com/Snap888/Skyrim_Android/commit/5832467751ec3f25214bad8d79414088b9791749)
 
 ## Scope of this update
 
@@ -72,3 +72,37 @@ edges, black/corrupt frames, pacing, and generated-frame count.
 - [ ] APK packaging confirmed.
 - [ ] GPU pipeline/descriptor/dispatch runtime confirmed on device.
 - [ ] Motion quality validated at x2 and x4.
+
+## Runtime evidence update — 2026-11-01 (user test, 05:22)
+
+The latest device log reports:
+
+- 300/300 compute modules reflected successfully.
+- History images allocated at 2448×1080.
+- The real WSI image hook is active.
+- DXVK command-list history copies continue to retire successfully; the
+  supplied excerpt reaches copy/completion #5400.
+- Mipmaps dispatches are requested at 1713×756 flow resolution (27×12 groups).
+- Alpha/Beta resources initialize, and Gamma/Delta/Generate resources initialize.
+- Generate requests are recorded at source-frame checkpoints through 5400.
+
+Important limitation: the existing DxvkContext::dispatch() returns void.
+Internally it silently skips vkCmdDispatch() when commitComputeState()
+fails to resolve/commit a compute pipeline or pipeline state. LSFG then logs
+dispatch / command recorded unconditionally. These log lines therefore prove
+that the host reached the dispatch call sites, but do not prove that DXVK
+actually emitted every vkCmdDispatch.
+
+The source now adds dispatchChecked() and uses it for all LSFG compute passes
+(mipmaps, Alpha, Beta, Gamma, Delta, Generate). A failed pipeline/state commit
+propagates as a failed LSFG pass, emits a pass/stage/shader diagnostic, and
+prevents the offscreen target from being counted as a generated frame. The
+existing dispatch() API remains unchanged for other DXVK callers.
+
+The D3D9 presentation source was also checked: generated targets are passed
+to DxvkSwapchainBlitter::presentImage() and then submitted through SubmitPresent().
+The output presentation hook is therefore wired in source; the remaining
+question is whether compute passes really commit and whether output pixels
+are correct.
+
+This change has not yet been built with Android NDK or tested on-device.

@@ -249,7 +249,13 @@ static bool dispatch_mipmaps(DxvkContext *ctx, DxvkDevice *device,
     ctx->bindShader(VK_SHADER_STAGE_COMPUTE_BIT, g_mipmap_shader);
     const uint32_t groups_x = (g_flow_extent.width + 63u) >> 6;
     const uint32_t groups_y = (g_flow_extent.height + 63u) >> 6;
-    ctx->dispatch(groups_x, groups_y, 1);
+    if (!ctx->dispatchChecked(groups_x, groups_y, 1)) {
+        if (!g_mipmap_error_logged) {
+            lsfg_log("E", "step3h: mipmaps compute dispatch was not committed");
+            g_mipmap_error_logged = true;
+        }
+        return false;
+    }
     return true;
 }
 

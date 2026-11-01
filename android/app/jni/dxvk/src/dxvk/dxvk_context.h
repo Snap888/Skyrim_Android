@@ -547,6 +547,16 @@ namespace dxvk {
             uint32_t          z);
 
     /**
+     * Records a compute dispatch and reports whether DXVK committed it.
+     * This exposes pipeline/state commit failures to callers that must not
+     * treat a skipped vkCmdDispatch as completed GPU work.
+     */
+    bool dispatchChecked(
+            uint32_t          x,
+            uint32_t          y,
+            uint32_t          z);
+
+    /**
      * rief Flushes pending resource hazards after compute work
      *
      * Used when compute outputs are consumed by a graphics pass that
