@@ -45,6 +45,31 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
         Control("LS",.13f,.67f,.064f,.115f,0,3), Control("RS",.87f,.67f,.064f,.115f,0,3)
     )
     private val pointers = HashMap<Int, Control>()
+    private val enabled = controls.associate { it.name to true }.toMutableMap()
+    private val toggleMode = controls.associate { it.name to false }.toMutableMap()
+    private val latched = HashSet<String>()
+
+    fun controlNames(): List<String> = controls.map { it.name }
+    fun isControlEnabled(name: String): Boolean = enabled[name] ?: true
+    fun isToggleMode(name: String): Boolean = toggleMode[name] ?: false
+    fun configureControl(name: String, isEnabled: Boolean, isToggle: Boolean) {
+        enabled[name] = isEnabled
+        toggleMode[name] = isToggle
+        if (!isEnabled) {
+            latched.remove(name)
+            val c = controls.firstOrNull { it.name == name }
+            if (c != null) releaseControl(c)
+        }
+        emit()
+    }
+    private fun releaseControl(c: Control) {
+        if (c.kind == 3) {
+            axes.remove(c.name.hashCode())
+            if (c.name == "LS") { leftX = 0; leftY = 0 } else { rightX = 0; rightY = 0 }
+        } else if (c.bit == 0x10000) lt = 0
+        else if (c.bit == 0x20000) rt = 0
+        else buttons = buttons and c.bit.inv()
+    }
     private val axes = HashMap<Int, Pair<Float,Float>>()
     private var buttons = 0
     private var lt = 0
@@ -111,7 +136,15 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
                 val c=hit(e.getX(index),e.getY(index)) ?: return true
                 pointers[id]=c
                 if(c.kind==3) { val p=axis(c,e.getX(index),e.getY(index)); axes[c.name.hashCode()]=p; setAxis(c,p) }
-                else if(c.bit==0x10000) lt=255 else if(c.bit==0x20000) rt=255 else buttons=buttons or c.bit
+                else if (toggleMode[c.name] == true) {
+                    if (latched.contains(c.name)) {
+                        latched.remove(c.name)
+                        releaseControl(c)
+                    } else {
+                        latched.add(c.name)
+                        if (c.bit == 0x10000) lt = 255 else if (c.bit == 0x20000) rt = 255 else buttons = buttons or c.bit
+                    }
+                } else if(c.bit==0x10000) lt=255 else if(c.bit==0x20000) rt=255 else buttons=buttons or c.bit
             }
             MotionEvent.ACTION_MOVE -> for(i in 0 until e.pointerCount) {
                 val pid=e.getPointerId(i); val c=pointers[pid] ?: continue
