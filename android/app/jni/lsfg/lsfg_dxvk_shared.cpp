@@ -14,6 +14,7 @@
 #include "dxvk_sampler.h"
 #include "lsfg_dxvk_shader.h"
 #include "lsfg_log.h"
+#include "lsfg_dxvk_gpu_profiler.h"
 
 namespace dxvk {
 
@@ -399,9 +400,18 @@ bool dispatchLsfgSharedPasses(
     return false;
 
   const uint32_t history = frameIndex % HistorySlots;
-  if (!dispatchAlpha(context, flowViews, history))
+  const LsfgGpuTimer alphaTimer = lsfgGpuTimerBegin(
+      context, device, "Alpha", frameIndex, flowExtent.width, flowExtent.height);
+  const bool alphaOk = dispatchAlpha(context, flowViews, history);
+  lsfgGpuTimerEnd(context, alphaTimer);
+  if (!alphaOk)
     return false;
-  if (!dispatchBeta(context, history))
+
+  const LsfgGpuTimer betaTimer = lsfgGpuTimerBegin(
+      context, device, "Beta", frameIndex, flowExtent.width, flowExtent.height);
+  const bool betaOk = dispatchBeta(context, history);
+  lsfgGpuTimerEnd(context, betaTimer);
+  if (!betaOk)
     return false;
   return true;
 }
