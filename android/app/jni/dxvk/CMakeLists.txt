@@ -143,4 +143,4 @@ target_compile_definitions(dxvk_d3d9 PRIVATE NOMINMAX _WIN32_WINNT=0xa00 DXVK_NA
     DXVK_WSI_SDL2 DXVK_PLATFORM_LINUX _FILE_OFFSET_BITS=64)
 target_compile_options(dxvk_d3d9 PRIVATE -O2 "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include cstdint>" "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include cstring>"
     -Wno-deprecated-declarations -Wno-everything -fvisibility=default)
-target_link_libraries(dxvk_d3d9 PRIVATE SDL2 vulkan $<$<BOOL:${ANDROID}>:log>)
+target_link_libraries(dxvk_d3d9 PRIVATE SDL2 vulkan adrenotools $<$<BOOL:${ANDROID}>:log>)\nif(ANDROID)\n    add_dependencies(dxvk_d3d9 main_hook hook_impl)\nendif()
