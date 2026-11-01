@@ -325,6 +325,42 @@ static int file_present(const char *name) {
     return 0;
 }
 
+#ifdef __ANDROID__
+/* The launcher writes this file before starting the native game. Export the
+ * validated private driver location before SDL/DXVK creates its Vulkan instance. */
+static void setup_gpu_driver(void) {
+    FILE *f = fopen("port/gpu-driver.conf", "r");
+    if (!f) return;
+    char line[2048], driver_path[1024] = "", library_name[256] = "";
+    int enabled = 0;
+    while (fgets(line, sizeof(line), f)) {
+        char *nl = strpbrk(line, "\\r\\n");
+        if (nl) *nl = 0;
+        if (!strcmp(line, "enabled=1")) enabled = 1;
+        else if (!strncmp(line, "driver_path=", 12))
+            snprintf(driver_path, sizeof(driver_path), "%s", line + 12);
+        else if (!strncmp(line, "library_name=", 13))
+            snprintf(library_name, sizeof(library_name), "%s", line + 13);
+    }
+    fclose(f);
+    if (!enabled) { LOG("GPU driver: system Vulkan selected"); return; }
+    if (!driver_path[0] || !library_name[0] || strchr(library_name, '/') ||
+        strstr(driver_path, "/../") || access(driver_path, R_OK) != 0) {
+        LOG("GPU driver: invalid private driver configuration; using system Vulkan");
+        return;
+    }
+    char library[1400];
+    snprintf(library, sizeof(library), "%s%s", driver_path, library_name);
+    if (access(library, R_OK) != 0) {
+        LOG("GPU driver: selected library missing: %s; using system Vulkan", library);
+        return;
+    }
+    setenv("SKYRIM_TURNIP_DRIVER_PATH", driver_path, 1);
+    setenv("SKYRIM_TURNIP_DRIVER_NAME", library_name, 1);
+    LOG("GPU driver: requested custom Vulkan ICD %s (%s)", library_name, driver_path);
+}
+#endif
+
 static void check_game_dir(void) {
     if (chdir(g_game_dir) != 0) {
         int e = errno;
