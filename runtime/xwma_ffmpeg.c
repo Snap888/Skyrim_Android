@@ -3,12 +3,12 @@
  * XAudio2 SubmitSourceBuffer passes:
  *  - pBuffer: compressed xWMA bitstream
  *  - XAUDIO2_BUFFER_WMA: PacketCount + pDecodedPacketCumulativeBytes[]
- *    (end offsets of each WMA packet in the compressed buffer)
  *
- * Strategy (in order):
- *  1) If packet table present — feed each packet separately (correct xWMA path)
- *  2) Else feed whole buffer as one bitstream
- *  3) Fallback: fixed block_align slices
+ * Strategy:
+ *  1) Short clips (<256KB, NPC voices): whole buffer first
+ *  2) Packet table when present
+ *  3) Whole buffer fallback
+ *  4) block_align slices
  */
 #ifdef LB_HAS_FFMPEG
 
@@ -202,7 +202,23 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
     }
 
     int used_packets = 0;
-    if (cum_bytes && packet_count > 0 && packet_count < 100000) {
+    int prefer_whole = (size > 0 && size < 256 * 1024);
+
+    if (prefer_whole) {
+        AVCodecContext *ctx = open_ctx(codec, channels, rate, block_align, avg_bps,
+                                       extradata, extradata_size);
+        if (ctx) {
+            feed_block(ctx, data, (int)size, pkt, frame, channels, &pcm, &len, &cap);
+            avcodec_send_packet(ctx, NULL);
+            drain(ctx, frame, channels, &pcm, &len, &cap);
+            avcodec_free_context(&ctx);
+            if (len)
+                fprintf(stderr, "xwma_ffmpeg: short whole-buffer ok samples=%zu tag=%04x size=%u\n",
+                        len / (size_t)channels, tag, size);
+        }
+    }
+
+    if (!len && cum_bytes && packet_count > 0 && packet_count < 100000) {
         AVCodecContext *ctx = open_ctx(codec, channels, rate, block_align, avg_bps,
                                        extradata, extradata_size);
         if (ctx) {
