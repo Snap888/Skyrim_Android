@@ -202,7 +202,25 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
     }
 
     int used_packets = 0;
-    if (cum_bytes && packet_count > 0 && packet_count < 100000) {
+    int prefer_whole = (size > 0 && size < 256 * 1024);
+
+    /* Pass A: whole buffer first for short voice clips */
+    if (prefer_whole) {
+        AVCodecContext *ctx = open_ctx(codec, channels, rate, block_align, avg_bps,
+                                       extradata, extradata_size);
+        if (ctx) {
+            feed_block(ctx, data, (int)size, pkt, frame, channels, &pcm, &len, &cap);
+            avcodec_send_packet(ctx, NULL);
+            drain(ctx, frame, channels, &pcm, &len, &cap);
+            avcodec_free_context(&ctx);
+            if (len)
+                fprintf(stderr, "xwma_ffmpeg: short whole-buffer ok samples=%zu tag=%04x size=%u\n",
+                        len / (size_t)channels, tag, size);
+        }
+    }
+
+    /* Pass B: packet table (XAUDIO2_BUFFER_WMA) */
+    if (!len && cum_bytes && packet_count > 0 && packet_count < 100000) {
         AVCodecContext *ctx = open_ctx(codec, channels, rate, block_align, avg_bps,
                                        extradata, extradata_size);
         if (ctx) {
@@ -213,6 +231,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
         }
     }
 
+    /* Pass C: whole buffer for long streams if packets failed */
     if (!len) {
         free(pcm); pcm = NULL; len = 0; cap = 0;
         AVCodecContext *ctx = open_ctx(codec, channels, rate, block_align, avg_bps,
@@ -228,6 +247,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
         }
     }
 
+    /* Pass D: block_align slices */
     if (!len && block_align > 32) {
         free(pcm); pcm = NULL; len = 0; cap = 0;
         AVCodecContext *ctx = open_ctx(codec, channels, rate, block_align, avg_bps,
