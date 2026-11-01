@@ -3,7 +3,7 @@
  * FFmpeg WMAV2 requires ctx->block_align at avcodec_open2 (else EINVAL).
  * Voices (<48KB): whole buffer first.
  * Music: packet table, whole buffer, then merged block_align chunks.
- * Short clips often decode to a single 2048-sample frame (~46 ms) — accept those.
+ * Reject decode results that are far too short vs compressed size.
  */
 #ifdef LB_HAS_FFMPEG
 
@@ -104,6 +104,7 @@ static AVCodecContext *open_ctx(const AVCodec *codec, int channels, int rate,
     ctx->channels = channels > 0 ? channels : 2;
     ctx->channel_layout = av_get_default_channel_layout(ctx->channels);
 #endif
+    /* WMAV2 decoder requires block_align (avcodec_open2 EINVAL otherwise) */
     if (block_align > 0) ctx->block_align = block_align;
     if (avg_bps > 0) ctx->bit_rate = (int64_t)avg_bps * 8;
     ctx->request_sample_fmt = AV_SAMPLE_FMT_FLTP;
@@ -151,16 +152,18 @@ static int duration_ok(size_t len, int channels, int rate, uint32_t size, int av
     uint32_t frames = (uint32_t)(len / (size_t)channels);
     double sec = (double)frames / (double)rate;
 
-    /* Short voice clips: WMA often yields one 2048-sample frame (~46 ms). */
+    /* Short voice clips: WMA often yields one 2048-sample frame (~46 ms).
+     * Accept any non-trivial output for buffers under 16 KB. */
     if (size < 16 * 1024 && frames >= 1024)
         return 1;
+    /* Other voice-sized buffers (<48 KB): accept >= ~20 ms */
     if (size < 48 * 1024 && sec >= 0.02)
         return 1;
 
     double exp_sec = (avg_bps > 0) ? (double)size / (double)avg_bps : 0;
     if (exp_sec <= 0.1)
         return sec >= 0.02;
-    /* Music: >= 10% of expected, or >= 0.5 s */
+    /* Music: accept >= 10% of expected duration, or >= 0.5 s of audio */
     return (sec >= exp_sec * 0.10) || (sec >= 0.5);
 }
 
