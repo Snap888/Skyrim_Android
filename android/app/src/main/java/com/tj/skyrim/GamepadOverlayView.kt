@@ -138,6 +138,13 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
         val index=e.actionIndex; val id=e.getPointerId(index)
         when(e.actionMasked) {
             MotionEvent.ACTION_DOWN,MotionEvent.ACTION_POINTER_DOWN -> {
+                if (editMode) {
+                    val c = hit(e.getX(index), e.getY(index)) ?: return true
+                    dragging[id] = c.name
+                    lastTouch[id] = Pair(e.getX(index), e.getY(index))
+                    invalidate()
+                    return true
+                }
                 val c=hit(e.getX(index),e.getY(index)) ?: return true
                 if (!isControlEnabled(c.name)) return true
                 pointers[id]=c
@@ -154,10 +161,34 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
                 } else if(c.bit==0x10000) lt=255 else if(c.bit==0x20000) rt=255 else buttons=buttons or c.bit
             }
             MotionEvent.ACTION_MOVE -> for(i in 0 until e.pointerCount) {
-                val pid=e.getPointerId(i); val c=pointers[pid] ?: continue
+                val pid=e.getPointerId(i)
+                if (editMode) {
+                    val name = dragging[pid] ?: continue
+                    val prev = lastTouch[pid] ?: Pair(e.getX(i), e.getY(i))
+                    val old = positions[name] ?: continue
+                    val control = controls.first { it.name == name }
+                    val scale = min(width,height).toFloat().coerceAtLeast(1f)
+                    val nx = (old.first + (e.getX(i)-prev.first)/width).coerceIn(control.rx*scale/width,1f-control.rx*scale/width)
+                    val ny = (old.second + (e.getY(i)-prev.second)/height).coerceIn(control.ry*scale/height,1f-control.ry*scale/height)
+                    positions[name] = Pair(nx,ny)
+                    lastTouch[pid] = Pair(e.getX(i),e.getY(i))
+                    continue
+                }
+                val c=pointers[pid] ?: continue
                 if(c.kind==3){val p=axis(c,e.getX(i),e.getY(i));axes[c.name.hashCode()]=p;setAxis(c,p)}
             }
             MotionEvent.ACTION_UP,MotionEvent.ACTION_POINTER_UP,MotionEvent.ACTION_CANCEL -> {
+                if (editMode) {
+                    val ids = if (e.actionMasked==MotionEvent.ACTION_CANCEL) dragging.keys.toList() else listOf(id)
+                    ids.forEach { pid ->
+                        val name=dragging.remove(pid) ?: return@forEach
+                        lastTouch.remove(pid)
+                        val pos=positions[name] ?: return@forEach
+                        prefs.edit().putFloat("x_"+name,pos.first).putFloat("y_"+name,pos.second).apply()
+                    }
+                    invalidate()
+                    return true
+                }
                 val ids=if(e.actionMasked==MotionEvent.ACTION_CANCEL) pointers.keys.toList() else listOf(id)
                 ids.forEach { pid ->
                     val c=pointers.remove(pid) ?: return@forEach
