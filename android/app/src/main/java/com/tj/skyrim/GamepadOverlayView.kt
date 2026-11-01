@@ -14,7 +14,7 @@ import kotlin.math.max
  * Native Android virtual Xbox controller. Draws the WinNative cyan/graphite
  * layout and forwards a complete virtual XInput state for every pointer event.
  */
-class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, Int, Int, Int, Int) -> Unit) : View(context) {
+class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, Int, Int, Int, Int) -> Unit, private val quickAction: (String) -> Unit) : View(context) {
     private val density = resources.displayMetrics.density
     private val line = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE; strokeWidth = 1.35f * density
@@ -42,7 +42,7 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
         Control("BACK",.45f,.95f,.038f,.045f,0x20,1), Control("START",.55f,.95f,.038f,.045f,0x10,1),
         Control("UP",.275f,.74f,.031f,.055f,1), Control("DOWN",.275f,.91f,.031f,.055f,2),
         Control("LEFT",.235f,.825f,.031f,.055f,4), Control("RIGHT",.315f,.825f,.031f,.055f,8),
-        Control("LS",.13f,.67f,.064f,.115f,0,3), Control("RS",.87f,.67f,.064f,.115f,0,3)
+        Control("LS",.13f,.67f,.064f,.115f,0,3), Control("RS",.87f,.67f,.064f,.115f,0,3),\n        Control("QUICK SAVE",.37f,.43f,.060f,.043f,0,5), Control("QUICK LOAD",.63f,.43f,.060f,.043f,0,5)
     )
     private val pointers = HashMap<Int, Control>()
     private val enabled = controls.associate { it.name to true }.toMutableMap()
@@ -84,7 +84,7 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
         val cx = c.x * width; val cy = c.y * height
         return RectF(cx-c.rx*scale,cy-c.ry*scale,cx+c.rx*scale,cy+c.ry*scale)
     }
-    private fun hit(x:Float,y:Float):Control? = controls.asReversed().firstOrNull { bounds(it).contains(x,y) }
+    private fun hit(x:Float,y:Float):Control? = controls.asReversed().firstOrNull { isControlEnabled(it.name) && bounds(it).contains(x,y) }
     private fun axis(c:Control,x:Float,y:Float):Pair<Float,Float> {
         val b=bounds(c); val nx=((x-(b.left+b.right)/2f)/(b.width()/2f)).coerceIn(-1f,1f)
         val ny=((y-(b.top+b.bottom)/2f)/(b.height()/2f)).coerceIn(-1f,1f)
