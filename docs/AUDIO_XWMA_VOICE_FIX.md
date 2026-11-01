@@ -63,7 +63,9 @@ silently lose WMA packets and shorten decoded dialogue.
 
 The large-stereo mute experiment now encloses the entire decode/failure-check
 path. Muted buffers therefore no longer emit a misleading `xWMA decode FAILED`
-message.
+message. The experiment is disabled by default again, so stereo music is no
+longer intentionally silenced; define `XWMA_MUTE_LARGE_STEREO=1` only for an
+A/B diagnostic build.
 
 These changes are source-level fixes; they still require an Android build and
 on-device playback/log comparison. Packet-table semantics and exact packet
@@ -102,3 +104,27 @@ folder selected in the launcher.
 
 Run the game first, reproduce the issue (include both NPC dialogue and music),
 exit the game, then run the collector. Send the generated diagnostics file.
+
+## Fixed-packet decoder
+
+The decoder no longer tries the entire compressed data buffer as one FFmpeg
+packet and no longer accepts an arbitrary 0.5-second partial result as success.
+It now:
+
+- derives the compressed packet size from `AudioBytes / PacketCount` when the
+  XAudio2 WMA descriptor is present;
+- verifies that the packet size matches WAVEFORMATEX `block_align`;
+- submits every fixed-size compressed packet separately while retaining the
+  FFmpeg decoder state between packets;
+- flushes the decoder after the final packet;
+- validates the decoded-packet cumulative table as monotonic decoded-byte
+  accounting, without treating it as compressed offsets;
+- logs packet count, packet size, decoded PCM frames, estimated input duration,
+  and the duration represented by the final cumulative decoded-byte value.
+
+This follows the Microsoft XAUDIO2_BUFFER_WMA contract and FFmpeg's xWMA
+demuxer packet model. A mismatched packet count or block alignment is reported
+as a layout error rather than silently decoding a partial stream.
+
+Android compilation and on-device playback are still required to confirm the
+result with the Skyrim voice and music assets.
