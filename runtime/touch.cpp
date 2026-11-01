@@ -136,6 +136,9 @@ void update() {
     for (auto &f : g_fingers) {
         if (!f.used) continue;
         if (f.stick || f.right_stick) {
+            // XInput thumb-click buttons are held while the corresponding stick is touched.
+            if (f.button == NB) b |= 0x0040;       // XINPUT_GAMEPAD_LEFT_THUMB (L3)
+            else if (f.button == NB + 1) b |= 0x0080; // XINPUT_GAMEPAD_RIGHT_THUMB (R3)
             float cx, cy;
             if (f.right_stick) right_stick_pos(&cx, &cy); else stick_pos(&cx, &cy);
             float ax = (f.x - cx) * g_aspect / STICK_R;
@@ -242,6 +245,8 @@ extern "C" void touch_handle_event(const SDL_Event *e) {
         // Empty lower-left/right zones are independent analog sticks.
         f->stick = f->button < 0 && x < 0.5f;
         f->right_stick = f->button < 0 && x >= 0.5f;
+        if (f->stick) f->button = NB;       // L3 click follows left-stick contact
+        if (f->right_stick) f->button = NB + 1; // R3 click follows right-stick contact
     }
     if (!f) return;
     if (g_edit_mode && on && f->button != KBD) {
@@ -316,7 +321,45 @@ void quad(Vtx *v, float cx, float cy, float rx, float ry, float w, float h, uint
     v[0] = q[0]; v[1] = q[1]; v[2] = q[2];
     v[3] = q[2]; v[4] = q[1]; v[5] = q[3];
 }
+
 void quad(Vtx *v, float cx, float cy, float r, float w, float h, uint32_t color) { quad(v, cx, cy, r, r, w, h, color); }
+
+// Compact 3x5 overlay font. Labels are drawn as tiny quads so they remain
+// crisp on the D3D9 backbuffer and need no Android/SDL font dependency.
+uint16_t glyph3x5(char c) {
+    switch (c) {
+    case 'A': return 0x5F7D; case 'B': return 0x6B6B; case 'C': return 0x4932;
+    case 'D': return 0x6B6B; case 'E': return 0x5B72; case 'F': return 0x5B50;
+    case 'G': return 0x4B3A; case 'H': return 0x5F5D; case 'I': return 0x7497;
+    case 'J': return 0x2B2A; case 'K': return 0x5D5D; case 'L': return 0x4927;
+    case 'N': return 0x5F5D; case 'O': return 0x6B6B; case 'P': return 0x5B74;
+    case 'Q': return 0x6B6F; case 'R': return 0x5B75; case 'S': return 0x3972;
+    case 'T': return 0x7492; case 'U': return 0x6B6F; case 'V': return 0x6B6A;
+    case 'W': return 0x6B7F; case 'X': return 0x5D5D; case 'Y': return 0x5D52;
+    case '0': return 0x6B6B; case '1': return 0x7497; case '2': return 0x7172;
+    case '3': return 0x7171; case '4': return 0x5F49; case '5': return 0x3971;
+    case '6': return 0x397B; case '7': return 0x7492; case '8': return 0x7B7B;
+    case '9': return 0x7B71; case '-': return 0x0038;
+    default: return 0;
+    }
+}
+void draw_label(Vtx *v, int *n, const char *text, float cx, float cy,
+                float scale, float w, float h, uint32_t color = 0xF0FFFFFF) {
+    int len = (int)strlen(text);
+    float cell = scale / 5.f;
+    float total = (len * 4 - 1) * cell;
+    float x0 = cx - total * 0.5f;
+    for (int k = 0; k < len; ++k) {
+        uint16_t bits = glyph3x5(text[k]);
+        for (int row = 0; row < 5; ++row) for (int col = 0; col < 3; ++col) {
+            int bit = 14 - (row * 3 + col);
+            if (!(bits & (1u << bit))) continue;
+            float x = x0 + (k * 4 + col) * cell;
+            float y = cy + (row - 2) * cell;
+            quad(v + 6 * (*n)++, x, y, cell * 0.46f, cell * 0.46f, w, h, color);
+        }
+    }
+}
 } // namespace
 
 void touch_draw(IDirect3DDevice9 *d) {
@@ -371,7 +414,7 @@ void touch_draw(IDirect3DDevice9 *d) {
     d->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
     d->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 
-    Vtx v[6 * (NB + 2 + 11 + 4)];
+    Vtx v[6 * (NB + 2 + 11 + 4 + 220)];
     int n = 0;
     // keyboard button: a disc with two rows of keys and a space bar
     {
@@ -393,6 +436,7 @@ void touch_draw(IDirect3DDevice9 *d) {
         quad(v + 6 * n++, sx, sy, STICK_R, w, h, 0x90FFFFFF);
         quad(v + 6 * n++, sx + g_stick_x * STICK_R / g_aspect, sy + g_stick_y * STICK_R, STICK_R * 0.45f, w, h,
              0xD0FFFFFF);
+        draw_label(v, &n, "L3", sx, sy + STICK_R * 1.28f, STICK_R * 0.34f, w, h);
     }
     if (on) {
         float rx, ry;
@@ -400,6 +444,7 @@ void touch_draw(IDirect3DDevice9 *d) {
         quad(v + 6 * n++, rx, ry, STICK_R, w, h, 0x90FFFFFF);
         quad(v + 6 * n++, rx + g_rstick_x * STICK_R / g_aspect,
              ry + g_rstick_y * STICK_R, STICK_R * 0.45f, w, h, 0xD0FFFFFF);
+        draw_label(v, &n, "R3", rx, ry + STICK_R * 1.28f, STICK_R * 0.34f, w, h);
     }
     for (int i = 0; on && i < NB; i++) {
         float bx, by;
@@ -408,6 +453,7 @@ void touch_draw(IDirect3DDevice9 *d) {
         uint32_t a = (i == NB - 2 || i == NB - 1) ? 0x90 :
                      (g_edit_mode ? 0xE0 : ((g_buttons & k_buttons[i].bit) ? 0xF0 : 0x90));
         quad(v + 6 * n++, bx, by, k_buttons[i].r, w, h, (col & 0xFFFFFF) | a << 24);
+        draw_label(v, &n, k_buttons[i].name, bx, by, k_buttons[i].r * 0.62f, w, h);
     }
     d->DrawPrimitiveUP(D3DPT_TRIANGLELIST, 2 * n, v, sizeof(Vtx));
     d->EndScene();
