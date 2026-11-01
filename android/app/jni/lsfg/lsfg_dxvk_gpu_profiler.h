@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdlib>
+#include <cstdint>
 #include <fstream>
 #include <mutex>
 #include <string>
@@ -16,11 +17,6 @@ namespace dxvk {
  * caller's active DXVK command list. Results are read only from its completion
  * callback, after the GPU fence has signalled and before query handles recycle.
  */
-struct LsfgGpuTimestamp {
-  Rc<DxvkGpuQuery> query;
-  double periodNs = 0.0;
-};
-
 struct LsfgGpuTimer {
   Rc<DxvkGpuQuery> begin;
   Rc<DxvkGpuQuery> end;
@@ -33,7 +29,7 @@ struct LsfgGpuTimer {
 
 inline std::string lsfgGpuCsvPath() {
   const char* dir = std::getenv("DXVK_LOG_PATH");
-  if (dir && *dir)
+  if (dir && *dir && std::string(dir) != "none")
     return std::string(dir) + "/dxvk_lsfg_gpu.csv";
 
   const char* perf = std::getenv("DXVK_PERF_LOG");
