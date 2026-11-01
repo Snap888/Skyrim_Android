@@ -16,6 +16,13 @@ It points to the exact `snap-patch-3` HEAD that existed before benchmark instrum
 
 ## Log
 
+The launcher now exposes a **DXVK Performance A/B test** section. Enable **Write separate DXVK benchmark log**, select pass A or B, then press Play:
+
+- Pass A forces LSFG off for that launch and writes `port/dxvk_perf_off.csv` inside the selected Skyrim game folder.
+- Pass B forces LSFG on for that launch and writes `port/dxvk_perf_on.csv` inside the selected Skyrim game folder. A valid Lossless.dll is required.
+- The launcher creates the `port` directory if needed, removes the previous file for the selected pass, and sets `DXVK_PERF_LOG` and `DXVK_PERF_RUN` in the app process before SDL/DXVK starts.
+- Disable the benchmark checkbox for ordinary launches; the launcher then unsets both benchmark variables and leaves the normal LSFG checkbox in control.
+
 The benchmark logger writes independently of the regular DXVK log:
 
 - Preferred: set `DXVK_PERF_LOG` to an absolute writable file path.
