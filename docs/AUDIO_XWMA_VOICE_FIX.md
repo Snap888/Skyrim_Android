@@ -1,17 +1,17 @@
-# xWMA voice isolation experiment
+# xWMA voice and music decoding
 
 ## Branch and scope
 
 - Working branch: `snap-patch-4`
-- Experiment: mute large stereo xWMA buffers before FFmpeg decode.
+- Main change: decode xWMA as fixed-size compressed packets using the XAudio2 packet count and WAVEFORMATEX block alignment.
 - `gen/` is intentionally untouched.
-- This is a diagnostic isolation change, not a final xWMA decoder fix.
+- The decoder change is source-level and still requires Android playback validation.
 
 ## Why
 
-The current xWMA path in `runtime/xwma_ffmpeg.c` feeds the submitted payload as one packet, then retries using `block_align` chunks. It currently does not use the XAUDIO2_BUFFER_WMA cumulative packet offsets (`cum_bytes` / `packet_count`). Existing reports include WMAV2 packet-size and spectral-RLE errors on long stereo streams.
+The previous xWMA path in `runtime/xwma_ffmpeg.c` first fed the entire submitted payload as one FFmpeg packet. Its permissive success threshold could accept a short partial decode and skip packet-by-packet processing. The latest implementation uses `PacketCount` and `block_align` to submit each compressed packet separately. `pDecodedPacketCumulativeBytes` is decoded PCM byte accounting, not compressed packet offsets.
 
-The requested first experiment is to determine whether large stereo streams (presumed music) are the source of continuous noise while preserving short/mono dialogue clips.
+The large-stereo mute switch remains available only as an optional A/B diagnostic; it is disabled by default so music is not silenced.
 
 ## Implemented test
 
@@ -22,7 +22,7 @@ In `runtime/xaudio2.c`, before the FFmpeg decode call:
 - Muted buffers produce a rate-limited log line:
   `xaudio2: xWMA MUTED stereo-large ...`
 
-The experiment is enabled by default with `XWMA_MUTE_LARGE_STEREO=1`. To disable it for a comparison build, compile with `-DXWMA_MUTE_LARGE_STEREO=0`.
+To enable the isolation experiment for a comparison build, compile with `-DXWMA_MUTE_LARGE_STEREO=1`. Normal playback is the default (`0`).
 
 This threshold is intentionally a coarse diagnostic heuristic. Some stereo voice assets could also be muted; use the log and in-game test to evaluate that possibility.
 
@@ -54,7 +54,7 @@ Interpretation:
 - Crackling remains while no large stereo buffers are active: investigate decoded mono/short buffers, the software mixer, SDL output and device routing.
 - Dialogue is also missing: inspect the actual voice channel count and buffer sizes; the 2ch/48 KiB heuristic may be too broad.
 
-## Decoder correction in progress
+## Decoder corrections
 
 The FFmpeg packet submission path now handles `AVERROR(EAGAIN)` correctly:
 it drains pending decoded frames and retries the same encoded packet instead of
@@ -68,13 +68,13 @@ longer intentionally silenced; define `XWMA_MUTE_LARGE_STEREO=1` only for an
 A/B diagnostic build.
 
 These changes are source-level fixes; they still require an Android build and
-on-device playback/log comparison. Packet-table semantics and exact packet
-boundaries remain under investigation.
+on-device playback/log comparison. Packet-table semantics were checked against
+the Microsoft contract and FFmpeg's xWMA demuxer packet model.
 
 ## Not yet resolved
 
-- Correct xWMA packetization using cumulative packet byte offsets.
-- Whether libavformat's xWMA demuxer can be integrated or its packet handling replicated.
+- Verify on-device decoded duration against the `dpds` cumulative PCM byte count.
+- Investigate any remaining WMAPRO/WMAV2 decode errors with real `.xwm`/`.xwma`/`.fuz` samples.
 - Decoder overflow/noise rejection and asynchronous decode.
 - SDL/mixer routing validation on the target device.
 - Engine shutdown mutex lifetime issue.
