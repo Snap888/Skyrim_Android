@@ -44,6 +44,7 @@ static int g_padonly;  /* LB_PADONLY=1: scripted keys drive only the virtual XIn
 static SDL_atomic_t g_quick_request;
 static SDL_Scancode g_quick_active = SDL_SCANCODE_UNKNOWN;
 static int g_quick_release_frame = -1;
+static void key_event(SDL_Scancode sc, int down);
 
 /* JNI/UI requests are consumed on the game thread. Keep the key down across
  * several frames so DirectInput polling can observe it; SDL_PushEvent alone
