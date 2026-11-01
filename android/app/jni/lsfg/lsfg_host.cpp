@@ -32,6 +32,8 @@ static std::atomic<int> g_flow_percent{70};
 static std::atomic<int> g_performance{1};
 static char g_config_path[768];
 static int g_logged_frame;
+static thread_local int g_frame_multiplier = 0;
+static thread_local float g_frame_flow_scale = -1.0f;
 static int g_extract_count;
 
 bool lsfg_load_config(const char *game_dir, LsfgConfig *out) {
@@ -163,15 +165,26 @@ void lsfg_host_shutdown(void) {
     lsfg_log_close();
 }
 
+void lsfg_host_begin_frame_settings(void) {
+    g_frame_multiplier = g_multiplier.load(std::memory_order_acquire);
+    const float quality = (float)g_flow_percent.load(std::memory_order_acquire) / 100.0f;
+    const int selected = g_performance.load(std::memory_order_acquire);
+    static const float modeScale[] = { 0.75f, 1.0f, 0.5f };
+    const unsigned mode = selected >= 0 && selected <= 2 ? (unsigned)selected : 1u;
+    g_frame_flow_scale = quality * modeScale[mode];
+}
+
 unsigned lsfg_host_generation_count(void) {
     if (!g_inited.load(std::memory_order_acquire)) return 0;
-    const int multiplier = g_multiplier.load(std::memory_order_relaxed);
+    const int multiplier = g_frame_multiplier > 0
+        ? g_frame_multiplier : g_multiplier.load(std::memory_order_relaxed);
     if (multiplier <= 1) return 0;
     unsigned count = (unsigned)(multiplier - 1);
     return count > 3 ? 3 : count;
 }
 
 float lsfg_host_flow_scale(void) {
+    if (g_frame_flow_scale > 0.0f) return g_frame_flow_scale;
     const float quality = (float)g_flow_percent.load(std::memory_order_relaxed) / 100.0f;
     static const float modeScale[] = { 0.75f, 1.0f, 0.5f };
     const int selected = g_performance.load(std::memory_order_relaxed);

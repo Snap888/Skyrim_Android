@@ -267,6 +267,10 @@ extern "C" void lsfg_step3g_copy_impl(
     if (!ctx_v || !src_view_v || !device_v || !w || !h) return;
     if (!lsfg_step3d_frames_ready()) return;
 
+    // Latch UI changes once per source frame so mipmaps, flow and Generate
+    // cannot observe different quality/multiplier values mid-frame.
+    lsfg_host_begin_frame_settings();
+
     auto *ctx     = reinterpret_cast<DxvkContext*>(ctx_v);
     auto *srcView = reinterpret_cast<DxvkImageView*>(src_view_v);
     auto *device  = reinterpret_cast<DxvkDevice*>(device_v);
