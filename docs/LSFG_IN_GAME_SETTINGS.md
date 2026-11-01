@@ -8,12 +8,10 @@ standalone top-left button.
 
 ## Runtime controls
 
-- **LSFG ON/OFF slider:** OFF selects multiplier `1x` and bypasses generated
-  frames. The native host remains initialized so the user can switch LSFG back
-  ON during the same game session. ON restores the selected 2x, 3x or 4x
-  multiplier.
-- **Frame generation:** 2x, 3x or 4x (one, two or three generated frames).
-  The multiplier selector is disabled while the OFF position is selected.
+- **Frame generation:** `x-0`, `x-2`, `x-3` or `x-4`. `x-0` selects
+  multiplier `1` and bypasses generated frames; `x-2`/`x-3`/`x-4` select the
+  corresponding generation multiplier. The native host remains initialized
+  while `x-0` is selected, so generation can be re-enabled without restarting.
 - **Flow quality:** 40–100 percent.
 - **GPU mode:** Performance, Balanced or Low GPU load. The mode scales the
   requested flow resolution by 0.75, 1.0 or 0.5 respectively.
@@ -22,7 +20,7 @@ standalone top-left button.
 
 ## Disable semantics
 
-OFF is a runtime bypass, not an unload/reinitialization operation. The native
+`x-0` is a runtime bypass, not an unload/reinitialization operation. The native
 bootstrap, shader resources and DXVK hooks remain initialized; the active
 present hook reports LSFG inactive and no generated frames are requested while
 the saved multiplier is `1`. This allows immediate ON/OFF switching without
