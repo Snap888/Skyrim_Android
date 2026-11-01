@@ -11,9 +11,12 @@
 #include <mutex>
 #include <thread>
 
-extern "C" int lsfg_host_game_fps_limit(void);
-
 /* LSFG callback registration keeps DXVK independent of lsfg_host at link time. */
+using LsfgGameFpsLimitHook = int (*)(void);
+static LsfgGameFpsLimitHook g_lsfgGameFpsLimitHook = nullptr;
+extern "C" void lsfg_step3g_set_game_fps_limit_hook(LsfgGameFpsLimitHook hook) {
+  g_lsfgGameFpsLimitHook = hook;
+}
 using LsfgCopyHook = void (*)(void*, void*, void*, uint32_t, uint32_t, uint32_t);
 static LsfgCopyHook g_lsfgCopyHook = nullptr;
 extern "C" void lsfg_step3g_set_copy_hook(LsfgCopyHook hook) {
@@ -1085,7 +1088,7 @@ namespace dxvk {
 
     // Experimental game-only pacing, once per D3D9 Present after LSFG outputs.
     // This throttles the next game frame, not individual generated presents.
-    const int gameFpsLimit = lsfg_host_game_fps_limit();
+    const int gameFpsLimit = g_lsfgGameFpsLimitHook ? g_lsfgGameFpsLimitHook() : 0;
     if (gameFpsLimit > 0) {
       const auto interval = std::chrono::nanoseconds(1000000000ll / gameFpsLimit);
       const auto now = std::chrono::steady_clock::now();
