@@ -67,7 +67,7 @@ public class SkyrimActivity extends SDLActivity {
 
     private static native void nativeSetTouchEditor(boolean enabled);
     private native void nativeSetLegacyTouchEnabled(boolean enabled);
-    private native void nativeSetVirtualPad(int buttons, int lx, int ly, int rx, int ry, int lt, int rt);
+    private native void nativeSetVirtualPad(int buttons, int lx, int ly, int rx, int ry, int lt, int rt);\n    private native void nativeQuickAction(boolean load);
     private GamepadOverlayView gamepadOverlay;
     private boolean gamepadOverlayEnabled = true;
     private final java.util.Set<String> gamepadDisabledControls = new java.util.HashSet<>();
