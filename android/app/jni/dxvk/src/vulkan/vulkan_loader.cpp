@@ -62,13 +62,13 @@ namespace dxvk::vk {
   
   
   PFN_vkVoidFunction InstanceLoader::sym(const char* name) const {
-    return dxvk::vk::GetInstanceProcAddr(m_instance, name);
+    return dxvk::vk::getInstanceProcAddr()(m_instance, name);
   }
   
   
   DeviceLoader::DeviceLoader(bool owned, VkInstance instance, VkDevice device)
   : m_getDeviceProcAddr(reinterpret_cast<PFN_vkGetDeviceProcAddr>(
-      dxvk::vk::GetInstanceProcAddr(instance, "vkGetDeviceProcAddr"))),
+      dxvk::vk::getInstanceProcAddr()(instance, "vkGetDeviceProcAddr"))),
     m_device(device), m_owned(owned) { }
   
   
