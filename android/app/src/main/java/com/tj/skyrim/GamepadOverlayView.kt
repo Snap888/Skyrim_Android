@@ -181,7 +181,7 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
                 drawButtonShape(canvas,b,c.name,fill); drawButtonShape(canvas,b,c.name,line)
                 canvas.drawText(if(c.name=="QUICK SAVE") "QSAVE" else "QLOAD",b.centerX(),b.centerY()+smallLabel.textSize*.34f,smallLabel)
             } else if(c.kind==3) {
-                canvas.drawOval(b,fill); canvas.drawOval(b,line)
+                drawButtonShape(canvas,b,c.name,fill); drawButtonShape(canvas,b,c.name,line)
                 val p=axes[c.name.hashCode()] ?: Pair(0f,0f)
                 val cx=(b.left+b.right)/2f+p.first*b.width()*.32f
                 val cy=(b.top+b.bottom)/2f+p.second*b.height()*.32f
@@ -193,7 +193,7 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
                 canvas.drawText(c.name,b.centerX(),b.centerY()+label.textSize*.34f, label)
             } else if(c.name in listOf("UP","DOWN","LEFT","RIGHT")) {
                 drawButtonShape(canvas,b,c.name,fill); drawButtonShape(canvas,b,c.name,line)
-                val arrow=Path(); val cx=b.centerX(); val cy=b.centerY(); val d=9*density
+                val arrow=Path(); val cx=b.centerX(); val cy=b.centerY(); val d=9*density*(sizes[c.name] ?: 1f)
                 when(c.name){ "UP"->{arrow.moveTo(cx,cy-d);arrow.lineTo(cx-d,cy+d*.65f);arrow.lineTo(cx+d,cy+d*.65f)}
                     "DOWN"->{arrow.moveTo(cx,cy+d);arrow.lineTo(cx-d,cy-d*.65f);arrow.lineTo(cx+d,cy-d*.65f)}
                     "LEFT"->{arrow.moveTo(cx-d,cy);arrow.lineTo(cx+d*.65f,cy-d);arrow.lineTo(cx+d*.65f,cy+d)}
