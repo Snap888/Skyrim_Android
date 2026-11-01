@@ -39,6 +39,7 @@ const Button k_buttons[] = {
 };
 const int NB = sizeof k_buttons / sizeof k_buttons[0];
 float g_button_dx[NB], g_button_dy[NB];
+float g_stick_dx, g_stick_dy, g_rstick_dx, g_rstick_dy;
 bool g_edit_mode;
 static void save_layout();
 const float STICK_X = 0.24f, STICK_Y = -0.26f, STICK_R = 0.17f; // from bottom-left
@@ -108,12 +109,12 @@ void button_pos(const Button &b, float *x, float *y) {
 }
 
 void stick_pos(float *x, float *y) {
-    *x = STICK_X / g_aspect;
-    *y = 1 + STICK_Y;
+    *x = STICK_X / g_aspect + g_stick_dx / g_aspect;
+    *y = 1 + STICK_Y + g_stick_dy;
 }
 void right_stick_pos(float *x, float *y) {
-    *x = 1.f - STICK_X / g_aspect;
-    *y = 1.f + STICK_Y;
+    *x = 1.f - STICK_X / g_aspect + g_rstick_dx / g_aspect;
+    *y = 1.f + STICK_Y + g_rstick_dy;
 }
 
 int hit_button(float x, float y) {
@@ -230,13 +231,29 @@ extern "C" void touch_handle_event(const SDL_Event *e) {
             f->button = hit_button(x, y);
             f->stick = false;
             f->right_stick = false;
+            if (f->button < 0) {
+                float cx, cy;
+                stick_pos(&cx, &cy);
+                float dx = (x - cx) * g_aspect, dy = y - cy;
+                if (dx * dx + dy * dy < STICK_R * STICK_R * 1.8f) f->button = NB;
+                else {
+                    right_stick_pos(&cx, &cy);
+                    dx = (x - cx) * g_aspect; dy = y - cy;
+                    if (dx * dx + dy * dy < STICK_R * STICK_R * 1.8f) f->button = NB + 1;
+                }
+            }
         }
         if (down) { f->x = x; f->y = y; }
         else if (f->button >= 0 && f->button < NB) {
             g_button_dx[f->button] += (x - f->x) * g_aspect;
             g_button_dy[f->button] += y - f->y;
-            f->x = x;
-            f->y = y;
+            f->x = x; f->y = y;
+        } else if (f->button == NB || f->button == NB + 1) {
+            float dx = (x - f->x) * g_aspect, dy = y - f->y;
+            float *ox = f->button == NB ? &g_stick_dx : &g_rstick_dx;
+            float *oy = f->button == NB ? &g_stick_dy : &g_rstick_dy;
+            *ox += dx; *oy += dy;
+            f->x = x; f->y = y;
         }
         if (up) { f->used = false; save_layout(); }
         return;
@@ -396,6 +413,7 @@ static void save_layout() {
     if (FILE *f = fopen(layout_path().c_str(), "w")) {
         for (int i = 0; i < NB; ++i)
             fprintf(f, "%.6f %.6f\n", g_button_dx[i], g_button_dy[i]);
+        fprintf(f, "%.6f %.6f %.6f %.6f\n", g_stick_dx, g_stick_dy, g_rstick_dx, g_rstick_dy);
         fclose(f);
     }
 }
@@ -403,6 +421,7 @@ static void load_layout() {
     if (FILE *f = fopen(layout_path().c_str(), "r")) {
         for (int i = 0; i < NB; ++i)
             if (fscanf(f, "%f %f", &g_button_dx[i], &g_button_dy[i]) != 2) break;
+        (void)fscanf(f, "%f %f %f %f", &g_stick_dx, &g_stick_dy, &g_rstick_dx, &g_rstick_dy);
         fclose(f);
     }
 }
