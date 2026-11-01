@@ -31,6 +31,7 @@ static std::atomic<int> g_runtime_enabled{0};
 static std::atomic<int> g_multiplier{2};
 static std::atomic<int> g_flow_percent{70};
 static std::atomic<int> g_performance{1};
+static std::atomic<int> g_game_fps_limit{0};
 static char g_config_path[768];
 static int g_logged_frame;
 static thread_local int g_frame_multiplier = 0;
@@ -68,6 +69,7 @@ bool lsfg_load_config(const char *game_dir, LsfgConfig *out) {
         else if (!strcmp(key, "multiplier")) out->multiplier = atoi(val);
         else if (!strcmp(key, "flow_scale")) out->flow_scale = (float)atof(val);
         else if (!strcmp(key, "performance")) out->performance = atoi(val);
+        else if (!strcmp(key, "game_fps_limit")) g_game_fps_limit.store(atoi(val), std::memory_order_relaxed);
         else if (!strcmp(key, "dll_path")) snprintf(out->dll_path, sizeof out->dll_path, "%s", val);
         else if (!strcmp(key, "shader_cache")) snprintf(out->shader_cache, sizeof out->shader_cache, "%s", val);
         else if (!strcmp(key, "state_cache")) snprintf(out->state_cache, sizeof out->state_cache, "%s", val);
@@ -196,17 +198,20 @@ float lsfg_host_flow_scale(void) {
     return quality * modeScale[mode];
 }
 
-int lsfg_host_get_settings(int *multiplier, int *flow_percent, int *performance) {
+int lsfg_host_get_settings(int *multiplier, int *flow_percent, int *performance, int *game_fps_limit) {
     if (multiplier) *multiplier = g_multiplier.load(std::memory_order_relaxed);
     if (flow_percent) *flow_percent = g_flow_percent.load(std::memory_order_relaxed);
     if (performance) *performance = g_performance.load(std::memory_order_relaxed);
+    if (game_fps_limit) *game_fps_limit = g_game_fps_limit.load(std::memory_order_relaxed);
     return g_inited.load(std::memory_order_acquire) ? 1 : 0;
 }
 
-bool lsfg_host_update_settings(int multiplier, int flow_percent, int performance) {
+bool lsfg_host_update_settings(int multiplier, int flow_percent, int performance, int game_fps_limit) {
     if (!g_inited.load(std::memory_order_acquire)) return false;
     if (multiplier < 1 || multiplier > 4 || flow_percent < 40 || flow_percent > 100
-        || performance < 0 || performance > 2) return false;
+        || performance < 0 || performance > 2
+        || (game_fps_limit != 0 && game_fps_limit != 15 && game_fps_limit != 20
+            && game_fps_limit != 25 && game_fps_limit != 30 && game_fps_limit != 60)) return false;
 
     // The UI thread updates atomics only. Vulkan resources are rebuilt lazily
     // by the DXVK render thread after it observes a changed effective scale.
@@ -214,6 +219,7 @@ bool lsfg_host_update_settings(int multiplier, int flow_percent, int performance
     g_multiplier.store(multiplier, std::memory_order_release);
     g_flow_percent.store(flow_percent, std::memory_order_release);
     g_performance.store(performance, std::memory_order_release);
+    g_game_fps_limit.store(game_fps_limit, std::memory_order_release);
     g_cfg.multiplier = multiplier;
     g_cfg.flow_scale = (float)flow_percent / 100.0f;
     g_cfg.performance = performance;
@@ -223,8 +229,8 @@ bool lsfg_host_update_settings(int multiplier, int flow_percent, int performance
         snprintf(temporary, sizeof temporary, "%s.tmp", g_config_path);
         FILE *file = fopen(temporary, "w");
         if (file) {
-            fprintf(file, "enabled=%d\nmultiplier=%d\nflow_scale=%.2f\nperformance=%d\n",
-                    g_cfg.enabled, multiplier, (double)g_cfg.flow_scale, performance);
+            fprintf(file, "enabled=%d\nmultiplier=%d\nflow_scale=%.2f\nperformance=%d\ngame_fps_limit=%d\n",
+                    g_cfg.enabled, multiplier, (double)g_cfg.flow_scale, performance, game_fps_limit);
             if (g_cfg.dll_path[0]) fprintf(file, "dll_path=%s\n", g_cfg.dll_path);
             if (g_cfg.shader_cache[0]) fprintf(file, "shader_cache=%s\n", g_cfg.shader_cache);
             if (g_cfg.state_cache[0]) fprintf(file, "state_cache=%s\n", g_cfg.state_cache);
@@ -237,8 +243,8 @@ bool lsfg_host_update_settings(int multiplier, int flow_percent, int performance
             LOGW("could not open live settings file %s", temporary);
         }
     }
-    LOGI("live settings applied multiplier=%dx flow=%.2f performance=%d",
-         multiplier, (double)g_cfg.flow_scale, performance);
+    LOGI("live settings applied multiplier=%dx flow=%.2f performance=%d game_fps_limit=%d",
+         multiplier, (double)g_cfg.flow_scale, performance, game_fps_limit);
     return true;
 }
 
@@ -258,3 +264,5 @@ void lsfg_host_on_frame(void) {
     LOGI("on_frame: extract_count=%d spirv=%d (present hook is authoritative)",
          g_extract_count, lsfg_host_spirv_count());
 }
+
+extern "C" int lsfg_host_game_fps_limit(void) { return g_game_fps_limit.load(std::memory_order_acquire); }
