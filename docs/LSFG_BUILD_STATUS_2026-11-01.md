@@ -153,3 +153,23 @@ verified on device, and output pixels have not been read back or visually
 validated. Next work must focus on native compilation and runtime pipeline
 creation/failure details, followed by image-format/descriptor validation and
 a visual x2 motion test. No speculative shader variant substitutions were made.
+
+## Compute pipeline failure diagnostics — follow-up
+
+The DXVK compute pipeline creation path previously discarded the exact
+`VkResult` from `vkCreateComputePipelines`. As a result,
+`dispatchChecked()` could report only that compute state commit failed,
+without distinguishing a missing pipeline object from Vulkan pipeline
+creation failure.
+
+The follow-up change now logs:
+- the numeric `VkResult` returned by `vkCreateComputePipelines`;
+- the compute shader debug name;
+- the descriptor binding count in the generated pipeline layout.
+
+This is diagnostic instrumentation at the actual Vulkan pipeline creation
+failure point, not a dispatch counter. It does not itself fix a device-side
+pipeline failure or prove the generated image is correct. The next device log
+must include the first `DxvkComputePipeline: vkCreateComputePipelines failed`
+entry, if any. Native compilation is still required before asking for a new
+APK test.
