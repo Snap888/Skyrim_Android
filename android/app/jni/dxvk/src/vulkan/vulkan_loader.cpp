@@ -13,6 +13,7 @@ namespace dxvk::vk {
 
 #ifdef __ANDROID__
   static PFN_vkGetInstanceProcAddr loadInstanceProcAddr() {
+    setenv("SKYRIM_TURNIP_DRIVER_ACTIVE", "0", 1);
     const char* driverDir = std::getenv("SKYRIM_TURNIP_DRIVER_PATH");
     const char* driverName = std::getenv("SKYRIM_TURNIP_DRIVER_NAME");
     if (driverDir && driverName && *driverDir && *driverName) {
@@ -29,6 +30,7 @@ namespace dxvk::vk {
           if (proc) {
             __android_log_print(ANDROID_LOG_INFO, "SkyrimVulkan",
               "AdrenoTools activated custom Vulkan driver %s from %s", driverName, driverDir);
+            setenv("SKYRIM_TURNIP_DRIVER_ACTIVE", "1", 1);
             return proc;
           }
           __android_log_print(ANDROID_LOG_ERROR, "SkyrimVulkan",
