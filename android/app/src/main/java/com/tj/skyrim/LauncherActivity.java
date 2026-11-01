@@ -49,7 +49,10 @@ public class LauncherActivity extends Activity {
     private TextView folderText, folderStatus;
     private Button playButton;
     private Button pickDllButton;
-    private TextView dllText, lsfgQualityValue;\n    private Spinner gpuDriverSpinner;\n    private TurnipDriverManager gpuDrivers;\n    private List<TurnipDriverManager.Driver> installedGpuDrivers = new ArrayList<>();
+    private TextView dllText, lsfgQualityValue;
+    private Spinner gpuDriverSpinner;
+    private TurnipDriverManager gpuDrivers;
+    private List<TurnipDriverManager.Driver> installedGpuDrivers = new ArrayList<>();
     private SeekBar lsfgQuality;
     private boolean pendingPick, pendingPlay;  /* continue once the storage prompt is answered */
     private boolean askedAllFiles;
@@ -120,7 +123,8 @@ public class LauncherActivity extends Activity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
-        prefs = getSharedPreferences("launcher", MODE_PRIVATE);\n        gpuDrivers = new TurnipDriverManager(this);
+        prefs = getSharedPreferences("launcher", MODE_PRIVATE);
+        gpuDrivers = new TurnipDriverManager(this);
         buildUi();
         refreshFolder();
     }
@@ -615,7 +619,8 @@ public class LauncherActivity extends Activity {
         try {
             writePrefs(new File(folder), new File(iniDir, "SkyrimPrefs.ini"));
             writeDxvkHudConfig(new File(folder));
-            writeLsfgConfig(new File(folder));\n            writeGpuDriverConfig(new File(folder));
+            writeLsfgConfig(new File(folder));
+            writeGpuDriverConfig(new File(folder));
             // the native side builds the same mode list from this aspect (see modes())
             int[] av = ASPECT_V[sel("aspect")];
             try (Writer w = new OutputStreamWriter(new FileOutputStream(new File(save, "display.cfg")))) {
