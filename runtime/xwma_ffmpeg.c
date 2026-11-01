@@ -1,9 +1,9 @@
 /* xWMA decode via FFmpeg for Skyrim (tag 0x0161 WMAV2 / 0x0162 WMAPRO).
  *
- * Voices (~3-12KB): whole buffer OK.
- * Music (~200KB+): whole buffer often yields only 2048 samples — reject those.
- * Packet sizes from XAUDIO2_BUFFER_WMA are often < block_align; forcing
- * ctx->block_align breaks them (Input packet size too small).
+ * FFmpeg WMAV2 requires ctx->block_align at avcodec_open2 (else EINVAL).
+ * Voices (<48KB): whole buffer first.
+ * Music: packet table, whole buffer, then merged block_align chunks.
+ * Reject decode results that are far too short vs compressed size.
  */
 #ifdef LB_HAS_FFMPEG
 
@@ -92,7 +92,7 @@ static int drain(AVCodecContext *ctx, AVFrame *frame, int want_ch,
 }
 
 static AVCodecContext *open_ctx(const AVCodec *codec, int channels, int rate,
-                                int block_align, int avg_bps, int force_ba,
+                                int block_align, int avg_bps,
                                 const uint8_t *extradata, int extradata_size)
 {
     AVCodecContext *ctx = avcodec_alloc_context3(codec);
@@ -104,7 +104,8 @@ static AVCodecContext *open_ctx(const AVCodec *codec, int channels, int rate,
     ctx->channels = channels > 0 ? channels : 2;
     ctx->channel_layout = av_get_default_channel_layout(ctx->channels);
 #endif
-    if (force_ba && block_align > 0) ctx->block_align = block_align;
+    /* WMAV2 decoder requires block_align (avcodec_open2 EINVAL otherwise) */
+    if (block_align > 0) ctx->block_align = block_align;
     if (avg_bps > 0) ctx->bit_rate = (int64_t)avg_bps * 8;
     ctx->request_sample_fmt = AV_SAMPLE_FMT_FLTP;
 
@@ -193,7 +194,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
     int is_voice = (size < 48 * 1024);
 
     if (is_voice) {
-        AVCodecContext *ctx = open_ctx(codec, channels, rate, block_align, avg_bps, 0,
+        AVCodecContext *ctx = open_ctx(codec, channels, rate, block_align, avg_bps,
                                        extradata, extradata_size);
         if (ctx) {
             feed_block(ctx, data, (int)size, pkt, frame, channels, &pcm, &len, &cap);
@@ -209,7 +210,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
     }
 
     if (!len && cum_bytes && packet_count > 0 && packet_count < 100000) {
-        AVCodecContext *ctx = open_ctx(codec, channels, rate, block_align, avg_bps, 0,
+        AVCodecContext *ctx = open_ctx(codec, channels, rate, block_align, avg_bps,
                                        extradata, extradata_size);
         if (ctx) {
             int sent = 0, fails = 0;
@@ -239,7 +240,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
     }
 
     if (!len) {
-        AVCodecContext *ctx = open_ctx(codec, channels, rate, block_align, avg_bps, 0,
+        AVCodecContext *ctx = open_ctx(codec, channels, rate, block_align, avg_bps,
                                        extradata, extradata_size);
         if (ctx) {
             feed_block(ctx, data, (int)size, pkt, frame, channels, &pcm, &len, &cap);
@@ -259,7 +260,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
     }
 
     if (!len && block_align > 32) {
-        AVCodecContext *ctx = open_ctx(codec, channels, rate, block_align, avg_bps, 1,
+        AVCodecContext *ctx = open_ctx(codec, channels, rate, block_align, avg_bps,
                                        extradata, extradata_size);
         if (ctx) {
             uint32_t ba = (uint32_t)block_align;
