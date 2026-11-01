@@ -36,14 +36,14 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
     private val controls = listOf(
         Control("LT",.13f,.115f,.046f,.055f,0x10000,1), Control("LB",.13f,.225f,.044f,.052f,0x100,1),
         Control("RT",.87f,.115f,.046f,.055f,0x20000,1), Control("RB",.87f,.225f,.044f,.052f,0x200,1),
-        Control("Y",.70f,.61f,.030f,.052f,0x8000), Control("X",.65f,.72f,.030f,.052f,0x4000),
-        Control("B",.75f,.72f,.030f,.052f,0x2000), Control("A",.70f,.83f,.030f,.052f,0x1000),
+        Control("Y",.70f,.61f,.038f,.038f,0x8000), Control("X",.65f,.72f,.038f,.038f,0x4000),
+        Control("B",.75f,.72f,.038f,.038f,0x2000), Control("A",.70f,.83f,.038f,.038f,0x1000),
         Control("L3",.17f,.91f,.024f,.045f,0x40), Control("R3",.83f,.91f,.024f,.045f,0x80),
         Control("BACK",.45f,.95f,.038f,.045f,0x20,1), Control("START",.55f,.95f,.038f,.045f,0x10,1),
         Control("UP",.275f,.74f,.031f,.055f,1), Control("DOWN",.275f,.91f,.031f,.055f,2),
-        Control("LEFT",.235f,.825f,.031f,.055f,4), Control("RIGHT",.315f,.825f,.031f,.055f,8),
-        Control("LS",.13f,.67f,.064f,.115f,0,3), Control("RS",.87f,.67f,.064f,.115f,0,3),
-        Control("QUICK SAVE",.37f,.43f,.060f,.043f,0,5), Control("QUICK LOAD",.63f,.43f,.060f,.043f,0,5)
+        Control("LEFT",.235f,.825f,.055f,.031f,4), Control("RIGHT",.315f,.825f,.055f,.031f,8),
+        Control("LS",.13f,.67f,.078f,.078f,0,3), Control("RS",.87f,.67f,.078f,.078f,0,3),
+        Control("QUICK SAVE",.43f,.30f,.060f,.035f,0,5), Control("QUICK LOAD",.57f,.30f,.060f,.035f,0,5)
     )
     private val pointers = HashMap<Int, Control>()
     private val enabled = controls.associate { it.name to true }.toMutableMap()
