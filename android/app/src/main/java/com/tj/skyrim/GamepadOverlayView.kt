@@ -49,8 +49,8 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
     private val prefs = context.getSharedPreferences("gamepad_overlay", Context.MODE_PRIVATE)
     private val positions = controls.associate { control ->
         control.name to Pair(
-            prefs.getFloat("x_" + control.name, control.x),
-            prefs.getFloat("y_" + control.name, control.y)
+            prefs.getFloat(prefs.getString("active_profile", "Default") + "_x_" + control.name, prefs.getFloat("x_" + control.name, control.x)),
+            prefs.getFloat(prefs.getString("active_profile", "Default") + "_y_" + control.name, prefs.getFloat("y_" + control.name, control.y))
         )
     }.toMutableMap()
     private var editMode = false
@@ -215,7 +215,7 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
                         val name=dragging.remove(pid) ?: return@forEach
                         lastTouch.remove(pid)
                         val pos=positions[name] ?: return@forEach
-                        prefs.edit().putFloat("x_"+name,pos.first).putFloat("y_"+name,pos.second).apply()
+                        prefs.edit().putFloat(prefs.getString("active_profile", "Default")+"_x_"+name,pos.first).putFloat(prefs.getString("active_profile", "Default")+"_y_"+name,pos.second).apply()
                     }
                     invalidate()
                     return true
