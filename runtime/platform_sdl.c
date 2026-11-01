@@ -41,6 +41,33 @@ static KeyEv g_script[256];
 static int g_nscript;
 static Uint8 g_keys[SDL_NUM_SCANCODES];
 static int g_padonly;  /* LB_PADONLY=1: scripted keys drive only the virtual XInput pad */
+static SDL_atomic_t g_quick_request;
+static SDL_Scancode g_quick_active = SDL_SCANCODE_UNKNOWN;
+static int g_quick_release_frame = -1;
+
+/* JNI/UI requests are consumed on the game thread. Keep the key down across
+ * several frames so DirectInput polling can observe it; SDL_PushEvent alone
+ * does not update SDL_GetKeyboardState for synthetic events. */
+void platform_quick_action(int load) {
+    SDL_AtomicSet(&g_quick_request, load ? SDL_SCANCODE_F9 : SDL_SCANCODE_F5);
+}
+
+static void update_quick_action(void) {
+    int request = SDL_AtomicGet(&g_quick_request);
+    if (request && SDL_AtomicCAS(&g_quick_request, request, 0)) {
+        if (g_quick_active != SDL_SCANCODE_UNKNOWN)
+            key_event(g_quick_active, 0);
+        g_quick_active = (SDL_Scancode)request;
+        g_quick_release_frame = g_frames + 8;
+        key_event(g_quick_active, 1);
+        LOG("quick action: %s pressed for 8 frames", request == SDL_SCANCODE_F9 ? "load" : "save");
+    }
+    if (g_quick_active != SDL_SCANCODE_UNKNOWN && g_frames >= g_quick_release_frame) {
+        key_event(g_quick_active, 0);
+        g_quick_active = SDL_SCANCODE_UNKNOWN;
+        g_quick_release_frame = -1;
+    }
+}
 
 static void load_key_script(void) {
     const char *s = getenv("LB_KEYS");
@@ -201,10 +228,16 @@ int platform_shift_down(void) {
 const Uint8 *platform_keys(int *n) {
     int nk;
     const Uint8 *ks = SDL_GetKeyboardState(&nk);
-    if (!g_nscript || g_padonly) { if (n) *n = nk; return ks; }
-    memcpy(g_keys, ks, nk < SDL_NUM_SCANCODES ? nk : SDL_NUM_SCANCODES);
-    for (int i = 0; i < g_nscript; i++)
-        if (g_frames >= g_script[i].frame && g_frames < g_script[i].frame + g_script[i].len) g_keys[g_script[i].sc] = 1;
+    int scripted = g_nscript && !g_padonly;
+    int quick = g_quick_active != SDL_SCANCODE_UNKNOWN;
+    if (!scripted && !quick) { if (n) *n = nk; return ks; }
+    int count = nk < SDL_NUM_SCANCODES ? nk : SDL_NUM_SCANCODES;
+    memcpy(g_keys, ks, count);
+    if (scripted)
+        for (int i = 0; i < g_nscript; i++)
+            if (g_frames >= g_script[i].frame && g_frames < g_script[i].frame + g_script[i].len)
+                g_keys[g_script[i].sc] = 1;
+    if (quick && g_quick_active < SDL_NUM_SCANCODES) g_keys[g_quick_active] = 1;
     if (n) *n = SDL_NUM_SCANCODES;
     return g_keys;
 }
@@ -263,6 +296,7 @@ void platform_present_hook(void) {
         extern void touch_handle_event(const SDL_Event *e);
         touch_handle_event(&e);
     }
+    update_quick_action();
     script_events();
 #ifdef __ANDROID__
     /* closed with the phone's Back key or its own button: follow it */
