@@ -1,0 +1,4 @@
+See commit message: SubmitSourceBuffer must decode xWMA WITHOUT holding g_lock.
+Also PASS_FRAMES_MS 15 and SDL queue watermark 6x.
+
+Apply: replace SHIM(xs_SubmitSourceBuffer) body to decode ADPCM/xWMA before pthread_mutex_lock, then enqueue under lock. Sanitize play_begin/play_len for decoded buffers.
