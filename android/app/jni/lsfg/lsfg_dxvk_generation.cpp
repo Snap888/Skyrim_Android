@@ -14,6 +14,7 @@
 #include "lsfg_dxvk_shader.h"
 #include "lsfg_dxvk_shared.h"
 #include "lsfg_log.h"
+#include "lsfg_dxvk_gpu_profiler.h"
 
 namespace dxvk {
 
@@ -586,6 +587,8 @@ bool dispatchLsfgGeneration(
 
   // DXVK tracks image hazards and inserts the required compute barriers. Keep
   // gamma/delta interleaved at each level to preserve WinNative's paired order.
+  const LsfgGpuTimer gammaDeltaTimer = lsfgGpuTimerBegin(
+      context, device, "GammaDelta", frameIndex, width, height);
   for (uint32_t i = 0; i < MipLevels; i++) {
     if (i < FirstDeltaLevel) {
       for (uint32_t stage = 0; stage < 5; stage++) {
@@ -605,6 +608,10 @@ bool dispatchLsfgGeneration(
     }
   }
 
+  lsfgGpuTimerEnd(context, gammaDeltaTimer);
+
+  const LsfgGpuTimer generateTimer = lsfgGpuTimerBegin(
+      context, device, "Generate", frameIndex, width, height);
   bindBuffer(context, 0, g_generateConstants[slot]);
   context->bindResourceSampler(1, g_sampler);
   context->bindResourceSampler(2, g_edgeSampler);
@@ -621,6 +628,8 @@ bool dispatchLsfgGeneration(
              frameIndex);
     return false;
   }
+
+  lsfgGpuTimerEnd(context, generateTimer);
 
   // The final compute pass writes targetView as a storage image. The next
   // consumer is the fragment shader in DxvkSwapchainBlitter, which only
