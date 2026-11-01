@@ -13,6 +13,7 @@
 #define LOGE(...) lsfg_log("E", __VA_ARGS__)
 
 extern "C" void lsfg_register_vk_context(void*, void*, void*, unsigned);
+extern "C" void lsfg_step3g_set_game_fps_limit_hook(int (*hook)(void));
 extern "C" void lsfg_set_vk_context_hook(void (*)(void*, void*, void*, unsigned));
 extern "C" void lsfg_step3e_install(void);
 extern "C" void lsfg_step3e_set_queue(void *queue, unsigned family);
@@ -154,6 +155,7 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     lsfg_host_set_cache_dir(cfg->shader_cache);
 
     lsfg_set_vk_context_hook(lsfg_register_vk_context);
+    lsfg_step3g_set_game_fps_limit_hook(lsfg_host_game_fps_limit);
     LOGI("LSFG: Vk context hook installed (device+phys+queue on DxvkDevice create)");
     lsfg_step3e_install();
     lsfg_step3g_set_copy_hook(lsfg_step3g_copy_impl);
