@@ -188,6 +188,7 @@ namespace dxvk::hud {
     std::string m_deviceName;
     std::string m_driverVer;
     std::string m_vulkanVer;
+    std::string m_driverStatus;
 
   };
 
