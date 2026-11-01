@@ -38,6 +38,9 @@ const Button k_buttons[] = {
     {"RT", 0, 1, 0, -0.15f, 0.20f, 0.055f, 0xFFB0B0B0},
 };
 const int NB = sizeof k_buttons / sizeof k_buttons[0];
+float g_button_dx[NB], g_button_dy[NB];
+bool g_edit_mode;
+static void save_layout();
 const float STICK_X = 0.24f, STICK_Y = -0.26f, STICK_R = 0.17f; // from bottom-left
 // Keyboard button, top-left: shows or hides the phone's keyboard. It stays
 // on screen when the touch controls are switched off.
@@ -94,8 +97,14 @@ bool enabled() {
 
 // Centre of a button in normalised screen coordinates (0..1 both axes).
 void button_pos(const Button &b, float *x, float *y) {
-    *x = b.ax + b.dx / g_aspect;
-    *y = b.ay + b.dy;
+    float dx = b.dx, dy = b.dy;
+    for (int i = 0; i < NB; ++i) if (&b == &k_buttons[i]) {
+        dx += g_button_dx[i];
+        dy += g_button_dy[i];
+        break;
+    }
+    *x = b.ax + dx / g_aspect;
+    *y = b.ay + dy;
 }
 
 void stick_pos(float *x, float *y) {
@@ -216,6 +225,21 @@ extern "C" void touch_handle_event(const SDL_Event *e) {
         f->right_stick = f->button < 0 && x >= 0.5f;
     }
     if (!f) return;
+    if (g_edit_mode && on && f->button != KBD) {
+        if (down) {
+            f->button = hit_button(x, y);
+            f->stick = false;
+            f->right_stick = false;
+        }
+        if (f->button >= 0 && f->button < NB) {
+            g_button_dx[f->button] += (x - f->x) * g_aspect;
+            g_button_dy[f->button] += y - f->y;
+        }
+        f->x = x;
+        f->y = y;
+        if (up) { f->used = false; save_layout(); }
+        return;
+    }
     f->x = x;
     f->y = y;
     if (up) f->used = false;
@@ -358,8 +382,29 @@ void touch_draw(IDirect3DDevice9 *d) {
 }
 
 extern "C" int touch_available(void) { return available(); }
+extern "C" void touch_set_edit_mode(int on) {
+    g_edit_mode = on != 0;
+    for (auto &f : g_fingers) f.used = false;
+    if (!g_edit_mode) save_layout();
+    update();
+}
 
 static std::string cfg_path() { return std::string(g_save_dir) + "/touch.cfg"; }
+static std::string layout_path() { return std::string(g_save_dir) + "/touch_layout.cfg"; }
+static void save_layout() {
+    if (FILE *f = fopen(layout_path().c_str(), "w")) {
+        for (int i = 0; i < NB; ++i)
+            fprintf(f, "%.6f %.6f\n", g_button_dx[i], g_button_dy[i]);
+        fclose(f);
+    }
+}
+static void load_layout() {
+    if (FILE *f = fopen(layout_path().c_str(), "r")) {
+        for (int i = 0; i < NB; ++i)
+            if (fscanf(f, "%f %f", &g_button_dx[i], &g_button_dy[i]) != 2) break;
+        fclose(f);
+    }
+}
 
 // Port settings kept beside the saves: "<touch controls> <nintendo layout> <skip cutscenes>".
 static bool g_nintendo, g_skip_cutscenes;
@@ -753,6 +798,7 @@ extern "C" void touch_setup_guest(void) {
     return;
 #endif
 #ifdef GAME_SKYRIM
+    load_layout();
     /* No Skyrim menu hooks: the Android launcher writes touch.cfg ("<touch> <nintendo>"). */
     if (FILE *f = fopen(cfg_path().c_str(), "r")) {
         int t = 1, n = 0;
