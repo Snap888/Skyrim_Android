@@ -425,6 +425,7 @@ extern "C" void touch_set_edit_mode(int on) {
     update();
 }
 
+namespace {
 static std::string cfg_path() { return std::string(g_save_dir) + "/touch.cfg"; }
 static std::string layout_path() { return std::string(g_save_dir) + "/touch_layout.cfg"; }
 static void save_layout() {
@@ -443,6 +444,7 @@ static void load_layout() {
         fclose(f);
     }
 }
+} // namespace
 
 // Port settings kept beside the saves: "<touch controls> <nintendo layout> <skip cutscenes>".
 static bool g_nintendo, g_skip_cutscenes;
