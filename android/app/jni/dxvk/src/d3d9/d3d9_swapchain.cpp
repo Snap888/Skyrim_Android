@@ -42,6 +42,8 @@ namespace dxvk {
       double totalMs = 0.0;
       double minMs = 1.0e30;
       double maxMs = 0.0;
+      uint64_t requestedTotal = 0;
+      uint64_t generatedTotal = 0;
       std::string run;
       bool initialized = false;
 
@@ -83,17 +85,22 @@ namespace dxvk {
         totalMs += ms;
         minMs = std::min(minMs, ms);
         maxMs = std::max(maxMs, ms);
+        requestedTotal += requested;
+        generatedTotal += generated;
         if ((frames % 120) == 0) {
           stream << frames << ','
                  << (totalMs / 120.0) << ','
                  << minMs << ',' << maxMs << ','
-                 << requested << ',' << generated << ','
+                 << (double(requestedTotal) / 120.0) << ','
+                 << (double(generatedTotal) / 120.0) << ','
                  << width << ',' << height << ','
                  << (vsync ? 1 : 0) << '\n';
           stream.flush();
           totalMs = 0.0;
           minMs = 1.0e30;
           maxMs = 0.0;
+          requestedTotal = 0;
+          generatedTotal = 0;
         }
       }
     };
