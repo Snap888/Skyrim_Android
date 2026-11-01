@@ -4,6 +4,11 @@
 
 #include "d3d9_hud.h"
 
+#include <chrono>
+#include <cstdlib>
+#include <fstream>
+#include <mutex>
+
 /* LSFG callback registration keeps DXVK independent of lsfg_host at link time. */
 using LsfgCopyHook = void (*)(void*, void*, void*, uint32_t, uint32_t, uint32_t);
 static LsfgCopyHook g_lsfgCopyHook = nullptr;
@@ -28,6 +33,76 @@ extern "C" void lsfg_step3g_set_generation_hooks(
 }
 
 namespace dxvk {
+
+  namespace {
+    struct DxvkPerfSample {
+      std::mutex mutex;
+      std::ofstream stream;
+      uint64_t frames = 0;
+      double totalMs = 0.0;
+      double minMs = 1.0e30;
+      double maxMs = 0.0;
+      std::string run;
+      bool initialized = false;
+
+      void init() {
+        if (initialized)
+          return;
+        initialized = true;
+
+        const char* path = std::getenv("DXVK_PERF_LOG");
+        std::string filePath = path ? path : "";
+        if (filePath.empty()) {
+          const char* dir = std::getenv("DXVK_LOG_PATH");
+          if (dir && *dir && std::string(dir) != "none")
+            filePath = std::string(dir) + "/dxvk_perf.log";
+        }
+
+        const char* runName = std::getenv("DXVK_PERF_RUN");
+        run = runName && *runName ? runName : "unspecified";
+        if (!filePath.empty()) {
+          stream.open(filePath.c_str(), std::ios::out | std::ios::app);
+          if (stream) {
+            stream << "=== DXVK_PERF_START run=" << run
+                   << " lsfg_mode_is_runtime_observed=true ===\\n";
+            stream << "columns: frame,avg_cpu_present_ms,min_cpu_present_ms,max_cpu_present_ms,"
+                      "lsfg_requested,lsfg_generated,width,height,vsync\\n";
+            stream.flush();
+          }
+        }
+      }
+
+      void record(double ms, uint32_t requested, uint32_t generated,
+                  uint32_t width, uint32_t height, bool vsync) {
+        std::lock_guard<std::mutex> lock(mutex);
+        init();
+        if (!stream)
+          return;
+
+        ++frames;
+        totalMs += ms;
+        minMs = std::min(minMs, ms);
+        maxMs = std::max(maxMs, ms);
+        if ((frames % 120) == 0) {
+          stream << frames << ','
+                 << (totalMs / 120.0) << ','
+                 << minMs << ',' << maxMs << ','
+                 << requested << ',' << generated << ','
+                 << width << ',' << height << ','
+                 << (vsync ? 1 : 0) << '\\n';
+          stream.flush();
+          totalMs = 0.0;
+          minMs = 1.0e30;
+          maxMs = 0.0;
+        }
+      }
+    };
+
+    DxvkPerfSample& dxvkPerfSample() {
+      static DxvkPerfSample sample;
+      return sample;
+    }
+  }
 
 #ifndef DXVK_NATIVE
   struct D3D9WindowData {
@@ -825,6 +900,9 @@ namespace dxvk {
 
 
   void D3D9SwapChainEx::PresentImage(UINT SyncInterval) {
+    const auto perfStart = std::chrono::steady_clock::now();
+    uint32_t perfGenerated = 0;
+    uint32_t perfRequested = 0;
     m_parent->Flush();
     hud::addLsfgGameFrame();
 
@@ -909,7 +987,10 @@ namespace dxvk {
 
     /* LSFG: append generated presentations after the source frame. */
     const uint32_t lsfgGenerations = g_lsfgGenerationCountHook ? g_lsfgGenerationCountHook() : 0;
-    if (lsfgGenerations && g_lsfgCanGenerateHook && g_lsfgCanGenerateHook() && g_lsfgGenerateHook) {
+    const bool lsfgCanGenerate = lsfgGenerations && g_lsfgCanGenerateHook
+                              && g_lsfgCanGenerateHook() && g_lsfgGenerateHook;
+    perfRequested = lsfgCanGenerate ? lsfgGenerations : 0;
+    if (lsfgCanGenerate) {
       for (uint32_t generation = 0; generation < lsfgGenerations; generation++) {
         SynchronizePresent();
 
@@ -966,8 +1047,10 @@ namespace dxvk {
           m_hud->render(m_context, generatedInfo.format, generatedInfo.imageExtent);
 
         SubmitPresent(generatedSync, generation + 1);
-        if (!generationFailed)
+        if (!generationFailed) {
           hud::addLsfgGeneratedFrame();
+          ++perfGenerated;
+        }
         if (generationFailed)
           break;
       }
@@ -981,6 +1064,13 @@ namespace dxvk {
       m_backBuffers[i]->Swap(m_backBuffers[i - 1].ptr());
 
     m_parent->m_flags.set(D3D9DeviceFlag::DirtyFramebuffer);
+
+    const auto perfEnd = std::chrono::steady_clock::now();
+    const double perfMs = std::chrono::duration<double, std::milli>(
+      perfEnd - perfStart).count();
+    const auto perfInfo = m_presenter->info();
+    dxvkPerfSample().record(perfMs, perfRequested, perfGenerated,
+      perfInfo.imageExtent.width, perfInfo.imageExtent.height, m_vsync);
   }
 
 
