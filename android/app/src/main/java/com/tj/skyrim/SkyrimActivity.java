@@ -65,7 +65,7 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
 
     // ---- In-game LSFG controls ------------------------------------------------
     private static native int[] nativeGetLsfgSettings();
-    private static native boolean nativeSetLsfgSettings(int multiplier, int flowPercent, int performance);
+    private static native boolean nativeSetLsfgSettings(int multiplier, int flowPercent, int performance, int gameFpsLimit);
 
     private int dp(float value) {
         return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
@@ -488,7 +488,7 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
 
     private void showLsfgSettings() {
         int[] current = nativeGetLsfgSettings();
-        if (current == null || current.length < 4 || current[0] == 0) {
+        if (current == null || current.length < 5 || current[0] == 0) {
             new AlertDialog.Builder(this)
                     .setTitle("LSFG")
                     .setMessage("LSFG backend is not active. Check port/lsfg.conf and Lossless.dll, then restart the game.")
@@ -543,6 +543,24 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
         mode.setSelection(Math.max(0, Math.min(2, current[3])));
         panel.addView(mode);
 
+        TextView experimentalLabel = new TextView(this);
+        experimentalLabel.setText("EXPERIMENTAL");
+        experimentalLabel.setTextSize(12);
+        experimentalLabel.setTypeface(null, android.graphics.Typeface.BOLD);
+        experimentalLabel.setPadding(0, dp(20), 0, dp(6));
+        panel.addView(experimentalLabel);
+        TextView gameFpsLabel = new TextView(this);
+        gameFpsLabel.setText("Game FPS limit (generated frames are not limited)");
+        panel.addView(gameFpsLabel);
+        Spinner gameFps = new Spinner(this);
+        String[] fpsOptions = { "Off", "15 FPS", "20 FPS", "25 FPS", "30 FPS", "60 FPS" };
+        gameFps.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, fpsOptions));
+        int[] fpsValues = { 0, 15, 20, 25, 30, 60 };
+        int fpsSelection = 0;
+        for (int i = 0; i < fpsValues.length; i++) if (fpsValues[i] == current[4]) fpsSelection = i;
+        gameFps.setSelection(fpsSelection);
+        panel.addView(gameFps);
+
         new AlertDialog.Builder(this)
                 .setTitle("LSFG dynamic settings")
                 .setView(panel)
@@ -552,7 +570,7 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
                     int mult = selectedFrameMode == 0 ? 1 : selectedFrameMode + 1;
                     int quality = flow.getProgress() + 40;
                     int perf = mode.getSelectedItemPosition();
-                    if (!nativeSetLsfgSettings(mult, quality, perf)) {
+                    if (!nativeSetLsfgSettings(mult, quality, perf, fpsValues[gameFps.getSelectedItemPosition()])) {
                         android.widget.Toast.makeText(this, "Could not apply LSFG settings",
                                 android.widget.Toast.LENGTH_SHORT).show();
                     } else {
