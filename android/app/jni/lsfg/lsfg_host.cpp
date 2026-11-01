@@ -157,7 +157,7 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     LOGI("LSFG: DXVK frame-copy and generated-frame callbacks registered");
 
     LOGI("STEP3: present hook + step3e image hook installed");
-    g_runtime_enabled.store(1, std::memory_order_release);
+    g_runtime_enabled.store(cfg->multiplier > 1 ? 1 : 0, std::memory_order_release);
     g_inited = 1;
     return true;
 }
