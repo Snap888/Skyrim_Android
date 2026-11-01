@@ -172,12 +172,8 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
             dragging.values.toSet().forEach { name ->
                 controls.firstOrNull { it.name == name }?.let { canvas.drawRect(bounds(it), guide) }
             }
-            canvas.drawText("DRAG CONTROLS - OPEN MENU TO FINISH", width / 2f, 28f * density, smallLabel.apply { color = 0xffffd54f.toInt() })
+            canvas.drawText("DRAG CONTROLS - REOPEN EDITOR TO FINISH", width / 2f, 28f * density, smallLabel.apply { color = 0xffffd54f.toInt() })
         }
-        // Touch indicator for the two clickable center menu keys.
-        val cy=height*.95f; canvas.drawRoundRect(RectF(width*.405f,cy-18*density,width*.485f,cy+18*density),18*density,18*density,fill)
-        canvas.drawRoundRect(RectF(width*.515f,cy-18*density,width*.595f,cy+18*density),18*density,18*density,fill)
-        canvas.drawText("▣",width*.445f,cy+7*density,label); canvas.drawText("☰",width*.555f,cy+7*density,label)
     }
     override fun onTouchEvent(e:MotionEvent):Boolean {
         val index=e.actionIndex; val id=e.getPointerId(index)
