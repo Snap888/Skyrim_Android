@@ -27,6 +27,7 @@ extern "C" void lsfg_step3g_set_generation_hooks(
 
 static LsfgConfig g_cfg;
 static std::atomic<int> g_inited{0};
+static std::atomic<int> g_runtime_enabled{0};
 static std::atomic<int> g_multiplier{2};
 static std::atomic<int> g_flow_percent{70};
 static std::atomic<int> g_performance{1};
@@ -91,6 +92,7 @@ bool lsfg_load_config(const char *game_dir, LsfgConfig *out) {
 
 bool lsfg_host_init(const LsfgConfig *cfg) {
     g_inited = 0;
+    g_runtime_enabled.store(0, std::memory_order_release);
     g_logged_frame = 0;
     g_extract_count = 0;
     if (!cfg) return false;
@@ -155,12 +157,14 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     LOGI("LSFG: DXVK frame-copy and generated-frame callbacks registered");
 
     LOGI("STEP3: present hook + step3e image hook installed");
+    g_runtime_enabled.store(1, std::memory_order_release);
     g_inited = 1;
     return true;
 }
 
 void lsfg_host_shutdown(void) {
     if (g_inited.load(std::memory_order_acquire)) LOGI("LSFG shutdown");
+    g_runtime_enabled.store(0, std::memory_order_release);
     g_inited.store(0, std::memory_order_release);
     lsfg_log_close();
 }
@@ -201,14 +205,16 @@ int lsfg_host_get_settings(int *multiplier, int *flow_percent, int *performance)
 
 bool lsfg_host_update_settings(int multiplier, int flow_percent, int performance) {
     if (!g_inited.load(std::memory_order_acquire)) return false;
-    if (multiplier < 2 || multiplier > 4 || flow_percent < 40 || flow_percent > 100
+    if (multiplier < 1 || multiplier > 4 || flow_percent < 40 || flow_percent > 100
         || performance < 0 || performance > 2) return false;
 
     // The UI thread updates atomics only. Vulkan resources are rebuilt lazily
     // by the DXVK render thread after it observes a changed effective scale.
+    g_runtime_enabled.store(multiplier > 1 ? 1 : 0, std::memory_order_release);
     g_multiplier.store(multiplier, std::memory_order_release);
     g_flow_percent.store(flow_percent, std::memory_order_release);
     g_performance.store(performance, std::memory_order_release);
+    g_cfg.enabled = multiplier > 1 ? 1 : 0;
     g_cfg.multiplier = multiplier;
     g_cfg.flow_scale = (float)flow_percent / 100.0f;
     g_cfg.performance = performance;
@@ -238,7 +244,8 @@ bool lsfg_host_update_settings(int multiplier, int flow_percent, int performance
 }
 
 bool lsfg_host_active(void) {
-    return g_inited.load(std::memory_order_acquire) != 0;
+    return g_inited.load(std::memory_order_acquire) != 0
+        && g_runtime_enabled.load(std::memory_order_acquire) != 0;
 }
 
 int lsfg_host_extract_count(void) {
