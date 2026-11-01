@@ -128,10 +128,23 @@ static int feed_block(AVCodecContext *ctx, const uint8_t *p, int psz,
     pkt->data = padded;
     pkt->size = psz;
     int err = avcodec_send_packet(ctx, pkt);
+    if (err == AVERROR(EAGAIN)) {
+        /* The decoder still has output from the previous packet.  Drain it
+         * and retry this same packet; treating EAGAIN as success here silently
+         * discarded encoded WMA packets and shortened voice playback. */
+        int dr = drain(ctx, frame, channels, pcm, len, cap);
+        if (dr < 0) {
+            av_free(padded);
+            pkt->data = NULL;
+            pkt->size = 0;
+            return dr;
+        }
+        err = avcodec_send_packet(ctx, pkt);
+    }
     av_free(padded);
     pkt->data = NULL;
     pkt->size = 0;
-    if (err < 0 && err != AVERROR(EAGAIN)) return err;
+    if (err < 0) return err;
     return drain(ctx, frame, channels, pcm, len, cap);
 }
 
