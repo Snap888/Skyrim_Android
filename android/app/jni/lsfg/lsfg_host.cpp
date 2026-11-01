@@ -43,6 +43,7 @@ bool lsfg_load_config(const char *game_dir, LsfgConfig *out) {
     out->multiplier = 2;
     out->flow_scale = 0.70f;
     out->performance = 1;
+    out->game_fps_limit = 0;
     if (!game_dir || !*game_dir) return false;
 
     lsfg_log_open(game_dir);
@@ -69,7 +70,7 @@ bool lsfg_load_config(const char *game_dir, LsfgConfig *out) {
         else if (!strcmp(key, "multiplier")) out->multiplier = atoi(val);
         else if (!strcmp(key, "flow_scale")) out->flow_scale = (float)atof(val);
         else if (!strcmp(key, "performance")) out->performance = atoi(val);
-        else if (!strcmp(key, "game_fps_limit")) g_game_fps_limit.store(atoi(val), std::memory_order_relaxed);
+        else if (!strcmp(key, "game_fps_limit")) out->game_fps_limit = atoi(val);
         else if (!strcmp(key, "dll_path")) snprintf(out->dll_path, sizeof out->dll_path, "%s", val);
         else if (!strcmp(key, "shader_cache")) snprintf(out->shader_cache, sizeof out->shader_cache, "%s", val);
         else if (!strcmp(key, "state_cache")) snprintf(out->state_cache, sizeof out->state_cache, "%s", val);
@@ -80,6 +81,9 @@ bool lsfg_load_config(const char *game_dir, LsfgConfig *out) {
     if (out->flow_scale < 0.1f) out->flow_scale = 0.1f;
     if (out->flow_scale > 1.0f) out->flow_scale = 1.0f;
     if (out->performance < 0 || out->performance > 2) out->performance = 1;
+    if (out->game_fps_limit != 15 && out->game_fps_limit != 20
+     && out->game_fps_limit != 25 && out->game_fps_limit != 30
+     && out->game_fps_limit != 60) out->game_fps_limit = 0;
     if (!out->shader_cache[0] && game_dir[0])
         snprintf(out->shader_cache, sizeof out->shader_cache, "%s/port/lsfg_spirv", game_dir);
     LOGI("config enabled=%d mult=%d flow=%.2f perf=%d",
@@ -102,6 +106,7 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     g_multiplier.store(cfg->multiplier, std::memory_order_relaxed);
     g_flow_percent.store((int)(cfg->flow_scale * 100.0f + 0.5f), std::memory_order_relaxed);
     g_performance.store(cfg->performance, std::memory_order_relaxed);
+    g_game_fps_limit.store(cfg->game_fps_limit, std::memory_order_relaxed);
 
     LOGI("=== LSFG host init ===");
     LOGI("STATUS: step1 extract + step2 SPIR-V + step3 present hook");
