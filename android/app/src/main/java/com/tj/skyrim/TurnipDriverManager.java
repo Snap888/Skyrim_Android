@@ -59,7 +59,7 @@ final class TurnipDriverManager {
             byte[] buffer = new byte[65536];
             while ((entry = zip.getNextEntry()) != null) {
                 if (++count > MAX_ENTRIES) throw new java.io.IOException("ZIP contains too many entries");
-                String name = entry.getName().replace('\\\\', '/');
+                String name = entry.getName().replace('\\', '/');
                 if (name.startsWith("/") || name.contains("../") || name.equals("..")
                         || name.startsWith("../") || name.contains("/..")) {
                     throw new java.io.IOException("unsafe ZIP entry path: " + name);
