@@ -82,7 +82,10 @@ public class SkyrimActivity extends SDLActivity {
         gamepadOverlay = new GamepadOverlayView(this, (buttons, lx, ly, rx, ry, lt, rt) -> {
                     nativeSetVirtualPad(buttons, lx, ly, rx, ry, lt, rt);
                     return kotlin.Unit.INSTANCE;
-                }, action -> nativeQuickAction("QUICK LOAD".equals(action)));
+                }, action -> {
+                    nativeQuickAction("QUICK LOAD".equals(action));
+                    return kotlin.Unit.INSTANCE;
+                });
         gamepadOverlay.setContentDescription("Virtual Xbox gamepad controls");
         gamepadOverlay.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null);
         android.widget.RelativeLayout.LayoutParams p = new android.widget.RelativeLayout.LayoutParams(
