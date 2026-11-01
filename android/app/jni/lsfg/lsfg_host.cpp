@@ -104,7 +104,7 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     LOGI("=== LSFG host init ===");
     LOGI("STATUS: step1 extract + step2 SPIR-V + step3 present hook");
 
-    if (!cfg->enabled || cfg->multiplier <= 1) {
+    if (!cfg->enabled) {
         LOGI("LSFG disabled in config (enabled=%d mult=%d)", cfg->enabled, cfg->multiplier);
         return false;
     }
@@ -214,7 +214,6 @@ bool lsfg_host_update_settings(int multiplier, int flow_percent, int performance
     g_multiplier.store(multiplier, std::memory_order_release);
     g_flow_percent.store(flow_percent, std::memory_order_release);
     g_performance.store(performance, std::memory_order_release);
-    g_cfg.enabled = multiplier > 1 ? 1 : 0;
     g_cfg.multiplier = multiplier;
     g_cfg.flow_scale = (float)flow_percent / 100.0f;
     g_cfg.performance = performance;
