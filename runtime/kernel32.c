@@ -765,9 +765,15 @@ int rt_host_path(const char *win, char *out, size_t outsz) {
     tmp[n] = 0;
     const char *rel = tmp;
     const char *root = NULL;
-    if (!strncasecmp(tmp, k_win_game_prefix, strlen(k_win_game_prefix))) {
+    size_t game_prefix_len = strlen(k_win_game_prefix);
+    /* GAME_WIN_PREFIX includes a trailing separator. Accept both C:\Skyrim
+       and paths below it, but never a sibling such as C:\SkyrimSE. */
+    if (game_prefix_len && k_win_game_prefix[game_prefix_len - 1] == '\\')
+        game_prefix_len--;
+    if (!strncasecmp(tmp, k_win_game_prefix, game_prefix_len) &&
+        (tmp[game_prefix_len] == 0 || tmp[game_prefix_len] == '\\')) {
         root = g_game_dir;
-        rel = tmp + strlen(k_win_game_prefix);
+        rel = tmp[game_prefix_len] == '\\' ? tmp + game_prefix_len + 1 : "";
     } else if (!strncasecmp(tmp, k_win_user_prefix, strlen(k_win_user_prefix))) {
         root = g_save_dir;
         rel = tmp + strlen(k_win_user_prefix);
@@ -775,11 +781,22 @@ int rt_host_path(const char *win, char *out, size_t outsz) {
         root = g_save_dir; /* unknown absolute path: sandbox it */
         rel = tmp + 1;
     }
-    if (root) snprintf(out, outsz, "%s/%s", root, rel);
-    else snprintf(out, outsz, "%s", rel);
+    if (root) {
+        if (*rel) snprintf(out, outsz, "%s/%s", root, rel);
+        else snprintf(out, outsz, "%s", root);
+    } else snprintf(out, outsz, "%s", rel);
     for (char *q = out; *q; q++) if (*q == '\\') *q = '/';
-    /* collapse "//" and "./" */
-    return resolve_ci(out);
+    /* Android storage is case-sensitive; resolve existing components using
+       their actual on-disk spelling while preserving the Windows path. */
+    int found = resolve_ci(out);
+    if (strcasestr(tmp, "\\sound\\voice\\")) {
+        static unsigned voice_map_logs;
+        unsigned seq = __atomic_fetch_add(&voice_map_logs, 1, __ATOMIC_RELAXED);
+        if (seq < 32)
+            LOG("VOICE PATH MAP #%u: win=%s game_root=%s host=%s exists=%d",
+                seq + 1, win, g_game_dir, out, found);
+    }
+    return found;
 }
 
 static void mkdirs_for(const char *path) {
