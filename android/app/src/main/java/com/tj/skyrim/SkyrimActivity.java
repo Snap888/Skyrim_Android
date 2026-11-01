@@ -125,7 +125,7 @@ public class SkyrimActivity extends SDLActivity {
         panel.setPadding(dp(20), dp(8), dp(20), dp(4));
 
         TextView status = new TextView(this);
-        status.setText("Changes apply during gameplay and are saved for the next launch. Set LSFG to OFF to bypass frame generation completely.");
+        status.setText("Changes apply during gameplay and are saved for the next launch. x-0 disables frame generation; x-2/x-3/x-4 enable it.");
         status.setTextSize(13);
         panel.addView(status);
 
@@ -135,29 +135,9 @@ public class SkyrimActivity extends SDLActivity {
         panel.addView(multiplierLabel);
         Spinner multiplier = new Spinner(this);
         multiplier.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
-                new String[] { "2x", "3x", "4x" }));
-        multiplier.setSelection(Math.max(0, Math.min(2, current[1] - 2)));
+                new String[] { "x-0 (Off)", "x-2", "x-3", "x-4" }));
+        multiplier.setSelection(current[1] <= 1 ? 0 : Math.max(1, Math.min(3, current[1] - 1)));
         panel.addView(multiplier);
-
-        TextView enableLabel = new TextView(this);
-        enableLabel.setPadding(0, dp(16), 0, dp(2));
-        panel.addView(enableLabel);
-        SeekBar enableLsfg = new SeekBar(this);
-        enableLsfg.setMax(1);
-        enableLsfg.setProgress(current[1] > 1 ? 1 : 0);
-        panel.addView(enableLsfg);
-        Runnable updateEnableLabel = () -> enableLabel.setText(
-                "LSFG: " + (enableLsfg.getProgress() == 0 ? "OFF (fully disabled)" : "ON"));
-        updateEnableLabel.run();
-        enableLsfg.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar bar, int value, boolean fromUser) {
-                updateEnableLabel.run();
-                multiplier.setEnabled(value != 0);
-            }
-            @Override public void onStartTrackingTouch(SeekBar bar) {}
-            @Override public void onStopTrackingTouch(SeekBar bar) {}
-        });
-        multiplier.setEnabled(enableLsfg.getProgress() != 0);
 
         TextView flowLabel = new TextView(this);
         flowLabel.setPadding(0, dp(16), 0, 0);
@@ -191,8 +171,8 @@ public class SkyrimActivity extends SDLActivity {
                 .setView(panel)
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Apply", (dialog, which) -> {
-                    int mult = enableLsfg.getProgress() == 0
-                            ? 1 : multiplier.getSelectedItemPosition() + 2;
+                    int selectedFrameMode = multiplier.getSelectedItemPosition();
+                    int mult = selectedFrameMode == 0 ? 1 : selectedFrameMode + 1;
                     int quality = flow.getProgress() + 40;
                     int perf = mode.getSelectedItemPosition();
                     if (!nativeSetLsfgSettings(mult, quality, perf)) {
