@@ -15,6 +15,7 @@ typedef struct LsfgConfig {
     int multiplier;
     float flow_scale;
     int performance;
+    int game_fps_limit;
     char dll_path[512];
     char shader_cache[512];
     char state_cache[512];
