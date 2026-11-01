@@ -248,6 +248,7 @@ public class LauncherActivity extends Activity {
         check(root, "hudGame", "Game FPS", true);
         check(root, "hudGenerated", "FG submit FPS", true);
         check(root, "hudOutput", "Output submit FPS", true);
+        check(root, "hudDriverInfo", "Show Vulkan driver information", false);
 
         text(root, "Lossless Scaling Frame Generation", 20, true);
         check(root, "lsfgEnabled", "Enable LSFG frame generation", false);
@@ -664,7 +665,8 @@ public class LauncherActivity extends Activity {
                     + ",vertical=" + vertical[Math.min(sel("hudVertical"), 1)]
                     + ",game=" + (checks.get("hudGame").isChecked() ? "1" : "0")
                     + ",fg=" + (checks.get("hudGenerated").isChecked() ? "1" : "0")
-                    + ",output=" + (checks.get("hudOutput").isChecked() ? "1" : "0");
+                    + ",output=" + (checks.get("hudOutput").isChecked() ? "1" : "0")
+                    + (checks.get("hudDriverInfo").isChecked() ? ",devinfo" : "");
             lines.add("dxvk.hud = " + hud);
         } else {
             lines.add("dxvk.hud = disabled");
