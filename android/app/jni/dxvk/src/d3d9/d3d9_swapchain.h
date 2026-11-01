@@ -14,6 +14,7 @@
 #include "../util/sync/sync_signal.h"
 
 #include <vector>
+#include <chrono>
 
 namespace dxvk {
 
@@ -125,6 +126,7 @@ namespace dxvk {
     wsi::DxvkWindowState      m_windowState;
 
     double                    m_displayRefreshRate = 0.0;
+    std::chrono::steady_clock::time_point m_gameFpsDeadline{};
 
     void PresentImage(UINT PresentInterval);
 
