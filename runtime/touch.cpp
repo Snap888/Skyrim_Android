@@ -914,10 +914,15 @@ extern "C" void touch_setup_guest(void) {
     load_layout();
     /* No Skyrim menu hooks: the Android launcher writes touch.cfg ("<touch> <nintendo>"). */
     if (FILE *f = fopen(cfg_path().c_str(), "r")) {
-        int t = 1, n = 0;
+        int t = 0, n = 0;
         if (fscanf(f, "%d %d", &t, &n) >= 1) { g_touch_on = t != 0; g_nintendo = n != 0; }
         fclose(f);
     }
+#ifdef __ANDROID__
+    // Android uses GamepadOverlayView. Do not resurrect the legacy D3D9 pad
+    // from an old touch.cfg written by previous builds.
+    g_touch_on = false;
+#endif
     input_set_nintendo(g_nintendo);
     return;
 #endif
