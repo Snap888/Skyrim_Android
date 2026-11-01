@@ -49,7 +49,7 @@ public class LauncherActivity extends Activity {
     private TextView folderText, folderStatus;
     private Button playButton;
     private Button pickDllButton;
-    private TextView dllText, lsfgQualityValue;\n    private Spinner gpuDriverSpinner;\n    private final TurnipDriverManager gpuDrivers = new TurnipDriverManager(this);\n    private List<TurnipDriverManager.Driver> installedGpuDrivers = new ArrayList<>();
+    private TextView dllText, lsfgQualityValue;\n    private Spinner gpuDriverSpinner;\n    private TurnipDriverManager gpuDrivers;\n    private List<TurnipDriverManager.Driver> installedGpuDrivers = new ArrayList<>();
     private SeekBar lsfgQuality;
     private boolean pendingPick, pendingPlay;  /* continue once the storage prompt is answered */
     private boolean askedAllFiles;
@@ -120,7 +120,7 @@ public class LauncherActivity extends Activity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
-        prefs = getSharedPreferences("launcher", MODE_PRIVATE);
+        prefs = getSharedPreferences("launcher", MODE_PRIVATE);\n        gpuDrivers = new TurnipDriverManager(this);
         buildUi();
         refreshFolder();
     }
