@@ -4167,8 +4167,10 @@ namespace dxvk {
   bool DxvkContext::updateComputePipeline() {
     m_state.cp.pipeline = lookupComputePipeline(m_state.cp.shaders);
 
-    if (unlikely(m_state.cp.pipeline == nullptr))
+    if (unlikely(m_state.cp.pipeline == nullptr)) {
+      Logger::err("DxvkContext: Failed to resolve compute pipeline (compute shader is null)");
       return false;
+    }
     
     if (m_state.cp.pipeline->layout()->pushConstRange().size)
       m_flags.set(DxvkContextFlag::DirtyPushConstants);
@@ -4181,8 +4183,11 @@ namespace dxvk {
   bool DxvkContext::updateComputePipelineState() {
     m_cpActivePipeline = m_state.cp.pipeline->getPipelineHandle(m_state.cp.state);
     
-    if (unlikely(!m_cpActivePipeline))
+    if (unlikely(!m_cpActivePipeline)) {
+      Logger::err(str::format("DxvkContext: Compute pipeline handle is null for shader: ",
+        m_state.cp.shaders.cs->debugName()));
       return false;
+    }
 
     m_cmd->cmdBindPipeline(
       VK_PIPELINE_BIND_POINT_COMPUTE,
