@@ -30,10 +30,10 @@ const Button k_buttons[] = {
     {"RB", 0x0200, 1, 0, -0.12f, 0.30f, 0.06f, 0xFFB0B0B0},
     {"Back", 0x0020, 0, 0, 0.36f, 0.07f, 0.045f, 0xFFD0D0D0},
     {"Start", 0x0010, 1, 0, -0.36f, 0.07f, 0.045f, 0xFFFFFFFF},
-    {"Up", 0x0001, 0, 1, 0.25f, -0.48f, 0.052f, 0xFFE0E0E0},
-    {"Down", 0x0002, 0, 1, 0.25f, -0.70f, 0.052f, 0xFFE0E0E0},
-    {"Left", 0x0004, 0, 1, 0.14f, -0.59f, 0.052f, 0xFFE0E0E0},
-    {"Right", 0x0008, 0, 1, 0.36f, -0.59f, 0.052f, 0xFFE0E0E0},
+    {"Up", 0x0001, 0, 1, 0.45f, -0.33f, 0.052f, 0xFFE0E0E0},
+    {"Down", 0x0002, 0, 1, 0.45f, -0.11f, 0.052f, 0xFFE0E0E0},
+    {"Left", 0x0004, 0, 1, 0.34f, -0.22f, 0.052f, 0xFFE0E0E0},
+    {"Right", 0x0008, 0, 1, 0.56f, -0.22f, 0.052f, 0xFFE0E0E0},
     {"QS", 0, 0, 0, 0.36f, 0.20f, 0.052f, 0xFFB0D0F0},
     {"QL", 0, 1, 0, -0.36f, 0.20f, 0.052f, 0xFFF0C080},
     {"LT", 0, 0, 0, 0.15f, 0.20f, 0.055f, 0xFFB0B0B0},
@@ -115,7 +115,7 @@ void stick_pos(float *x, float *y) {
     *y = 1 + STICK_Y + g_stick_dy;
 }
 void right_stick_pos(float *x, float *y) {
-    *x = 1.f - STICK_X / g_aspect + g_rstick_dx / g_aspect;
+    *x = 1.f - 0.58f / g_aspect + g_rstick_dx / g_aspect;
     *y = 1.f + STICK_Y + g_rstick_dy;
 }
 
