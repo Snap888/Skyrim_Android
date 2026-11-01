@@ -79,9 +79,10 @@ public class SkyrimActivity extends SDLActivity {
         // The old D3D9 touch renderer remains compiled for rollback, but is
         // switched off so only this Android/Kotlin overlay is visible.
         nativeSetLegacyTouchEnabled(false);
-        gamepadOverlay = new GamepadOverlayView(this, (buttons, lx, ly, rx, ry, lt, rt) ->
-                nativeSetVirtualPad(buttons, lx, ly, rx, ry, lt, rt),
-                action -> nativeQuickAction("QUICK LOAD".equals(action)));
+        gamepadOverlay = new GamepadOverlayView(this, (buttons, lx, ly, rx, ry, lt, rt) -> {
+                    nativeSetVirtualPad(buttons, lx, ly, rx, ry, lt, rt);
+                    return kotlin.Unit.INSTANCE;
+                }, action -> nativeQuickAction("QUICK LOAD".equals(action)));
         gamepadOverlay.setContentDescription("Virtual Xbox gamepad controls");
         gamepadOverlay.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null);
         android.widget.RelativeLayout.LayoutParams p = new android.widget.RelativeLayout.LayoutParams(
