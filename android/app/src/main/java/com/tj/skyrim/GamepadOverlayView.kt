@@ -54,6 +54,14 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
         )
     }.toMutableMap()
 
+    private val sizes = controls.associate { c ->
+        c.name to prefs.getFloat(profileKey("size_", c.name), 1f)
+    }.toMutableMap()
+    private val shapes = controls.associate { c ->
+        c.name to prefs.getString(profileKey("shape_", c.name),
+            if (c.kind == 1 || c.kind == 5 || c.name in listOf("BACK", "START", "UP", "DOWN", "LEFT", "RIGHT")) "rounded_rect" else "circle")!!
+    }.toMutableMap()
+
     private fun profileKey(axis: String, name: String): String =
         prefs.getString("active_profile", "Default").orEmpty() + "_" + axis + name
 
@@ -65,6 +73,11 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
                 prefs.getFloat(profileKey("y_", c.name), prefs.getFloat("y_" + c.name, c.y))
             )
         }
+        controls.forEach { c ->
+            sizes[c.name] = prefs.getFloat(profileKey("size_", c.name), 1f)
+            shapes[c.name] = prefs.getString(profileKey("shape_", c.name),
+                if (c.kind == 1 || c.kind == 5 || c.name in listOf("BACK", "START", "UP", "DOWN", "LEFT", "RIGHT")) "rounded_rect" else "circle")!!
+        }
         invalidate()
     }
     private var editMode = false
@@ -75,6 +88,20 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
     private val latched = HashSet<String>()
 
     fun controlNames(): List<String> = controls.map { it.name }
+    fun controlSize(name: String): Float = sizes[name] ?: 1f
+    fun controlShape(name: String): String = shapes[name] ?: "circle"
+    fun configureAppearance(name: String, size: Float, shape: String) {
+        if (name !in sizes) return
+        val safeSize = size.coerceIn(0.6f, 1.8f)
+        val safeShape = if (shape in listOf("circle", "square", "rect", "rounded_rect")) shape else "circle"
+        sizes[name] = safeSize
+        shapes[name] = safeShape
+        prefs.edit()
+            .putFloat(profileKey("size_", name), safeSize)
+            .putString(profileKey("shape_", name), safeShape)
+            .apply()
+        invalidate()
+    }
     fun isLayoutEditMode(): Boolean = editMode
     fun setLayoutEditMode(enabled: Boolean) {
         editMode = enabled
@@ -116,8 +143,22 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
     private fun bounds(c:Control):RectF {
         val scale = min(width,height).toFloat()
         val pos = positions[c.name] ?: Pair(c.x, c.y)
+        val factor = sizes[c.name] ?: 1f
         val cx = pos.first * width; val cy = pos.second * height
-        return RectF(cx-c.rx*scale,cy-c.ry*scale,cx+c.rx*scale,cy+c.ry*scale)
+        return RectF(cx-c.rx*scale*factor,cy-c.ry*scale*factor,cx+c.rx*scale*factor,cy+c.ry*scale*factor)
+    }
+    private fun drawButtonShape(canvas: Canvas, b: RectF, name: String, paint: Paint) {
+        when (shapes[name] ?: "circle") {
+            "circle" -> canvas.drawCircle(b.centerX(), b.centerY(), max(b.width(), b.height()) / 2f, paint)
+            "square" -> {
+                val side = max(b.width(), b.height())
+                canvas.drawRect(b.centerX()-side/2f, b.centerY()-side/2f,
+                    b.centerX()+side/2f, b.centerY()+side/2f, paint)
+            }
+            "rect" -> canvas.drawRect(b, paint)
+            else -> canvas.drawRoundRect(b, min(b.width(), b.height()) * 0.24f,
+                min(b.width(), b.height()) * 0.24f, paint)
+        }
     }
     private fun hit(x:Float,y:Float):Control? = controls.asReversed().firstOrNull { (editMode || isControlEnabled(it.name)) && bounds(it).contains(x,y) }
     private fun axis(c:Control,x:Float,y:Float):Pair<Float,Float> {
@@ -137,7 +178,7 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
             if (!isControlEnabled(c.name) && !editMode) return@forEach
             val b=bounds(c)
             if(c.kind==5) {
-                canvas.drawRoundRect(b,b.height()/2,b.height()/2,fill); canvas.drawRoundRect(b,b.height()/2,b.height()/2,line)
+                drawButtonShape(canvas,b,c.name,fill); drawButtonShape(canvas,b,c.name,line)
                 canvas.drawText(if(c.name=="QUICK SAVE") "QSAVE" else "QLOAD",b.centerX(),b.centerY()+smallLabel.textSize*.34f,smallLabel)
             } else if(c.kind==3) {
                 canvas.drawOval(b,fill); canvas.drawOval(b,line)
@@ -148,10 +189,10 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
                 canvas.drawOval(knob,fill); canvas.drawOval(knob,line)
                 canvas.drawText(c.name,b.centerX(),b.bottom+15*density,smallLabel)
             } else if(c.kind==1) {
-                canvas.drawRoundRect(b,b.height()/2,b.height()/2,fill); canvas.drawRoundRect(b,b.height()/2,b.height()/2,line)
+                drawButtonShape(canvas,b,c.name,fill); drawButtonShape(canvas,b,c.name,line)
                 canvas.drawText(c.name,b.centerX(),b.centerY()+label.textSize*.34f, label)
             } else if(c.name in listOf("UP","DOWN","LEFT","RIGHT")) {
-                canvas.drawRoundRect(b,8*density,8*density,fill); canvas.drawRoundRect(b,8*density,8*density,line)
+                drawButtonShape(canvas,b,c.name,fill); drawButtonShape(canvas,b,c.name,line)
                 val arrow=Path(); val cx=b.centerX(); val cy=b.centerY(); val d=9*density
                 when(c.name){ "UP"->{arrow.moveTo(cx,cy-d);arrow.lineTo(cx-d,cy+d*.65f);arrow.lineTo(cx+d,cy+d*.65f)}
                     "DOWN"->{arrow.moveTo(cx,cy+d);arrow.lineTo(cx-d,cy-d*.65f);arrow.lineTo(cx+d,cy-d*.65f)}
@@ -159,7 +200,7 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
                     else->{arrow.moveTo(cx+d,cy);arrow.lineTo(cx-d*.65f,cy-d);arrow.lineTo(cx-d*.65f,cy+d)} }
                 arrow.close(); canvas.drawPath(arrow,active)
             } else {
-                canvas.drawOval(b,fill); canvas.drawOval(b,line)
+                drawButtonShape(canvas,b,c.name,fill); drawButtonShape(canvas,b,c.name,line)
                 canvas.drawText(c.name,b.centerX(),b.centerY()+label.textSize*.34f,smallLabel)
             }
         }
