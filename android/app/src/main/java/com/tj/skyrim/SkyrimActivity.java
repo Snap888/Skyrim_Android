@@ -103,12 +103,7 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
         mLayout.addView(gamepadOverlay, p);
         android.content.SharedPreferences prefs = getSharedPreferences("gamepad_overlay", MODE_PRIVATE);
         gamepadOverlayEnabled = prefs.getBoolean("overlay_enabled", true);
-        gamepadDisabledControls.addAll(prefs.getStringSet("disabled_controls", java.util.Collections.emptySet()));
-        gamepadToggleControls.addAll(prefs.getStringSet("toggle_controls", java.util.Collections.emptySet()));
-        for (String name : gamepadOverlay.controlNames()) {
-            gamepadOverlay.configureControl(name, !gamepadDisabledControls.contains(name),
-                    gamepadToggleControls.contains(name));
-        }
+        applyGamepadProfile(prefs, prefs.getString("active_profile", "Default"));
         gamepadOverlay.bringToFront();
         gamepadOverlay.setVisibility(gamepadOverlayEnabled ? android.view.View.VISIBLE : android.view.View.GONE);
     }
