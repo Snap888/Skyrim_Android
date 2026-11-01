@@ -44,12 +44,12 @@ import java.util.Map;
  * are written to SkyrimPrefs.ini (where the game reads them) before the game
  * starts; the folder is passed to the native side as argv[1]. */
 public class LauncherActivity extends Activity {
-    private static final int REQ_FOLDER = 1, REQ_PERM = 2, REQ_DLL = 3;
+    private static final int REQ_FOLDER = 1, REQ_PERM = 2, REQ_DLL = 3, REQ_GPU_DRIVER = 4;
     private SharedPreferences prefs;
     private TextView folderText, folderStatus;
     private Button playButton;
     private Button pickDllButton;
-    private TextView dllText, lsfgQualityValue;
+    private TextView dllText, lsfgQualityValue;\n    private Spinner gpuDriverSpinner;\n    private final TurnipDriverManager gpuDrivers = new TurnipDriverManager(this);\n    private List<TurnipDriverManager.Driver> installedGpuDrivers = new ArrayList<>();
     private SeekBar lsfgQuality;
     private boolean pendingPick, pendingPlay;  /* continue once the storage prompt is answered */
     private boolean askedAllFiles;
@@ -276,6 +276,21 @@ public class LauncherActivity extends Activity {
         spinner(root, "lsfgMode", "Generation mode", LSFG_MODE, 1);
         text(root, "Performance: reduced compute load. Stability: full selected quality. Low: half-resolution flow.", 13, false);
 
+        text(root, "Vulkan GPU driver", 20, true);
+        text(root, "System uses the Android device driver. Import a compatible Turnip ZIP to use a custom Adreno driver.", 13, false);
+        gpuDriverSpinner = new Spinner(this);
+        root.addView(gpuDriverSpinner);
+        refreshGpuDriverChoices(null);
+        Button importGpuDriver = new Button(this);
+        importGpuDriver.setText("Import Turnip driver ZIP");
+        importGpuDriver.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("application/zip");
+            startActivityForResult(intent, REQ_GPU_DRIVER);
+        });
+        root.addView(importGpuDriver);
+
         text(root, "Game frame rate limit (DXVK)", 20, true);
         spinner(root, "gameFpsLimit", "Maximum game FPS", GAME_FPS_LIMIT, 0);
         text(root, "Limits the original game's frame rate before LSFG. Generated frames are not capped by this setting. Use Unlimited to disable the limiter.", 13, false);
@@ -372,6 +387,19 @@ public class LauncherActivity extends Activity {
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
+        if (req == REQ_GPU_DRIVER) {
+            if (res == RESULT_OK && data != null && data.getData() != null) {
+                try {
+                    TurnipDriverManager.Driver driver = gpuDrivers.importZip(data.getData());
+                    refreshGpuDriverChoices(driver.id);
+                    folderStatus.setText("Imported " + driver.name + " " + driver.version
+                            + ". Restart the game after changing the GPU driver.");
+                } catch (Exception e) {
+                    folderStatus.setText("Could not import GPU driver: " + e.getMessage());
+                }
+            }
+            return;
+        }
         if (req == REQ_DLL) {
             if (res == RESULT_OK && data != null && data.getData() != null) {
                 try {
@@ -518,11 +546,55 @@ public class LauncherActivity extends Activity {
         playButton.setEnabled(bad.isEmpty());
     }
 
+    private void refreshGpuDriverChoices(String selectId) {
+        if (gpuDriverSpinner == null) return;
+        try {
+            installedGpuDrivers = gpuDrivers.list();
+            List<String> labels = new ArrayList<>();
+            labels.add("System (Android driver)");
+            for (TurnipDriverManager.Driver driver : installedGpuDrivers) labels.add(driver.toString());
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, labels);
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            gpuDriverSpinner.setAdapter(adapter);
+            String wanted = selectId != null ? selectId : prefs.getString("gpuDriverId", "");
+            int selection = 0;
+            for (int i = 0; i < installedGpuDrivers.size(); i++)
+                if (installedGpuDrivers.get(i).id.equals(wanted)) selection = i + 1;
+            gpuDriverSpinner.setSelection(selection);
+        } catch (Exception e) {
+            folderStatus.setText("Could not list GPU drivers: " + e.getMessage());
+        }
+    }
+
+    private TurnipDriverManager.Driver selectedGpuDriver() {
+        int index = gpuDriverSpinner != null ? gpuDriverSpinner.getSelectedItemPosition() : 0;
+        return index > 0 && index <= installedGpuDrivers.size() ? installedGpuDrivers.get(index - 1) : null;
+    }
+
+    private void writeGpuDriverConfig(File game) throws Exception {
+        File port = new File(game, "port");
+        if (!port.exists() && !port.mkdirs()) throw new java.io.IOException("cannot create port config folder");
+        TurnipDriverManager.Driver driver = selectedGpuDriver();
+        File config = new File(port, "gpu-driver.conf");
+        try (Writer w = new OutputStreamWriter(new FileOutputStream(config))) {
+            if (driver == null) {
+                w.write("enabled=0\\n");
+            } else {
+                w.write("enabled=1\\n");
+                w.write("driver_path=" + gpuDrivers.driverDirectory(driver.id) + "\\n");
+                w.write("library_name=" + driver.library + "\\n");
+                w.write("driver_name=" + driver.name.replace('\\n', ' ') + "\\n");
+            }
+        }
+    }
+
     private void saveChoices() {
         SharedPreferences.Editor e = prefs.edit();
         for (Map.Entry<String, Spinner> s : spinners.entrySet()) e.putInt(s.getKey(), s.getValue().getSelectedItemPosition());
         for (Map.Entry<String, CheckBox> c : checks.entrySet()) e.putBoolean(c.getKey(), c.getValue().isChecked());
         if (lsfgQuality != null) e.putInt("lsfgQuality", lsfgQuality.getProgress());
+        TurnipDriverManager.Driver gpuDriver = selectedGpuDriver();
+        e.putString("gpuDriverId", gpuDriver != null ? gpuDriver.id : "");
         e.apply();
     }
 
@@ -543,7 +615,7 @@ public class LauncherActivity extends Activity {
         try {
             writePrefs(new File(folder), new File(iniDir, "SkyrimPrefs.ini"));
             writeDxvkHudConfig(new File(folder));
-            writeLsfgConfig(new File(folder));
+            writeLsfgConfig(new File(folder));\n            writeGpuDriverConfig(new File(folder));
             // the native side builds the same mode list from this aspect (see modes())
             int[] av = ASPECT_V[sel("aspect")];
             try (Writer w = new OutputStreamWriter(new FileOutputStream(new File(save, "display.cfg")))) {
