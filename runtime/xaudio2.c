@@ -140,7 +140,7 @@ static void adpcm_block(Voice *v, const uint8_t *b, int16_t *out) {
 
 #ifdef LB_HAS_FFMPEG
 /* Implemented in xwma_ffmpeg.c — decode xWMA/WMA payload to interleaved PCM16.
- * cum_bytes: XAUDIO2_BUFFER_WMA pDecodedPacketCumulativeBytes (cumulative ends). */
+ * cum_bytes: XAUDIO2_BUFFER_WMA decoded PCM cumulative byte totals (dpds). */
 int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
                      int block_align, int avg_bps, int tag,
                      const uint32_t *cum_bytes, uint32_t packet_count,
