@@ -778,6 +778,17 @@ int rt_host_path(const char *win, char *out, size_t outsz) {
     if (root) snprintf(out, outsz, "%s/%s", root, rel);
     else snprintf(out, outsz, "%s", rel);
     for (char *q = out; *q; q++) if (*q == '\\') *q = '/';
+    /* Collapse accidental Data/Data (Skyrim sometimes builds
+     * C:\\Skyrim\\DATA\\DATA\\SOUND\\... which misses Voices on disk). */
+    for (char *p = out; *p; ) {
+        if ((p[0] == '/' || p == out) &&
+            !strncasecmp(p + (p[0] == '/'), "Data/Data/", 10)) {
+            char *from = p + (p[0] == '/' ? 1 : 0); /* points at Data/Data/ */
+            memmove(from, from + 5, strlen(from + 5) + 1); /* drop one "Data/" */
+            continue;
+        }
+        p++;
+    }
     /* collapse "//" and "./" */
     return resolve_ci(out);
 }
