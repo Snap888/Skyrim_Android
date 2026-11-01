@@ -215,6 +215,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
 
     size_t cap = 0, len = 0;
     int16_t *pcm = NULL;
+    int decode_failed = 0;
     AVPacket *pkt = av_packet_alloc();
     AVFrame *frame = av_frame_alloc();
     if (!pkt || !frame) {
@@ -245,6 +246,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
                     "xwma_ffmpeg: packet %u/%u failed size=%u tag=%04x\n",
                     i + 1, packet_count, packet_size, tag);
             avcodec_free_context(&ctx);
+            decode_failed = 1;
             goto done;
         }
     }
@@ -258,9 +260,13 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
     }
     if (flush_err < 0 && flush_err != AVERROR_EOF) {
         xa_err("decoder flush", flush_err);
+        decode_failed = 1;
     } else {
         int dr = drain(ctx, frame, channels, &pcm, &len, &cap);
-        if (dr < 0) xa_err("flush drain", dr);
+        if (dr < 0) {
+            xa_err("flush drain", dr);
+            decode_failed = 1;
+        }
     }
     avcodec_free_context(&ctx);
 
@@ -281,7 +287,7 @@ done:
     av_frame_free(&frame);
     av_packet_free(&pkt);
 
-    if (!pcm || !len) {
+    if (decode_failed || !pcm || !len) {
         fprintf(stderr, "xwma_ffmpeg: FAILED tag=%04x size=%u packets=%u ba=%d extra=%d\n",
                 tag, size, packet_count, block_align, extradata_size);
         free(pcm);
