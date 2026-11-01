@@ -44,13 +44,16 @@ namespace dxvk::vk {
     }
     return vkGetInstanceProcAddr;
   }
-  static const PFN_vkGetInstanceProcAddr GetInstanceProcAddr = loadInstanceProcAddr();
+  static PFN_vkGetInstanceProcAddr getInstanceProcAddr() {
+    static const PFN_vkGetInstanceProcAddr proc = loadInstanceProcAddr();
+    return proc;
+  }
 #else
-  static const PFN_vkGetInstanceProcAddr GetInstanceProcAddr = vkGetInstanceProcAddr;
+  static PFN_vkGetInstanceProcAddr getInstanceProcAddr() { return vkGetInstanceProcAddr; }
 #endif
 
   PFN_vkVoidFunction LibraryLoader::sym(const char* name) const {
-    return dxvk::vk::GetInstanceProcAddr(nullptr, name);
+    return dxvk::vk::getInstanceProcAddr()(nullptr, name);
   }
   
   
