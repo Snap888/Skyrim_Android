@@ -150,7 +150,10 @@ static void set_format(Voice *v, uint32_t wf) {
     if (v->in_ch > MAX_CH) v->in_ch = MAX_CH;
     v->rate = (int)M32(wf + 4);
     v->block_align = M16(wf + 12);
-    if (tag == 0xFFFE) {  /* WAVE_FORMAT_EXTENSIBLE: the subformat's first word is the tag */
+    int extensible = 0;
+    if (tag == 0xFFFE) {  /* WAVE_FORMAT_EXTENSIBLE */
+        extensible = 1;
+        /* SubFormat GUID at offset 24: first WORD is the real format tag for many codecs */
         tag = M16(wf + 24);
     }
     v->fmt = FMT_NONE;
@@ -168,13 +171,21 @@ static void set_format(Voice *v, uint32_t wf) {
         v->xwma_tag = tag;
         v->xwma_avg_bps = (int)M32(wf + 8);
         v->bpf = v->block_align ? v->block_align : 1;
-        /* cbSize at offset 16; extradata follows the 18-byte WAVEFORMATEX */
+        /* Plain WAVEFORMATEX: cbSize@16, extradata@18.
+         * WAVEFORMATEXTENSIBLE: full header is 40 bytes; WMA codec data may follow. */
         {
             int cb = (int)M16(wf + 16);
+            int extra_off = extensible ? 40 : 18;
             if (cb < 0) cb = 0;
+            /* For plain WMA, cb is size of codec data after the 18-byte WFX.
+             * For extensible, cb includes 22 bytes of extensible fields; codec data = cb-22. */
+            if (extensible && cb >= 22) {
+                extra_off = 40;
+                cb = cb - 22;
+            }
             if (cb > (int)sizeof(v->xwma_extra)) cb = (int)sizeof(v->xwma_extra);
             v->xwma_extra_size = cb;
-            if (cb > 0) memcpy(v->xwma_extra, MEM + wf + 18, (size_t)cb);
+            if (cb > 0) memcpy(v->xwma_extra, MEM + wf + extra_off, (size_t)cb);
             else memset(v->xwma_extra, 0, sizeof v->xwma_extra);
         }
         g_xa_xwma_voices++;
@@ -653,8 +664,6 @@ SHIM(xs_SubmitSourceBuffer) {
         uint32_t packet_count = bwma ? M32(bwma + 4) : 0;
         uint32_t *packet_info = bwma && packet_count ? (uint32_t *)(MEM + M32(bwma)) : NULL;
 #ifdef LB_HAS_FFMPEG
-        /* Decode WITHOUT g_lock — FFmpeg on large buffers otherwise stalls the
-         * mixer thread and causes crackling / underruns. */
         decoded = xwma_decode(MEM + data, bytes, v->in_ch, v->rate,
                               v->block_align, v->xwma_avg_bps, v->xwma_tag,
                               packet_info, packet_count,
@@ -666,7 +675,7 @@ SHIM(xs_SubmitSourceBuffer) {
             free(decoded); decoded = NULL; nframes = 0;
         } else {
             static unsigned s_ok;
-            if (++s_ok <= 15 || s_ok % 40 == 0)
+            if (++s_ok <= 20 || s_ok % 30 == 0)
                 XA_LOG("xaudio2: xWMA decoded tag=%04x %d ch %d Hz bytes=%u -> %u frames pkt=%u",
                        v->xwma_tag, v->in_ch, v->rate, bytes, nframes, packet_count);
         }
