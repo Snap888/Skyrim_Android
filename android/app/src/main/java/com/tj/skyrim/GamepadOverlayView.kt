@@ -42,7 +42,8 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
         Control("BACK",.45f,.95f,.038f,.045f,0x20,1), Control("START",.55f,.95f,.038f,.045f,0x10,1),
         Control("UP",.275f,.74f,.031f,.055f,1), Control("DOWN",.275f,.91f,.031f,.055f,2),
         Control("LEFT",.235f,.825f,.031f,.055f,4), Control("RIGHT",.315f,.825f,.031f,.055f,8),
-        Control("LS",.13f,.67f,.064f,.115f,0,3), Control("RS",.87f,.67f,.064f,.115f,0,3),\n        Control("QUICK SAVE",.37f,.43f,.060f,.043f,0,5), Control("QUICK LOAD",.63f,.43f,.060f,.043f,0,5)
+        Control("LS",.13f,.67f,.064f,.115f,0,3), Control("RS",.87f,.67f,.064f,.115f,0,3),
+        Control("QUICK SAVE",.37f,.43f,.060f,.043f,0,5), Control("QUICK LOAD",.63f,.43f,.060f,.043f,0,5)
     )
     private val pointers = HashMap<Int, Control>()
     private val enabled = controls.associate { it.name to true }.toMutableMap()
@@ -99,8 +100,12 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
         super.onDraw(canvas)
         val scale=min(width,height).toFloat()
         controls.forEach { c ->
+            if (!isControlEnabled(c.name)) return@forEach
             val b=bounds(c)
-            if(c.kind==3) {
+            if(c.kind==5) {
+                canvas.drawRoundRect(b,b.height()/2,b.height()/2,fill); canvas.drawRoundRect(b,b.height()/2,b.height()/2,line)
+                canvas.drawText(if(c.name=="QUICK SAVE") "QSAVE" else "QLOAD",b.centerX(),b.centerY()+smallLabel.textSize*.34f,smallLabel)
+            } else if(c.kind==3) {
                 canvas.drawOval(b,fill); canvas.drawOval(b,line)
                 val p=axes[c.name.hashCode()] ?: Pair(0f,0f)
                 val cx=(b.left+b.right)/2f+p.first*b.width()*.32f
@@ -134,8 +139,10 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
         when(e.actionMasked) {
             MotionEvent.ACTION_DOWN,MotionEvent.ACTION_POINTER_DOWN -> {
                 val c=hit(e.getX(index),e.getY(index)) ?: return true
+                if (!isControlEnabled(c.name)) return true
                 pointers[id]=c
-                if(c.kind==3) { val p=axis(c,e.getX(index),e.getY(index)); axes[c.name.hashCode()]=p; setAxis(c,p) }
+                if(c.kind==5) quickAction(c.name)
+                else if(c.kind==3) { val p=axis(c,e.getX(index),e.getY(index)); axes[c.name.hashCode()]=p; setAxis(c,p) }
                 else if (toggleMode[c.name] == true) {
                     if (latched.contains(c.name)) {
                         latched.remove(c.name)
