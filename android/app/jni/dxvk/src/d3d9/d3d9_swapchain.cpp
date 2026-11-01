@@ -1096,7 +1096,8 @@ namespace dxvk {
       std::this_thread::sleep_until(m_gameFpsDeadline);
     } else {
       m_gameFpsDeadline = std::chrono::steady_clock::time_point{};
-    }  }
+    }
+  }
 
 
   void D3D9SwapChainEx::SubmitPresent(const vk::PresenterSync& Sync, uint32_t FrameId) {
