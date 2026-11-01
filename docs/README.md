@@ -507,3 +507,29 @@ APK packaging, установка или GPU runtime test. Наличие выз
 - полный `port/lsfg.log` с APK, собранного из актуального HEAD;
 - `port/log.txt` и logcat, если есть crash/hang/ошибка запуска;
 - тест сначала на x2, затем на x4, с коротким быстрым поворотом камеры.
+
+
+## Runtime LSFG enable/disable — 1 November 2026
+
+Latest source changes on `snap-patch-3` add an ON/OFF slider to the in-game
+LSFG settings panel (opened from the top-left `☰` menu). OFF sets the effective
+multiplier to `1x`, disables the runtime present/generation path and requests
+zero generated frames. ON restores the selected 2x/3x/4x multiplier without
+restarting the game.
+
+A follow-up backend correction keeps the LSFG host initialized when the saved
+multiplier is `1`. The config retains `enabled=1` to mean LSFG is configured;
+`multiplier=1` means runtime generation is OFF. This is necessary so the
+in-game panel remains available and can turn LSFG back ON after a launch with
+OFF saved. OFF is a bypass, not a resource unload: shader resources and DXVK
+hooks remain initialized.
+
+Implementation/documentation commits:
+- `96c6870` — runtime generation gate and live settings persistence.
+- `d263a7d` — in-game ON/OFF slider.
+- `29f910f`, `17ec3ce` — preserve host initialization and saved OFF state.
+- `d8f29d6` — detailed settings semantics and limitations.
+
+The Java-only CI status and native arm64 build status must be checked separately.
+No APK build or device test is claimed by this documentation update. See
+[In-game LSFG settings](LSFG_IN_GAME_SETTINGS.md) for behaviour and test notes.
