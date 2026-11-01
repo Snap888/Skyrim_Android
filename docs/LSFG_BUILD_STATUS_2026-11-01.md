@@ -173,3 +173,12 @@ pipeline failure or prove the generated image is correct. The next device log
 must include the first `DxvkComputePipeline: vkCreateComputePipelines failed`
 entry, if any. Native compilation is still required before asking for a new
 APK test.
+
+The DXVK failure path was then split into explicit log cases:
+- no compute shader / no resolved pipeline object;
+- a resolved pipeline object whose Vulkan handle is null;
+- `vkCreateComputePipelines` failure, including its numeric `VkResult`.
+
+This distinguishes pipeline lookup from actual Vulkan pipeline compilation.
+The failure path still returns false to LSFG, so no subsequent pass is reported
+as dispatched after a failed commit.
