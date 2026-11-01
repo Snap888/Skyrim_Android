@@ -667,34 +667,36 @@ SHIM(xs_SubmitSourceBuffer) {
             }
         } else
 #endif
+        {
 #ifdef LB_HAS_FFMPEG
-        /* decode xWMA packets -> PCM16 in x->decoded
-         * packet_info = cumulative end offsets (XAUDIO2_BUFFER_WMA) */
-        x->decoded = xwma_decode(MEM + x->data, x->bytes, v->in_ch, v->rate,
-                                 v->block_align, v->xwma_avg_bps, v->xwma_tag,
-                                 packet_info, packet_count,
-                                 v->xwma_extra, v->xwma_extra_size,
-                                 &x->nframes);
-        if (!x->decoded || !x->nframes) {
-            XA_LOG("xaudio2: xWMA decode FAILED tag=%04x bytes=%u packets=%u submit #%u",
-                   v->xwma_tag, x->bytes, packet_count, g_xa_xwma_submits);
-            x->nframes = 0;
-            free(x->decoded);
-            x->decoded = NULL;
-        } else if (g_xa_xwma_submits <= 10 || g_xa_xwma_submits % 50 == 0) {
-            XA_LOG("xaudio2: xWMA decoded tag=%04x %d ch %d Hz bytes=%u -> %u frames submit #%u",
-                   v->xwma_tag, v->in_ch, v->rate, x->bytes, x->nframes, g_xa_xwma_submits);
-        }
+            /* Decode xWMA packets -> PCM16.  The seek table is not used as
+             * compressed offsets: XAudio2 defines cumulative decoded sizes. */
+            x->decoded = xwma_decode(MEM + x->data, x->bytes, v->in_ch, v->rate,
+                                     v->block_align, v->xwma_avg_bps, v->xwma_tag,
+                                     packet_info, packet_count,
+                                     v->xwma_extra, v->xwma_extra_size,
+                                     &x->nframes);
+            if (!x->decoded || !x->nframes) {
+                XA_LOG("xaudio2: xWMA decode FAILED tag=%04x bytes=%u packets=%u submit #%u",
+                       v->xwma_tag, x->bytes, packet_count, g_xa_xwma_submits);
+                x->nframes = 0;
+                free(x->decoded);
+                x->decoded = NULL;
+            } else if (g_xa_xwma_submits <= 10 || g_xa_xwma_submits % 50 == 0) {
+                XA_LOG("xaudio2: xWMA decoded tag=%04x %d ch %d Hz bytes=%u -> %u frames submit #%u",
+                       v->xwma_tag, v->in_ch, v->rate, x->bytes, x->nframes, g_xa_xwma_submits);
+            }
 #else
-        /* No decoder yet: empty buffer so OnBufferEnd fires and game does not stall. */
-        if (g_xa_xwma_submits <= 20 || g_xa_xwma_submits % 50 == 0) {
-            XA_LOG("xaudio2: xWMA SILENT tag=%04x %d ch %d Hz avg_bps=%d bytes=%u packets=%u submit #%u (need FFmpeg)",
-                   v->xwma_tag, v->in_ch, v->rate, v->xwma_avg_bps, x->bytes, packet_count, g_xa_xwma_submits);
-        }
-        x->nframes = 0;
-        x->decoded = NULL;
-        (void)packet_info;
+            /* No decoder yet: empty buffer so OnBufferEnd fires and game does not stall. */
+            if (g_xa_xwma_submits <= 20 || g_xa_xwma_submits % 50 == 0) {
+                XA_LOG("xaudio2: xWMA SILENT tag=%04x %d ch %d Hz avg_bps=%d bytes=%u packets=%u submit #%u (need FFmpeg)",
+                       v->xwma_tag, v->in_ch, v->rate, v->xwma_avg_bps, x->bytes, packet_count, g_xa_xwma_submits);
+            }
+            x->nframes = 0;
+            x->decoded = NULL;
+            (void)packet_info;
 #endif
+        }
         (void)bwma;
     } else if (v->fmt == FMT_NONE) {
         x->nframes = 0;
