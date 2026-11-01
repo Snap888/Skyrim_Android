@@ -32,11 +32,11 @@ uint32_t g_entry;
 JNIEXPORT jintArray JNICALL
 Java_com_tj_skyrim_SkyrimActivity_nativeGetLsfgSettings(JNIEnv *env, jclass clazz) {
     (void)clazz;
-    int multiplier = 2, flow_percent = 70, performance = 1;
-    int active = lsfg_host_get_settings(&multiplier, &flow_percent, &performance);
-    jint values[4] = { active, multiplier, flow_percent, performance };
-    jintArray result = (*env)->NewIntArray(env, 4);
-    if (result) (*env)->SetIntArrayRegion(env, result, 0, 4, values);
+    int multiplier = 2, flow_percent = 70, performance = 1, game_fps_limit = 0;
+    int active = lsfg_host_get_settings(&multiplier, &flow_percent, &performance, &game_fps_limit);
+    jint values[5] = { active, multiplier, flow_percent, performance, game_fps_limit };
+    jintArray result = (*env)->NewIntArray(env, 5);
+    if (result) (*env)->SetIntArrayRegion(env, result, 0, 5, values);
     return result;
 }
 
@@ -49,10 +49,10 @@ Java_com_tj_skyrim_SkyrimActivity_nativeSetTouchEditor(JNIEnv *env, jclass clazz
 
 JNIEXPORT jboolean JNICALL
 Java_com_tj_skyrim_SkyrimActivity_nativeSetLsfgSettings(
-        JNIEnv *env, jclass clazz, jint multiplier, jint flow_percent, jint performance) {
+        JNIEnv *env, jclass clazz, jint multiplier, jint flow_percent, jint performance, jint game_fps_limit) {
     (void)env;
     (void)clazz;
-    return lsfg_host_update_settings(multiplier, flow_percent, performance)
+    return lsfg_host_update_settings(multiplier, flow_percent, performance, game_fps_limit)
         ? JNI_TRUE : JNI_FALSE;
 }
 #endif
