@@ -238,7 +238,54 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
                                         gamepadToggleControls.contains(name));
                                 showGamepadControlsEditor();
                             }).show();
-                }).setNegativeButton("Close", null).show();
+                }).setPositiveButton("Arrange", (dialog, which) -> {
+                    boolean editing = !gamepadOverlay.isLayoutEditMode();
+                    gamepadOverlay.setLayoutEditMode(editing);
+                    android.widget.Toast.makeText(this, editing ? "Drag controls, then reopen editor" : "Layout saved", android.widget.Toast.LENGTH_SHORT).show();
+                }).setNeutralButton("Profiles", (dialog, which) -> showGamepadProfiles()).setNegativeButton("Close", null).show();
+    }
+
+    private void showGamepadProfiles() {
+        android.content.SharedPreferences prefs = getSharedPreferences("gamepad_overlay", MODE_PRIVATE);
+        java.util.Set<String> stored = prefs.getStringSet("profiles", null);
+        java.util.Set<String> profiles = new java.util.TreeSet<>(stored == null ? java.util.Collections.singleton("Default") : stored);
+        String[] choices = profiles.toArray(new String[0]);
+        new AlertDialog.Builder(this).setTitle("Gamepad profiles").setItems(choices, (dialog, which) -> {
+            String target = choices[which];
+            String source = prefs.getString("active_profile", "Default");
+            if (!target.equals(source)) {
+                copyGamepadProfile(prefs, source, target);
+                prefs.edit().putString("active_profile", target).apply();
+                recreate();
+            }
+        }).setPositiveButton("Create", (dialog, which) -> {
+            android.widget.EditText field = new android.widget.EditText(this);
+            field.setSingleLine(true);
+            field.setHint("Profile name");
+            new AlertDialog.Builder(this).setTitle("Create profile").setView(field)
+                    .setPositiveButton("Save", (d, w) -> {
+                        String name = field.getText().toString().trim();
+                        if (!name.isEmpty() && !profiles.contains(name)) {
+                            copyGamepadProfile(prefs, prefs.getString("active_profile", "Default"), name);
+                            profiles.add(name);
+                            prefs.edit().putStringSet("profiles", profiles).putString("active_profile", name).apply();
+                            recreate();
+                        }
+                    }).setNegativeButton("Cancel", null).show();
+        }).setNegativeButton("Close", null).show();
+    }
+
+    private void copyGamepadProfile(android.content.SharedPreferences prefs, String from, String to) {
+        android.content.SharedPreferences.Editor editor = prefs.edit();
+        for (String key : prefs.getAll().keySet()) {
+            if (key.startsWith(from + "_x_") || key.startsWith(from + "_y_")) {
+                Object value = prefs.getAll().get(key);
+                if (value instanceof Float) editor.putFloat(to + key.substring(from.length()), (Float)value);
+            }
+        }
+        editor.putStringSet(to + "_disabled_controls", new java.util.HashSet<>(prefs.getStringSet(from + "_disabled_controls", prefs.getStringSet("disabled_controls", java.util.Collections.emptySet()))));
+        editor.putStringSet(to + "_toggle_controls", new java.util.HashSet<>(prefs.getStringSet(from + "_toggle_controls", prefs.getStringSet("toggle_controls", java.util.Collections.emptySet()))));
+        editor.apply();
     }
 
     private void showLsfgSettings() {
