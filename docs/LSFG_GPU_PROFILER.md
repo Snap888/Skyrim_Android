@@ -18,7 +18,7 @@ Stages:
 - `Mipmaps`: mipmap/flow preparation dispatch.
 - `Alpha`: complete Alpha pass chain.
 - `Beta`: complete Beta pass chain.
-- `GammaDelta`: paired Gamma/Delta pyramid chain, preserving WinNative dispatch order.
+- `GammaDelta_L0` … `GammaDelta_L6`: paired Gamma/Delta pyramid work per level (the first four levels contain Gamma only), preserving WinNative dispatch order.
 - `Generate`: final frame-generation compute dispatch.
 
 A row with status `ok` contains a GPU timestamp delta converted using Vulkan's `timestampPeriod`. An `unavailable` row means the command-list completed but one or both timestamp results could not be read; it is not a zero-millisecond measurement.
