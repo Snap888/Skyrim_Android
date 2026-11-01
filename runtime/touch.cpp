@@ -176,24 +176,7 @@ extern "C" int hud_screen_crosshair(void);
 extern "C" void bridge_view_rect(float *x0, float *y0, float *x1, float *y1);
 extern "C" int platform_text_input(int toggle);
 
-static void push_quick_key(SDL_Scancode scancode) {
-    SDL_Event e;
-    SDL_zero(e);
-    e.type = SDL_KEYDOWN;
-    e.key.timestamp = SDL_GetTicks();
-    e.key.windowID = SDL_GetWindowID((SDL_Window *)platform_window());
-    e.key.state = SDL_PRESSED;
-    e.key.repeat = 0;
-    e.key.keysym.scancode = scancode;
-    e.key.keysym.sym = SDL_GetKeyFromScancode(scancode);
-    e.key.keysym.mod = KMOD_NONE;
-    int down_result = SDL_PushEvent(&e);
-    e.type = SDL_KEYUP;
-    e.key.timestamp = SDL_GetTicks();
-    e.key.state = SDL_RELEASED;
-    int up_result = SDL_PushEvent(&e);
-    LOG("quick action: scancode=%d down=%d up=%d", (int)scancode, down_result, up_result);
-}
+extern void platform_quick_action(int load);
 
 extern "C" void touch_handle_event(const SDL_Event *e) {
     if (!available()) return;
@@ -248,8 +231,8 @@ extern "C" void touch_handle_event(const SDL_Event *e) {
             return;
         }
         f->button = hit_button(x, y);
-        if (!g_edit_mode && f->button == NB - 4) push_quick_key(SDL_SCANCODE_F5);
-        if (!g_edit_mode && f->button == NB - 3) push_quick_key(SDL_SCANCODE_F9);
+        if (!g_edit_mode && f->button == NB - 4) platform_quick_action(0);
+        if (!g_edit_mode && f->button == NB - 3) platform_quick_action(1);
         // Empty lower-left/right zones are independent analog sticks.
         f->stick = f->button < 0 && x < 0.5f;
         f->right_stick = f->button < 0 && x >= 0.5f;
@@ -308,7 +291,7 @@ Java_com_tj_skyrim_SkyrimActivity_nativeSetLegacyTouchEnabled(JNIEnv *, jobject,
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_tj_skyrim_SkyrimActivity_nativeQuickAction(JNIEnv *, jobject, jboolean load) {
-    push_quick_key(load == JNI_TRUE ? SDL_SCANCODE_F9 : SDL_SCANCODE_F5);
+    platform_quick_action(load == JNI_TRUE ? 1 : 0);
 }
 
 extern "C" JNIEXPORT void JNICALL
