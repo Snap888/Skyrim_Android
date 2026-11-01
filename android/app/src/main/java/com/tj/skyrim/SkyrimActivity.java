@@ -134,6 +134,8 @@ public class SkyrimActivity extends SDLActivity {
                     else if (which == 1) {
                         // SDLActivity routes this request to Android's InputMethodManager.
                         showTextInput(0, 0, 1, 1);
+                    } else if (which == 2) {
+                        setGamepadOverlayEnabled(!gamepadOverlayEnabled);
                     } else {
                         touchEditorEnabled = !touchEditorEnabled;
                         nativeSetTouchEditor(touchEditorEnabled);
