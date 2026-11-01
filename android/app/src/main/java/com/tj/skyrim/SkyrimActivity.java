@@ -229,9 +229,11 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
                                 } else if (selected == 3) {
                                     gamepadToggleControls.add(name);
                                 }
+                                String profile = getSharedPreferences("gamepad_overlay", MODE_PRIVATE)
+                                        .getString("active_profile", "Default");
                                 getSharedPreferences("gamepad_overlay", MODE_PRIVATE).edit()
-                                        .putStringSet("disabled_controls", new java.util.HashSet<>(gamepadDisabledControls))
-                                        .putStringSet("toggle_controls", new java.util.HashSet<>(gamepadToggleControls))
+                                        .putStringSet(profile + "_disabled_controls", new java.util.HashSet<>(gamepadDisabledControls))
+                                        .putStringSet(profile + "_toggle_controls", new java.util.HashSet<>(gamepadToggleControls))
                                         .apply();
                                 gamepadOverlay.configureControl(name,
                                         !gamepadDisabledControls.contains(name),
@@ -247,32 +249,60 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
 
     private void showGamepadProfiles() {
         android.content.SharedPreferences prefs = getSharedPreferences("gamepad_overlay", MODE_PRIVATE);
-        java.util.Set<String> stored = prefs.getStringSet("profiles", null);
-        java.util.Set<String> profiles = new java.util.TreeSet<>(stored == null ? java.util.Collections.singleton("Default") : stored);
+        java.util.Set<String> stored = prefs.getStringSet("profiles", java.util.Collections.emptySet());
+        java.util.Set<String> profiles = new java.util.TreeSet<>(stored == null ? java.util.Collections.emptySet() : stored);
+        profiles.add("Default");
+        String active = prefs.getString("active_profile", "Default");
         String[] choices = profiles.toArray(new String[0]);
-        new AlertDialog.Builder(this).setTitle("Gamepad profiles").setItems(choices, (dialog, which) -> {
+        new AlertDialog.Builder(this).setTitle("Profiles • Active: " + active).setItems(choices, (dialog, which) -> {
             String target = choices[which];
-            String source = prefs.getString("active_profile", "Default");
-            if (!target.equals(source)) {
-                copyGamepadProfile(prefs, source, target);
-                prefs.edit().putString("active_profile", target).apply();
-                recreate();
+            if (!target.equals(active)) {
+                prefs.edit().putString("active_profile", target).commit();
+                applyGamepadProfile(prefs, target);
+                if (gamepadOverlay != null) gamepadOverlay.reloadProfile();
+                showGamepadControlsEditor();
             }
         }).setPositiveButton("Create", (dialog, which) -> {
             android.widget.EditText field = new android.widget.EditText(this);
             field.setSingleLine(true);
             field.setHint("Profile name");
-            new AlertDialog.Builder(this).setTitle("Create profile").setView(field)
-                    .setPositiveButton("Save", (d, w) -> {
-                        String name = field.getText().toString().trim();
-                        if (!name.isEmpty() && !profiles.contains(name)) {
-                            copyGamepadProfile(prefs, prefs.getString("active_profile", "Default"), name);
-                            profiles.add(name);
-                            prefs.edit().putStringSet("profiles", profiles).putString("active_profile", name).apply();
-                            recreate();
+            field.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+            new AlertDialog.Builder(this).setTitle("New control profile").setView(field)
+                    .setPositiveButton("Create", (d, w) -> {
+                        String name = field.getText().toString().trim().replaceAll("[^A-Za-z0-9 _-]", "");
+                        if (name.isEmpty() || name.length() > 32 || profiles.contains(name)) {
+                            android.widget.Toast.makeText(this, "Invalid or existing profile name", android.widget.Toast.LENGTH_SHORT).show();
+                            return;
                         }
+                        String source = prefs.getString("active_profile", "Default");
+                        copyGamepadProfile(prefs, source, name);
+                        profiles.add(name);
+                        boolean saved = prefs.edit().putStringSet("profiles", new java.util.HashSet<>(profiles))
+                                .putString("active_profile", name).commit();
+                        if (!saved) {
+                            android.widget.Toast.makeText(this, "Could not save profile", android.widget.Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        applyGamepadProfile(prefs, name);
+                        if (gamepadOverlay != null) gamepadOverlay.reloadProfile();
+                        showGamepadControlsEditor();
                     }).setNegativeButton("Cancel", null).show();
         }).setNegativeButton("Close", null).show();
+    }
+
+    private void applyGamepadProfile(android.content.SharedPreferences prefs, String profile) {
+        gamepadDisabledControls.clear();
+        gamepadToggleControls.clear();
+        java.util.Set<String> disabled = prefs.getStringSet(profile + "_disabled_controls",
+                prefs.getStringSet("disabled_controls", java.util.Collections.emptySet()));
+        java.util.Set<String> toggles = prefs.getStringSet(profile + "_toggle_controls",
+                prefs.getStringSet("toggle_controls", java.util.Collections.emptySet()));
+        if (disabled != null) gamepadDisabledControls.addAll(new java.util.HashSet<>(disabled));
+        if (toggles != null) gamepadToggleControls.addAll(new java.util.HashSet<>(toggles));
+        for (String control : gamepadOverlay.controlNames()) {
+            gamepadOverlay.configureControl(control, !gamepadDisabledControls.contains(control),
+                    gamepadToggleControls.contains(control));
+        }
     }
 
     private void copyGamepadProfile(android.content.SharedPreferences prefs, String from, String to) {
