@@ -231,12 +231,13 @@ extern "C" void touch_handle_event(const SDL_Event *e) {
             f->stick = false;
             f->right_stick = false;
         }
-        if (f->button >= 0 && f->button < NB) {
+        if (down) { f->x = x; f->y = y; }
+        else if (f->button >= 0 && f->button < NB) {
             g_button_dx[f->button] += (x - f->x) * g_aspect;
             g_button_dy[f->button] += y - f->y;
+            f->x = x;
+            f->y = y;
         }
-        f->x = x;
-        f->y = y;
         if (up) { f->used = false; save_layout(); }
         return;
     }
