@@ -7,6 +7,8 @@ import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.hardware.display.DisplayManager;
+import android.hardware.input.InputManager;
+import android.view.InputDevice;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -28,7 +30,7 @@ import java.util.Date;
 import java.util.List;
 import org.libsdl.app.SDLActivity;
 
-public class SkyrimActivity extends SDLActivity {
+public class SkyrimActivity extends SDLActivity implements InputManager.InputDeviceListener {
     @Override
     protected String[] getLibraries() {
         return new String[] { "SDL2", "dxvk_d3d9", "main" };
@@ -46,12 +48,16 @@ public class SkyrimActivity extends SDLActivity {
         saveLastExit();
         super.onCreate(savedInstanceState);
         addGamepadOverlay();
+        inputManager = (InputManager) getSystemService(Context.INPUT_SERVICE);
+        if (inputManager != null) inputManager.registerInputDeviceListener(this, new Handler(Looper.getMainLooper()));
+        refreshPhysicalGamepadState();
         addOverlayMenuButton();
         if (BuildConfig.DUAL) startHudScreen();
     }
 
     @Override
     protected void onDestroy() {
+        if (inputManager != null) inputManager.unregisterInputDeviceListener(this);
         if (hudScreen != null) { hudScreen.dismiss(); hudScreen = null; }
         if (!mBrokenLibraries) nativeSetVirtualPad(0, 0, 0, 0, 0, 0, 0);
         super.onDestroy();
@@ -71,6 +77,9 @@ public class SkyrimActivity extends SDLActivity {
     private native void nativeQuickAction(boolean load);
     private GamepadOverlayView gamepadOverlay;
     private boolean gamepadOverlayEnabled = true;
+    private boolean physicalGamepadConnected = false;
+    private boolean forceOverlayVisible = false;
+    private InputManager inputManager;
     private final java.util.Set<String> gamepadDisabledControls = new java.util.HashSet<>();
     private final java.util.Set<String> gamepadToggleControls = new java.util.HashSet<>();
 
@@ -106,9 +115,10 @@ public class SkyrimActivity extends SDLActivity {
 
     private void setGamepadOverlayEnabled(boolean enabled) {
         gamepadOverlayEnabled = enabled;
+        forceOverlayVisible = enabled;
         getSharedPreferences("gamepad_overlay", MODE_PRIVATE).edit().putBoolean("overlay_enabled", enabled).apply();
         if (gamepadOverlay != null) {
-            gamepadOverlay.setVisibility(enabled ? android.view.View.VISIBLE : android.view.View.GONE);
+            gamepadOverlay.setVisibility(enabled && (!physicalGamepadConnected || forceOverlayVisible) ? android.view.View.VISIBLE : android.view.View.GONE);
         }
         if (!enabled && !mBrokenLibraries) nativeSetVirtualPad(0, 0, 0, 0, 0, 0, 0);
         android.widget.Toast.makeText(this,
@@ -143,7 +153,7 @@ public class SkyrimActivity extends SDLActivity {
     }
 
     private void showOverlayMenu() {
-        String[] items = { "LSFG settings", "Android keyboard", "Gamepad overlay: " + (gamepadOverlayEnabled ? "ON" : "OFF"), "Gamepad buttons editor", "Arrange gamepad controls", "Legacy touch controls editor" };
+        String[] items = { "LSFG settings", "Android keyboard", "Gamepad overlay: " + (gamepadOverlayEnabled ? "ON" : "OFF"), "Gamepad editor", "Legacy touch controls editor" };
         new AlertDialog.Builder(this)
                 .setTitle("Skyrim overlay")
                 .setItems(items, (dialog, which) -> {
@@ -155,14 +165,6 @@ public class SkyrimActivity extends SDLActivity {
                         setGamepadOverlayEnabled(!gamepadOverlayEnabled);
                     } else if (which == 3) {
                         showGamepadControlsEditor();
-                    } else if (which == 4) {
-                        if (gamepadOverlay != null) {
-                            boolean editing = !gamepadOverlay.isLayoutEditMode();
-                            gamepadOverlay.setLayoutEditMode(editing);
-                            android.widget.Toast.makeText(this,
-                                    editing ? "Drag controls to reposition. Open menu to finish." : "Control layout saved",
-                                    android.widget.Toast.LENGTH_LONG).show();
-                        }
                     } else {
                         touchEditorEnabled = !touchEditorEnabled;
                         nativeSetTouchEditor(touchEditorEnabled);
@@ -183,7 +185,7 @@ public class SkyrimActivity extends SDLActivity {
                     + (gamepadToggleControls.contains(name) ? "  [LATCH]" : "  [HOLD]");
         }
         new AlertDialog.Builder(this)
-                .setTitle("Gamepad controls")
+                .setTitle("Gamepad editor")
                 .setItems(labels, (dialog, which) -> {
                     String name = names[which];
                     boolean enabled = !gamepadDisabledControls.contains(name);
@@ -395,3 +397,4 @@ public class SkyrimActivity extends SDLActivity {
         }
     }
 }
+
