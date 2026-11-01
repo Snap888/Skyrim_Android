@@ -46,11 +46,30 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
         Control("QUICK SAVE",.43f,.30f,.060f,.035f,0,5), Control("QUICK LOAD",.57f,.30f,.060f,.035f,0,5)
     )
     private val pointers = HashMap<Int, Control>()
+    private val prefs = context.getSharedPreferences("gamepad_overlay", Context.MODE_PRIVATE)
+    private val positions = controls.associate { control ->
+        control.name to Pair(
+            prefs.getFloat("x_" + control.name, control.x),
+            prefs.getFloat("y_" + control.name, control.y)
+        )
+    }.toMutableMap()
+    private var editMode = false
+    private val dragging = HashMap<Int, String>()
+    private val lastTouch = HashMap<Int, Pair<Float, Float>>()
     private val enabled = controls.associate { it.name to true }.toMutableMap()
     private val toggleMode = controls.associate { it.name to false }.toMutableMap()
     private val latched = HashSet<String>()
 
     fun controlNames(): List<String> = controls.map { it.name }
+    fun isLayoutEditMode(): Boolean = editMode
+    fun setLayoutEditMode(enabled: Boolean) {
+        editMode = enabled
+        if (!enabled) {
+            dragging.clear()
+            lastTouch.clear()
+        }
+        invalidate()
+    }
     fun isControlEnabled(name: String): Boolean = enabled[name] ?: true
     fun isToggleMode(name: String): Boolean = toggleMode[name] ?: false
     fun configureControl(name: String, isEnabled: Boolean, isToggle: Boolean) {
@@ -82,10 +101,11 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
 
     private fun bounds(c:Control):RectF {
         val scale = min(width,height).toFloat()
-        val cx = c.x * width; val cy = c.y * height
+        val pos = positions[c.name] ?: Pair(c.x, c.y)
+        val cx = pos.first * width; val cy = pos.second * height
         return RectF(cx-c.rx*scale,cy-c.ry*scale,cx+c.rx*scale,cy+c.ry*scale)
     }
-    private fun hit(x:Float,y:Float):Control? = controls.asReversed().firstOrNull { isControlEnabled(it.name) && bounds(it).contains(x,y) }
+    private fun hit(x:Float,y:Float):Control? = controls.asReversed().firstOrNull { (editMode || isControlEnabled(it.name)) && bounds(it).contains(x,y) }
     private fun axis(c:Control,x:Float,y:Float):Pair<Float,Float> {
         val b=bounds(c); val nx=((x-(b.left+b.right)/2f)/(b.width()/2f)).coerceIn(-1f,1f)
         val ny=((y-(b.top+b.bottom)/2f)/(b.height()/2f)).coerceIn(-1f,1f)
@@ -100,7 +120,7 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
         super.onDraw(canvas)
         val scale=min(width,height).toFloat()
         controls.forEach { c ->
-            if (!isControlEnabled(c.name)) return@forEach
+            if (!isControlEnabled(c.name) && !editMode) return@forEach
             val b=bounds(c)
             if(c.kind==5) {
                 canvas.drawRoundRect(b,b.height()/2,b.height()/2,fill); canvas.drawRoundRect(b,b.height()/2,b.height()/2,line)
@@ -128,6 +148,17 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
                 canvas.drawOval(b,fill); canvas.drawOval(b,line)
                 canvas.drawText(c.name,b.centerX(),b.centerY()+label.textSize*.34f,smallLabel)
             }
+        }
+        if (editMode) {
+            val guide = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = 0xffffd54f.toInt()
+                style = Paint.Style.STROKE
+                strokeWidth = 2f * density
+            }
+            dragging.values.toSet().forEach { name ->
+                controls.firstOrNull { it.name == name }?.let { canvas.drawRect(bounds(it), guide) }
+            }
+            canvas.drawText("DRAG CONTROLS - OPEN MENU TO FINISH", width / 2f, 28f * density, smallLabel.apply { color = 0xffffd54f.toInt() })
         }
         // Touch indicator for the two clickable center menu keys.
         val cy=height*.95f; canvas.drawRoundRect(RectF(width*.405f,cy-18*density,width*.485f,cy+18*density),18*density,18*density,fill)
