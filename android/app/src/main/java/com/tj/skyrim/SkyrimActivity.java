@@ -69,6 +69,7 @@ public class SkyrimActivity extends SDLActivity {
     private native void nativeSetLegacyTouchEnabled(boolean enabled);
     private native void nativeSetVirtualPad(int buttons, int lx, int ly, int rx, int ry, int lt, int rt);
     private GamepadOverlayView gamepadOverlay;
+    private boolean gamepadOverlayEnabled = true;
 
     private void addGamepadOverlay() {
         if (mLayout == null) return;
@@ -84,7 +85,20 @@ public class SkyrimActivity extends SDLActivity {
                 android.view.ViewGroup.LayoutParams.MATCH_PARENT);
         mLayout.addView(gamepadOverlay, p);
         gamepadOverlay.bringToFront();
+        gamepadOverlay.setVisibility(gamepadOverlayEnabled ? android.view.View.VISIBLE : android.view.View.GONE);
     }
+
+    private void setGamepadOverlayEnabled(boolean enabled) {
+        gamepadOverlayEnabled = enabled;
+        if (gamepadOverlay != null) {
+            gamepadOverlay.setVisibility(enabled ? android.view.View.VISIBLE : android.view.View.GONE);
+        }
+        if (!enabled && !mBrokenLibraries) nativeSetVirtualPad(0, 0, 0, 0, 0, 0, 0);
+        android.widget.Toast.makeText(this,
+                enabled ? "Gamepad overlay enabled" : "Gamepad overlay disabled",
+                android.widget.Toast.LENGTH_SHORT).show();
+    }
+
     private boolean touchEditorEnabled;
 
     private void addOverlayMenuButton() {
@@ -112,7 +126,7 @@ public class SkyrimActivity extends SDLActivity {
     }
 
     private void showOverlayMenu() {
-        String[] items = { "LSFG settings", "Android keyboard", "Touch controls editor" };
+        String[] items = { "LSFG settings", "Android keyboard", "Gamepad overlay: " + (gamepadOverlayEnabled ? "ON" : "OFF"), "Legacy touch controls editor" };
         new AlertDialog.Builder(this)
                 .setTitle("Skyrim overlay")
                 .setItems(items, (dialog, which) -> {
