@@ -65,6 +65,7 @@ struct Voice {
     /* source format */
     int fmt, bpf, block_align, spb;
     int xwma_avg_bps;          /* nAvgBytesPerSec for xWMA */
+    int xwma_bits;             /* wBitsPerSample for WMA codec setup */
     int xwma_tag;              /* 0x0161 or 0x0162 */
     uint8_t xwma_extra[64];    /* WAVEFORMATEX cbSize bytes after header */
     int xwma_extra_size;
@@ -142,7 +143,7 @@ static void adpcm_block(Voice *v, const uint8_t *b, int16_t *out) {
 /* Implemented in xwma_ffmpeg.c — decode xWMA/WMA payload to interleaved PCM16.
  * cum_bytes: XAUDIO2_BUFFER_WMA decoded PCM cumulative byte totals (dpds). */
 int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
-                     int block_align, int avg_bps, int tag,
+                     int block_align, int avg_bps, int tag, int bits_per_sample,
                      const uint32_t *cum_bytes, uint32_t packet_count,
                      const uint8_t *extradata, int extradata_size,
                      uint32_t *out_frames);
@@ -172,6 +173,7 @@ static void set_format(Voice *v, uint32_t wf) {
         /* WAVE_FORMAT_WMAUDIO2 / WMAUDIO3 — Skyrim voices & music (xWMA) */
         v->fmt = FMT_XWMA;
         v->xwma_tag = tag;
+        v->xwma_bits = bits;
         v->xwma_avg_bps = (int)M32(wf + 8);
         v->bpf = v->block_align ? v->block_align : 1;
         /* cbSize at offset 16; extradata follows the 18-byte WAVEFORMATEX */
@@ -672,7 +674,7 @@ SHIM(xs_SubmitSourceBuffer) {
             /* Decode xWMA packets -> PCM16.  The seek table is not used as
              * compressed offsets: XAudio2 defines cumulative decoded sizes. */
             x->decoded = xwma_decode(MEM + x->data, x->bytes, v->in_ch, v->rate,
-                                     v->block_align, v->xwma_avg_bps, v->xwma_tag,
+                                     v->block_align, v->xwma_avg_bps, v->xwma_tag, v->xwma_bits,
                                      packet_info, packet_count,
                                      v->xwma_extra, v->xwma_extra_size,
                                      &x->nframes);
