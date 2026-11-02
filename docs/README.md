@@ -659,3 +659,31 @@ the selected state to `port/lsfg_gpu_profile.conf`.
 Профилирование включается в launcher через **LSFG GPU stage profiling (CSV)**; вручную задавать переменные окружения не требуется. Для следующего теста нужен APK из актуального HEAD и свежие `dxvk_lsfg_gpu.csv`, `dxvk_perf_on.csv`, `lsfg.log`.
 
 **Статус:** source commit опубликован и проверен; Android NDK build, APK и device runtime validation ещё не подтверждены. Изменение не меняет алгоритм LSFG или порядок GPU passes. Подробности: [GPU profiler](LSFG_GPU_PROFILER.md), [план оптимизации](OPTIMIZATION_PLAN_SNAP_PATCH_5.md), [статус реализации](LSFG_SNAP_PATCH_5_STATUS.md).
+
+
+## Новый runtime-тест LSFG x2 — 3 ноября 2026, 00:58
+
+Проверен новый набор артефактов из `Logs/` на ветке `snap-patch-5`, upload HEAD `2358e474eaf4c2374b459b8eca38386e5138d974`.
+
+Конфигурация: LSFG ON, x2, flow_scale=1.00, Performance mode, source extent 2448x1080, effective flow extent 1836x810 (0.75); драйвер Turnip Gen8 V38.
+
+### Подтверждено в `lsfg.log`
+
+- 300 RCDATA извлечены; 300/300 SPIR-V переведены без ошибок.
+- Reflection: 300/300 модулей успешно, ошибок reflection нет.
+- Активен реальный WSI present-image hook и DXVK command-list compute path.
+- Созданы два history wrapper slots; copy completion дошёл до #9000.
+- Mipmaps, Alpha/Beta и Gamma/Delta/Generate resources инициализированы.
+- Generate command записывался до source_frame=9000; present counter дошёл до 18000.
+
+Это подтверждает устойчивую активность command-recording/copy-completion пути в течение сессии, но не доказывает корректность каждого generated pixel и визуальное качество кадра.
+
+### CPU-side PresentImage
+
+`dxvk_perf_on.csv`: 76 окон, frame 120–9120, VSync=1. Среднее оконных средних — 7,112 мс; медиана — 6,555 мс; P95 — 11,501 мс. Максимальный `max_cpu_present_ms` — 824,513 мс (единичный stall). Среднее первых 10 окон — 6,665 мс, последних 10 — 10,880 мс: в конце capture виден рост CPU Present cost, причина пока не локализована.
+
+Requested/generated averages в CSV находятся между 0,983333 и 1,0, что согласуется с x2 режимом (примерно один generated frame на source frame). CPU PresentImage не является полной длительностью кадра или FPS.
+
+### Ограничения анализа
+
+В текущей загрузке нет `dxvk_perf_off.csv`, поэтому это не A/B тест. Большие файлы `dxvk_lsfg_gpu.csv` (25,7 МБ) и `log.txt` (1,43 МБ) присутствуют в Git tree, но их содержимое не удалось прочитать через GitHub file connector. Поэтому не публикуются новые GPU stage timings и выводы по звуку/xWMA. Подробный разбор и следующий тест — в [статусе snap-patch-5](LSFG_SNAP_PATCH_5_STATUS.md).
