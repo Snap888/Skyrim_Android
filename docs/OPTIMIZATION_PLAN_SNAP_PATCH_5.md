@@ -187,3 +187,34 @@
 ### Следующий этап: аудио
 
 Не вносить ещё одну общую правку XAudio2 на основании только `empty_queue`: последний лог не показал refill-gap и `slow_mix=0`. Сначала нужен воспроизводимый аудиотест и раздельная диагностика xWMA startup latency для музыки, voice и SFX. Большие xWMA decode latency (порядка сотен миллисекунд) — кандидат на исследование, но streaming/partial decode пока не менять без проверки packet ordering, dpds и play-region semantics.
+
+
+## Обновление после per-dispatch GPU instrumentation — 3 ноября 2026
+
+### Последний source commit
+
+Рабочая ветка: `snap-patch-5`  
+HEAD на момент обновления: `2acde0c27b8246a45eab12b29fc4d41dc6cefc8b`  
+Commit: [Add per-dispatch LSFG Gamma Delta GPU timings](https://github.com/Snap888/Skyrim_Android/commit/2acde0c27b8246a45eab12b29fc4d41dc6cefc8b)
+
+### Что изменено
+
+В `android/app/jni/lsfg/lsfg_dxvk_generation.cpp` добавлены отдельные GPU timestamp intervals вокруг каждого Gamma и Delta compute dispatch:
+
+- `Gamma_L<level>_S<stage>`
+- `Delta_L<level>_S<stage>`
+
+Сохраняются агрегированные `GammaDelta_L0` … `GammaDelta_L6` для сравнения суммы индивидуальных dispatch с прежними измерениями. Level соответствует внешнему уровню generation pyramid; stage — индексу shader dispatch в Gamma/Delta массиве. На L0–L3 выполняется по пять Gamma dispatches; на L4–L6 — пять Gamma и десять Delta dispatches на уровень.
+
+Изменение только диагностическое и opt-in через настройку launcher **LSFG GPU stage profiling (CSV)**. Порядок dispatch, шейдеры, ресурсы, barriers и логика generation не менялись. Подробности формата — в [LSFG GPU profiler](LSFG_GPU_PROFILER.md).
+
+### Следующий тест
+
+1. Собрать APK из указанного HEAD и включить **LSFG GPU stage profiling (CSV)**.
+2. Оставить LSFG включённым на x2 и не менять multiplier/flow scale/performance mode во время прогона.
+3. Прогреть игру, затем несколько минут воспроизводить одну обычную сцену.
+4. Штатно закрыть игру и прислать `port/dxvk_lsfg_gpu.csv`, `dxvk_perf_on.csv` и `lsfg.log`.
+
+В новом CSV проверить, какие конкретно Gamma/Delta dispatch формируют прежний дорогой агрегат L6, и сверить сумму per-dispatch intervals с `GammaDelta_L6`. До получения нового CSV нельзя объявлять конкретный shader stage причиной bottleneck.
+
+**Проверка:** commit и source diff опубликованы; Android NDK build, APK packaging и device runtime test ещё не подтверждены. Следующий этап остаётся измерительным — алгоритмические изменения не вносить до анализа новых timestamps.

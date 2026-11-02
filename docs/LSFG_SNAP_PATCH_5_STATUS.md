@@ -459,3 +459,40 @@ claimed.
 Это исправление достоверности диагностики, не оптимизация FPS. Требуется APK rebuild и проверка: OFF CSV должен содержать только заголовок + `SESSION,...,lsfg_disabled` (или `profiling_disabled`, если профилировщик выключен), а новый ON profiling run — новый набор stage samples.
 
 Аудиокод пока не менялся: предыдущий лог не подтвердил refill gaps, `slow_mix=0`; сначала требуется повторяемый тест на слышимые разрывы и связь с долгим xWMA startup decode.
+
+
+## Per-dispatch Gamma/Delta GPU profiling — 2026-11-03
+
+Current branch HEAD: `2acde0c27b8246a45eab12b29fc4d41dc6cefc8b`.
+
+Commit [2acde0c](https://github.com/Snap888/Skyrim_Android/commit/2acde0c27b8246a45eab12b29fc4d41dc6cefc8b) adds individual GPU timestamp intervals around every Gamma and Delta dispatch in `android/app/jni/lsfg/lsfg_dxvk_generation.cpp`.
+
+New CSV stage names:
+
+- `Gamma_L<level>_S<stage>`
+- `Delta_L<level>_S<stage>`
+
+The existing `GammaDelta_L0` … `GammaDelta_L6` aggregate rows remain enabled, allowing direct comparison of the per-dispatch sum with each level aggregate. Level follows the outer generation-pyramid loop. Stage is the shader-array index passed to the dispatch helper. L0–L3 contain five Gamma dispatches each; L4–L6 contain five Gamma and ten Delta dispatches each.
+
+Instrumentation is opt-in through the launcher setting **LSFG GPU stage profiling (CSV)**. Dispatch order, shaders, resources, barriers and generated-frame logic are unchanged. No extra profiling is performed when the setting is OFF.
+
+### Next device validation
+
+Build the APK from this HEAD, enable the profiling checkbox, run LSFG ON at x2 with a fixed configuration, warm up the scene and capture several minutes. After a clean exit, provide:
+
+- `port/dxvk_lsfg_gpu.csv` — per-dispatch and aggregate GPU timings;
+- `dxvk_perf_on.csv` — CPU-side PresentImage windows from the same run;
+- `lsfg.log` — runtime configuration and dispatch/completion diagnostics.
+
+The next analysis will identify which Gamma/Delta dispatches dominate level 6 and compare their summed durations with `GammaDelta_L6`. Existing aggregate profile identifies L6 as the largest group, but does not identify its individual expensive shader dispatch.
+
+### Verification state
+
+- [x] Source changes committed to `snap-patch-5`.
+- [x] Branch HEAD and commit contents verified on GitHub.
+- [ ] Android NDK native build.
+- [ ] APK packaging and installation.
+- [ ] Device run with per-dispatch CSV.
+- [ ] Runtime timing and visual validation.
+
+No successful native build, APK or device validation is claimed.

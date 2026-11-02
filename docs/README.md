@@ -1,13 +1,10 @@
 # Skyrim Android — документация работ и карта LSFG
 
-> Документ описывает состояние ветки `snap-patch-3` на commit
-> [`98ac2957fede`](https://github.com/Snap888/Skyrim_Android/commit/98ac2957fede8c805375a86ecbcba91c79074091)
-> (1 ноября 2026). Это инженерный журнал и карта проекта, а не заявление
-> о подтверждённой работоспособности frame generation на устройстве.
+> Документ сохраняет историческую карту реализации LSFG; актуальное состояние рабочей ветки — `snap-patch-5` (см. последний раздел). Исторические сведения ниже не являются заявлением о подтверждённой работоспособности frame generation на устройстве.
 
 ## 1. Назначение проекта
 
-Ветка `snap-patch-3` развивает Android-порт оригинальной PC-версии
+Ветка `snap-patch-3` исторически развивала Android-порт оригинальной PC-версии
 *The Elder Scrolls V: Skyrim (2011)* и добавляет экспериментальную интеграцию
 Lossless Scaling Frame Generation (LSFG) в графический путь Android.
 
@@ -647,3 +644,18 @@ the selected state to `port/lsfg_gpu_profile.conf`.
 Первое изменение в исходниках `snap-patch-5`: LSFG GPU profiler CSV теперь сбрасывается на каждый запуск до проверки LSFG ON/OFF и получает явный session marker. Это предотвращает использование старых ON GPU samples как результата OFF теста. Подробности и тестовая процедура: [LSFG GPU profiler](LSFG_GPU_PROFILER.md) и [план оптимизации](OPTIMIZATION_PLAN_SNAP_PATCH_5.md).
 
 Изменение source-level; native APK build и device validation ещё ожидаются. Аудио, DXVK rendering и LSFG algorithm пока не менялись.
+
+
+
+
+## Актуальное состояние snap-patch-5 — 3 ноября 2026
+
+Текущая рабочая ветка проекта — [`snap-patch-5`](https://github.com/Snap888/Skyrim_Android/tree/snap-patch-5), HEAD:
+
+`2acde0c27b8246a45eab12b29fc4d41dc6cefc8b`
+
+Последнее изменение — [per-dispatch GPU profiling для Gamma/Delta](https://github.com/Snap888/Skyrim_Android/commit/2acde0c27b8246a45eab12b29fc4d41dc6cefc8b). Профилировщик теперь сохраняет как агрегированные строки `GammaDelta_L0–L6`, так и индивидуальные интервалы `Gamma_L<level>_S<stage>` и `Delta_L<level>_S<stage>`. Это позволит локализовать дорогие dispatch внутри ранее самого затратного уровня L6.
+
+Профилирование включается в launcher через **LSFG GPU stage profiling (CSV)**; вручную задавать переменные окружения не требуется. Для следующего теста нужен APK из актуального HEAD и свежие `dxvk_lsfg_gpu.csv`, `dxvk_perf_on.csv`, `lsfg.log`.
+
+**Статус:** source commit опубликован и проверен; Android NDK build, APK и device runtime validation ещё не подтверждены. Изменение не меняет алгоритм LSFG или порядок GPU passes. Подробности: [GPU profiler](LSFG_GPU_PROFILER.md), [план оптимизации](OPTIMIZATION_PLAN_SNAP_PATCH_5.md), [статус реализации](LSFG_SNAP_PATCH_5_STATUS.md).
