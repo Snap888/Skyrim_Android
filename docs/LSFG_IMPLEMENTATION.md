@@ -282,3 +282,17 @@ source review. The current runtime behavior and visual quality therefore remain
 unverified for HEAD `98ac295`. The latest user-reported artifact issue is motion
 blur/distortion; obtain a fresh full `port/lsfg.log` from an APK built from
 this HEAD, plus `port/log.txt`/logcat if the app crashes or hangs.
+
+## Current DXVK dispatch-order addendum — 2026-11-02
+
+The current `snap-patch-5` implementation records LSFG compute work through
+the active DXVK command list. On levels with paired Gamma/Delta work, the
+current generation loop matches WinNative's interleaved sequence:
+Gamma stage 0 then Delta stage 0, continuing through Gamma stage 4 and Delta
+stage 4, followed by Delta stages 5–9. The older historical checkpoints in
+this document that describe no compute dispatch are superseded by the current
+source and the status document.
+
+The correction is source-reviewed but not yet validated by an Android native
+build or device test. Descriptor/resource semantics and generated image
+quality remain separate acceptance gates.
