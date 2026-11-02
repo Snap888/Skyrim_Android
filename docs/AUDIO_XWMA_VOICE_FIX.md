@@ -113,14 +113,12 @@ It now:
 
 - uses WAVEFORMATEX `block_align` for each compressed packet and checks
   `PacketCount` against the number of blocks (including a possibly shorter final block);
-- verifies that the packet size matches WAVEFORMATEX `block_align`;
 - submits every fixed-size compressed packet separately while retaining the
   FFmpeg decoder state between packets;
 - flushes the decoder after the final packet;
 - validates the decoded-packet cumulative table as monotonic decoded-byte
   accounting, without treating it as compressed offsets;
-- logs packet count, packet size, decoded PCM frames, estimated input duration,
-  and the duration represented by the final cumulative decoded-byte value.
+- logs packet count, packet size, decoded PCM frames, and the duration represented by the final cumulative decoded-byte value.
 
 This follows the Microsoft XAUDIO2_BUFFER_WMA contract and FFmpeg's xWMA
 demuxer packet model. A mismatched packet count or block alignment is reported
@@ -152,8 +150,8 @@ decoding even when packet boundaries are correct.
 The custom decoder now mirrors FFmpeg's xWMA demuxer initialization, including
 its WMAV2 bitrate normalization rules, WMAPRO fallback extradata, and bit-depth
 propagation. Packet splitting also now matches the demuxer: one `block_align`
-packet per submission, with a shorter final block allowed. It also uses refcounted `AVPacket` buffers and rejects decoded
-PCM whose byte count differs from the final cumulative `dpds` value.
+packet per submission, with a shorter final block allowed. It also uses refcounted `AVPacket` buffers and rejects decoded PCM whose
+byte count differs from the final cumulative `dpds` value.
 
 The supplied sample was decoded successfully by the system FFmpeg reference
 decoder; the Android in-process implementation has not yet been built or run
