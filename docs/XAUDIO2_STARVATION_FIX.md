@@ -64,3 +64,29 @@ Also include logcat if the app crashes during exit.
 Source changes are committed to `snap-patch-5`. No Android APK build, install,
 or device playback test was performed as part of this change. The fix is not
 considered runtime-verified until the new log and listening test are reviewed.
+
+## Shutdown crash follow-up (2026-11-02)
+
+The latest device log reproduces `FORTIFY: pthread_mutex_lock called on a
+destroyed mutex` immediately after `quit requested`. The SDL quit handler
+previously called `exit(0)` while the detached XAudio2 mixer thread could
+still call `SDL_GetQueuedAudioSize` / `SDL_QueueAudio` on the SDL audio device.
+That allowed process-exit teardown to destroy SDL audio synchronization while
+the mixer thread was still using it.
+
+The shutdown path now:
+- keeps the XAudio2 mixer thread joinable and signals it to stop;
+- closes its SDL audio device from the mixer thread, after leaving the mix loop;
+- joins the mixer before the SDL quit handler calls `exit(0)`;
+- signals and joins the xWMA decode worker so it cannot continue publishing
+  decoded buffers during process teardown.
+
+This is a targeted lifecycle fix based on the observed quit-time race. It still
+requires an APK rebuild and device retest; the current log is from the build
+before this change.
+
+Latest test diagnostics: eight callback-to-submit intervals were recorded
+(11–65 ms), all on buffers marked EOS and with an empty queue before submit.
+These measurements need game-side callback semantics to determine whether
+they represent a real continuous-stream gap or normal EOS/voice reuse. Two
+xWMA worker jobs took 235 ms and 183 ms; the other recorded jobs took 1–6 ms.
