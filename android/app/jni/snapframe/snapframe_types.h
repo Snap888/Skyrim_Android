@@ -1,0 +1,45 @@
+#pragma once
+
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef enum SnapFrameQuality {
+    SNAPFRAME_QUALITY_PERFORMANCE = 0,
+    SNAPFRAME_QUALITY_BALANCED = 1,
+    SNAPFRAME_QUALITY_QUALITY = 2
+} SnapFrameQuality;
+
+typedef struct SnapFrameConfig {
+    int enabled;
+    int multiplier;       /* Initially only 1 (off) or 2 (one generated frame). */
+    int quality;          /* SnapFrameQuality */
+    int flow_scale_percent;
+    int profiling_enabled;
+} SnapFrameConfig;
+
+typedef struct SnapFrameFrameInfo {
+    uint32_t width;
+    uint32_t height;
+    uint32_t format;
+    uint64_t frame_index;
+    int64_t timestamp_ns;
+} SnapFrameFrameInfo;
+
+typedef struct SnapFrameStats {
+    uint64_t captured_frames;
+    uint64_t generated_frames;
+    uint64_t skipped_frames;
+    uint64_t invalid_history_frames;
+    float preprocess_gpu_ms;
+    float flow_gpu_ms;
+    float confidence_gpu_ms;
+    float warp_gpu_ms;
+    float composite_gpu_ms;
+} SnapFrameStats;
+
+#ifdef __cplusplus
+}
+#endif
