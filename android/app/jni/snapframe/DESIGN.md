@@ -175,12 +175,41 @@ direct performance prediction for this different algorithm.
 - The LSFG GPU CSV contains measurements of a different shader pipeline and
   cannot be used as a direct estimate of SnapFrame cost.
 
-## 7. Current status
+## 7. DXVK integration findings
+
+The repository's `D3D9SwapChainEx::PresentImage` path already records the
+source-to-WSI blit into `m_context`, renders the DXVK HUD, and then submits the
+same command list. LSFG has an independent copy callback in this path. SnapFrame
+now has its own callback, invoked after the blit but before HUD composition.
+The callback receives the active `DxvkContext`, the WSI `DxvkImageView`, and
+`DxvkDevice`. It checks transfer-source usage, dimensions and format, then
+records a copy into one of two SnapFrame-owned DXVK images in the same command
+list. No CPU readback or separate queue submission is used.
+
+A device-destroy callback releases the two history images after device idle and
+before the DXVK device allocator is destroyed. History is reset on size/format/
+device changes and when capture is toggled. Capture is disabled by default and
+can currently be enabled with `<game-directory>/port/snapframe.conf` containing
+`enabled=1`.
+
+Important limitation: the captured source is the WSI image after blitting the
+game backbuffer but before the HUD overlay. This avoids baking the DXVK HUD into
+motion estimation, but it does not yet separate the game's own HUD/UI from the
+3D scene. The hook is only called when the swapchain image supports
+`VK_IMAGE_USAGE_TRANSFER_SRC_BIT`. The two history images are sampled-capable;
+compute/storage format support still needs explicit physical-device validation.
+
+## 8. Current status
 
 - [x] Create isolated branch from `snap-patch-5`.
 - [x] Create isolated module directory and initial host/API scaffold.
 - [x] Record algorithm and staged integration plan.
-- [ ] Trace exact DXVK source-image and command-list hook contracts.
+- [x] Trace the DXVK source-image and active command-list hook contract.
+- [x] Add an independent SnapFrame copy callback before HUD composition.
+- [x] Allocate a two-image GPU-resident history ring and device-lifetime cleanup.
+- [x] Add opt-in configuration bootstrap; capture remains disabled by default.
+- [ ] Build APK and verify capture callback/logs on device.
+- [ ] Validate supported compute/storage formats on the target GPU.
 - [ ] Implement and compile first Vulkan preprocessing shader.
 - [ ] Implement motion estimation and reconstruction.
 - [ ] Add runtime selector and safe presentation integration.
