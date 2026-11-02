@@ -535,3 +535,51 @@ Implementation/documentation commits:
 The Java-only CI status and native arm64 build status must be checked separately.
 No APK build or device test is claimed by this documentation update. See
 [In-game LSFG settings](LSFG_IN_GAME_SETTINGS.md) for behaviour and test notes.
+
+
+## Актуализация snap-patch-5 — производительность DXVK / LSFG (2 ноября 2026)
+
+Проверены последние пользовательские артефакты из `Logs/`:
+
+- `dxvk_lsfg_gpu.csv`: 23 407 GPU stage samples, все со статусом `ok`,
+  2 130 групп кадров.
+- Сумма измеренных GPU pass на одну цепочку generation: среднее 7,196 мс,
+  медиана 6,178 мс, p95 10,475 мс, максимум 11,509 мс.
+- Самый дорогой участок — Gamma/Delta level 6: 2,082 мс в среднем
+  (около 29% суммы). Alpha — 1,232 мс, Mipmaps — 0,987 мс,
+  Generate — 0,930 мс, Beta — 0,874 мс.
+- `dxvk_perf_on.csv` содержит только LSFG ON. Это CPU-side PresentImage
+  timing, а не полное время кадра. Сопоставимого LSFG OFF прогона нет;
+  прирост FPS/потерю производительности по этой серии вычислить нельзя.
+- В тестовой конфигурации: multiplier=2, flow_scale=1.00,
+  performance=0 (Performance mode); фактический flow extent — 1836x810
+  при source extent 2448x1080.
+
+### Первая оптимизация
+
+GPU timestamp profiler переведён в режим opt-in. В обычной игре он выключен,
+чтобы не создавать на каждом pass query objects, timestamp commands,
+completion callbacks и отдельные операции записи CSV. Для диагностического
+прогона включить переменную окружения:
+
+```sh
+DXVK_LSFG_GPU_PROFILE=1
+```
+
+Изменение не меняет алгоритм LSFG, shaders, dispatch order или синхронизацию.
+Это удаляет накладные расходы самого профилировщика из обычного игрового
+пути.
+
+### Следующие задачи
+
+1. Аудит shader/resource dependencies Gamma/Delta L6 — главный измеренный
+   GPU bottleneck. Не пропускать и не объединять стадии без доказательства
+   эквивалентности WinNative reference.
+2. Проверить стоимость Alpha/Mipmaps и shared pass resources.
+3. Получить парные DXVK benchmark логи LSFG OFF/ON на одинаковой сцене.
+4. Проверить frame pacing, длительную нагрузку и визуальное качество x2/x4.
+
+Статус проверки: изменения исходников и документации подготовлены; NDK build,
+APK и device retest ещё не выполнены. Успешные GPU timestamps не доказывают
+качество сгенерированных пикселей, а текущий ON-only benchmark не доказывает
+прирост FPS.

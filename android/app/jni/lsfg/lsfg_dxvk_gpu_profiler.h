@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <cstdint>
+#include <cstring>
 #include <fstream>
 #include <mutex>
 #include <string>
@@ -43,11 +44,24 @@ inline std::string lsfgGpuCsvPath() {
   return "port/dxvk_lsfg_gpu.csv";
 }
 
+// GPU timestamp queries add query-pool objects, command-buffer writes and
+// completion-callback/file-I/O work. Keep them opt-in so normal gameplay does
+// not pay for diagnostics. Set DXVK_LSFG_GPU_PROFILE=1 for a profiling run.
+inline bool lsfgGpuProfilerEnabled() {
+  static const bool enabled = []() {
+    const char* value = std::getenv("DXVK_LSFG_GPU_PROFILE");
+    return value && (std::strcmp(value, "1") == 0
+                  || std::strcmp(value, "true") == 0
+                  || std::strcmp(value, "yes") == 0);
+  }();
+  return enabled;
+}
+
 inline LsfgGpuTimer lsfgGpuTimerBegin(
     DxvkContext* context, DxvkDevice* device, const char* stage,
     uint64_t frame, uint32_t width, uint32_t height) {
   LsfgGpuTimer timer;
-  if (!context || !device || !stage)
+  if (!lsfgGpuProfilerEnabled() || !context || !device || !stage)
     return timer;
 
   timer.begin = new DxvkGpuQuery(device->vkd(), VK_QUERY_TYPE_TIMESTAMP, 0, 0);
