@@ -96,3 +96,16 @@
 - Generate remains gated until three successful shared-pass frames have repopulated the newly allocated mipmap and Alpha/Beta resources.
 
 These are source-level changes only. Android NDK compilation, APK packaging, Vulkan runtime behavior, and output-image quality remain unverified.
+
+## Pass-order audit update — 2026-11-02
+
+A direct comparison with WinNative's `LsfgChain::DispatchGeneration()`
+identified and corrected one concrete mismatch. Paired levels now issue
+Gamma and Delta in the same interleaved order as WinNative (Gamma 0 / Delta 0
+through Gamma 4 / Delta 4, followed by Delta 5–9). The change is committed as
+`77b76cf` in `snap-patch-5`.
+
+This is a partial P2 correctness fix only. Descriptor remapping, temporal
+producer/consumer mapping, output timestamps, target reuse and full shader
+equivalence still require audit. DXVK's tracked resource barriers remain in
+use; the change adds no host wait or separate Vulkan queue submission.
