@@ -194,9 +194,13 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
     *out_frames = 0;
     if (!data || !size || channels < 1 || channels > 8) return NULL;
 
-    /* XAUDIO2_BUFFER_WMA requires PacketCount to divide AudioBytes evenly.
-     * Each submitted xWMA packet therefore has AudioBytes / PacketCount bytes,
-     * and that size must match WAVEFORMATEX block_align. */
+    /* XAUDIO2_BUFFER_WMA requires a decoded-byte table whenever PacketCount
+     * is supplied, and PacketCount must divide AudioBytes evenly. */
+    if (packet_count && !cum_bytes) {
+        fprintf(stderr, "xwma_ffmpeg: PacketCount=%u but dpds table is NULL\\n",
+                packet_count);
+        return NULL;
+    }
     uint32_t packet_size = 0;
     if (packet_count) {
         if (size % packet_count) {
