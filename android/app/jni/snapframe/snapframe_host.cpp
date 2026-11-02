@@ -203,8 +203,8 @@ extern "C" void snapframe_host_shutdown(void) {
     g_initialized.store(0, std::memory_order_release);
     g_resetHistoryRequested.store(1, std::memory_order_release);
     snapframe_dxvk_set_copy_hook(nullptr);
-    snapframe_dxvk_set_device_destroy_hook(nullptr);
-    clearHistory();
+    /* Keep the device-destroy hook registered so owned images are released
+     * before DXVK tears down the device allocator. */
 }
 
 extern "C" int snapframe_host_active(void) {
