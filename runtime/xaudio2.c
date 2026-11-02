@@ -526,8 +526,35 @@ static void route(Voice *v, const float *in, int frames) {
     for (int i = 0; i < n; i++) {
         Voice *d = dests[i];
         if (!d || d->dead || !d->acc) continue;
+        int custom_matrix = i < v->nsends && v->matrix_set[i];
+
+        /* The default XAudio2 matrix is identity when channel counts match.
+         * Avoid rebuilding and walking a full matrix for this common route. */
+        if (!custom_matrix && v->in_ch == d->in_ch) {
+            float gains[MAX_CH];
+            for (int ch = 0; ch < v->in_ch; ch++)
+                gains[ch] = v->volume * v->chvol[ch];
+
+            for (int f = 0; f < frames; f++) {
+                for (int ch = 0; ch < v->in_ch; ch++)
+                    d->acc[f * d->in_ch + ch] += in[f * v->in_ch + ch] * gains[ch];
+            }
+            continue;
+        }
+
+        /* Default mono-to-stereo routing duplicates the mono sample. */
+        if (!custom_matrix && v->in_ch == 1 && d->in_ch == 2) {
+            float gain = v->volume * v->chvol[0];
+            for (int f = 0; f < frames; f++) {
+                float sample = in[f] * gain;
+                d->acc[2 * f] += sample;
+                d->acc[2 * f + 1] += sample;
+            }
+            continue;
+        }
+
         float m[MAX_CH * MAX_CH];
-        if (i < v->nsends && v->matrix_set[i]) memcpy(m, v->matrix[i], sizeof m);
+        if (custom_matrix) memcpy(m, v->matrix[i], sizeof m);
         else default_matrix(v->in_ch, d->in_ch, m);
         for (int s = 0; s < v->in_ch; s++) {
             float g = v->volume * v->chvol[s];
