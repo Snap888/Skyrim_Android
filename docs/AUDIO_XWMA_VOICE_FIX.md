@@ -127,6 +127,13 @@ as a layout error rather than silently decoding a partial stream.
 Android compilation and on-device playback are still required to confirm the
 result with the Skyrim voice and music assets.
 
+
+The XAudio2 voice callback path was also corrected: `OnVoiceProcessingPassStart`
+now receives `BytesRequired = 0` for xWMA voices, as required by the API because
+compressed xWMA packets have no meaningful per-frame byte count. The previous
+generic PCM-style calculation incorrectly multiplied output frames by the
+compressed packet alignment and could request a nonsensical amount of input data.
+
 ## Real FUZ sample analysis (DialogueGe__0003526D_1.fuz)
 
 A supplied vanilla voice sample was inspected byte-for-byte.
