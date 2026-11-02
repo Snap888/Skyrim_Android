@@ -121,7 +121,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
         g_skippedFrames.fetch_add(1, std::memory_order_relaxed);
         if (!g_skipReasonLogged) {
             g_skipReasonLogged = true;
-            fprintf(stderr, "SnapFrame: capture skipped: %s\\n", skipReason);
+            fprintf(stderr, "SnapFrame: capture skipped: %s\n", skipReason);
         }
         return;
     }
