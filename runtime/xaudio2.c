@@ -98,6 +98,7 @@ typedef struct XDecodeJob {
     int channels, rate, block_align, avg_bps, tag, bits, extra_size;
     uint8_t extra[64];
     unsigned submit_no;
+    uint64_t queued_us;
     struct XDecodeJob *next;
 } XDecodeJob;
 
@@ -114,6 +115,7 @@ static unsigned g_xa_src_voices, g_xa_xwma_voices, g_xa_xwma_submits, g_xa_pcm_s
 static pthread_cond_t g_decode_cond = PTHREAD_COND_INITIALIZER;
 static XDecodeJob *g_decode_head, *g_decode_tail;
 static int g_decode_thread_started;
+static uint64_t now_us(void);
 
 /* Called with g_lock held. A voice may be destroyed while an xWMA buffer is
  * decoding outside the mixer lock; decoding is the lifetime reference. */
@@ -241,6 +243,14 @@ static void *xwma_decode_main(void *unused) {
                        job->bytes, job->packet_count, job->submit_no);
 #endif
         }
+
+        uint64_t elapsed_ms = (now_us() - job->queued_us) / 1000;
+        if (decoded && (job->submit_no <= 10 || job->submit_no % 50 == 0 || elapsed_ms >= 20))
+            XA_LOG("xaudio2: xWMA worker latency=%llums submit #%u",
+                   (unsigned long long)elapsed_ms, job->submit_no);
+        else if (!decoded && elapsed_ms >= 20)
+            XA_LOG("xaudio2: xWMA failed/empty after %llums submit #%u",
+                   (unsigned long long)elapsed_ms, job->submit_no);
 
         free(job->data);
         free(job->dpds);
@@ -843,6 +853,7 @@ SHIM(xs_SubmitSourceBuffer) {
         job->extra_size = v->xwma_extra_size;
         memcpy(job->extra, v->xwma_extra, sizeof job->extra);
         job->submit_no = ++g_xa_xwma_submits;
+        job->queued_us = now_us();
 
         x->ready = 0;
         v->qn++;
@@ -884,7 +895,8 @@ SHIM(xs_FlushSourceBuffers) {
     pthread_mutex_lock(&g_lock);
     /* every queued buffer but the playing one ends, reporting OnBufferEnd on
      * the next pass: keep the current one, mark the rest finished */
-    for (int k = v->running ? 1 : 0; k < v->qn; k++) {
+    int keep_current = v->running && v->qn && v->q[v->qhead].started;
+    for (int k = keep_current ? 1 : 0; k < v->qn; k++) {
         XBuf *b = &v->q[(v->qhead + k) % MAX_QUEUE];
         b->flushed = 1;
         b->pos = b->end;
