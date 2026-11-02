@@ -217,6 +217,12 @@ namespace dxvk {
       default: return;
     }
     
+    // Avoid invalidating the pipeline and descriptor state when the same
+    // shader is rebound. This is common in command streams that re-issue
+    // state defensively; an unchanged shader cannot alter the active layout.
+    if (*shaderStage == shader)
+      return;
+
     *shaderStage = shader;
 
     if (stage == VK_SHADER_STAGE_COMPUTE_BIT) {

@@ -187,3 +187,30 @@ The shader and resource bindings are unchanged; per-level image views are
 still rebound before each dispatch, and DXVK continues to track hazards.
 This is a CPU-side command-recording optimization. Its impact must be measured
 in a profiler-disabled ON/OFF test; no FPS gain is claimed yet.
+
+
+## 2026-11-02 — DXVK pipeline-state binding optimization
+
+The refreshed GPU profile contains 18,354 successful timestamp rows over source
+frames 0–1669. Stage averages (ms): Mipmaps 0.993, Alpha 1.234, Beta 0.871,
+GammaDelta L6 2.085 (P95 3.031), Generate 0.906. GammaDelta L6 remains the
+largest individual group; its timer includes the five Gamma and ten Delta
+dispatches for the full-resolution flow level.
+
+The ON/OFF CPU Present CSVs are not a controlled A/B comparison (different
+sample counts and run conditions), so they are not used to claim a precise
+regression or gain. The ON run reports one generated frame per source frame,
+consistent with multiplier x2.
+
+DXVK `DxvkContext::bindShader` previously dirtied the pipeline, pipeline
+state and descriptor resources on every call, even when the exact same shader
+was already bound. It now returns early for an unchanged shader object. This
+preserves all dirty flags when a real shader change has already occurred and
+does not bypass image hazard tracking. It reduces redundant CPU-side pipeline
+invalidation for repeated state binds; GPU shader math and dispatch order are
+unchanged. Device/build validation is still required.
+
+Audio: the new `Logs/log.txt` upload is 1.39 MB and the repository connector
+cannot return its contents, while `lsfg.log` contains only LSFG initialization
+and frame records. No new audio-specific evidence can be extracted from those
+files here, so no speculative mixer/decoder change is made.
