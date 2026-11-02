@@ -279,8 +279,8 @@ public class LauncherActivity extends Activity {
             @Override public void onStartTrackingTouch(SeekBar bar) {}
             @Override public void onStopTrackingTouch(SeekBar bar) {}
         });
-        spinner(root, "lsfgMode", "Generation mode", LSFG_MODE, 1);
-        text(root, "Performance: reduced compute load. Stability: full selected quality. Low: half-resolution flow.", 13, false);
+        spinner(root, "lsfgMode", "Generation mode", LSFG_MODE, 0);
+        text(root, "Recommended: Performance (75% of selected flow resolution). Stability: 100%. Low: 50%. Lower flow resolution reduces LSFG GPU workload; existing saved choices are preserved.", 13, false);
 
         text(root, "Vulkan GPU driver", 20, true);
         text(root, "System uses the Android device driver. Import a compatible Turnip ZIP to use a custom Adreno driver.", 13, false);
