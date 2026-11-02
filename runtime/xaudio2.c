@@ -76,6 +76,16 @@ struct Voice {
     XBuf q[MAX_QUEUE];
     int qhead, qn;
     uint64_t played;
+    /* Refill diagnostics: only a measured callback-to-submit interval is
+     * evidence of a late refill. A buffer ending without a replacement is
+     * not itself counted as starvation (one-shot sounds end normally). */
+    uint64_t last_buffer_end_us;
+    uint64_t refill_gap_total_us;
+    uint32_t refill_gap_count;
+    uint32_t refill_gap_over_5ms;
+    uint32_t refill_gap_over_10ms;
+    int refill_pending;
+    int last_buffer_was_eos;
     double frac;
     float prev[MAX_CH], cur[MAX_CH];
     int primed;
@@ -454,6 +464,12 @@ static int next_frame(Voice *v, float *out, CPU *c) {
         /* Retire the completed buffer before invoking OnBufferEnd: the game
          * callback can now safely enqueue its replacement in this same pass. */
         push_event(v, 4, b->ctx);  /* OnBufferEnd */
+        /* Start a per-voice refill timer before dispatching the callback.
+         * The callback may immediately SubmitSourceBuffer; that path records
+         * the actual elapsed time. EOS is retained for log classification. */
+        v->last_buffer_end_us = now_us();
+        v->refill_pending = 1;
+        v->last_buffer_was_eos = !!(b->flags & 0x40);
         if (b->flags & 0x40) push_event(v, 2, 0);  /* XAUDIO2_END_OF_STREAM -> OnStreamEnd */
         free(b->decoded);
         v->qhead = (v->qhead + 1) % MAX_QUEUE;
@@ -915,6 +931,25 @@ SHIM(xs_SubmitSourceBuffer) {
     x->loop_len = M32(b + 24);
     x->loop_count = M32(b + 28);
     x->ctx = M32(b + 32);
+
+    /* Pair this submission with the most recent completed buffer on the
+     * same voice. Do not infer an underrun when no replacement is submitted:
+     * that is the normal lifecycle of a one-shot source voice. */
+    if (v->refill_pending) {
+        uint64_t gap_us = now_us() - v->last_buffer_end_us;
+        v->refill_gap_total_us += gap_us;
+        v->refill_gap_count++;
+        if (gap_us >= 5000) v->refill_gap_over_5ms++;
+        if (gap_us >= 10000) v->refill_gap_over_10ms++;
+        if (gap_us >= 2000 || v->last_buffer_was_eos) {
+            XA_LOG("xaudio2: refill gap voice=%08x gap=%llums eos=%d queue_before=%d totals=%u/>5ms:%u/>10ms:%u",
+                   v->guest, (unsigned long long)(gap_us / 1000),
+                   v->last_buffer_was_eos, v->qn, v->refill_gap_count,
+                   v->refill_gap_over_5ms, v->refill_gap_over_10ms);
+        }
+        v->refill_pending = 0;
+        v->last_buffer_was_eos = 0;
+    }
 
     if (v->fmt == FMT_XWMA) {
         /* Decode asynchronously: this method can be called by an XAudio2
