@@ -112,3 +112,32 @@ consistency before deciding which subsystem to optimize next.
   frames are not equivalent to additional game simulation frames.
 - The benchmark is passive and should not affect rendering decisions or LSFG resource
   lifetime.
+
+
+## Latest ON-only capture — 2026-11-03 00:58
+
+The uploaded `dxvk_perf_on.csv` is an ON-only run with
+`lsfg_mode_is_runtime_observed=true`, source extent 2448x1080 and VSync=1.
+It contains 76 windows from frame 120 through 9120. Requested and generated
+frame averages are between 0.983333 and 1.0, consistent with multiplier x2.
+
+| Metric | ON |
+|---|---:|
+| Mean of window averages | 7.112 ms |
+| Median of window averages | 6.555 ms |
+| P95 of window averages | 11.501 ms |
+| Minimum / maximum window average | 1.290 / 13.152 ms |
+| Maximum `max_cpu_present_ms` | 824.513 ms |
+| First 10 window averages (mean) | 6.665 ms |
+| Last 10 window averages (mean) | 10.880 ms |
+
+The increase in the last ten windows suggests a sustained-load change, but this
+single CSV cannot attribute it to thermals, scene complexity, scheduling or
+another cause. The 824.513 ms value is an isolated CPU Present-path stall; it
+must not be reported as normal frame time.
+
+No `dxvk_perf_off.csv` accompanies this upload. Do not calculate an ON/OFF
+delta from this run. Repeat both passes in the same scene with identical
+duration, resolution, VSync, graphics settings and LSFG settings; disable GPU
+timestamp profiling for both CPU benchmark passes. Keep the separate ON-only
+GPU-profiled run for shader-stage diagnosis.
