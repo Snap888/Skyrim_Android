@@ -5,6 +5,11 @@
 static void (*g_lsfg_vk_ctx_hook)(void*, void*, void*, uint32_t) = nullptr;
 static void (*g_lsfg_vk_device_hook)(void*) = nullptr;
 static void (*g_lsfg_present_image_hook)(void*, void*, uint32_t, uint32_t, uint32_t) = nullptr;
+static void (*g_snapframe_device_destroy_hook)(void*) = nullptr;
+
+extern "C" void snapframe_dxvk_set_device_destroy_hook(void (*fn)(void*)) {
+  g_snapframe_device_destroy_hook = fn;
+}
 
 extern "C" void lsfg_set_vk_device_hook(void (*fn)(void*)) {
   g_lsfg_vk_device_hook = fn;
@@ -71,6 +76,9 @@ namespace dxvk {
   
   DxvkDevice::~DxvkDevice() {
     this->waitForIdle();
+    /* Release SnapFrame-owned DXVK resources while the device allocator is alive. */
+    if (g_snapframe_device_destroy_hook)
+      g_snapframe_device_destroy_hook(this);
     m_objects.pipelineManager().stopWorkerThreads();
   }
 
