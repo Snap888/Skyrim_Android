@@ -38,10 +38,19 @@ This is a proposed algorithm, not an implemented or measured result. See
 - Two private DXVK images are allocated for frame history. They are released
   from a device-destroy callback while the DXVK allocator is still alive.
 - Capture is disabled by default. To enable this diagnostic prototype, create
-  `<game-directory>/port/snapframe.conf` with `enabled=1`.
+  `<game-directory>/port/snapframe.conf` containing:
+
+  ```ini
+  enabled=1
+  ```
 - The prototype currently only captures frames. It does not interpolate or
   alter presentation, and enabling it adds two full-resolution GPU images and
-  a copy per real frame.
+  a copy per real frame. This is only for validating the hook and history
+  lifetime; it is not a performance mode and should remain disabled during
+  normal gameplay until interpolation exists.
+
+When enabled, expected stderr/logcat messages include `host initialized`,
+`allocated two-frame history`, and `two real frames captured`.
 
 The module is added to the JNI CMake build as a separate static target. No
 compute shaders or runtime selector have been added yet.
