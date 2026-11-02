@@ -446,3 +446,16 @@ claimed.
 Подробный порядок, ограничения, тестовая матрица и acceptance criteria находятся в [OPTIMIZATION_PLAN_SNAP_PATCH_5.md](OPTIMIZATION_PLAN_SNAP_PATCH_5.md).
 
 Этот раздел фиксирует анализ и план. Он не означает, что новые оптимизации реализованы, APK собран или результаты подтверждены на устройстве.
+
+
+## Реализация этапа 0 — изоляция LSFG profiler CSV (2026-11-02)
+
+В `snap-patch-5` внесено source-level изменение:
+- LSFG profiler CSV сбрасывается на каждом запуске до runtime enable gate;
+- OFF/disabled session получает явный `SESSION` marker;
+- stage callback использует общий сериализованный writer и начинает новый файл при смене пути;
+- старые ON samples не должны сохраняться в следующем OFF CSV.
+
+Это исправление достоверности диагностики, не оптимизация FPS. Требуется APK rebuild и проверка: OFF CSV должен содержать только заголовок + `SESSION,...,lsfg_disabled` (или `profiling_disabled`, если профилировщик выключен), а новый ON profiling run — новый набор stage samples.
+
+Аудиокод пока не менялся: предыдущий лог не подтвердил refill gaps, `slow_mix=0`; сначала требуется повторяемый тест на слышимые разрывы и связь с долгим xWMA startup decode.
