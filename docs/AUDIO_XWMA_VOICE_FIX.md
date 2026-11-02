@@ -134,6 +134,18 @@ compressed xWMA packets have no meaningful per-frame byte count. The previous
 generic PCM-style calculation incorrectly multiplied output frames by the
 compressed packet alignment and could request a nonsensical amount of input data.
 
+
+## Mixer lock and decode scheduling
+
+Large xWMA buffers can contain thousands of compressed packets. The earlier
+implementation decoded them while holding the global XAudio2/mixer mutex, which
+prevented the audio engine thread from mixing any voice during that decode.
+SubmitSourceBuffer now reserves its queue position, releases the mixer mutex,
+decodes the xWMA payload, then publishes the completed PCM buffer. Pending queue
+slots are not consumed until ready; flush and voice-destruction paths defer
+cleanup while a decode is in flight. This keeps long music decodes from blocking
+the audio mixer, while preserving submission order and buffer callback order.
+
 ## Real FUZ sample analysis (DialogueGe__0003526D_1.fuz)
 
 A supplied vanilla voice sample was inspected byte-for-byte.
