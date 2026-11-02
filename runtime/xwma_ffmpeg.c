@@ -194,38 +194,19 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
     *out_frames = 0;
     if (!data || !size || channels < 1 || channels > 8) return NULL;
 
-    /* XAudio2's PacketCount describes equal-sized compressed xWMA packets.
-     * The dpds/cum_bytes table is decoded PCM byte totals, NOT input offsets. */
-    uint32_t packet_size = 0;
-    if (packet_count) {
-        if (size % packet_count) {
-            fprintf(stderr,
-                    "xwma_ffmpeg: invalid packet layout size=%u packets=%u (not divisible)\n",
-                    size, packet_count);
-            return NULL;
-        }
-        packet_size = size / packet_count;
-    } else if (block_align > 0) {
-        if (size % (uint32_t)block_align) {
-            fprintf(stderr,
-                    "xwma_ffmpeg: invalid data size=%u block_align=%d (partial packet)\n",
-                    size, block_align);
-            return NULL;
-        }
-        packet_size = (uint32_t)block_align;
-        packet_count = size / packet_size;
-    } else {
-        fprintf(stderr, "xwma_ffmpeg: missing packet count and block_align\n");
-        return NULL;
-    }
-
-    if (!packet_size || packet_size > INT_MAX || !packet_count) return NULL;
-    if (block_align > 0 && packet_size != (uint32_t)block_align) {
+    /* xWMA uses fixed block_align packets; the final packet may be short.
+     * Match FFmpeg's xWMA demuxer, which reads min(block_align, bytes_left). */
+    uint32_t packet_size = (block_align > 1) ? (uint32_t)block_align : 2230u;
+    if (!packet_size || !size) return NULL;
+    uint32_t expected_packets = (size - 1u) / packet_size + 1u;
+    if (packet_count && packet_count != expected_packets) {
         fprintf(stderr,
-                "xwma_ffmpeg: packet size mismatch: XAUDIO2 packets=%u bytes, WAVEFORMAT block_align=%d\n",
-                packet_size, block_align);
+                "xwma_ffmpeg: packet count mismatch descriptor=%u expected=%u size=%u block_align=%u\n",
+                packet_count, expected_packets, size, packet_size);
         return NULL;
     }
+    if (!packet_count) packet_count = expected_packets;
+    if (!packet_count || packet_size > INT_MAX) return NULL;
 
     /* Validate dpds values without interpreting them as compressed offsets. */
     uint32_t dpds_last = 0;
@@ -276,9 +257,11 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
      * complete data chunk as one AVPacket is not equivalent: WMA decoders may
      * consume only one block and leave the remainder unprocessed. */
     for (uint32_t i = 0; i < packet_count; i++) {
-        int err = feed_block(ctx, data + (size_t)i * packet_size,
-                             (int)packet_size, pkt, frame, channels,
-                             &pcm, &len, &cap);
+        size_t offset = (size_t)i * packet_size;
+        uint32_t remaining = size - (uint32_t)offset;
+        int this_packet_size = (int)(remaining < packet_size ? remaining : packet_size);
+        int err = feed_block(ctx, data + offset, this_packet_size,
+                             pkt, frame, channels, &pcm, &len, &cap);
         if (err < 0) {
             xa_err("packet decode", err);
             fprintf(stderr,
@@ -325,7 +308,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
         double sec_dpds = (dpds_valid && rate > 0)
             ? (double)dpds_last / (double)(channels * 2 * rate) : 0.0;
         fprintf(stderr,
-                "xwma_ffmpeg: packets=%u packet_size=%u pcm_frames=%u pcm=%.3fs dpds=%.3fs tag=%04x ba=%d\n",
+                "xwma_ffmpeg: packets=%u block_align=%u pcm_frames=%u pcm=%.3fs dpds=%.3fs tag=%04x ba=%d\n",
                 packet_count, packet_size, frames, sec_pcm, sec_dpds,
                 tag, block_align);
     }
