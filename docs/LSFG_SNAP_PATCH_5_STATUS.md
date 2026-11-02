@@ -173,3 +173,17 @@ This corrects a source-level pass-order mismatch. It is not yet a measured
 performance improvement, and it does not complete the descriptor/temporal
 producer-consumer audit. Native build, Vulkan validation and device image
 quality remain pending.
+
+## Alpha command-recording optimization — 2026-11-02
+
+Commit `ceb481b` moves the Alpha sampler and compute-shader binds outside
+the per-level loop. The shared Alpha path already iterates stage-first and
+then dispatches all seven pyramid levels, matching WinNative's
+`DispatchShared()` structure. DXVK's `bindShader()` marks the compute
+pipeline dirty unconditionally, so rebinding the same Alpha shader for every
+level forced unnecessary pipeline-state recommits.
+
+The shader and resource bindings are unchanged; per-level image views are
+still rebound before each dispatch, and DXVK continues to track hazards.
+This is a CPU-side command-recording optimization. Its impact must be measured
+in a profiler-disabled ON/OFF test; no FPS gain is claimed yet.
