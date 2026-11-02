@@ -139,6 +139,10 @@ namespace dxvk {
   void DxvkContext::bindIndexBuffer(
     const DxvkBufferSlice&      buffer,
           VkIndexType           indexType) {
+    if (m_state.vi.indexBuffer.matches(buffer)
+     && m_state.vi.indexType == indexType)
+      return;
+
     if (!m_state.vi.indexBuffer.matchesBuffer(buffer))
       m_vbTracked.clr(MaxNumVertexBindings);
 
@@ -261,16 +265,20 @@ namespace dxvk {
           uint32_t              binding,
     const DxvkBufferSlice&      buffer,
           uint32_t              stride) {
+    if (unlikely(!buffer.defined())
+     && unlikely(!m_features.test(DxvkContextFeature::NullDescriptors)))
+      stride = 0;
+
+    if (m_state.vi.vertexBuffers[binding].matches(buffer)
+     && m_state.vi.vertexStrides[binding] == stride)
+      return;
+
     if (!m_state.vi.vertexBuffers[binding].matchesBuffer(buffer))
       m_vbTracked.clr(binding);
 
     m_state.vi.vertexBuffers[binding] = buffer;
     m_flags.set(DxvkContextFlag::GpDirtyVertexBuffers);
-    
-    if (unlikely(!buffer.defined())
-     && unlikely(!m_features.test(DxvkContextFeature::NullDescriptors)))
-      stride = 0;
-    
+
     if (unlikely(m_state.vi.vertexStrides[binding] != stride)) {
       m_state.vi.vertexStrides[binding] = stride;
       m_flags.set(DxvkContextFlag::GpDirtyPipelineState);
