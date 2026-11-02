@@ -111,8 +111,8 @@ The decoder no longer tries the entire compressed data buffer as one FFmpeg
 packet and no longer accepts an arbitrary 0.5-second partial result as success.
 It now:
 
-- uses WAVEFORMATEX `block_align` for each compressed packet and checks
-  `PacketCount` against the number of blocks (including a possibly shorter final block);
+- derives each packet size from `AudioBytes / PacketCount`, verifies the
+  XAudio2-required exact divisibility, and checks the result against `block_align`;
 - submits every fixed-size compressed packet separately while retaining the
   FFmpeg decoder state between packets;
 - flushes the decoder after the final packet;
@@ -157,11 +157,14 @@ decoding even when packet boundaries are correct.
 The custom decoder now mirrors FFmpeg's xWMA demuxer initialization, including
 its WMAV2 bitrate normalization rules, WMAPRO fallback extradata, and bit-depth
 propagation. Runtime logs now expose the effective extradata size/flags and
-normalized bitrate so the Android run can confirm the fallback is active. Packet splitting also now matches the demuxer: one `block_align`
-packet per submission, with a shorter final block allowed. It also uses refcounted `AVPacket` buffers and rejects decoded PCM whose
+normalized bitrate so the Android run can confirm the fallback is active. Packet splitting now follows the XAudio2 submission contract: `AudioBytes`
+must divide evenly by `PacketCount`, and each resulting packet must match
+`block_align`. (FFmpeg's RIFF demuxer can read a trailing short file block,
+but that does not relax XAudio2's `SubmitSourceBuffer` contract.) It also uses refcounted `AVPacket` buffers and rejects decoded PCM whose
 byte count differs from the final cumulative `dpds` value.
 
-The supplied sample was decoded successfully by the system FFmpeg reference
-decoder; the Android in-process implementation has not yet been built or run
+The supplied sample's 7,435-byte data chunk divides exactly into five
+1,487-byte packets, matching both `PacketCount` and `block_align`. It was decoded
+successfully by the system FFmpeg reference decoder; the Android in-process implementation has not yet been built or run
 against this sample. The sample therefore establishes the expected packet
 layout and PCM length, but does not by itself prove the Android fix is working.
