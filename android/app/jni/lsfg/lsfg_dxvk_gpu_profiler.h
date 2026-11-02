@@ -61,6 +61,52 @@ inline bool lsfgGpuProfilerEnabled() {
   return enabled;
 }
 
+// One CSV belongs to one application launch. Reset it before LSFG's runtime
+// enable gate so an OFF run cannot leave rows from a previous ON session.
+struct LsfgGpuCsvState {
+  std::mutex mutex;
+  std::ofstream file;
+  std::string path;
+  uint32_t rowsSinceFlush = 0;
+};
+
+inline LsfgGpuCsvState& lsfgGpuCsvState() {
+  static LsfgGpuCsvState state;
+  return state;
+}
+
+inline bool lsfgGpuProfilerBeginSession(bool lsfgRuntimeEnabled) {
+  LsfgGpuCsvState& state = lsfgGpuCsvState();
+  std::lock_guard<std::mutex> lock(state.mutex);
+
+  if (state.file.is_open()) {
+    state.file.flush();
+    state.file.close();
+  }
+
+  state.path = lsfgGpuCsvPath();
+  state.rowsSinceFlush = 0;
+  state.file.open(state.path.c_str(), std::ios::out | std::ios::trunc);
+  if (!state.file.good()) {
+    state.file.close();
+    state.path.clear();
+    return false;
+  }
+
+  state.file << "frame,stage,gpu_ms,width,height,status\n";
+  const char* status = !lsfgGpuProfilerEnabled()
+    ? "profiling_disabled"
+    : (lsfgRuntimeEnabled ? "session_started" : "lsfg_disabled");
+  state.file << "0,SESSION,0,0,0," << status << "\n";
+  state.file.flush();
+  if (!state.file.good()) {
+    state.file.close();
+    state.path.clear();
+    return false;
+  }
+  return true;
+}
+
 inline LsfgGpuTimer lsfgGpuTimerBegin(
     DxvkContext* context, DxvkDevice* device, const char* stage,
     uint64_t frame, uint32_t width, uint32_t height) {
@@ -97,54 +143,46 @@ inline void lsfgGpuTimerEnd(DxvkContext* context, const LsfgGpuTimer& timer) {
     // Keep the file open and serialize callback writes. Opening, probing and
     // closing the CSV once per stage caused thousands of filesystem operations
     // during a profiling run and distorted the CPU-side PresentImage timings.
-    static std::mutex csvMutex;
-    static std::ofstream csvFile;
-    static std::string openedPath;
-    static uint32_t rowsSinceFlush = 0;
-    std::lock_guard<std::mutex> lock(csvMutex);
+    LsfgGpuCsvState& csv = lsfgGpuCsvState();
+    std::lock_guard<std::mutex> lock(csv.mutex);
 
     const std::string path = lsfgGpuCsvPath();
-    if (!csvFile.is_open() || path != openedPath) {
-      if (csvFile.is_open()) {
-        csvFile.flush();
-        csvFile.close();
+    if (!csv.file.is_open() || path != csv.path) {
+      if (csv.file.is_open()) {
+        csv.file.flush();
+        csv.file.close();
       }
 
-      openedPath = path;
-      std::ifstream existing(path.c_str());
-      const bool writeHeader = !existing.good();
-      existing.close();
-
-      csvFile.open(path.c_str(), std::ios::out | std::ios::app);
-      if (!csvFile.good()) {
-        csvFile.close();
-        openedPath.clear();
-        rowsSinceFlush = 0;
+      csv.path = path;
+      csv.rowsSinceFlush = 0;
+      // A path change also starts a new session; never append stale rows.
+      csv.file.open(path.c_str(), std::ios::out | std::ios::trunc);
+      if (!csv.file.good()) {
+        csv.file.close();
+        csv.path.clear();
         return;
       }
-      if (writeHeader)
-        csvFile << "frame,stage,gpu_ms,width,height,status\n";
-      rowsSinceFlush = 0;
+      csv.file << "frame,stage,gpu_ms,width,height,status\n";
     }
 
     if (valid) {
       const double gpuMs = double(endData.timestamp.time - beginData.timestamp.time)
                          * timer.periodNs / 1000000.0;
-      csvFile << timer.frame << ',' << timer.stage << ',' << gpuMs << ','
-              << timer.width << ',' << timer.height << ",ok\n";
+      csv.file << timer.frame << ',' << timer.stage << ',' << gpuMs << ','
+               << timer.width << ',' << timer.height << ",ok\n";
     } else {
-      csvFile << timer.frame << ',' << timer.stage << ",0,"
-              << timer.width << ',' << timer.height << ",unavailable:"
-              << int(result) << ':' << int(beginStatus) << ':' << int(endStatus) << "\n";
+      csv.file << timer.frame << ',' << timer.stage << ",0,"
+               << timer.width << ',' << timer.height << ",unavailable:"
+               << int(result) << ':' << int(beginStatus) << ':' << int(endStatus) << "\n";
     }
 
     // Bound data loss on an abnormal exit without flushing every single row.
-    if (++rowsSinceFlush >= 60) {
-      csvFile.flush();
-      rowsSinceFlush = 0;
-      if (!csvFile.good()) {
-        csvFile.close();
-        openedPath.clear();
+    if (++csv.rowsSinceFlush >= 60) {
+      csv.file.flush();
+      csv.rowsSinceFlush = 0;
+      if (!csv.file.good()) {
+        csv.file.close();
+        csv.path.clear();
       }
     }
   });
