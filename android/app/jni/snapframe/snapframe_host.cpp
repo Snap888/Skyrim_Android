@@ -25,6 +25,7 @@ uint32_t g_height = 0;
 VkFormat g_format = VK_FORMAT_UNDEFINED;
 uint64_t g_frameIndex = 0;
 bool g_readyLogged = false;
+bool g_skipReasonLogged = false;
 
 void clearHistory() {
     g_historyViews[0] = Rc<DxvkImageView>();
@@ -36,6 +37,7 @@ void clearHistory() {
     g_format = VK_FORMAT_UNDEFINED;
     g_frameIndex = 0;
     g_readyLogged = false;
+    g_skipReasonLogged = false;
 }
 
 bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat format) {
@@ -105,12 +107,22 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
     }
 
     Rc<DxvkImage> sourceImage = sourceView->image();
-    if (sourceImage == nullptr
-        || !(sourceImage->info().usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
-        || sourceImage->info().extent.width != width
-        || sourceImage->info().extent.height != height
-        || sourceImage->info().format != static_cast<VkFormat>(formatValue)) {
+    const char* skipReason = nullptr;
+    if (sourceImage == nullptr)
+        skipReason = "source image wrapper is null";
+    else if (!(sourceImage->info().usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT))
+        skipReason = "swapchain image lacks TRANSFER_SRC usage";
+    else if (sourceImage->info().extent.width != width
+          || sourceImage->info().extent.height != height)
+        skipReason = "source extent mismatch";
+    else if (sourceImage->info().format != static_cast<VkFormat>(formatValue))
+        skipReason = "source format mismatch";
+    if (skipReason) {
         g_skippedFrames.fetch_add(1, std::memory_order_relaxed);
+        if (!g_skipReasonLogged) {
+            g_skipReasonLogged = true;
+            fprintf(stderr, "SnapFrame: capture skipped: %s\\n", skipReason);
+        }
         return;
     }
 
