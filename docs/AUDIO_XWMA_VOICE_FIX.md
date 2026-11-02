@@ -137,14 +137,30 @@ compressed packet alignment and could request a nonsensical amount of input data
 
 ## Mixer lock and decode scheduling
 
-Large xWMA buffers can contain thousands of compressed packets. The earlier
-implementation decoded them while holding the global XAudio2/mixer mutex, which
-prevented the audio engine thread from mixing any voice during that decode.
-SubmitSourceBuffer now reserves its queue position, releases the mixer mutex,
-decodes the xWMA payload, then publishes the completed PCM buffer. Pending queue
-slots are not consumed until ready; flush and voice-destruction paths defer
-cleanup while a decode is in flight. This keeps long music decodes from blocking
-the audio mixer, while preserving submission order and buffer callback order.
+Large xWMA buffers can contain thousands of compressed packets. Decoding
+inside SubmitSourceBuffer was unsafe even after releasing the mixer mutex:
+XAudio2 can invoke SubmitSourceBuffer from an OnBufferEnd callback on the engine
+thread itself. A long decode could therefore block the engine thread until the
+SDL audio queue drained, causing crackle or gaps in long dialogue.
+
+The current implementation uses a dedicated xWMA decoder worker:
+
+- SubmitSourceBuffer copies the compressed payload and dpds table into host-owned
+  memory, reserves its exact queue position, enqueues a job, and returns without
+  waiting for FFmpeg.
+- The worker decodes outside the mixer/engine thread and publishes PCM into the
+  reserved slot under the mixer mutex.
+- The mixer will not consume a reserved slot until it is ready, preserving
+  per-voice submission order and callback order.
+- Flush and voice destruction defer queue/voice cleanup while jobs are in flight.
+- Unstarted head buffers are also marked flushed; only a buffer that has
+  actually started playing is retained by FlushSourceBuffers.
+- Worker latency (queue wait plus decode time) is logged for early samples,
+  every 50th sample, and any sample taking at least 20 ms.
+
+This removes FFmpeg decode time from the engine callback path. It does not by
+itself prove that the worker always decodes faster than real time; long-dialogue
+playback and worker-latency logs still require validation on the Android device.
 
 ## Real FUZ sample analysis (DialogueGe__0003526D_1.fuz)
 
