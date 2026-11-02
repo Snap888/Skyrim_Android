@@ -306,6 +306,16 @@ public class LauncherActivity extends Activity {
         spinner(root, "dxvkPerfRun", "Test pass", new String[] {"A — LSFG OFF", "B — LSFG ON"}, 0);
         text(root, "The CSV log is saved in the selected Skyrim folder under port/dxvk_perf_off.csv or port/dxvk_perf_on.csv. The selected pass also forces LSFG OFF/ON for this run.", 13, false);
 
+        text(root, "Experimental runtime tuning", 20, true);
+        check(root, "runtimeSyncPipelines", "Synchronous shader pipeline compilation (noasync.txt)", false);
+        text(root, "Compiles cached pipelines on the thread that registers the shader. First use may cause a long frame; keep OFF for normal play.", 13, false);
+        check(root, "runtimeThreadLogs", "Log DXVK worker thread scheduling", false);
+        text(root, "Logs DXVK shader-cache worker TID, CPU core and timing. Does not change Skyrim/Havok thread affinity.", 13, false);
+        check(root, "runtimeSurfaceLogs", "Log Android Surface lifecycle and dimensions", true);
+        text(root, "Records surface create/change/destroy, actual SurfaceView dimensions, display dimensions and refresh rate.", 13, false);
+        check(root, "runtimeTuningLogs", "Write runtime tuning configuration and diagnostics", true);
+        text(root, "Configuration and DXVK log are stored in the selected game folder under port/. Android Surface events are also visible in logcat (tag SDL).", 13, false);
+
         preset.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             boolean first = true;
             @Override public void onItemSelected(AdapterView<?> p, View v, int pos, long id) {
@@ -631,6 +641,7 @@ public class LauncherActivity extends Activity {
             writeLsfgConfig(new File(folder), effectiveLsfgEnabled);
             writeGpuDriverConfig(new File(folder));
             configureDxvkPerfEnvironment(new File(folder), perfEnabled, perfLsfgOn);
+            configureRuntimeTuning(new File(folder));
             // the native side builds the same mode list from this aspect (see modes())
             int[] av = ASPECT_V[sel("aspect")];
             try (Writer w = new OutputStreamWriter(new FileOutputStream(new File(save, "display.cfg")))) {
@@ -647,6 +658,53 @@ public class LauncherActivity extends Activity {
         i.putExtra("game", folder);
         startActivity(i);
         finish();
+    }
+
+    /* Runtime tuning flags are inherited by SDL/DXVK in this process. The
+     * noasync marker is also written to port/save for easy inspection. */
+    private void configureRuntimeTuning(File game) throws Exception {
+        File port = new File(game, "port");
+        File save = new File(port, "save");
+        if (!port.exists() && !port.mkdirs())
+            throw new java.io.IOException("cannot create port tuning folder");
+        if (!save.exists() && !save.mkdirs())
+            throw new java.io.IOException("cannot create port/save tuning folder");
+
+        boolean syncPipelines = checks.get("runtimeSyncPipelines").isChecked();
+        boolean threadLogs = checks.get("runtimeThreadLogs").isChecked();
+        boolean surfaceLogs = checks.get("runtimeSurfaceLogs").isChecked();
+        boolean tuningLogs = checks.get("runtimeTuningLogs").isChecked();
+
+        File marker = new File(save, "noasync.txt");
+        if (syncPipelines) {
+            if (!marker.exists() && !marker.createNewFile())
+                throw new java.io.IOException("cannot create " + marker);
+        } else if (marker.exists() && !marker.delete()) {
+            throw new java.io.IOException("cannot remove " + marker);
+        }
+
+        setRuntimeEnv("DXVK_NO_ASYNC", syncPipelines);
+        setRuntimeEnv("DXVK_THREAD_DIAGNOSTICS", threadLogs);
+        setRuntimeEnv("DXVK_SURFACE_DIAGNOSTICS", surfaceLogs);
+        setRuntimeEnv("DXVK_RUNTIME_DIAGNOSTICS", tuningLogs);
+
+        File config = new File(port, "runtime_tuning.conf");
+        try (Writer w = new OutputStreamWriter(new FileOutputStream(config))) {
+            w.write("sync_pipeline_compile=" + (syncPipelines ? "1" : "0") + "\n");
+            w.write("dxvk_thread_diagnostics=" + (threadLogs ? "1" : "0") + "\n");
+            w.write("android_surface_diagnostics=" + (surfaceLogs ? "1" : "0") + "\n");
+            w.write("runtime_diagnostics=" + (tuningLogs ? "1" : "0") + "\n");
+            w.write("cpu_affinity=not_implemented_game_threads\n");
+            w.write("worker_spin_wait=not_implemented_game_workers\n");
+        }
+        android.util.Log.i("SkyrimRuntime", "Runtime tuning: syncPipelines=" + syncPipelines
+                + ", threadLogs=" + threadLogs + ", surfaceLogs=" + surfaceLogs
+                + ", tuningLogs=" + tuningLogs);
+    }
+
+    private void setRuntimeEnv(String name, boolean enabled) throws Exception {
+        if (enabled) Os.setenv(name, "1", true);
+        else Os.unsetenv(name);
     }
 
     /* Configure benchmark variables in this app process before SDL loads DXVK.
