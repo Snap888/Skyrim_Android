@@ -194,19 +194,39 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
     *out_frames = 0;
     if (!data || !size || channels < 1 || channels > 8) return NULL;
 
-    /* xWMA uses fixed block_align packets; the final packet may be short.
-     * Match FFmpeg's xWMA demuxer, which reads min(block_align, bytes_left). */
-    uint32_t packet_size = (block_align > 1) ? (uint32_t)block_align : 2230u;
-    if (!packet_size || !size) return NULL;
-    uint32_t expected_packets = (size - 1u) / packet_size + 1u;
-    if (packet_count && packet_count != expected_packets) {
-        fprintf(stderr,
-                "xwma_ffmpeg: packet count mismatch descriptor=%u expected=%u size=%u block_align=%u\n",
-                packet_count, expected_packets, size, packet_size);
+    /* XAUDIO2_BUFFER_WMA requires PacketCount to divide AudioBytes evenly.
+     * Each submitted xWMA packet therefore has AudioBytes / PacketCount bytes,
+     * and that size must match WAVEFORMATEX block_align. */
+    uint32_t packet_size = 0;
+    if (packet_count) {
+        if (size % packet_count) {
+            fprintf(stderr,
+                    "xwma_ffmpeg: AudioBytes=%u is not divisible by PacketCount=%u\n",
+                    size, packet_count);
+            return NULL;
+        }
+        packet_size = size / packet_count;
+    } else if (block_align > 1) {
+        if (size % (uint32_t)block_align) {
+            fprintf(stderr,
+                    "xwma_ffmpeg: AudioBytes=%u is not divisible by block_align=%d\n",
+                    size, block_align);
+            return NULL;
+        }
+        packet_size = (uint32_t)block_align;
+        packet_count = size / packet_size;
+    } else {
+        fprintf(stderr, "xwma_ffmpeg: missing WMA packet count/block_align\n");
         return NULL;
     }
-    if (!packet_count) packet_count = expected_packets;
-    if (!packet_count || packet_size > INT_MAX) return NULL;
+
+    if (!packet_size || packet_size > INT_MAX || !packet_count) return NULL;
+    if (block_align > 1 && packet_size != (uint32_t)block_align) {
+        fprintf(stderr,
+                "xwma_ffmpeg: packet size mismatch: AudioBytes/PacketCount=%u, block_align=%d\n",
+                packet_size, block_align);
+        return NULL;
+    }
 
     /* Validate dpds values without interpreting them as compressed offsets. */
     uint32_t dpds_last = 0;
@@ -263,9 +283,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
      * consume only one block and leave the remainder unprocessed. */
     for (uint32_t i = 0; i < packet_count; i++) {
         size_t offset = (size_t)i * packet_size;
-        uint32_t remaining = size - (uint32_t)offset;
-        int this_packet_size = (int)(remaining < packet_size ? remaining : packet_size);
-        int err = feed_block(ctx, data + offset, this_packet_size,
+        int err = feed_block(ctx, data + offset, (int)packet_size,
                              pkt, frame, channels, &pcm, &len, &cap);
         if (err < 0) {
             xa_err("packet decode", err);
