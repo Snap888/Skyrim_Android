@@ -115,3 +115,43 @@ resets `port/dxvk_lsfg_gpu.csv`, and supplies its absolute path through
 `DXVK_LSFG_GPU_PROFILE_LOG`. The profiler prioritizes this explicit path.
 When disabled, both variables are unset. The selected state and output path
 are recorded in `port/lsfg_gpu_profile.conf`. Profiling remains OFF by default.
+
+## Latest device log review — 2026-11-02
+
+The newest `Logs/` upload contains a valid GPU profiler CSV (33,467 rows,
+all `ok`). GammaDelta L6 is the largest measured stage at 1.955 ms average
+and 3.030 ms P95. The full Gamma/Delta/Generate chain averages 3.851 ms;
+Mipmaps/Alpha/Beta average 2.955 ms per source-frame group. The run records
+3,247 generated chains over 2,497 source-frame groups, and its measured stage
+sum is approximately 7.963 ms per source frame. These are GPU timestamp
+intervals, not full frame time or FPS.
+
+The same session changed multiplier x2 -> x4 -> x2. Its ON CPU PresentImage
+CSV also ran with GPU profiling enabled, so it is not a controlled OFF/ON
+comparison. Do not infer a production LSFG regression from that comparison.
+
+The GPU profiler CSV writer has been changed to keep its output file open and
+flush every 60 rows, avoiding a filesystem open/probe/close for each stage.
+This is an instrumentation optimization; it does not alter rendering or the
+generation algorithm. Native build and device validation remain pending.
+
+### Sound review
+
+The latest `Logs/log.txt` contains no `refill gap` events and reports
+`slow_mix=0`; the SDL output queue was low in one reporting interval only.
+There are 88 per-second source-starvation summaries, but these counters count
+missing source frames, not discrete audible glitches. Only the initial large
+xWMA decode shows a substantial delay (282 ms); later sampled worker jobs are
+typically 1–4 ms. No mixer rewrite is justified by this log alone. The
+remaining audio investigation is focused on startup/large-buffer xWMA decode
+and on reproducing any audible crackle with a matching log.
+
+### Next steps
+
+1. Build and test the profiler-writer change.
+2. Run a clean LSFG ON/OFF pair with GPU profiling disabled and identical
+   multiplier, scene, duration, resolution and VSync.
+3. Run a separate short ON-only GPU profile at x2; inspect L6 before changing
+   shader math or WinNative pass order.
+4. Keep audio changes evidence-driven; collect logcat and note the exact
+   audible event if crackles persist.
