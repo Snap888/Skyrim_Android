@@ -343,3 +343,66 @@ claimed.
 3. Capture a separate short GPU-profiled run with one fixed LSFG configuration.
 4. If the destroyed-mutex crash recurs, include Android logcat/native
    tombstone with symbols and the lines immediately before `quit requested`.
+
+## Runtime review and CPU fast paths — 2026-11-02 (22:41 session)
+
+### Current log interpretation
+
+- The new `Logs/lsfg.log` session starts at 22:41:14 and runs through at least
+  22:47:58. The user changed multiplier (1x–4x), flow setting (effective
+  scales 0.20–0.75), and performance mode repeatedly during this capture.
+  Treat it as a functional stress run, not a controlled performance A/B.
+- Each effective flow-scale change recreates the flow-dependent mipmap and
+  Alpha/Beta resources, recreates Gamma/Delta/Generate resources, and restarts
+  temporal warm-up. Avoid changing flow scale during a timed comparison.
+- The log records the DXVK command-list path, completed history copies,
+  mipmaps dispatches, and Generate commands. At 4x it records three generation
+  commands per source frame; at 3x, two; at 1x/2x, one. This confirms command
+  recording activity, not visual quality or successful GPU completion for
+  every generated frame.
+- The current `Logs/last_exit.txt` reports Android
+  `EXCESSIVE_RESOURCE_USAGE / EXCESSIVE CPU USAGE` at 21:11:35, with CPU 20
+  over 300062 units during 1084075 ms. This timestamp precedes the 22:41 LSFG
+  session and must not be attributed to that session without a matching
+  process/logcat trace.
+- The GitHub file-content endpoint returned empty content for the new
+  `Logs/log.txt` and `Logs/dxvk_lsfg_gpu.csv` blobs (their blob IDs are
+  present, but their contents were not available to this analysis). Do not
+  infer new GPU timings or audio underrun counts from those files until they
+  can be read.
+
+### DXVK repeated vertex/index binding fast paths
+
+- `bindIndexBuffer()` now returns when the exact buffer slice and index type
+  are unchanged. A changed slice or index type still follows the original
+  dirty-state path.
+- `bindVertexBuffer()` now normalizes the stride first, then returns when the
+  exact buffer slice and effective stride are unchanged. Buffer identity
+  changes still invalidate the tracked binding; changed ranges/strides still
+  mark the required state dirty.
+- These are CPU command-recording optimizations only. They do not change
+  descriptors, barriers, shaders, GPU dispatches, LSFG flow scale, or pass
+  order.
+
+### XAudio2 mixer routing fast paths
+
+- `route()` now bypasses construction and traversal of a full channel matrix
+  for the default equal-channel route (identity matrix), multiplying each
+  channel by its existing voice/channel gain directly.
+- Default mono-to-stereo routing now duplicates the mono sample directly.
+- Custom output matrices and all other channel layouts continue through the
+  original generic matrix path. The default routing coefficients and gain
+  semantics are preserved.
+- This reduces per-pass CPU work in common voice/submix routes; no measured
+  audio latency or CPU reduction is claimed until a same-scene device test.
+
+### Validation status and next test
+
+- Neither the Android APK nor device runtime was built/tested in this change.
+- Run a fixed-scene test without changing multiplier, flow scale, performance
+  mode, resolution, or VSync during capture. Use one short GPU-profiling run
+  and a separate longer CPU/audio run.
+- For audio validation, capture voice counts, xWMA worker latency, pending
+  decode starvation, non-EOS refill gaps, SDL queue depth, and mixer-pass
+  duration in the same log. A teardown tombstone with symbols is still needed
+  if the destroyed-mutex abort recurs.
