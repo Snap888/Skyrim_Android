@@ -54,7 +54,7 @@ typedef struct {
     uint32_t nframes;   /* frames in the whole buffer */
     uint32_t pos, end;  /* current frame, end of the play region */
     int loops_left;     /* 255 = forever */
-    int started;
+    int started, ready, flushed;
 } XBuf;
 
 typedef struct Voice Voice;
@@ -72,7 +72,7 @@ struct Voice {
     uint8_t adpcm_coef[64];
     int ncoef;
     float ratio, max_ratio;
-    int running;
+    int running, decoding;
     XBuf q[MAX_QUEUE];
     int qhead, qn;
     uint64_t played;
@@ -98,6 +98,35 @@ static int g_rate = 48000, g_running, g_thread_started;
 static SDL_AudioDeviceID g_dev;
 /* diagnostics */
 static unsigned g_xa_src_voices, g_xa_xwma_voices, g_xa_xwma_submits, g_xa_pcm_submits, g_xa_adpcm_submits;
+
+/* Called with g_lock held. A voice may be destroyed while an xWMA buffer is
+ * decoding outside the mixer lock; decoding is the lifetime reference. */
+static void free_voice_locked(Voice *v) {
+    if (!v) return;
+    for (int k = 0; k < v->qn; k++)
+        free(v->q[(v->qhead + k) % MAX_QUEUE].decoded);
+    free(v->acc);
+    for (int i = 0; i < MAX_VOICES; i++)
+        if (g_voices[i] == v) { g_voices[i] = NULL; break; }
+    free(v);
+}
+
+/* Used only when the engine is stopped. Preserve submissions made after the
+ * flush while removing buffers that FlushSourceBuffers had already marked. */
+static void drop_flushed_buffers_locked(Voice *v) {
+    XBuf keep[MAX_QUEUE];
+    int count = 0;
+    for (int k = 0; k < v->qn; k++) {
+        XBuf *b = &v->q[(v->qhead + k) % MAX_QUEUE];
+        if (b->flushed) free(b->decoded);
+        else keep[count++] = *b;
+    }
+    if (count) memcpy(v->q, keep, (size_t)count * sizeof(XBuf));
+    if (count < MAX_QUEUE)
+        memset(v->q + count, 0, (size_t)(MAX_QUEUE - count) * sizeof(XBuf));
+    v->qhead = 0;
+    v->qn = count;
+}
 
 static const uint8_t CLSID_XAudio2[16] = {0x85, 0x86, 0x50, 0x5a, 0x54, 0xa2, 0xba, 0x4f, 0x9b, 0x82, 0x9a, 0x24, 0xb0, 0x03, 0x06, 0xaf};
 /* XAudio2 2.6 (Skyrim): same interfaces as 2.7, different class ids */
