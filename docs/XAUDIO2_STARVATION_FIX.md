@@ -90,3 +90,25 @@ Latest test diagnostics: eight callback-to-submit intervals were recorded
 These measurements need game-side callback semantics to determine whether
 they represent a real continuous-stream gap or normal EOS/voice reuse. Two
 xWMA worker jobs took 235 ms and 183 ms; the other recorded jobs took 1–6 ms.
+
+## Latest device log review — 2026-11-02
+
+The newest `Logs/log.txt` does not reproduce the earlier callback-refill
+gaps:
+
+- No `refill gap` messages were recorded.
+- The output timing summary reports `slow_mix=0`; the SDL queue was low in
+  one interval only.
+- 88 source-starvation summaries were emitted, but `pending_decode` was
+  nonzero only during the first large xWMA decode. The `empty_queue` counter
+  measures source frames without queued data and can include normal one-shot
+  voice completion; it is not a count of audible glitches.
+- The first large stereo xWMA buffer represents about 235.6 seconds of PCM and
+  took 282 ms on the worker. Later sampled jobs generally took 1–4 ms.
+
+This log does not justify changing mixer scheduling or callback dispatch.
+The outstanding audio optimization candidate is large-buffer xWMA startup
+latency. Any streaming/partial-decode redesign must preserve packet ordering,
+dpds accounting, loop/play-region semantics and voice lifetime. First verify
+whether the 282 ms decode corresponds to an audible startup gap in a repeatable
+test.
