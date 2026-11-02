@@ -168,3 +168,22 @@
 - отсутствия регрессии в остальных подсистемах.
 
 См. также: [DXVK performance A/B test](DXVK_PERFORMANCE_AB_TEST.md), [XAudio2 starvation fix](XAUDIO2_STARVATION_FIX.md), [LSFG GPU profiler](LSFG_GPU_PROFILER.md), [Android runtime tuning map](ANDROID_RUNTIME_TUNING_MAP.md).
+
+
+## Текущий прогресс реализации — 2 ноября 2026
+
+### Этап 0: изоляция LSFG profiler CSV — реализовано в исходниках
+
+Выполнено:
+- CSV теперь открывается с `truncate` при инициализации LSFG host, до проверки runtime LSFG ON/OFF.
+- Каждый запуск получает свежий заголовок и строку `SESSION` со статусом `session_started`, `lsfg_disabled` или `profiling_disabled`.
+- При смене output path файл также начинается заново, а не дописывает данные другой сессии.
+- Запись stage rows по-прежнему opt-in и выполняется только при реальном выполнении соответствующих GPU dispatches.
+
+Это устраняет известное смешивание старого ON CSV с новым OFF запуском. Изменение диагностическое и не ускоряет рендеринг само по себе.
+
+**Статус проверки:** source changes committed; native NDK build и тест на устройстве ещё не выполнены. После сборки сначала проверить, что OFF запуск создаёт CSV только с SESSION marker и не содержит старых stage rows; ON с включённым profiling должен создавать свежие stage rows.
+
+### Следующий этап: аудио
+
+Не вносить ещё одну общую правку XAudio2 на основании только `empty_queue`: последний лог не показал refill-gap и `slow_mix=0`. Сначала нужен воспроизводимый аудиотест и раздельная диагностика xWMA startup latency для музыки, voice и SFX. Большие xWMA decode latency (порядка сотен миллисекунд) — кандидат на исследование, но streaming/partial decode пока не менять без проверки packet ordering, dpds и play-region semantics.
