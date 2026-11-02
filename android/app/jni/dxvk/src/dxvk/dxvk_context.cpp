@@ -177,6 +177,12 @@ namespace dxvk {
           uint32_t              slot,
     const Rc<DxvkImageView>&    imageView,
     const Rc<DxvkBufferView>&   bufferView) {
+    // Rebinding an identical view cannot change its descriptor or hazards.
+    // Keep the command-list resource tracking bit set for unchanged bindings.
+    if (m_rc[slot].imageView == imageView
+     && m_rc[slot].bufferView == bufferView)
+      return;
+
     m_rc[slot].imageView   = imageView;
     m_rc[slot].bufferView  = bufferView;
     m_rc[slot].bufferSlice = bufferView != nullptr
@@ -193,6 +199,10 @@ namespace dxvk {
   void DxvkContext::bindResourceSampler(
           uint32_t              slot,
     const Rc<DxvkSampler>&      sampler) {
+    // Samplers are immutable; an identical binding needs no descriptor update.
+    if (m_rc[slot].sampler == sampler)
+      return;
+
     m_rc[slot].sampler = sampler;
     m_rcTracked.clr(slot);
 
