@@ -632,8 +632,10 @@ static void engine_pass(CPU *c, int frames, float *out) {
 
     pthread_mutex_lock(&g_lock);
     g_nev = 0;
-    /* At most 4 ms of this 10 ms pass may be spent waiting for xWMA PCM. */
-    g_pass_decode_wait_deadline_us = now_us() + 4000u;
+    /* Allow up to 6 ms of this 10 ms pass for xWMA PCM. The remaining
+     * time is reserved for mixing and queue submission; this is deliberately
+     * bounded so a slow decoder cannot stall the audio engine indefinitely. */
+    g_pass_decode_wait_deadline_us = now_us() + 6000u;
     for (int i = 0; i < MAX_VOICES; i++) {
         Voice *v = g_voices[i];
         if (v && !v->dead && v->acc) memset(v->acc, 0, sizeof(float) * (size_t)(v->in_ch * frames));
@@ -769,11 +771,12 @@ static void *engine_main(void *arg) {
     for (;;) {
         if (__atomic_load_n(&g_engine_shutdown, __ATOMIC_ACQUIRE)) break;
         if (g_dev) {
-            /* Keep 60 ms queued to absorb Android scheduling jitter; a device that
-             * stops draining for 200 ms is dropped and mixing continues on the timer. */
+            /* Keep 80 ms queued to absorb Android scheduling jitter and short decode
+             * bursts; a device that stops draining for 200 ms is dropped and
+             * mixing continues on the timer. */
             Uint32 q0 = SDL_GetQueuedAudioSize(g_dev), q;
             uint64_t t0 = now_us();
-            while ((q = SDL_GetQueuedAudioSize(g_dev)) > (Uint32)(6 * frames * 2 * sizeof(float))) {
+            while ((q = SDL_GetQueuedAudioSize(g_dev)) > (Uint32)(8 * frames * 2 * sizeof(float))) {
                 if (__atomic_load_n(&g_engine_shutdown, __ATOMIC_ACQUIRE)) break;
                 if (q < q0) { q0 = q; t0 = now_us(); }
                 else if (now_us() - t0 > 200000) {
