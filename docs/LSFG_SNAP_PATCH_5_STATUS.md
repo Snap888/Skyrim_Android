@@ -216,3 +216,55 @@ later 24–28 ms jobs. `pending_decode` frames are nonzero, while
 `slow_mix=0` and no explicit refill-gap event appears. The separate audio
 update adds up to two xWMA decode workers to reduce head-of-line blocking
 between independent voices; per-voice queue order is preserved.
+
+
+## Latest minimum-graphics runtime review — 2026-11-02
+
+The newest Logs upload contains 203,905 successful GPU timestamp rows across
+source frames 0–13,690. The run is not a single LSFG configuration: the log
+shows runtime changes to flow scale (0.75, 0.30, 0.20, 0.50, 1.00, 0.75,
+0.50, 0.20 and 0.40), multiplier (2x/3x/4x) and performance mode. Therefore
+whole-file averages are descriptive only and must not be treated as an A/B
+comparison with the previous high-graphics run.
+
+Whole-file stage averages (ms): Mipmaps 0.430, Alpha 0.481, Beta 0.334,
+GammaDelta L0 0.047, L1 0.044, L2 0.045, L3 0.047, L4 0.146, L5 0.274,
+L6 0.799, Generate 0.755. GammaDelta L6 remains the most expensive
+individual generation group. Its P95 is 1.738 ms and max is 10.535 ms.
+These numbers mix multiple flow scales and generation multipliers; they are
+not a direct comparison against the previous high-graphics run. The separate
+ON/OFF CPU Present CSVs also have different sample counts and run windows.
+
+Audio findings: the two initial large stereo xWMA jobs took 193 ms and
+270 ms on the worker path, with pending-decode starvation summaries of 10,081
+and 12,348 frames. A later large stereo job (submit #150) took 259 ms.
+There are two slow-mix reports (14 ms and 22 ms) and two measured 49/54 ms
+refill gaps classified as EOS. Empty-queue frame totals are not by themselves
+audible underruns. The two-worker change does not eliminate the long decode
+latency of a single large stream; startup buffering/voice readiness remains
+an audio investigation target. No audible improvement is claimed from logs
+alone.
+
+### DXVK unchanged-resource bind fast path
+
+Commit `5922955` adds early-outs to `DxvkContext::bindResourceView()` and
+`bindResourceSampler()` when the exact same view/sampler objects are already
+bound. A real binding change still clears `m_rcTracked` and marks compute and
+graphics resources dirty. An unchanged binding keeps the existing command-list
+resource tracking state, avoiding redundant descriptor invalidation and
+resource re-tracking during the repeated LSFG dispatch sequence. This is a
+CPU-side command-recording optimization; it does not change shader math,
+GPU dispatch count, image barriers or the WinNative Gamma/Delta order. Device
+build and performance validation remain pending.
+
+### Next validation
+
+1. Build the current branch and test audio startup, dialogue/music overlap,
+   and crackle/dropout behavior; the large-stream decode delay is still visible.
+2. For GPU comparison, capture separate fixed runs at one multiplier, one
+   flow scale, one performance mode and one scene. Do not change LSFG settings
+   during a CSV capture.
+3. Keep profiler-disabled CPU ON/OFF runs separate from short GPU-profiled
+   runs. Match duration and scene for ON/OFF.
+4. No APK build, native build, device validation or measured performance gain
+   is claimed for commit `5922955`.
