@@ -152,6 +152,14 @@ namespace dxvk {
   void DxvkContext::bindResourceBuffer(
           uint32_t              slot,
     const DxvkBufferSlice&      buffer) {
+    // An identical buffer slice already has the correct descriptor. Do not
+    // dirty descriptor binding state for repeated binds in the same command list.
+    // Keep this type check so a prior image/buffer-view binding is not skipped.
+    if (m_rc[slot].imageView == nullptr
+     && m_rc[slot].bufferView == nullptr
+     && m_rc[slot].bufferSlice.matches(buffer))
+      return;
+
     bool needsUpdate = !m_rc[slot].bufferSlice.matchesBuffer(buffer);
 
     if (likely(needsUpdate))
