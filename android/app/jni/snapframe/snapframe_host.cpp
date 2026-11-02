@@ -15,6 +15,7 @@ std::atomic<int> g_initialized{0};
 std::atomic<int> g_enabled{0};
 std::atomic<uint64_t> g_capturedFrames{0};
 std::atomic<uint64_t> g_skippedFrames{0};
+std::atomic<int> g_resetHistoryRequested{0};
 
 DxvkDevice* g_device = nullptr;
 Rc<DxvkImage> g_history[2];
@@ -92,6 +93,8 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
     if (!g_initialized.load(std::memory_order_acquire)
         || !g_enabled.load(std::memory_order_acquire))
         return;
+    if (g_resetHistoryRequested.exchange(0, std::memory_order_acq_rel))
+        clearHistory();
 
     auto* context = reinterpret_cast<DxvkContext*>(contextPtr);
     auto* sourceView = reinterpret_cast<DxvkImageView*>(sourceViewPtr);
@@ -185,6 +188,7 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
     g_enabled.store(validated.enabled ? 1 : 0, std::memory_order_release);
     g_capturedFrames.store(0, std::memory_order_relaxed);
     g_skippedFrames.store(0, std::memory_order_relaxed);
+    g_resetHistoryRequested.store(1, std::memory_order_release);
     g_initialized.store(1, std::memory_order_release);
 
     snapframe_dxvk_set_copy_hook(snapframeCopyFrame);
@@ -197,6 +201,7 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
 extern "C" void snapframe_host_shutdown(void) {
     g_enabled.store(0, std::memory_order_release);
     g_initialized.store(0, std::memory_order_release);
+    g_resetHistoryRequested.store(1, std::memory_order_release);
     snapframe_dxvk_set_copy_hook(nullptr);
     snapframe_dxvk_set_device_destroy_hook(nullptr);
     clearHistory();
@@ -210,6 +215,7 @@ extern "C" int snapframe_host_active(void) {
 extern "C" int snapframe_host_set_enabled(int enabled) {
     if (!g_initialized.load(std::memory_order_acquire)) return 0;
     g_enabled.store(enabled ? 1 : 0, std::memory_order_release);
+    g_resetHistoryRequested.store(1, std::memory_order_release);
     return 1;
 }
 
