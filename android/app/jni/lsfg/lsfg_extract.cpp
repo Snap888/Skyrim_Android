@@ -109,14 +109,28 @@ static uint8_t *map_file(const char *path, size_t *out_sz) {
     return buf;
 }
 
-static int rva_to_off(const SecHdr *secs, int nsec, uint32_t rva, uint32_t *off) {
+static bool range_ok(size_t total, size_t offset, size_t length) {
+    return offset <= total && length <= total - offset;
+}
+
+// Map only bytes that are actually backed by section raw data. VirtualSize may
+// extend beyond the file and must never be used as a file-backed range.
+static int rva_to_off(const SecHdr *secs, int nsec, size_t file_size,
+                     uint32_t rva, size_t need, uint32_t *off) {
+    if (!secs || !off || !need) return -1;
     for (int i = 0; i < nsec; i++) {
-        uint32_t va = secs[i].VirtualAddress;
-        uint32_t vs = secs[i].VirtualSize ? secs[i].VirtualSize : secs[i].SizeOfRawData;
-        if (rva >= va && rva < va + vs) {
-            *off = secs[i].PointerToRawData + (rva - va);
-            return 0;
-        }
+        const uint64_t va = secs[i].VirtualAddress;
+        const uint64_t raw_size = secs[i].SizeOfRawData;
+        const uint64_t raw_off = secs[i].PointerToRawData;
+        const uint64_t address = rva;
+        if (address < va) continue;
+        const uint64_t delta = address - va;
+        if (delta > raw_size || need > raw_size - delta) continue;
+        const uint64_t mapped = raw_off + delta;
+        if (mapped > SIZE_MAX || !range_ok(file_size, (size_t)mapped, need)
+            || mapped > UINT32_MAX) continue;
+        *off = (uint32_t)mapped;
+        return 0;
     }
     return -1;
 }
@@ -154,43 +168,55 @@ static int write_blob(const char *cache_dir, uint32_t id, const uint8_t *data, s
 
 static int walk_res(const uint8_t *file, size_t fsz,
                     const SecHdr *secs, int nsec,
-                    uint32_t rsrc_rva, uint32_t dir_rva,
+                    uint32_t rsrc_rva, uint32_t rsrc_size, uint32_t dir_rva,
                     int level, uint32_t name_id,
                     const char *cache_dir, FILE *manifest, int *count) {
+    if (dir_rva < rsrc_rva) return -1;
+    const uint64_t dir_delta = uint64_t(dir_rva) - rsrc_rva;
     uint32_t off = 0;
-    if (rva_to_off(secs, nsec, dir_rva, &off) != 0) return -1;
-    if (off + sizeof(ResDir) > fsz) return -1;
+    if (dir_delta > rsrc_size
+        || !range_ok(rsrc_size, (size_t)dir_delta, sizeof(ResDir))
+        || rva_to_off(secs, nsec, fsz, dir_rva, sizeof(ResDir), &off) != 0)
+        return -1;
     const ResDir *dir = (const ResDir *)(file + off);
-    uint32_t nent = (uint32_t)dir->NumberOfNamedEntries + dir->NumberOfIdEntries;
-    if (off + sizeof(ResDir) + nent * sizeof(ResEntry) > fsz) return -1;
+    const uint32_t nent = (uint32_t)dir->NumberOfNamedEntries + dir->NumberOfIdEntries;
+    const size_t entries_size = (size_t)nent * sizeof(ResEntry);
+    const size_t table_size = sizeof(ResDir) + entries_size;
+    if (!range_ok(rsrc_size, (size_t)dir_delta, table_size)
+        || !range_ok(fsz, off, table_size)
+        || rva_to_off(secs, nsec, fsz, dir_rva, table_size, &off) != 0)
+        return -1;
     const ResEntry *ents = (const ResEntry *)(file + off + sizeof(ResDir));
 
     for (uint32_t i = 0; i < nent; i++) {
         uint32_t id = ents[i].NameOrId;
         int is_dir = (ents[i].Offset & 0x80000000u) != 0;
         uint32_t next = ents[i].Offset & 0x7FFFFFFFu;
+        if (next >= rsrc_size || uint64_t(rsrc_rva) + next > UINT32_MAX) return -1;
         uint32_t next_rva = rsrc_rva + next;
 
         if (level == 0) {
             if (id & 0x80000000u) continue;
             if (id != (uint32_t)RT_RCDATA) continue;
             if (!is_dir) continue;
-            if (walk_res(file, fsz, secs, nsec, rsrc_rva, next_rva, 1, 0, cache_dir, manifest, count) != 0)
+            if (walk_res(file, fsz, secs, nsec, rsrc_rva, rsrc_size, next_rva, 1, 0, cache_dir, manifest, count) != 0)
                 return -1;
         } else if (level == 1) {
             if (id & 0x80000000u) continue;
             if (!is_dir) continue;
-            if (walk_res(file, fsz, secs, nsec, rsrc_rva, next_rva, 2, id, cache_dir, manifest, count) != 0)
+            if (walk_res(file, fsz, secs, nsec, rsrc_rva, rsrc_size, next_rva, 2, id, cache_dir, manifest, count) != 0)
                 return -1;
         } else {
             if (is_dir) continue;
             uint32_t doff = 0;
-            if (rva_to_off(secs, nsec, next_rva, &doff) != 0) return -1;
-            if (doff + sizeof(ResData) > fsz) return -1;
+            const uint64_t data_entry_delta = uint64_t(next_rva) - rsrc_rva;
+            if (!range_ok(rsrc_size, (size_t)data_entry_delta, sizeof(ResData))
+                || rva_to_off(secs, nsec, fsz, next_rva, sizeof(ResData), &doff) != 0)
+                return -1;
             const ResData *rd = (const ResData *)(file + doff);
             uint32_t data_off = 0;
-            if (rva_to_off(secs, nsec, rd->OffsetToData, &data_off) != 0) return -1;
-            if (rd->Size == 0 || data_off + rd->Size > fsz) {
+            if (rd->Size == 0
+                || rva_to_off(secs, nsec, fsz, rd->OffsetToData, rd->Size, &data_off) != 0) {
                 LOGW("extract: skip id=%u bad size/rva", name_id);
                 continue;
             }
@@ -343,26 +369,29 @@ int lsfg_extract_dll(const char *dll_path, const char *cache_dir) {
         if (fsz < sizeof(DosHdr)) { LOGE("extract: file too small"); break; }
         const DosHdr *dos = (const DosHdr *)file;
         if (dos->e_magic != 0x5A4D) { LOGE("extract: not MZ"); break; }
-        if (dos->e_lfanew <= 0 || (size_t)dos->e_lfanew + 4 + sizeof(FileHdr) > fsz) {
+        if (dos->e_lfanew <= 0
+            || !range_ok(fsz, (size_t)dos->e_lfanew, 4 + sizeof(FileHdr))) {
             LOGE("extract: bad e_lfanew"); break;
         }
         if (memcmp(file + dos->e_lfanew, "PE\0\0", 4) != 0) { LOGE("extract: not PE"); break; }
 
         const FileHdr *fh = (const FileHdr *)(file + dos->e_lfanew + 4);
         size_t opt_off = (size_t)dos->e_lfanew + 4 + sizeof(FileHdr);
-        if (opt_off + 2 > fsz) break;
+        if (!range_ok(fsz, opt_off, 2)) break;
         uint16_t opt_magic = *(const uint16_t *)(file + opt_off);
 
         DataDir rsrc_dir;
         rsrc_dir.VirtualAddress = 0;
         rsrc_dir.Size = 0;
         if (opt_magic == 0x10b) {
-            if (opt_off + sizeof(OptHdr32) > fsz) break;
+            if (fh->SizeOfOptionalHeader < sizeof(OptHdr32)
+                || !range_ok(fsz, opt_off, sizeof(OptHdr32))) break;
             const OptHdr32 *opt = (const OptHdr32 *)(file + opt_off);
             if (opt->NumberOfRvaAndSizes > (uint32_t)IMAGE_DIRECTORY_ENTRY_RESOURCE)
                 rsrc_dir = opt->DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE];
         } else if (opt_magic == 0x20b) {
-            if (opt_off + sizeof(OptHdr64) > fsz) break;
+            if (fh->SizeOfOptionalHeader < sizeof(OptHdr64)
+                || !range_ok(fsz, opt_off, sizeof(OptHdr64))) break;
             const OptHdr64 *opt = (const OptHdr64 *)(file + opt_off);
             if (opt->NumberOfRvaAndSizes > (uint32_t)IMAGE_DIRECTORY_ENTRY_RESOURCE)
                 rsrc_dir = opt->DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE];
@@ -377,7 +406,8 @@ int lsfg_extract_dll(const char *dll_path, const char *cache_dir) {
         }
 
         size_t sec_off = opt_off + fh->SizeOfOptionalHeader;
-        if (sec_off + (size_t)fh->NumberOfSections * sizeof(SecHdr) > fsz) break;
+        const size_t section_bytes = (size_t)fh->NumberOfSections * sizeof(SecHdr);
+        if (!range_ok(fsz, sec_off, section_bytes)) break;
         const SecHdr *secs = (const SecHdr *)(file + sec_off);
         int nsec = fh->NumberOfSections;
 
@@ -391,8 +421,8 @@ int lsfg_extract_dll(const char *dll_path, const char *cache_dir) {
             break;
         }
 
-        if (walk_res(file, fsz, secs, nsec, rsrc_dir.VirtualAddress, rsrc_dir.VirtualAddress,
-                     0, 0, cache_dir, manifest, &count) != 0) {
+        if (walk_res(file, fsz, secs, nsec, rsrc_dir.VirtualAddress, rsrc_dir.Size,
+                     rsrc_dir.VirtualAddress, 0, 0, cache_dir, manifest, &count) != 0) {
             LOGE("extract: resource walk failed");
             break;
         }
