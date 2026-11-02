@@ -32,7 +32,7 @@ probe Data/Skyrim - Misc.bsa: stat ok, open ok, size 177490631
   Data/Update.bsa
   Data/Update.esm
 Data listing: ok, 30 entries
-GPU driver: requested custom Vulkan ICD libvulkan_freedreno.so (/data/user/0/com.tj.skyrim/files/gpu-drivers/turnip-gen8-v38-vulkan-1.4.363/)
+GPU driver: requested custom Vulkan ICD libvulkan_freedreno.so (/data/user/0/com.ludashi.benchmark.skyrim/files/gpu-drivers/turnip-gen8-v38-vulkan-1.4.363/)
 INFO: Adding input device with name 19
 INFO: Adding input device with name 20
 INFO: Adding input device with name 21
@@ -42,6 +42,15 @@ INFO: Adding input device with name 23
 INFO: Adding output device with name 2
 INFO: Adding output device with name 3
 INFO: Adding output device with name 12
+INFO: Adding device with name 2, capture 1
+INFO: Adding device with name 3, capture 1
+INFO: Adding device with name 12, capture 1
+INFO: Adding device with name 19, capture 0
+INFO: Adding device with name 20, capture 0
+INFO: Adding device with name 21, capture 0
+INFO: Adding device with name 30, capture 0
+INFO: Adding device with name 22, capture 0
+INFO: Adding device with name 23, capture 0
 platform: window 2448x1080
 guest threads on the fast cores: 3 4 5 6 7 (2803200 kHz; save/allcores.txt uses all)
 thread slot 0 taken (tid 260)
@@ -62,14 +71,14 @@ thread slot 1 taken (tid 264)
 CreateThread start=00a5b000 param=01b8b1d0
 thread slot 2 taken (tid 268)
 CreateThread start=00a5b000 param=01b8b1d0
-thread slot 3 taken (tid 272)
 CreateThread start=00a5b000 param=01b8b1d0
-thread slot 4 taken (tid 276)
+thread slot 3 taken (tid 272)thread slot 5 taken (tid 276)
+thread slot 4 taken (tid 280)
 CreateThread start=00a5b000 param=01b8b1d0
-thread slot 5 taken (tid 284)
+
 CreateThread start=00a5ac30 param=01b8b1d0
-thread slot 6 taken (tid 288)
-thread slot 7 taken (tid 280)
+thread slot 6 taken (tid 284)
+thread slot 7 taken (tid 288)
 VirtualAlloc(00000000, 5242880, 2000) = 84040000
 VirtualAlloc(84040000, 5242880, 1000) = 84040000
 GetFileAttributesExA failed: C:\Skyrim\DATA\NullStream (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/NullStream): No such file or directory
@@ -79,17 +88,17 @@ GetFileAttributesExA failed: C:\Skyrim\NullStream (/storage/emulated/0/Download/
 VirtualAlloc(6031e9b0, 4194320, 1000) = 6031e9b0
 SteamAPI_Init: offline stub
 CreateFileA failed: C:\Users\Player\Documents\Skyrim\.\Plugins.txt (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/Skyrim/./Plugins.txt)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Misc.bsa -> fd 130
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Misc.bsa -> fd 149
 VirtualAlloc(00000000, 16777216, 2000) = 84540000
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Shaders.bsa -> fd 139
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Textures.bsa -> fd 140
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Interface.bsa -> fd 141
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Animations.bsa -> fd 142
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Meshes.bsa -> fd 143
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Sounds.bsa -> fd 144
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Voices.bsa -> fd 145
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - VoicesExtra.bsa -> fd 146
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.bsa -> fd 157
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Shaders.bsa -> fd 162
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Textures.bsa -> fd 165
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Interface.bsa -> fd 190
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Animations.bsa -> fd 226
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Meshes.bsa -> fd 227
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Sounds.bsa -> fd 228
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Voices.bsa -> fd 229
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - VoicesExtra.bsa -> fd 230
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.bsa -> fd 231
 CreateFileA failed: C:\Users\Player\Documents\Skyrim\.\Plugins.txt (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/Skyrim/./Plugins.txt)
 FindFirstFileA C:\Skyrim\DATA\TEXTURES\\* -> /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/TEXTURES//*
 FindFirstFileA C:\Skyrim\DATA\TEXTURES\architecture\\* -> /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/TEXTURES/architecture//*
@@ -3066,6 +3075,9 @@ GetFileAttributesExA failed: C:\Skyrim\DATA\DATA\SOUND\Voice\skyrim.esm\MaleElfH
 GetFileAttributesExA failed: C:\Skyrim\DATA\DATA\SOUND\Voice\skyrim.esm\MaleElfHaughty\DialogueGeneric__0003C57A_1.fuz (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/SOUND/Voice/skyrim.esm/MaleElfHaughty/DialogueGeneric__0003C57A_1.fuz): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\DATA\DATA\SOUND\Voice\skyrim.esm\MaleElfHaughty\DialogueGeneric__0003C57A_1.fuz (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/SOUND/Voice/skyrim.esm/MaleElfHaughty/DialogueGeneric__0003C57A_1.fuz): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\DATA\DATA\SOUND\Voice\skyrim.esm\MaleElfHaughty\DialogueGeneric__0003C57B_1.fuz (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/SOUND/Voice/skyrim.esm/MaleElfHaughty/DialogueGeneric__0003C57B_1.fuz): No such file or directory
+watchdog 10s: frames 0 (no new frames)
+  thread 0 (tid 6518, guest 260): last KERNEL32!GetFileAttributesExA from 00a47f38, 1300073 calls; esi 00000001 [00000000 00000000]
+  thread 1 (tid 6635, guest 288): last KERNEL32!WaitForSingleObject from 00a5ac42, 1 calls; esi 00000000 [00000000 00000000]
 GetFileAttributesExA failed: C:\Skyrim\DATA\DATA\SOUND\Voice\skyrim.esm\MaleElfHaughty\DialogueGeneric__0003C57B_1.fuz (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/SOUND/Voice/skyrim.esm/MaleElfHaughty/DialogueGeneric__0003C57B_1.fuz): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\DATA\DATA\SOUND\Voice\skyrim.esm\MaleElfHaughty\DialogueGeneric__0005DD78_1.fuz (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/SOUND/Voice/skyrim.esm/MaleElfHaughty/DialogueGeneric__0005DD78_1.fuz): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\DATA\DATA\SOUND\Voice\skyrim.esm\MaleElfHaughty\DialogueGeneric__0005DD78_1.fuz (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/SOUND/Voice/skyrim.esm/MaleElfHaughty/DialogueGeneric__0005DD78_1.fuz): No such file or directory
@@ -4647,7 +4659,7 @@ xaudio2: build: xWMA path=yes decoder=FFmpeg WMAV2 log=port/log.txt + logcat
 xaudio2: mastering voice 6 ch at 48000 Hz
 CoCreateInstance -> E_NOINTERFACE
 thread slot 10 taken (tid 300)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/RendererInfo.txt (write, disposition 2) -> fd 167
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/RendererInfo.txt (write, disposition 2) -> fd 150
 Direct3DCreate9(32)
 info:  Game: app_process64
 info:  DXVK: v1.9.2
@@ -4785,12 +4797,13 @@ info:    bufferDeviceAddress                    : 0
 info:  Queue families:
 info:    Graphics : 0
 info:    Transfer : 0
-info:  DXVK: Read 431 valid state cache entries
+warn:  DXVK: No state cache file found
+warn:  DXVK: Creating new state cache file
 info:  DXVK: Pipeline compilation mode: synchronous first-use (DXVK_NO_ASYNC=1), compiler threads=0
 info:  Port: USCALED vertex fetch supported, UBYTE4/SHORT fetched normalized + rescaled
-info:  DXVK-THREAD: role=submit tid=32115 cpu=4
-info:  DXVK-THREAD: role=finish tid=32116 cpu=6
 warn:  D3D9DeviceEx::SetupFPU: not supported on this arch.
+info:  DXVK-THREAD: role=finish tid=6862 cpu=5
+info:  DXVK-THREAD: role=submit tid=6861 cpu=5
 info:  D3D9DeviceEx::ResetSwapChain:
 info:    Requested Presentation Parameters
 info:      - Width:              1632
@@ -4809,7 +4822,7 @@ info:    Exclusive FS: 0
 CreateDevice -> 00000000
 BC texture emulation off
 CreateTexture 2x1 levels 1 usage 0 fmt 17 pool 1 -> 00000000
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/RendererInfo.txt (write, disposition 4) -> fd 175
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/RendererInfo.txt (write, disposition 4) -> fd 170
 CreateTexture 16x16 levels 1 usage 0 fmt 16 pool 1 -> 00000000
 CreateTexture 16x16 levels 1 usage 0 fmt 15 pool 1 -> 00000000
 CreateTexture 128x128 levels 8 usage 0 fmt 31545844 pool 1 -> 00000000
@@ -4823,14 +4836,10 @@ GetFileAttributesExA failed: C:\Skyrim\DATA\shadersfx\Lighting\059\PC00003.fxp (
 GetFileAttributesExA failed: C:\Skyrim\shadersfx\Lighting\059\PC00003.fxp (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/shadersfx/Lighting/059/PC00003.fxp): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\shadersfx\Lighting\059\PC00003.fxp (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/shadersfx/Lighting/059/PC00003.fxp): No such file or directory
 CreateTexture 1x1 levels 1 usage 0 fmt 1c pool 0 -> 00000000
-info:  DXVK: Synchronous first-use pipeline compile: 3 pipeline(s), 10243 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 10527 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 10488 us
-info:  DXVK: Synchronous first-use pipeline compile: 4 pipeline(s), 10243 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 6085 us
-CreateThread start=00a4b4a0 param=740cbf80
+xaudio2: output timing queue_low=1 min_queue=0B slow_mix=0 max_mix=0ms (last 1s)
+CreateThread start=00a4b4a0 param=740cbb80
 thread slot 11 taken (tid 304)
-CreateThread start=00a4b4a0 param=740cbf00
+CreateThread start=00a4b4a0 param=740cbb00
 thread slot 12 taken (tid 308)
 CreateTexture 512x1024 levels 11 usage 0 fmt 35545844 pool 1 -> 00000000
 VirtualAlloc(00000000, 16777216, 2000) = 88540000
@@ -4849,68 +4858,65 @@ info:    Exclusive FS: 0
 info:  D3D9: vertex decltype 3 usage 9 -> VK_FORMAT_R32G32B32A32_SFLOAT
 info:  D3D9: vertex decltype 1 usage 5 -> VK_FORMAT_R32G32_SFLOAT
 info:  D3D9: vertex decltype 4 usage 10 -> VK_FORMAT_B8G8R8A8_UNORM
-info:  DXVK: Synchronous first-use pipeline compile: 3 pipeline(s), 7468 us
 FindFirstFileA Data\Video\BGS_LOGO.BIK -> Data/Video/BGS_LOGO.BIK
 CreateTexture 256x256 levels 1 usage 200 fmt 16 pool 0 -> 00000000
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 3905 us
-xaudio2: output timing queue_low=1 min_queue=0B slow_mix=0 max_mix=0ms (last 1s)
 thread slot 8 released
 CreateThread start=00a4b4a0 param=103ffdc8
 thread slot 8 taken (tid 316)
-CreateThread start=00a4b4a0 param=74b2fa40
+CreateThread start=00a4b4a0 param=74bc0280
 thread slot 14 taken (tid 320)
-CreateThread start=00a4b4a0 param=74cfd140
+CreateThread start=00a4b4a0 param=74cfb9e8
 thread slot 15 taken (tid 324)
 FindFirstFileA DATA\*.esm -> DATA/*.esm
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Dawnguard.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Dawnguard.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Dawnguard.esm)
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Dawnguard.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Dawnguard.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Dawnguard.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Dawnguard.esm -> fd 243
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Dawnguard.esm -> fd 243
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Dawnguard.esm -> fd 250
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Dawnguard.esm -> fd 250
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Dragonborn.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Dragonborn.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Dragonborn.esm)
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Dragonborn.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Dragonborn.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Dragonborn.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Dragonborn.esm -> fd 228
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Dragonborn.esm -> fd 228
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Dragonborn.esm -> fd 237
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Dragonborn.esm -> fd 237
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HearthFires.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\HearthFires.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HearthFires.esm)
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HearthFires.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\HearthFires.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HearthFires.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HearthFires.esm -> fd 245
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HearthFires.esm -> fd 245
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HearthFires.esm -> fd 253
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HearthFires.esm -> fd 253
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 246
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 246
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 256
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 256
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Update.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm)
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Update.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.esm -> fd 247
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.esm -> fd 247
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.esm -> fd 257
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.esm -> fd 257
 FindFirstFileA DATA\*.esp -> DATA/*.esp
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack01.esp -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\HighResTexturePack01.esp (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack01.esp)
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack01.esp -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\HighResTexturePack01.esp (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack01.esp)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack01.esp -> fd 250
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack01.esp -> fd 250
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack01.esp -> fd 258
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack01.esp -> fd 258
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack02.esp -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\HighResTexturePack02.esp (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack02.esp)
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack02.esp -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\HighResTexturePack02.esp (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack02.esp)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack02.esp -> fd 253
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack02.esp -> fd 253
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack02.esp -> fd 259
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack02.esp -> fd 259
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack03.esp -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\HighResTexturePack03.esp (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack03.esp)
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack03.esp -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\HighResTexturePack03.esp (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack03.esp)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack03.esp -> fd 254
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack03.esp -> fd 254
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack03.esp -> fd 260
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack03.esp -> fd 244
 FindFirstFileA DATA\Update.esm -> DATA/Update.esm
 FindFirstFileA DATA\Skyrim.esm -> DATA/Skyrim.esm
 FindFirstFileA DATA\HearthFires.esm -> DATA/HearthFires.esm
@@ -4921,15 +4927,13 @@ FindFirstFileA DATA\HighResTexturePack02.esp -> DATA/HighResTexturePack02.esp
 FindFirstFileA DATA\HighResTexturePack01.esp -> DATA/HighResTexturePack01.esp
 VirtualAlloc(00000000, 16777216, 2000) = 89540000
 thread slot 13 released
-ExitThread(0)
-thread slot 6 released
-CreateFileA failed: C:\Users\Player\Documents\Skyrim\.\Plugins.txt (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/Skyrim/./Plugins.txt)
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 37244 us
 info:  D3D9: vertex decltype 2 usage 0 -> VK_FORMAT_R32G32B32_SFLOAT
+ExitThread(0)
+thread slot 7 released
+CreateFileA failed: C:\Users\Player\Documents\Skyrim\.\Plugins.txt (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/Skyrim/./Plugins.txt)
 VirtualAlloc(00000000, 16777216, 2000) = 8a540000
 VirtualAlloc(00000000, 16777216, 2000) = 8b540000
 CreateTexture 128x128 levels 8 usage 0 fmt 33545844 pool 1 -> 00000000
-info:  DXVK: Synchronous first-use pipeline compile: 4 pipeline(s), 31642 us
 GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\WindhelmWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/WindhelmWorld.LOD): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\WindhelmWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/WindhelmWorld.LOD): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\LODSettings\WindhelmWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/WindhelmWorld.LOD): No such file or directory
@@ -5016,29 +5020,29 @@ GetFileAttributesExA failed: C:\Skyrim\LODSettings\CWSiegeTestWorld.LOD (/storag
 GetFileAttributesExA failed: C:\Skyrim\LODSettings\CWSiegeTestWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/CWSiegeTestWorld.LOD): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\WhiterunDragonsreachWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/WhiterunDragonsreachWorld.LOD): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\WhiterunDragonsreachWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/WhiterunDragonsreachWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\WhiterunDragonsreachWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/WhiterunDragonsreachWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\WhiterunDragonsreachWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/WhiterunDragonsreachWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\EastEmpireWarehouse.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/EastEmpireWarehouse.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\EastEmpireWarehouse.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/EastEmpireWarehouse.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\EastEmpireWarehouse.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/EastEmpireWarehouse.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\EastEmpireWarehouse.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/EastEmpireWarehouse.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\BrinewaterGrottoWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/BrinewaterGrottoWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\BrinewaterGrottoWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/BrinewaterGrottoWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\BrinewaterGrottoWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/BrinewaterGrottoWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\BrinewaterGrottoWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/BrinewaterGrottoWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\AlftandWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/AlftandWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\AlftandWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/AlftandWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\AlftandWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/AlftandWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\AlftandWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/AlftandWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\FXLightWorldSpace.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/FXLightWorldSpace.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\FXLightWorldSpace.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/FXLightWorldSpace.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\FXLightWorldSpace.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/FXLightWorldSpace.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\FXLightWorldSpace.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/FXLightWorldSpace.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\KatariahWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/KatariahWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\KatariahWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/KatariahWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\KatariahWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/KatariahWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\KatariahWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/KatariahWorld.LOD): No such file or directory
 info:  D3D9: vertex decltype 0 usage 5 -> VK_FORMAT_R32_SFLOAT
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\WhiterunDragonsreachWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/WhiterunDragonsreachWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\WhiterunDragonsreachWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/WhiterunDragonsreachWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\EastEmpireWarehouse.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/EastEmpireWarehouse.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\EastEmpireWarehouse.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/EastEmpireWarehouse.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\EastEmpireWarehouse.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/EastEmpireWarehouse.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\EastEmpireWarehouse.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/EastEmpireWarehouse.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\BrinewaterGrottoWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/BrinewaterGrottoWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\BrinewaterGrottoWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/BrinewaterGrottoWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\BrinewaterGrottoWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/BrinewaterGrottoWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\BrinewaterGrottoWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/BrinewaterGrottoWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\AlftandWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/AlftandWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\AlftandWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/AlftandWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\AlftandWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/AlftandWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\AlftandWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/AlftandWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\FXLightWorldSpace.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/FXLightWorldSpace.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\FXLightWorldSpace.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/FXLightWorldSpace.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\FXLightWorldSpace.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/FXLightWorldSpace.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\FXLightWorldSpace.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/FXLightWorldSpace.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\KatariahWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/KatariahWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\KatariahWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/KatariahWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\KatariahWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/KatariahWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\KatariahWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/KatariahWorld.LOD): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\FrostmereCryptWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/FrostmereCryptWorld.LOD): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\FrostmereCryptWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/FrostmereCryptWorld.LOD): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\LODSettings\FrostmereCryptWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/FrostmereCryptWorld.LOD): No such file or directory
@@ -5058,16 +5062,16 @@ CreateTexture 512x512 levels 1 usage 0 fmt 1c pool 2 -> 00000000
 VirtualAlloc(00000000, 16777216, 2000) = 8c540000
 xaudio2: source format xWMA tag=0161 2 ch 48000 Hz avg_bps=6000 block_align=1008 extra=0 (voice #1, decoder FFmpeg)
 xaudio2: Start xWMA voice fmt=6 ch=2 rate=48000 queued=1 (#1)
-[wmav2 @ 0x72c7de14e0] Could not update timestamps for skipped samples.
+[wmav2 @ 0x72c7df3180] Could not update timestamps for skipped samples.
 frame 300
 xwma_ffmpeg: packets=1842 block_align=1008 pcm_frames=11311104 pcm=235.648s dpds=235.648s tag=0161 ba=1008 extra=6 flags=31 bitrate=48kbps
 xaudio2: xWMA decoded tag=0161 2 ch 48000 Hz bytes=1856736 -> 11311104 frames submit #1
-xaudio2: xWMA worker latency=234ms submit #1
-xaudio2: source starvation frames pending_decode=10561 empty_queue=0 (last 1s)
+xaudio2: xWMA worker latency=282ms submit #1
+xaudio2: source starvation frames pending_decode=12481 empty_queue=0 (last 1s)
 xaudio2: source format tag=0001 fmt=0 1 ch 32000 Hz bits=16
 xaudio2: source format tag=0001 fmt=0 1 ch 32000 Hz bits=16
 xaudio2: source format tag=0001 fmt=0 2 ch 44100 Hz bits=16
-frame 600
+xaudio2: source starvation frames pending_decode=0 empty_queue=2972 (last 1s)
 xaudio2: source format tag=0001 fmt=0 2 ch 44100 Hz bits=16
 FindFirstFileA XBoxSaves\*.exs -> XBoxSaves/*.exs (no such folder)
 FindFirstFileA C:\Users\Player\Documents\My Games\Skyrim\Saves\*.ess -> /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/Saves/*.ess
@@ -5076,21 +5080,63 @@ FindFirstFileA C:\Users\Player\Documents\My Games\Skyrim\Saves\          1 -    
 FindFirstFileA C:\Users\Player\Documents\My Games\Skyrim\Saves\autosave2.ess -> /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/Saves/autosave2.ess
 FindFirstFileA C:\Users\Player\Documents\My Games\Skyrim\Saves\autosave3.ess -> /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/Saves/autosave3.ess
 FindFirstFileA C:\Users\Player\Documents\My Games\Skyrim\Saves\quicksave.ess -> /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/Saves/quicksave.ess
-xaudio2: source starvation frames pending_decode=0 empty_queue=3612 (last 1s)
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 12145 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 6552 us
-info:  DXVK: Synchronous first-use pipeline compile: 4 pipeline(s), 11614 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 17831 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 11993 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 6992 us
 CreateTexture 256x1 levels 1 usage 0 fmt 15 pool 0 -> 00000000
 VirtualAlloc(00000000, 16777216, 2000) = 8d540000
-VirtualAlloc(638805b0, 5592624, 1000) = 638805b0
-VirtualAlloc(63dd5be0, 5592576, 1000) = 63dd5be0
+watchdog 30s: frames 480
+profile: 6360 samples (1 ms CPU each)
+   35.0%  sched_yield
+    5.0%  fstatat
+    2.8%  rt_call
+    2.7%  libc.so+0xc1700
+    1.8%  libc.so+0xc1300
+    1.6%  libmain.so+0x645d200
+    1.1%  __emutls_get_address
+    1.1%  libmain.so+0x64a7900
+    1.0%  f_A51C20
+    1.0%  libc.so+0xc1500
+    0.9%  nanosleep
+    0.9%  f_F52E30
+    0.8%  libmain.so+0x645a100
+    0.8%  f_A50A30
+    0.8%  syscall
+    0.7%  f_A3CDD0
+    0.7%  libmain.so+0x6456f00
+    0.6%  f_9008000
+    0.6%  write
+    0.6%  libmain.so+0x64a7b00
+    0.6%  f_A3B430
+    0.6%  f_691410
+    0.6%  pthread_getspecific
+    0.6%  rt_call_ic
+    0.5%  f_901A530
+    0.5%  libc.so+0x56700
+    0.5%  f_A3EE30
+    0.5%  libdxvk_d3d9.so+0x21fb00
+    0.5%  lseek
+    0.5%  f_A3B600
+  thread 0 (tid 6518, guest 260): last KERNEL32!InterlockedDecrement from 0050264c, 60561662 calls; esi 74f03790 [011183dc 00000002]
+  thread 1 (tid 6635, guest 288): last KERNEL32!ExitThread from 00a5ac7a, 9 calls; esi 00000006 [00000000 00000000]
+  thread 2 (tid 6827, guest 292): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 30292190 calls (idle); esi 01b4ae14 [00000000 00000000]
+  thread 3 (tid 6831, guest 296): last KERNEL32!Sleep from 00b9ef30, 77265 calls; esi 744ca5c0 [01124a4c 00000000]
+  thread 4 (tid 6993, guest 304): last KERNEL32!Sleep from 006f40cf, 325103 calls; esi 00000018 [00000000 00000000]
+  thread 5 (tid 6994, guest 308): last KERNEL32!WaitForSingleObject from 00a4e30f, 32 calls; esi 740cbb00 [010d0cdc 00000000]
+  thread 6 (tid 6995, guest 312): last KERNEL32!InterlockedCompareExchange from 0068c6ea, 87428 calls; esi 74941ee0 [010cd524 00000000]
+  thread 7 (tid 7424, guest 316): last KERNEL32!ExitThread from 00a4b4fb, 13763053 calls; esi 103ffdc8 [0110d640 00000000]
+  thread 8 (tid 7425, guest 320): last KERNEL32!WaitForSingleObject from 00af8a1a, 371262 calls; esi 74bc0280 [0111d7ac 00000000]
+  thread 9 (tid 7426, guest 324): last KERNEL32!WaitForSingleObject from 0042e6f5, 785 calls; esi 74cfb9e8 [0107a45c 00000000]
+  thread 10 (tid 6620, guest 268): last KERNEL32!WaitForSingleObject from 00a5aeac, 12112 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 11 (tid 6631, guest 280): last KERNEL32!WaitForSingleObject from 00a5aeac, 6236 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 12 (tid 6621, guest 272): last KERNEL32!WaitForSingleObject from 00a5aeac, 11731 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 13 (tid 6632, guest 284): last KERNEL32!WaitForSingleObject from 00a5aeac, 11952 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 14 (tid 6629, guest 276): last KERNEL32!WaitForSingleObject from 00a5aeac, 11877 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 15 (tid 6619, guest 264): last KERNEL32!WaitForSingleObject from 00a5aeac, 17549 calls; esi 01b8b1d0 [0110dd1c 00000101]
+VirtualAlloc(6385a030, 5592624, 1000) = 6385a030
+VirtualAlloc(63daf660, 5592576, 1000) = 63daf660
 GetFileAttributesExA failed: C:\Skyrim\DATA\Textures\Actors\Character\FaceGenData\FaceTint\Skyrim.esm\00000007.dds (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Textures/Actors/Character/FaceGenData/FaceTint/Skyrim.esm/00000007.dds): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\DATA\Textures\Actors\Character\FaceGenData\FaceTint\Skyrim.esm\00000007.dds (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Textures/Actors/Character/FaceGenData/FaceTint/Skyrim.esm/00000007.dds): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\Textures\Actors\Character\FaceGenData\FaceTint\Skyrim.esm\00000007.dds (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/Textures/Actors/Character/FaceGenData/FaceTint/Skyrim.esm/00000007.dds): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\Textures\Actors\Character\FaceGenData\FaceTint\Skyrim.esm\00000007.dds (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/Textures/Actors/Character/FaceGenData/FaceTint/Skyrim.esm/00000007.dds): No such file or directory
+frame 600
 xaudio2: source format tag=0001 fmt=0 1 ch 11025 Hz bits=16
 xaudio2: source format tag=0001 fmt=0 1 ch 32000 Hz bits=16
 xaudio2: source format tag=0001 fmt=0 1 ch 32000 Hz bits=16
@@ -5099,574 +5145,511 @@ GetFileAttributesExA failed: C:\Skyrim\DATA\Grass\Tamrielx0002y-009.gid (/storag
 GetFileAttributesExA failed: C:\Skyrim\DATA\Grass\Tamrielx0002y-009.gid (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Grass/Tamrielx0002y-009.gid): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\Grass\Tamrielx0002y-009.gid (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/Grass/Tamrielx0002y-009.gid): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\Grass\Tamrielx0002y-009.gid (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/Grass/Tamrielx0002y-009.gid): No such file or directory
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 9076 us
-xaudio2: source format tag=0001 fmt=0 2 ch 32000 Hz bits=16
-frame 900
+xaudio2: source format tag=0001 fmt=0 1 ch 32000 Hz bits=16
 VirtualAlloc(00000000, 16777216, 2000) = 8e540000
 VirtualAlloc(00000000, 16777216, 2000) = 8f540000
+VirtualAlloc(00000000, 16777216, 2000) = 91540000
 VirtualAlloc(00000000, 16777216, 2000) = 92540000
 VirtualAlloc(00000000, 16777216, 2000) = 90540000
-VirtualAlloc(00000000, 16777216, 2000) = 93540000VirtualAlloc(00000000, 16777216, 2000) = 91540000
-
-VirtualAlloc(00000000, 16777216, 2000) = 94540000
-VirtualAlloc(00000000, 16777216, 2000) = 95540000
+VirtualAlloc(00000000, 16777216, 2000) = 93540000
+VirtualAlloc(00000000, 16777216, 2000) = 94540000VirtualAlloc(00000000, 16777216, 2000) = 95540000
 VirtualAlloc(00000000, 16777216, 2000) = 96540000
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 7080 us
-info:  DXVK: Synchronous first-use pipeline compile: 10 pipeline(s), 18576 us
-info:  DXVK: Synchronous first-use pipeline compile: 5 pipeline(s), 32699 us
-info:  DXVK: Synchronous first-use pipeline compile: 3 pipeline(s), 14537 us
-info:  DXVK: Synchronous first-use pipeline compile: 15 pipeline(s), 7114 us
-info:  DXVK: Synchronous first-use pipeline compile: 11 pipeline(s), 27243 us
-info:  DXVK: Synchronous first-use pipeline compile: 4 pipeline(s), 27840 us
-info:  DXVK: Synchronous first-use pipeline compile: 3 pipeline(s), 20406 us
+
 info:  D3D9: vertex decltype 16 usage 0 -> VK_FORMAT_R16G16B16A16_SFLOAT
-info:  DXVK: Synchronous first-use pipeline compile: 4 pipeline(s), 5057 us
-info:  DXVK: Synchronous first-use pipeline compile: 15 pipeline(s), 91075 us
-info:  DXVK: Synchronous first-use pipeline compile: 4 pipeline(s), 15669 us
-info:  DXVK: Synchronous first-use pipeline compile: 19 pipeline(s), 98986 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 16236 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 17376 us
-info:  DXVK: Synchronous first-use pipeline compile: 7 pipeline(s), 64513 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 17508 us
-info:  DXVK: Synchronous first-use pipeline compile: 4 pipeline(s), 34166 us
-info:  DXVK: Synchronous first-use pipeline compile: 3 pipeline(s), 33401 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 36334 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 10560 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 12326 us
 info:  D3D9: vertex decltype 15 usage 5 -> VK_FORMAT_R16G16_SFLOAT
-info:  DXVK: Synchronous first-use pipeline compile: 4 pipeline(s), 21011 us
-info:  DXVK: Synchronous first-use pipeline compile: 3 pipeline(s), 26167 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 8281 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 17686 us
-info:  DXVK: Synchronous first-use pipeline compile: 19 pipeline(s), 86517 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 12472 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 7172 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 7666 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 7915 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 5246 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 5747 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 8527 us
-info:  DXVK: Synchronous first-use pipeline compile: 3 pipeline(s), 10242 us
-info:  DXVK: Synchronous first-use pipeline compile: 25 pipeline(s), 55657 us
-info:  DXVK: Synchronous first-use pipeline compile: 18 pipeline(s), 29516 us
-info:  DXVK: Synchronous first-use pipeline compile: 39 pipeline(s), 34876 us
-info:  DXVK: Synchronous first-use pipeline compile: 3 pipeline(s), 4874 us
-info:  DXVK: Synchronous first-use pipeline compile: 5 pipeline(s), 3357 us
-info:  DXVK: Synchronous first-use pipeline compile: 4 pipeline(s), 16107 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 9750 us
-info:  DXVK: Synchronous first-use pipeline compile: 6 pipeline(s), 10234 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 7756 us
-info:  DXVK: Synchronous first-use pipeline compile: 4 pipeline(s), 25137 us
-info:  DXVK: Synchronous first-use pipeline compile: 4 pipeline(s), 24194 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 19077 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 14050 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 7498 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 19823 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 3079 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 9810 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 8797 us
-info:  DXVK: Synchronous first-use pipeline compile: 6 pipeline(s), 7188 us
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 237
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 237
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 240
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 240
 xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #2, decoder FFmpeg)
 xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#2)
-[wmav2 @ 0x72c7e28310] Could not update timestamps for skipped samples.
+[wmav2 @ 0x72c7e308c0] Could not update timestamps for skipped samples.
 xwma_ffmpeg: packets=5 block_align=1487 pcm_frames=43008 pcm=0.975s dpds=0.975s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
 xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=7435 -> 43008 frames submit #2
 xaudio2: xWMA worker latency=1ms submit #2
-xaudio2: source starvation frames pending_decode=0 empty_queue=736 (last 1s)
-watchdog 30s: frames 972
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 12064 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 12309 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 23630 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 24283 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 11178 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 26673 us
-info:  DXVK: Synchronous first-use pipeline compile: 3 pipeline(s), 82464 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 12077 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 25473 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 26519 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 27794 us
-info:  DXVK: Synchronous first-use pipeline compile: 5 pipeline(s), 72362 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 7778 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 7534 us
-profile: 8256 samples (1 ms CPU each)
-   25.9%  sched_yield
-    4.1%  f_91D870
-    3.1%  fstatat
-    2.2%  libmain.so+0x645d600
-    2.1%  rt_call
-    1.5%  libmain.so+0x645a500
-    1.1%  libmain.so+0x64a8300
-    1.1%  libc.so+0xc1500
-    1.0%  libmain.so+0x64a8200
-    1.0%  __emutls_get_address
-    0.9%  f_A51C20
-    0.9%  syscall
-    0.8%  f_F52E30
-    0.7%  f_A50A30
-    0.7%  libdxvk_d3d9.so+0x21fb00
-    0.7%  pthread_getspecific
-    0.7%  f_691410
-    0.7%  nanosleep
-    0.6%  libc.so+0x56700
-    0.6%  f_A50B30
-    0.6%  f_E5FFF0
-    0.5%  f_A4EAC0
-    0.5%  f_A3B600
-    0.5%  libc.so+0xcfb00
-    0.5%  libmain.so+0x6457200
-    0.5%  rt_call_ic
-    0.5%  f_A3CDD0
-    0.5%  f_AF7810
-    0.5%  _ZN4dxvk12D3D9DeviceEx15WaitForResourceERKNS_2RcINS_12DxvkResourceEEEj
-    0.4%  f_91E220
-  thread 0 (tid 31983, guest 260): last IDirect3DDevice9#106 from 00ccbfb5, 75264676 calls; esi 74848060 [0010000c 00180014]
-  thread 1 (tid 32003, guest 288): last KERNEL32!ExitThread from 00a5ac7a, 9 calls (idle); esi 00000006 [00000000 00000000]
-  thread 2 (tid 32096, guest 292): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 30294594 calls (idle); esi 01b4ae14 [00000000 00000000]
-  thread 3 (tid 32102, guest 296): last KERNEL32!Sleep from 00b9ef30, 377632 calls; esi 744ca5c0 [01124a4c 00000000]
-  thread 4 (tid 32123, guest 304): last KERNEL32!WaitForSingleObject from 00a59095, 1781268 calls; esi ff00022c [00000000 00000000]
-  thread 5 (tid 32124, guest 308): last KERNEL32!WaitForSingleObject from 00a59095, 1195873 calls; esi ff00022c [00000000 00000000]
-  thread 6 (tid 32125, guest 312): last KERNEL32!InterlockedCompareExchange from 0068c6ea, 87435 calls (idle); esi 74922150 [010cd524 00000000]
-  thread 7 (tid 32153, guest 316): last KERNEL32!ExitThread from 00a4b4fb, 13759413 calls (idle); esi 103ffdc8 [0110d640 00000000]
-  thread 8 (tid 32154, guest 320): last KERNEL32!WaitForSingleObject from 00af89b0, 11274292 calls; esi 74b2fa40 [0111d7ac 00000000]
-  thread 9 (tid 32155, guest 324): last KERNEL32!WaitForSingleObject from 00af863c, 1794128 calls; esi 74cfd140 [0107a45c 00000000]
-  thread 10 (tid 31997, guest 264): last KERNEL32!WaitForSingleObject from 00a5aeac, 191285 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 11 (tid 32000, guest 276): last KERNEL32!WaitForSingleObject from 00a5aeac, 175740 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 12 (tid 31998, guest 268): last KERNEL32!WaitForSingleObject from 00a5aeac, 150396 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 13 (tid 31999, guest 272): last KERNEL32!WaitForSingleObject from 00a5aeac, 150415 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 14 (tid 32001, guest 280): last KERNEL32!WaitForSingleObject from 00a5aeac, 150715 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 15 (tid 32002, guest 284): last KERNEL32!WaitForSingleObject from 00a5aeac, 146274 calls; esi 01b8b1d0 [0110dd1c 00000101]
-info:  DXVK: Synchronous first-use pipeline compile: 15 pipeline(s), 101901 us
-xaudio2: source starvation frames pending_decode=0 empty_queue=2706 (last 1s)
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 19682 us
-info:  DXVK: Synchronous first-use pipeline compile: 4 pipeline(s), 23572 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 9746 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 20135 us
-info:  DXVK: Synchronous first-use pipeline compile: 4 pipeline(s), 39823 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 36811 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 42341 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 9530 us
-info:  DXVK: Synchronous first-use pipeline compile: 15 pipeline(s), 95037 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 7363 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 6752 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 10898 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 10670 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 22612 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 12184 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 11360 us
-info:  DXVK: Synchronous first-use pipeline compile: 3 pipeline(s), 12734 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 14372 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 6185 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 5811 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 12497 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 8672 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 10579 us
+xaudio2: source starvation frames pending_decode=0 empty_queue=2095 (last 1s)
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
+CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
+CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 222
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 222
 xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #3, decoder FFmpeg)
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 10709 us
+xaudio2: source starvation frames pending_decode=0 empty_queue=2936 (last 1s)
 xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#3)
-[wmav2 @ 0x72c7e49e20] Could not update timestamps for skipped samples.
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
 xwma_ffmpeg: packets=14 block_align=1487 pcm_frames=184320 pcm=4.180s dpds=4.180s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
 xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=20818 -> 184320 frames submit #3
-xaudio2: xWMA worker latency=3ms submit #3
-xaudio2: source starvation frames pending_decode=0 empty_queue=793 (last 1s)
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 21683 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 19499 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 20401 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 21343 us
+xaudio2: xWMA worker latency=4ms submit #3
+xaudio2: source starvation frames pending_decode=0 empty_queue=2968 (last 1s)
 VirtualAlloc(00000000, 16777216, 2000) = 97540000
-xaudio2: source starvation frames pending_decode=0 empty_queue=4315 (last 1s)
-xaudio2: refill gap voice=201423b0 gap=30ms eos=1 queue_before=0 totals=1/>5ms:1/>10ms:1
-xaudio2: source starvation frames pending_decode=0 empty_queue=3793 (last 1s)
-xaudio2: refill gap voice=20142f90 gap=65ms eos=1 queue_before=0 totals=1/>5ms:1/>10ms:1
-xaudio2: source starvation frames pending_decode=0 empty_queue=5207 (last 1s)
-VirtualAlloc(00000000, 16777216, 2000) = 98540000
-xaudio2: source starvation frames pending_decode=0 empty_queue=5850 (last 1s)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
-CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
-CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 234
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 234
+xaudio2: source starvation frames pending_decode=0 empty_queue=909 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=1715 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=5104 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=3628 (last 1s)
 xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #4, decoder FFmpeg)
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #5, decoder FFmpeg)
 xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#4)
-[wmav2 @ 0x72c7e49e20] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=4461 -> 30720 frames submit #4
-xaudio2: xWMA worker latency=1ms submit #4
-xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#5)
-[wmav2 @ 0x72c7e49e20] Could not update timestamps for skipped samples.
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
 xwma_ffmpeg: packets=10 block_align=1487 pcm_frames=96256 pcm=2.183s dpds=2.183s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=14870 -> 96256 frames submit #5
-xaudio2: xWMA worker latency=3ms submit #5
-xaudio2: source starvation frames pending_decode=0 empty_queue=3070 (last 1s)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
-CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
-CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 245
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 245
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm -> fd -1
-CreateFileA failed: C:\Skyrim\DATA\DATA\Update.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm -> fd -1
-CreateFileA failed: C:\Skyrim\DATA\DATA\Update.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.esm -> fd 249
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.esm -> fd 249
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #6, decoder FFmpeg)
-xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#6)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=4461 -> 28672 frames submit #6
-xaudio2: xWMA worker latency=1ms submit #6
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 18664 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 18778 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 34671 us
-xaudio2: source starvation frames pending_decode=0 empty_queue=14339 (last 1s)
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #7, decoder FFmpeg)
-xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#7)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
+xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=14870 -> 96256 frames submit #4
+xaudio2: xWMA worker latency=3ms submit #4
+frame 900
+xaudio2: source starvation frames pending_decode=0 empty_queue=1741 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #5, decoder FFmpeg)
+xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#5)
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
 xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=4461 -> 30720 frames submit #7
-xaudio2: xWMA worker latency=1ms submit #7
-xaudio2: source starvation frames pending_decode=0 empty_queue=5479 (last 1s)
+xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=4461 -> 30720 frames submit #5
+xaudio2: xWMA worker latency=1ms submit #5
+xaudio2: source starvation frames pending_decode=0 empty_queue=2733 (last 1s)
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
+CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
+CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 243
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 225
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm -> fd -1
+CreateFileA failed: C:\Skyrim\DATA\DATA\Update.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm)
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm -> fd -1
+CreateFileA failed: C:\Skyrim\DATA\DATA\Update.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm)
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.esm -> fd 253
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.esm -> fd 253
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #6, decoder FFmpeg)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #7, decoder FFmpeg)
+xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#6)
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=4461 -> 30720 frames submit #6
+xaudio2: xWMA worker latency=1ms submit #6
+xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#7)
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=8 block_align=1487 pcm_frames=77824 pcm=1.765s dpds=1.765s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=11896 -> 77824 frames submit #7
+xaudio2: xWMA worker latency=2ms submit #7
+xaudio2: source starvation frames pending_decode=0 empty_queue=11964 (last 1s)
 xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #8, decoder FFmpeg)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #9, decoder FFmpeg)
 xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#8)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
 xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
 xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=4461 -> 30720 frames submit #8
-xaudio2: xWMA worker latency=2ms submit #8
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #9, decoder FFmpeg)
-frame 1200
-xaudio2: source starvation frames pending_decode=0 empty_queue=12835 (last 1s)
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #10, decoder FFmpeg)
+xaudio2: xWMA worker latency=1ms submit #8
 xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#9)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=4461 -> 30720 frames submit #9
-xaudio2: xWMA worker latency=1ms submit #9
-xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#10)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
 xwma_ffmpeg: packets=7 block_align=1487 pcm_frames=71680 pcm=1.625s dpds=1.625s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=10409 -> 71680 frames submit #10
-xaudio2: xWMA worker latency=2ms submit #10
+xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=10409 -> 71680 frames submit #9
+xaudio2: xWMA worker latency=1ms submit #9
+xaudio2: source starvation frames pending_decode=0 empty_queue=6766 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #10, decoder FFmpeg)
+xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#10)
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=4461 -> 28672 frames submit #10
+xaudio2: xWMA worker latency=1ms submit #10
 xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #11, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
 xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source starvation frames pending_decode=0 empty_queue=5653 (last 1s)
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 20151 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 7278 us
-xaudio2: source starvation frames pending_decode=0 empty_queue=7499 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=13840 (last 1s)
 xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #12, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #13, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
 xwma_ffmpeg: packets=17 block_align=1487 pcm_frames=231424 pcm=5.248s dpds=5.248s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source starvation frames pending_decode=0 empty_queue=8546 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=9572 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #13, decoder FFmpeg)
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=6240 (last 1s)
+VirtualAlloc(00000000, 16777216, 2000) = 98540000
 xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #14, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
 xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=10320 (last 1s)
 xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #15, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source starvation frames pending_decode=0 empty_queue=13116 (last 1s)
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=5564 (last 1s)
 xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #16, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source format tag=0001 fmt=0 1 ch 11025 Hz bits=16
-xaudio2: source starvation frames pending_decode=0 empty_queue=10503 (last 1s)
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #17, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
 xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source starvation frames pending_decode=0 empty_queue=3875 (last 1s)
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #18, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #19, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source starvation frames pending_decode=0 empty_queue=12808 (last 1s)
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #20, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=4 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source starvation frames pending_decode=0 empty_queue=9744 (last 1s)
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #21, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=10 block_align=1487 pcm_frames=116736 pcm=2.647s dpds=2.647s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source starvation frames pending_decode=0 empty_queue=11349 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=9349 (last 1s)
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #22, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=4 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #23, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=4 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source starvation frames pending_decode=0 empty_queue=12105 (last 1s)
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #24, decoder FFmpeg)
-frame 1500
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #25, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source format xWMA tag=0161 2 ch 44100 Hz avg_bps=6000 block_align=2230 extra=0 (voice #26, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xaudio2: source starvation frames pending_decode=17640 empty_queue=9757 (last 1s)
-xwma_ffmpeg: packets=816 block_align=2230 pcm_frames=13363200 pcm=303.020s dpds=303.020s tag=0161 ba=2230 extra=6 flags=31 bitrate=48kbps
-xaudio2: xWMA worker latency=264ms submit #25
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=8 block_align=1487 pcm_frames=75776 pcm=1.718s dpds=1.718s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: xWMA worker latency=232ms submit #26
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #27, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=8 block_align=1487 pcm_frames=102400 pcm=2.322s dpds=2.322s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source starvation frames pending_decode=5292 empty_queue=9765 (last 1s)
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #28, decoder FFmpeg)
-xaudio2: source starvation frames pending_decode=0 empty_queue=8408 (last 1s)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=13 block_align=1487 pcm_frames=159744 pcm=3.622s dpds=3.622s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source starvation frames pending_decode=0 empty_queue=7953 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=2097 (last 1s)
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #29, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #30, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=8 block_align=1487 pcm_frames=98304 pcm=2.229s dpds=2.229s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source starvation frames pending_decode=0 empty_queue=6822 (last 1s)
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 9912 us
-xaudio2: source starvation frames pending_decode=0 empty_queue=11092 (last 1s)
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #31, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=13 block_align=1487 pcm_frames=161792 pcm=3.669s dpds=3.669s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source starvation frames pending_decode=0 empty_queue=3889 (last 1s)
-xaudio2: source format tag=0001 fmt=0 1 ch 32000 Hz bits=16
-xaudio2: source starvation frames pending_decode=0 empty_queue=9397 (last 1s)
-watchdog 60s: frames 1739
-xaudio2: source starvation frames pending_decode=0 empty_queue=4642 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=5412 (last 1s)
-profile: 9156 samples (1 ms CPU each)
-    7.8%  libdxvk_d3d9.so+0x21fb00
-    3.0%  ?
-    2.7%  syscall
-    2.3%  f_472580
-    2.0%  libmain.so+0x64a8300
-    1.7%  libc.so+0x56700
-    1.2%  _ZN4dxvk12D3D9DeviceEx15WaitForResourceERKNS_2RcINS_12DxvkResourceEEEj
-    1.2%  rt_call
-    1.1%  f_447ED0
-    1.1%  _Z8com_hostj
-    1.0%  sched_yield
-    1.0%  f_474CD0
-    1.0%  libmain.so+0x6451500
-    0.9%  f_4EC9C0
-    0.9%  f_CAFD70
-    0.8%  libc.so+0xcfd00
-    0.7%  f_CD7C20
-    0.7%  f_AFBF80
-    0.7%  libc.so+0xcfb00
-    0.7%  f_F531CC
-    0.6%  f_AAF430
-    0.6%  f_C8EB60
-    0.6%  libc.so+0xc1500
-    0.6%  f_B07C80
-    0.6%  f_C8B090
-    0.5%  f_CDA170
-    0.5%  f_AD21B0
-    0.5%  f_C937A0
-    0.5%  libdxvk_d3d9.so+0x21f700
-    0.5%  f_CB0090
-cpu: 194% of one core in total; SDLActivity/31709:5%@2 SDLThread/31983:79%@3 SDLThread/31984:4%@7 Thread-3/32105:4%@5 SDLThread/32116:4%@4 SDLThread/32117:21%@6 Thread-5/32123:33%@4 SDLThread/32124:33%@6
-  thread 0 (tid 31983, guest 260): last IDirect3DDevice9#57 from 00cdf2cd, 111601820 calls; esi 00000004 [00000000 00000000]
-  thread 1 (tid 32003, guest 288): last KERNEL32!ExitThread from 00a5ac7a, 9 calls (idle); esi 00000006 [00000000 00000000]
-  thread 2 (tid 32096, guest 292): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 30294594 calls (idle); esi 01b4ae14 [00000000 00000000]
-  thread 3 (tid 32102, guest 296): last KERNEL32!Sleep from 00b9ef30, 677022 calls; esi 744ca5c0 [01124a4c 00000000]
-  thread 4 (tid 32123, guest 304): last KERNEL32!WaitForSingleObject from 00a59095, 19055419 calls; esi ff00022c [00000000 00000000]
-  thread 5 (tid 32124, guest 308): last KERNEL32!InterlockedIncrement from 006f3a3a, 18003658 calls; esi ff00022c [00000000 00000000]
-  thread 6 (tid 32125, guest 312): last KERNEL32!InterlockedCompareExchange from 0068c6ea, 87435 calls (idle); esi 74922150 [010cd524 00000000]
-  thread 7 (tid 32153, guest 316): last KERNEL32!ExitThread from 00a4b4fb, 13759413 calls (idle); esi 103ffdc8 [0110d640 00000000]
-  thread 8 (tid 32154, guest 320): last KERNEL32!WaitForSingleObject from 00af89b0, 12220598 calls; esi 74b2fa40 [0111d7ac 00000000]
-  thread 9 (tid 32155, guest 324): last KERNEL32!WaitForSingleObject from 00af863c, 1871939 calls; esi 74cfd140 [0107a45c 00000000]
-  thread 10 (tid 31997, guest 264): last KERNEL32!WaitForSingleObject from 00a5aeac, 284416 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 11 (tid 32000, guest 276): last KERNEL32!WaitForSingleObject from 00a5aeac, 247687 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 12 (tid 31998, guest 268): last KERNEL32!WaitForSingleObject from 00a5aeac, 242284 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 13 (tid 31999, guest 272): last KERNEL32!WaitForSingleObject from 00a5aeac, 240752 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 14 (tid 32001, guest 280): last KERNEL32!WaitForSingleObject from 00a5aeac, 241541 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 15 (tid 32002, guest 284): last KERNEL32!WaitForSingleObject from 00a5aeac, 577794 calls; esi 01b8b1d0 [0110dd1c 00000101]
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #32, decoder FFmpeg)
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 17568 us
-xaudio2: source starvation frames pending_decode=0 empty_queue=7101 (last 1s)
-frame 1800
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=8 block_align=1487 pcm_frames=83968 pcm=1.904s dpds=1.904s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source starvation frames pending_decode=0 empty_queue=2580 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=1208 (last 1s)
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #33, decoder FFmpeg)
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #34, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 18413 us
-info:  DXVK: Synchronous first-use pipeline compile: 2 pipeline(s), 31585 us
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 18557 us
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=17 block_align=1487 pcm_frames=221184 pcm=5.016s dpds=5.016s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source starvation frames pending_decode=0 empty_queue=3826 (last 1s)
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #35, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source starvation frames pending_decode=0 empty_queue=7775 (last 1s)
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #36, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source starvation frames pending_decode=0 empty_queue=6885 (last 1s)
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #37, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #38, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=8 block_align=1487 pcm_frames=98304 pcm=2.229s dpds=2.229s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source starvation frames pending_decode=0 empty_queue=5275 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=3293 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=2718 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=2325 (last 1s)
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #39, decoder FFmpeg)
-xaudio2: source starvation frames pending_decode=0 empty_queue=10178 (last 1s)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=15 block_align=1487 pcm_frames=194560 pcm=4.412s dpds=4.412s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #40, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=4 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source starvation frames pending_decode=0 empty_queue=7255 (last 1s)
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #41, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-frame 2100
-xaudio2: source starvation frames pending_decode=0 empty_queue=11390 (last 1s)
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #42, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=8 block_align=1487 pcm_frames=98304 pcm=2.229s dpds=2.229s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: refill gap voice=203bec30 gap=34ms eos=1 queue_before=0 totals=1/>5ms:1/>10ms:1
-xaudio2: source starvation frames pending_decode=0 empty_queue=7322 (last 1s)
 xaudio2: source format tag=0001 fmt=0 1 ch 22050 Hz bits=16
-xaudio2: source starvation frames pending_decode=0 empty_queue=15594 (last 1s)
-xaudio2: refill gap voice=243fee70 gap=52ms eos=1 queue_before=0 totals=1/>5ms:1/>10ms:1
-xaudio2: refill gap voice=22650a60 gap=20ms eos=1 queue_before=0 totals=1/>5ms:1/>10ms:1
-xaudio2: source starvation frames pending_decode=0 empty_queue=12855 (last 1s)
-xaudio2: refill gap voice=203c1410 gap=63ms eos=1 queue_before=0 totals=1/>5ms:1/>10ms:1
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #43, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #17, decoder FFmpeg)
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=6800 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #18, decoder FFmpeg)
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
 xwma_ffmpeg: packets=4 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source starvation frames pending_decode=0 empty_queue=12031 (last 1s)
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #44, decoder FFmpeg)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
+xaudio2: source starvation frames pending_decode=0 empty_queue=13956 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #19, decoder FFmpeg)
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=10 block_align=1487 pcm_frames=116736 pcm=2.647s dpds=2.647s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #20, decoder FFmpeg)
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=10709 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #21, decoder FFmpeg)
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=4 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=7619 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #22, decoder FFmpeg)
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+watchdog 60s: frames 1174
+xaudio2: source starvation frames pending_decode=0 empty_queue=11469 (last 1s)
+xaudio2: source format xWMA tag=0161 2 ch 44100 Hz avg_bps=6000 block_align=2230 extra=0 (voice #23, decoder FFmpeg)
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=546 block_align=2230 pcm_frames=8939520 pcm=202.710s dpds=202.710s tag=0161 ba=2230 extra=6 flags=31 bitrate=48kbps
+xaudio2: xWMA worker latency=236ms submit #23
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #24, decoder FFmpeg)
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
 xwma_ffmpeg: packets=8 block_align=1487 pcm_frames=98304 pcm=2.229s dpds=2.229s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source starvation frames pending_decode=0 empty_queue=12887 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=13231 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=16214 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=11831 (last 1s)
-xaudio2: source format tag=0001 fmt=0 1 ch 32000 Hz bits=16
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #45, decoder FFmpeg)
-xaudio2: source starvation frames pending_decode=0 empty_queue=21052 (last 1s)
-[wmav2 @ 0x72c7e4ebc0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=22 block_align=1487 pcm_frames=321536 pcm=7.291s dpds=7.291s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source starvation frames pending_decode=0 empty_queue=13428 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=3649 (last 1s)
-frame 2400
-xaudio2: source starvation frames pending_decode=0 empty_queue=8234 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=8481 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=3918 (last 1s)
-info:  DXVK: Synchronous first-use pipeline compile: 1 pipeline(s), 20402 us
-xaudio2: source starvation frames pending_decode=0 empty_queue=11789 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=576 (last 1s)
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #46, decoder FFmpeg)
-xaudio2: source starvation frames pending_decode=0 empty_queue=3654 (last 1s)
-watchdog 90s: frames 2541
-[wmav2 @ 0x72c7cc0e80] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=9 block_align=1487 pcm_frames=104448 pcm=2.368s dpds=2.368s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source starvation frames pending_decode=0 empty_queue=150 (last 1s)
-profile: 9142 samples (1 ms CPU each)
-    8.4%  libdxvk_d3d9.so+0x21fb00
-    4.2%  ?
-    2.5%  syscall
-    2.3%  f_472580
-    1.9%  libmain.so+0x64a8300
-    1.4%  libc.so+0x56700
+profile: 8453 samples (1 ms CPU each)
+    5.0%  libdxvk_d3d9.so+0x21fb00
+    4.0%  f_91D870
+    2.5%  ?
+    2.2%  syscall
+    1.9%  libc.so+0xc1700
+    1.7%  libmain.so+0x64a7b00
+    1.6%  libc.so+0xc1300
+    1.5%  sched_yield
+    1.4%  rt_call
+    1.4%  f_472580
+    1.3%  libc.so+0x56700
+    1.3%  libc.so+0xc1500
+    0.9%  nanosleep
+    0.7%  pread64
+    0.7%  _Z8com_hostj
+    0.7%  f_474CD0
+    0.7%  libc.so+0xcfd00
+    0.7%  libmain.so+0x645d200
+    0.6%  f_447ED0
+    0.6%  f_CD7C20
+    0.6%  _ZN4dxvk12D3D9DeviceEx15WaitForResourceERKNS_2RcINS_12DxvkResourceEEEj
+    0.6%  __emutls_get_address
+    0.6%  f_E5FFF0
+    0.6%  libmain.so+0x6451100
+    0.5%  f_CAFD70
+    0.5%  libmain.so+0x646e100
+    0.5%  f_AF7810
+    0.5%  pthread_getspecific
+    0.4%  libc.so+0x56c00
+    0.4%  f_4EC9C0
+cpu: 175% of one core in total; SDLActivity/3503:5%@2 SDLThread/6518:60%@3 SDLThread/6520:4%@7 Thread-3/6836:3%@6 SDLThread/6862:11%@6 SDLThread/6864:21%@5 Thread-5/6993:24%@4 SDLThread/6994:20%@5 SDLThread/7425:13%@4
+  thread 0 (tid 6518, guest 260): last IDirect3DDevice9#82 from 00cd39fa, 94384189 calls; esi 77833860 [01118c0c 00000020]
+  thread 1 (tid 6635, guest 288): last KERNEL32!ExitThread from 00a5ac7a, 9 calls (idle); esi 00000006 [00000000 00000000]
+  thread 2 (tid 6827, guest 292): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 30292190 calls (idle); esi 01b4ae14 [00000000 00000000]
+  thread 3 (tid 6831, guest 296): last KERNEL32!Sleep from 00b9ef30, 624213 calls; esi 744ca5c0 [01124a4c 00000000]
+  thread 4 (tid 6993, guest 304): last KERNEL32!Sleep from 00a4af31, 11347102 calls; esi 00000001 [00000000 00000000]
+  thread 5 (tid 6994, guest 308): last KERNEL32!InterlockedDecrement from 00b2d8b2, 9947947 calls; esi 7745d410 [010c5e9c 00000007]
+  thread 6 (tid 6995, guest 312): last KERNEL32!InterlockedCompareExchange from 0068c6ea, 87428 calls (idle); esi 74941ee0 [010cd524 00000000]
+  thread 7 (tid 7424, guest 316): last KERNEL32!ExitThread from 00a4b4fb, 13763053 calls (idle); esi 103ffdc8 [0110d640 00000000]
+  thread 8 (tid 7425, guest 320): last KERNEL32!ReleaseSemaphore from 00a5add0, 12011971 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 9 (tid 7426, guest 324): last KERNEL32!WaitForSingleObject from 00af863c, 1808805 calls; esi 74cfb9e8 [0107a45c 00000000]
+  thread 10 (tid 6620, guest 268): last KERNEL32!TlsGetValue from 00d18c9c, 269659 calls; esi 10bff468 [77453f40 00000001]
+  thread 11 (tid 6631, guest 280): last KERNEL32!TlsGetValue from 00d18cbc, 221739 calls; esi 00000000 [00000000 00000000]
+  thread 12 (tid 6621, guest 272): last KERNEL32!WaitForSingleObject from 00a5aeac, 247216 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 13 (tid 6632, guest 284): last KERNEL32!WaitForSingleObject from 00a5aeac, 214607 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 14 (tid 6629, guest 276): last KERNEL32!WaitForSingleObject from 00a5aeac, 220662 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 15 (tid 6619, guest 264): last KERNEL32!TlsGetValue from 00d18cbc, 249075 calls; esi 00000000 [00000000 00000000]
+frame 1200
+xaudio2: source starvation frames pending_decode=8820 empty_queue=10268 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #25, decoder FFmpeg)
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=8 block_align=1487 pcm_frames=75776 pcm=1.718s dpds=1.718s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=6841 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=11933 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #26, decoder FFmpeg)
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=13 block_align=1487 pcm_frames=159744 pcm=3.622s dpds=3.622s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=11158 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #27, decoder FFmpeg)
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=6497 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #28, decoder FFmpeg)
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=8 block_align=1487 pcm_frames=98304 pcm=2.229s dpds=2.229s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=6949 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=2010 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=5238 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #29, decoder FFmpeg)
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=13 block_align=1487 pcm_frames=161792 pcm=3.669s dpds=3.669s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=3323 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=2727 (last 1s)
+xaudio2: source format tag=0001 fmt=0 1 ch 22050 Hz bits=16
+xaudio2: source starvation frames pending_decode=0 empty_queue=162 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #30, decoder FFmpeg)
+xaudio2: source starvation frames pending_decode=0 empty_queue=4334 (last 1s)
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=8 block_align=1487 pcm_frames=83968 pcm=1.904s dpds=1.904s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=777 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=2298 (last 1s)
+frame 1500
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #31, decoder FFmpeg)
+[wmav2 @ 0x72c7e4a6c0] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=17 block_align=1487 pcm_frames=221184 pcm=5.016s dpds=5.016s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=4818 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=4568 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=95 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=811 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=198 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=145 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=1323 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=2613 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=297 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=1756 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=1163 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=1296 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=170 (last 1s)
+watchdog 90s: frames 1752
+xaudio2: source starvation frames pending_decode=0 empty_queue=684 (last 1s)
+profile: 7784 samples (1 ms CPU each)
+    7.4%  libdxvk_d3d9.so+0x21fb00
+    5.0%  ?
+    3.0%  syscall
+    2.8%  libc.so+0xc1700
+    1.8%  libmain.so+0x64a7b00
+    1.8%  libc.so+0xc1300
+    1.7%  f_472580
+    1.6%  rt_call
     1.3%  _Z8com_hostj
-    1.2%  rt_call
-    1.1%  f_447ED0
-    1.0%  f_474CD0
-    0.9%  f_CD7C20
-    0.9%  libc.so+0xcfd00
-    0.9%  libmain.so+0x6451500
-    0.9%  f_4EC9C0
-    0.8%  f_CAFD70
-    0.7%  _ZN4dxvk12D3D9DeviceEx15WaitForResourceERKNS_2RcINS_12DxvkResourceEEEj
-    0.7%  libc.so+0xc1500
-    0.7%  f_F531CC
-    0.7%  libc.so+0xcfb00
-    0.6%  f_CB0090
-    0.6%  f_AFBF80
-    0.6%  libmain.so+0x645a500
-    0.6%  sched_yield
-    0.6%  f_F52E30
-    0.5%  __emutls_get_address
-    0.5%  f_CDA170
-    0.5%  f_C93840
-    0.5%  _ZN4dxvk10DxvkBuffer10allocSliceEv
-    0.5%  libc.so+0x56c00
+    1.2%  libc.so+0xc1500
+    1.2%  libc.so+0x56700
+    1.0%  f_CAFD70
+    1.0%  libmain.so+0x646e100
+    1.0%  sched_yield
+    0.8%  f_447ED0
+    0.8%  libmain.so+0x6451100
+    0.8%  f_474CD0
+    0.7%  f_C8EB60
+    0.7%  f_CB0090
+    0.7%  f_CD7C20
+    0.6%  libc.so+0xcfd00
+    0.6%  libc.so+0xcfb00
+    0.5%  f_4EC9C0
+    0.5%  f_AFBF80
     0.5%  f_B07C80
-cpu: 192% of one core in total; SDLActivity/31709:5%@1 SDLThread/31983:79%@5 SDLThread/31984:4%@7 Thread-3/32105:5%@3 SDLThread/32116:4%@4 SDLThread/32117:22%@4 Thread-5/32123:35%@6 SDLThread/32124:34%@4
-  thread 0 (tid 31983, guest 260): last KERNEL32!InterlockedCompareExchange from 004017b3, 148500012 calls; esi 012e4208 [00000104 00000001]
-  thread 1 (tid 32003, guest 288): last KERNEL32!ExitThread from 00a5ac7a, 9 calls (idle); esi 00000006 [00000000 00000000]
-  thread 2 (tid 32096, guest 292): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 30294594 calls (idle); esi 01b4ae14 [00000000 00000000]
-  thread 3 (tid 32102, guest 296): last KERNEL32!Sleep from 00b9ef30, 970544 calls; esi 744ca5c0 [01124a4c 00000000]
-  thread 4 (tid 32123, guest 304): last KERNEL32!GetCurrentThreadId from 00a4af5b, 36679165 calls; esi 62319438 [80000001 00000130]
-  thread 5 (tid 32124, guest 308): last KERNEL32!InterlockedDecrement from 00a4b0f7, 35397877 calls; esi 76ef94b0 [00000000 00000000]
-  thread 6 (tid 32125, guest 312): last KERNEL32!InterlockedCompareExchange from 0068c6ea, 87435 calls (idle); esi 74922150 [010cd524 00000000]
-  thread 7 (tid 32153, guest 316): last KERNEL32!ExitThread from 00a4b4fb, 13759413 calls (idle); esi 103ffdc8 [0110d640 00000000]
-  thread 8 (tid 32154, guest 320): last KERNEL32!WaitForSingleObject from 00af89b0, 12569173 calls; esi 74b2fa40 [0111d7ac 00000000]
-  thread 9 (tid 32155, guest 324): last KERNEL32!WaitForSingleObject from 00af863c, 1872323 calls (idle); esi 74cfd140 [0107a45c 00000000]
-  thread 10 (tid 31997, guest 264): last KERNEL32!WaitForSingleObject from 00a5aeac, 329864 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 11 (tid 32000, guest 276): last KERNEL32!WaitForSingleObject from 00a5aeac, 289633 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 12 (tid 31998, guest 268): last KERNEL32!WaitForSingleObject from 00a5aeac, 284473 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 13 (tid 31999, guest 272): last KERNEL32!WaitForSingleObject from 00a5aeac, 296762 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 14 (tid 32001, guest 280): last KERNEL32!WaitForSingleObject from 00a5aeac, 281958 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 15 (tid 32002, guest 284): last KERNEL32!WaitForSingleObject from 00a5aeac, 636981 calls; esi 01b8b1d0 [0110dd1c 00000101]
-xaudio2: source starvation frames pending_decode=0 empty_queue=199 (last 1s)
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #47, decoder FFmpeg)
-xaudio2: source starvation frames pending_decode=0 empty_queue=7825 (last 1s)
-[wmav2 @ 0x72c7cc0e80] Could not update timestamps for skipped samples.
+    0.5%  libdxvk_d3d9.so+0x21f700
+    0.5%  f_AAF430
+    0.4%  f_C8A0E0
+    0.4%  lseek
+    0.4%  f_AD21B0
+cpu: 163% of one core in total; SDLActivity/3503:3%@6 SDLThread/6518:62%@3 SDLThread/6520:3%@7 Thread-3/6836:4%@6 SDLThread/6862:14%@3 SDLThread/6864:17%@4 Thread-5/6993:25%@5 SDLThread/6994:25%@4
+  thread 0 (tid 6518, guest 260): last IDirect3DDevice9#17 from 00ce7e03, 121057968 calls; esi 746f90c0 [01159d38 00000002]
+  thread 1 (tid 6635, guest 288): last KERNEL32!ExitThread from 00a5ac7a, 9 calls (idle); esi 00000006 [00000000 00000000]
+  thread 2 (tid 6827, guest 292): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 30292190 calls (idle); esi 01b4ae14 [00000000 00000000]
+  thread 3 (tid 6831, guest 296): last KERNEL32!Sleep from 00b9ef30, 896363 calls; esi 744ca5c0 [01124a4c 00000000]
+  thread 4 (tid 6993, guest 304): last KERNEL32!InterlockedDecrement from 006a0c71, 24101977 calls; esi 7817a7d0 [0114d988 00000003]
+  thread 5 (tid 6994, guest 308): last KERNEL32!InterlockedDecrement from 006a0c71, 22322539 calls; esi 782fa5f0 [0114d988 00000005]
+  thread 6 (tid 6995, guest 312): last KERNEL32!InterlockedCompareExchange from 0068c6ea, 87428 calls (idle); esi 74941ee0 [010cd524 00000000]
+  thread 7 (tid 7424, guest 316): last KERNEL32!ExitThread from 00a4b4fb, 13763053 calls (idle); esi 103ffdc8 [0110d640 00000000]
+  thread 8 (tid 7425, guest 320): last KERNEL32!WaitForSingleObject from 00af89b0, 12472514 calls; esi 74bc0280 [0111d7ac 00000000]
+  thread 9 (tid 7426, guest 324): last KERNEL32!WaitForSingleObject from 00af863c, 1838166 calls (idle); esi 74cfb9e8 [0107a45c 00000000]
+  thread 10 (tid 6620, guest 268): last KERNEL32!WaitForSingleObject from 00a5aeac, 330278 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 11 (tid 6631, guest 280): last KERNEL32!WaitForSingleObject from 00a5aeac, 596122 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 12 (tid 6621, guest 272): last KERNEL32!WaitForSingleObject from 00a5aeac, 302088 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 13 (tid 6632, guest 284): last KERNEL32!WaitForSingleObject from 00a5aeac, 284583 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 14 (tid 6629, guest 276): last KERNEL32!WaitForSingleObject from 00a5aeac, 278803 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 15 (tid 6619, guest 264): last KERNEL32!WaitForSingleObject from 00a5aeac, 310881 calls; esi 01b8b1d0 [0110dd1c 00000101]
+xaudio2: source starvation frames pending_decode=0 empty_queue=2500 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #32, decoder FFmpeg)
+[wmav2 @ 0x72c7e63380] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=5203 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #33, decoder FFmpeg)
+[wmav2 @ 0x72c7e63380] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=7246 (last 1s)
+frame 1800
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #34, decoder FFmpeg)
+[wmav2 @ 0x72c7e63380] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=9503 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #35, decoder FFmpeg)
+[wmav2 @ 0x72c7e63380] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=11883 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #36, decoder FFmpeg)
+[wmav2 @ 0x72c7e63380] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #37, decoder FFmpeg)
+[wmav2 @ 0x72c7e63380] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=22 block_align=1487 pcm_frames=321536 pcm=7.291s dpds=7.291s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #38, decoder FFmpeg)
+[wmav2 @ 0x72c7e63380] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=10388 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=6904 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #39, decoder FFmpeg)
+[wmav2 @ 0x72c7e63380] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #40, decoder FFmpeg)
+[wmav2 @ 0x72c7e63380] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=1629 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #41, decoder FFmpeg)
+[wmav2 @ 0x72c7e63380] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=5532 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=10952 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=384 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=1276 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #42, decoder FFmpeg)
+[wmav2 @ 0x72c7e8beb0] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=9 block_align=1487 pcm_frames=104448 pcm=2.368s dpds=2.368s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=615 (last 1s)
+xaudio2: source format tag=0001 fmt=0 1 ch 32000 Hz bits=16
+xaudio2: source starvation frames pending_decode=0 empty_queue=5075 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #43, decoder FFmpeg)
+xaudio2: source starvation frames pending_decode=0 empty_queue=3506 (last 1s)
+[wmav2 @ 0x72c7e95e40] Could not update timestamps for skipped samples.
 xwma_ffmpeg: packets=18 block_align=1487 pcm_frames=251904 pcm=5.712s dpds=5.712s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: source starvation frames pending_decode=0 empty_queue=41 (last 1s)
+VirtualAlloc(00000000, 16777216, 2000) = 99540000
+xaudio2: source starvation frames pending_decode=0 empty_queue=2250 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=3135 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=1549 (last 1s)
+frame 2100
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #44, decoder FFmpeg)
+[wmav2 @ 0x72c7e2e640] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=3679 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #45, decoder FFmpeg)
+[wmav2 @ 0x72c7e2e640] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=8482 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #46, decoder FFmpeg)
+[wmav2 @ 0x72c7e2e640] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #47, decoder FFmpeg)
+[wmav2 @ 0x72c7e2e640] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=2716 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #48, decoder FFmpeg)
+[wmav2 @ 0x72c7e2e640] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=11 block_align=1487 pcm_frames=126976 pcm=2.879s dpds=2.879s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=7270 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=4015 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #49, decoder FFmpeg)
+xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#50)
+[wmav2 @ 0x72c7e2e640] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #50, decoder FFmpeg)
+[wmav2 @ 0x72c7e2e640] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=4461 -> 28672 frames submit #50
+xaudio2: xWMA worker latency=2ms submit #50
+xaudio2: source starvation frames pending_decode=0 empty_queue=9688 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #51, decoder FFmpeg)
+[wmav2 @ 0x72c7e2e640] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=5 block_align=1487 pcm_frames=55296 pcm=1.254s dpds=1.254s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=8556 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #52, decoder FFmpeg)
+[wmav2 @ 0x72c7e2e640] Could not update timestamps for skipped samples.
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #53, decoder FFmpeg)
+xwma_ffmpeg: packets=16 block_align=1487 pcm_frames=208896 pcm=4.737s dpds=4.737s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+[wmav2 @ 0x72c7e2e640] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=2661 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #54, decoder FFmpeg)
+[wmav2 @ 0x72c7e2e640] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=9336 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #55, decoder FFmpeg)
+[wmav2 @ 0x72c7e2e640] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+watchdog 120s: frames 2317
+xaudio2: source starvation frames pending_decode=0 empty_queue=13860 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #56, decoder FFmpeg)
+[wmav2 @ 0x72c7e2e640] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+profile: 7314 samples (1 ms CPU each)
+    6.3%  libdxvk_d3d9.so+0x21fb00
+    5.1%  ?
+    3.4%  syscall
+    3.0%  libc.so+0xc1700
+    2.3%  libc.so+0xc1300
+    2.1%  f_472580
+    1.5%  libc.so+0xc1500
+    1.4%  libmain.so+0x64a7b00
+    1.2%  libc.so+0x56700
+    1.2%  _Z8com_hostj
+    1.0%  rt_call
+    1.0%  libmain.so+0x646e100
+    0.9%  sched_yield
+    0.8%  f_447ED0
+    0.8%  f_474CD0
+    0.8%  f_80D63D2
+    0.7%  libc.so+0xcfd00
+    0.7%  nanosleep
+    0.6%  f_C8EB60
+    0.6%  f_CD7C20
+    0.6%  f_80D5D9F
+    0.6%  f_4EC9C0
+    0.6%  f_CAFD70
+    0.5%  libmain.so+0x6451100
+    0.5%  lseek
+    0.5%  libc.so+0xcfb00
+    0.5%  f_C93840
+    0.5%  f_AD21B0
+    0.5%  f_F531CC
+    0.4%  f_AAF430
+cpu: 158% of one core in total; SDLActivity/3503:5%@6 SDLThread/6518:60%@4 Thread-3/6836:5%@5 SDLThread/6862:13%@6 SDLThread/6864:16%@3 Thread-5/6993:23%@3 SDLThread/6994:22%@5 SDLThread/7425:3%@3
+  thread 0 (tid 6518, guest 260): last IDirect3DDevice9#57 from 00cc4d8a, 146176121 calls; esi 77580780 [6076c6c0 781240b0]
+  thread 1 (tid 6635, guest 288): last KERNEL32!ExitThread from 00a5ac7a, 9 calls (idle); esi 00000006 [00000000 00000000]
+  thread 2 (tid 6827, guest 292): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 30292190 calls (idle); esi 01b4ae14 [00000000 00000000]
+  thread 3 (tid 6831, guest 296): last KERNEL32!Sleep from 00b9ef30, 1386189 calls; esi 744ca5c0 [01124a4c 00000000]
+  thread 4 (tid 6993, guest 304): last KERNEL32!WaitForSingleObject from 00a59095, 35530044 calls; esi ff00022c [00000000 00000000]
+  thread 5 (tid 6994, guest 308): last KERNEL32!WaitForSingleObject from 00a59095, 33245077 calls; esi ff00022c [00000000 00000000]
+  thread 6 (tid 6995, guest 312): last KERNEL32!InterlockedCompareExchange from 0068c6ea, 87428 calls (idle); esi 74941ee0 [010cd524 00000000]
+  thread 7 (tid 7424, guest 316): last KERNEL32!ExitThread from 00a4b4fb, 13763053 calls (idle); esi 103ffdc8 [0110d640 00000000]
+  thread 8 (tid 7425, guest 320): last KERNEL32!WaitForSingleObject from 00af89b0, 12774027 calls; esi 74bc0280 [0111d7ac 00000000]
+  thread 9 (tid 7426, guest 324): last KERNEL32!WaitForSingleObject from 00af863c, 1838166 calls (idle); esi 74cfb9e8 [0107a45c 00000000]
+  thread 10 (tid 6620, guest 268): last KERNEL32!WaitForSingleObject from 00a5aeac, 369563 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 11 (tid 6631, guest 280): last KERNEL32!WaitForSingleObject from 00a5aeac, 636701 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 12 (tid 6621, guest 272): last KERNEL32!WaitForSingleObject from 00a5aeac, 342563 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 13 (tid 6632, guest 284): last KERNEL32!WaitForSingleObject from 00a5aeac, 317252 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 14 (tid 6629, guest 276): last KERNEL32!WaitForSingleObject from 00a5aeac, 309082 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 15 (tid 6619, guest 264): last KERNEL32!WaitForSingleObject from 00a5aeac, 342678 calls; esi 01b8b1d0 [0110dd1c 00000101]
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #57, decoder FFmpeg)
+[wmav2 @ 0x72c7e2e640] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=8955 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #58, decoder FFmpeg)
+[wmav2 @ 0x72c7e2e640] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=4 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=11191 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #59, decoder FFmpeg)
+[wmav2 @ 0x72c7e2e640] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=4 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+GetFileAttributesExA failed: C:\Skyrim\DATA\Grass\Tamrielx0007y-012.gid (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Grass/Tamrielx0007y-012.gid): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\Grass\Tamrielx0007y-012.gid (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Grass/Tamrielx0007y-012.gid): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\Grass\Tamrielx0007y-012.gid (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/Grass/Tamrielx0007y-012.gid): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\Grass\Tamrielx0007y-012.gid (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/Grass/Tamrielx0007y-012.gid): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\Grass\Tamrielx0007y-011.gid (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Grass/Tamrielx0007y-011.gid): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\Grass\Tamrielx0007y-011.gid (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Grass/Tamrielx0007y-011.gid): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\Grass\Tamrielx0007y-011.gid (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/Grass/Tamrielx0007y-011.gid): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\Grass\Tamrielx0007y-011.gid (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/Grass/Tamrielx0007y-011.gid): No such file or directory
+xaudio2: source starvation frames pending_decode=0 empty_queue=7581 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #60, decoder FFmpeg)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #61, decoder FFmpeg)
+[wmav2 @ 0x72c7e34520] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+[wmav2 @ 0x72c7e34520] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=15 block_align=1487 pcm_frames=188416 pcm=4.272s dpds=4.272s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+frame 2400
+xaudio2: source starvation frames pending_decode=0 empty_queue=11331 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #62, decoder FFmpeg)
+[wmav2 @ 0x72c7e34520] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=4 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source format tag=0001 fmt=0 1 ch 22050 Hz bits=16
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #63, decoder FFmpeg)
+[wmav2 @ 0x72c7e34520] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=7 block_align=1487 pcm_frames=81920 pcm=1.858s dpds=1.858s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=11861 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=3167 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=1798 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=773 (last 1s)
 quit requested
-xaudio2: engine thread stopped cleanly
-FORTIFY: pthread_mutex_lock called on a destroyed mutex (0x739a602968)
-CRASH: signal 6 code -1 at address 0x2b3700007bdd (thread 31759)
-  sp 6fbb8403c0
-  x0  0000000000000000 0000000000007c0f 0000000000000006 0000006fbb8403e0
-  x4  6b6b60621f6a626e 6b6b60621f6a626e 6b6b60621f6a626e 7f7f7f7f7f7f7f7f
-  x8  00000000000000f0 00000073886b2438 ffffff80fffffb9f 0000000000000001
-  x12 00000073aa0df020 000000007fffffff 0000000005575fc6 000003222c258877
-  x16 0000007388764fe0 000000738874fd40 0000006fb7734000 0000000000007bdd
-  x20 0000000000007c0f 00000000ffffffff 0000000000000001 0000006fbb840a80
-  x24 000000739a6041e0 000000739a6029d0 0000000000000030 0000006fbb840640
-  x28 0000006fbb748000 0000006fbb840460 00000073886ebb20 00000073886ebb20
-  guest mem base 0x6e9eb44000
-  (not a guest thread)
-backtrace:
-  #-1 libc.so+0x5cb50 (abort+0xac)
-  #-2 libc.so+0x5cb20 (abort+0x7c)
-  #00 libmain.so+0x6460964
-  #01 [vdso]+0x84c (__kernel_rt_sigreturn+0x0)
-  #02 libc.so+0x5cb50 (abort+0xac)
-  #03 libc.so+0x60578 (fdopendir+0x0)
-  #04 libc.so+0x6efe0
-  #05 libc.so+0x6ee58 (pthread_mutex_lock+0xf4)
-  #06 libc.so+0x6ce28 (pthread_cond_wait+0x68)
-  #07 libc++.so+0xb0a5c (_ZNSt3__118condition_variable4waitERNS_11unique_lockINS_5mutexEEE+0x1c)
-  #08 libhwui.so+0x2706e4
-  #09 libc.so+0x6db0c
-  #10 libc.so+0x5ff70
+xaudio2: source starvation frames pending_decode=0 empty_queue=1047 (last 1s)
