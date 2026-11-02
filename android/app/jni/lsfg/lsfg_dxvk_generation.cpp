@@ -585,10 +585,10 @@ bool dispatchLsfgGeneration(
     g_dummyCleared = true;
   }
 
-  // DXVK tracks image hazards and inserts the required compute barriers. Keep
-  // gamma/delta interleaved at each level to preserve WinNative's paired order.
-  // Per-level timestamps identify the expensive pyramid levels without adding
-  // dispatches or changing the GPU work/order.
+  // DXVK tracks image hazards and inserts the required compute barriers.
+  // Keep the Gamma/Delta dispatch order identical to WinNative: on paired
+  // levels, dispatch each Gamma step immediately before its matching Delta
+  // step, then finish the remaining Delta-only steps.
   for (uint32_t i = 0; i < MipLevels; i++) {
     char stageName[24];
     snprintf(stageName, sizeof(stageName), "GammaDelta_L%u", i);
@@ -604,14 +604,11 @@ bool dispatchLsfgGeneration(
       continue;
     }
 
-    // Match WinNative: finish all Gamma stages before the paired Delta pass.
-    for (uint32_t stage = 0; stage < 5; stage++) {
-      if (!dispatchGammaStep(context, frameIndex, slot, i, stage))
-        return false;
-    }
-
     const uint32_t deltaIndex = i - FirstDeltaLevel;
     for (uint32_t stage = 0; stage < 10; stage++) {
+      if (stage < 5
+          && !dispatchGammaStep(context, frameIndex, slot, i, stage))
+        return false;
       if (!dispatchDeltaStep(context, frameIndex, slot, deltaIndex, stage))
         return false;
     }
