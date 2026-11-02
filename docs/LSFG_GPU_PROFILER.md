@@ -78,3 +78,48 @@ and completion through 1800; it does not contain per-stage GPU timestamps.
 For the next measurement, keep the normal ON/OFF benchmark profiler-free and
 match scene, duration, resolution and VSync. Collect GPU stage timings in a
 separate ON diagnostic run by setting `DXVK_LSFG_GPU_PROFILE=1`.
+
+## Latest uploaded runtime profile — 2026-11-02 19:13
+
+The current `Logs/dxvk_lsfg_gpu.csv` contains 33,467 rows, all with
+`status=ok`. Per-stage averages (ms) are:
+
+| Stage | Average | P95 |
+|---|---:|---:|
+| Mipmaps | 0.945 | 1.449 |
+| Alpha | 1.177 | 1.807 |
+| Beta | 0.834 | 1.269 |
+| GammaDelta L0 | 0.053 | 0.080 |
+| GammaDelta L1 | 0.049 | 0.076 |
+| GammaDelta L2 | 0.050 | 0.076 |
+| GammaDelta L3 | 0.059 | 0.091 |
+| GammaDelta L4 | 0.241 | 0.378 |
+| GammaDelta L5 | 0.571 | 0.895 |
+| GammaDelta L6 | 1.955 | 3.030 |
+| Generate | 0.872 | 1.300 |
+
+The measured Gamma/Delta/Generate chain averages 3.851 ms (P95 5.927 ms).
+The once-per-source-frame Mipmaps/Alpha/Beta group averages 2.955 ms.
+There are 3,247 generated chains for 2,497 source-frame groups in this run
+(about 1.30 generated chains per source frame), so the sum of measured stage
+intervals averages about 7.963 ms per source frame. This sum is not full game
+frame time and does not include all DXVK/game work.
+
+GammaDelta L6 remains the largest individual group. The CSV groups all shader
+dispatches within each pyramid level; it does not yet identify which individual
+Gamma/Delta shader dominates L6.
+
+### CPU benchmark validity
+
+The current ON performance CSV was captured in the same session as the GPU
+profiler CSV. The LSFG runtime log also records multiplier changes from x2 to
+x4 and back to x2 during that session. Therefore the ON/OFF CPU PresentImage
+comparison is not controlled. The previous profiler implementation also
+opened and closed the CSV for every stage row, adding avoidable filesystem
+work to the instrumented run.
+
+The profiler source now keeps the CSV open, serializes writes, and flushes
+every 60 rows instead of probing/opening/closing the file for each stage.
+This is a diagnostics-overhead reduction only; it does not change the LSFG
+algorithm or claim a gameplay performance improvement. Android NDK build and
+device validation of this source change are pending.
