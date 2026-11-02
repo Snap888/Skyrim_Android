@@ -708,6 +708,8 @@ SHIM(xs_SubmitSourceBuffer) {
         uint32_t packet_count = bwma ? M32(bwma + 4) : 0;
         uint32_t *packet_info = bwma && packet_count
             ? (uint32_t *)(MEM + M32(bwma)) : NULL;
+        (void)data; (void)block_align; (void)bits; (void)extra;
+        (void)extra_size; (void)packet_info;
         int mute_large_stereo = XWMA_MUTE_LARGE_STEREO &&
             channels == 2 && bytes > XWMA_MUSIC_MUTE_THRESHOLD;
         pthread_mutex_unlock(&g_lock);
