@@ -28,6 +28,12 @@ frames as silence.
   wait releases `g_lock`, allowing the decoder worker to publish PCM.
 - Rename the internal starvation counters to make their frame-count semantics
   explicit and label the log line `source starvation frames`.
+- Add per-source-voice refill timing: timestamp `OnBufferEnd`, then measure
+  the interval until the next `SubmitSourceBuffer` on that voice.
+- Log measured refill gaps of at least 2 ms (and EOS-associated resubmissions),
+  with per-voice totals and thresholds at 5 ms / 10 ms.
+- Keep normal one-shot completion separate: if a buffer ends and no replacement
+  is submitted, no refill gap is recorded and no underrun is inferred.
 
 ## Test
 
