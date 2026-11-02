@@ -205,6 +205,7 @@ public class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
         if (skip) {
            Log.v("SDL", "Skip .. Surface is not ready.");
            mIsSurfaceReady = false;
+           logSurfaceState("orientation-skip", holder, width, height, nDeviceWidth, nDeviceHeight);
            return;
         }
 
@@ -213,6 +214,7 @@ public class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
 
         /* Surface is ready */
         mIsSurfaceReady = true;
+        logSurfaceState("ready", holder, width, height, nDeviceWidth, nDeviceHeight);
 
         SDLActivity.mNextNativeState = SDLActivity.NativeState.RESUMED;
         SDLActivity.handleNativeState();
