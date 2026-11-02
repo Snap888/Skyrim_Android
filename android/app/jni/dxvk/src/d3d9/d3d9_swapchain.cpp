@@ -23,6 +23,13 @@ extern "C" void lsfg_step3g_set_copy_hook(LsfgCopyHook hook) {
   g_lsfgCopyHook = hook;
 }
 
+/* SnapFrame captures the source image independently of LSFG. */
+using SnapFrameCopyHook = void (*)(void*, void*, void*, uint32_t, uint32_t, uint32_t);
+static SnapFrameCopyHook g_snapFrameCopyHook = nullptr;
+extern "C" void snapframe_dxvk_set_copy_hook(SnapFrameCopyHook hook) {
+  g_snapFrameCopyHook = hook;
+}
+
 using LsfgGenerationCountHook = unsigned (*)(void);
 using LsfgCanGenerateHook = bool (*)(void);
 using LsfgGenerateHook = void* (*)(void*, void*, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
@@ -959,6 +966,18 @@ namespace dxvk {
       m_blitter->presentImage(m_context.ptr(),
         m_imageViews.at(imageIndex), dstRect,
         swapImageView, srcRect);
+
+      /* Capture the completed game image before HUD composition. The copy is
+       * recorded into this same command list and therefore needs no CPU readback. */
+      if (i == 0 && g_snapFrameCopyHook
+       && (info.imageUsage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT))
+        g_snapFrameCopyHook(
+            m_context.ptr(),
+            m_imageViews.at(imageIndex).ptr(),
+            m_device.ptr(),
+            info.imageExtent.width,
+            info.imageExtent.height,
+            static_cast<uint32_t>(info.format.format));
 
       if (m_hud != nullptr)
         m_hud->render(m_context, info.format, info.imageExtent);
