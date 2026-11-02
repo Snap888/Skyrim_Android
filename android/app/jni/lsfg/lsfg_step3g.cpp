@@ -28,6 +28,10 @@ extern "C" unsigned lsfg_step3d_fb_generation(void);
 
 using namespace dxvk;
 
+extern "C" int lsfg_gpu_profiler_begin_session(int lsfg_runtime_enabled) {
+    return lsfgGpuProfilerBeginSession(lsfg_runtime_enabled != 0) ? 1 : 0;
+}
+
 static std::atomic<unsigned> g_copy_n{0};
 static unsigned g_pp;
 static int g_logged;
