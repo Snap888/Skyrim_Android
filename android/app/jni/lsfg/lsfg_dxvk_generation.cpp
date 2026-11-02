@@ -377,8 +377,9 @@ static void bindBuffer(DxvkContext* context, uint32_t slot, const Rc<DxvkBuffer>
   context->bindResourceBuffer(slot, DxvkBufferSlice(buffer));
 }
 
-static bool dispatchGammaStep(DxvkContext* context, uint32_t frameIndex,
-                              uint32_t slot, uint32_t index, uint32_t stage) {
+static bool dispatchGammaStep(DxvkContext* context, DxvkDevice* device,
+                              uint32_t frameIndex, uint32_t slot,
+                              uint32_t index, uint32_t stage) {
   const uint32_t level = MipLevels - 1u - index;
   const uint32_t history = frameIndex % HistorySlots;
   const uint32_t previousHistory = (frameIndex + HistorySlots - 1u) % HistorySlots;
@@ -422,16 +423,22 @@ static bool dispatchGammaStep(DxvkContext* context, uint32_t frameIndex,
 
   context->bindShader(VK_SHADER_STAGE_COMPUTE_BIT, g_gammaShaders[stage]);
   const VkExtent2D extent = gamma.temp1[0].extent;
+  char timerName[32];
+  snprintf(timerName, sizeof(timerName), "Gamma_L%u_S%u", index, stage);
+  const LsfgGpuTimer dispatchTimer = lsfgGpuTimerBegin(
+      context, device, timerName, frameIndex, extent.width, extent.height);
   if (!context->dispatchChecked((extent.width + 7u) >> 3, (extent.height + 7u) >> 3, 1)) {
     lsfg_log("E", "step3j: Gamma dispatch failed stage=%u level=%u shader=%u",
              stage, level, stage == 0 ? 280u : 281u + stage);
     return false;
   }
+  lsfgGpuTimerEnd(context, dispatchTimer);
   return true;
 }
 
-static bool dispatchDeltaStep(DxvkContext* context, uint32_t frameIndex,
-                              uint32_t slot, uint32_t index, uint32_t stage) {
+static bool dispatchDeltaStep(DxvkContext* context, DxvkDevice* device,
+                              uint32_t frameIndex, uint32_t slot,
+                              uint32_t index, uint32_t stage) {
   const uint32_t level = MipLevels - 1u - (FirstDeltaLevel + index);
   const uint32_t gammaIndex = FirstDeltaLevel + index;
   const uint32_t history = frameIndex % HistorySlots;
@@ -511,12 +518,18 @@ static bool dispatchDeltaStep(DxvkContext* context, uint32_t frameIndex,
 
   context->bindShader(VK_SHADER_STAGE_COMPUTE_BIT, g_deltaShaders[stage]);
   const VkExtent2D extent = delta.temp1[0].extent;
+  char timerName[32];
+  snprintf(timerName, sizeof(timerName), "Delta_L%u_S%u",
+           FirstDeltaLevel + index, stage);
+  const LsfgGpuTimer dispatchTimer = lsfgGpuTimerBegin(
+      context, device, timerName, frameIndex, extent.width, extent.height);
   if (!context->dispatchChecked((extent.width + 7u) >> 3, (extent.height + 7u) >> 3, 1)) {
     static const uint32_t shaderIds[10] = { 280, 286, 287, 288, 289, 281, 294, 295, 296, 297 };
     lsfg_log("E", "step3j: Delta dispatch failed stage=%u level=%u shader=%u",
              stage, level, shaderIds[stage]);
     return false;
   }
+  lsfgGpuTimerEnd(context, dispatchTimer);
   return true;
 }
 
@@ -597,7 +610,7 @@ bool dispatchLsfgGeneration(
 
     if (i < FirstDeltaLevel) {
       for (uint32_t stage = 0; stage < 5; stage++) {
-        if (!dispatchGammaStep(context, frameIndex, slot, i, stage))
+        if (!dispatchGammaStep(context, device, frameIndex, slot, i, stage))
           return false;
       }
       lsfgGpuTimerEnd(context, levelTimer);
@@ -607,9 +620,9 @@ bool dispatchLsfgGeneration(
     const uint32_t deltaIndex = i - FirstDeltaLevel;
     for (uint32_t stage = 0; stage < 10; stage++) {
       if (stage < 5
-          && !dispatchGammaStep(context, frameIndex, slot, i, stage))
+          && !dispatchGammaStep(context, device, frameIndex, slot, i, stage))
         return false;
-      if (!dispatchDeltaStep(context, frameIndex, slot, deltaIndex, stage))
+      if (!dispatchDeltaStep(context, device, frameIndex, slot, deltaIndex, stage))
         return false;
     }
     lsfgGpuTimerEnd(context, levelTimer);

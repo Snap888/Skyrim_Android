@@ -141,3 +141,26 @@ when profiling is enabled and the corresponding LSFG dispatch executes.
 This is a diagnostics-integrity change; it does not alter GPU work, pass order,
 synchronization, or frame generation. Native Android build and device validation
 are still required.
+
+
+## Per-dispatch Gamma/Delta breakdown — snap-patch-5
+
+The generation profiler additionally records one GPU timestamp pair around each
+individual Gamma and Delta compute dispatch. This splits the former
+`GammaDelta_L0` … `GammaDelta_L6` aggregate groups into rows named
+`Gamma_L<level>_S<stage>` and `Delta_L<level>_S<stage>`, while retaining
+the original aggregate `GammaDelta_L<level>` rows for direct comparison.
+
+The level number follows the outer generation-pyramid loop (L0–L6), matching
+the aggregate row naming; it is not the reversed alpha-history image index.
+Stage numbers are the shader-array indices passed to the corresponding
+Gamma/Delta dispatch function. L0–L3 contain five Gamma dispatches each;
+L4–L6 contain five Gamma and ten Delta dispatches each.
+
+This instrumentation is opt-in under the existing
+**LSFG GPU stage profiling (CSV)** setting. It adds timestamp queries only to
+the diagnostic run. It does not change dispatch order, shaders, resources,
+barriers, or generated-frame logic. Compare sums of per-dispatch rows with
+the retained aggregate row for each level; small differences are expected
+from timestamp placement and query granularity. Native Android NDK build and
+device validation are required before treating the change as validated.
