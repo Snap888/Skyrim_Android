@@ -94,7 +94,7 @@ static Voice *g_voices[MAX_VOICES];
 static Voice *g_master;
 static uint32_t g_engine_cb[16];
 static int g_nengine_cb;
-static int g_rate = 48000, g_running, g_thread_started;
+static int g_rate = 48000, g_running, g_thread_started, g_pass_active;
 static SDL_AudioDeviceID g_dev;
 /* diagnostics */
 static unsigned g_xa_src_voices, g_xa_xwma_voices, g_xa_xwma_submits, g_xa_pcm_submits, g_xa_adpcm_submits;
@@ -367,6 +367,9 @@ static void mix_source(Voice *v, int frames, float *tmp) {
 
 static void engine_pass(CPU *c, int frames, float *out) {
     static float tmp[MAX_CH * 48000 / 10];
+    pthread_mutex_lock(&g_lock);
+    g_pass_active = 1;
+    pthread_mutex_unlock(&g_lock);
     uint32_t args[3];
     /* engine and voice pass-start callbacks, unlocked */
     for (int i = 0; i < g_nengine_cb; i++) {
@@ -458,6 +461,7 @@ static void engine_pass(CPU *c, int frames, float *out) {
         if (!v || !v->dead || v->decoding) continue;
         free_voice_locked(v);
     }
+    g_pass_active = 0;
     pthread_mutex_unlock(&g_lock);
 }
 
@@ -643,7 +647,7 @@ SHIM(xv_DestroyVoice) {
     }
     /* When the engine is stopped no future pass can release this voice.
      * Keep it alive until all out-of-lock xWMA decodes have returned. */
-    if (!g_running && v->decoding == 0) free_voice_locked(v);
+    if (!g_running && !g_pass_active && v->decoding == 0) free_voice_locked(v);
     pthread_mutex_unlock(&g_lock);
     g_hcom_slots[M32(g + 8)] = NULL;
     M32(g) = 0xDEAD0002u;
@@ -758,7 +762,7 @@ SHIM(xs_SubmitSourceBuffer) {
         x->ready = 1;
         v->decoding--;
 
-        if (v->destroy_pending && !g_running && v->decoding == 0) {
+        if (v->destroy_pending && !g_running && !g_pass_active && v->decoding == 0) {
             free_voice_locked(v);
         } else if (!v->dead && !g_running && !v->running && v->decoding == 0) {
             drop_flushed_buffers_locked(v);
