@@ -131,8 +131,12 @@ static float g_xa_mix_peak;
 static pthread_cond_t g_decode_cond = PTHREAD_COND_INITIALIZER;
 static pthread_cond_t g_decode_ready_cond = PTHREAD_COND_INITIALIZER;
 static XDecodeJob *g_decode_head, *g_decode_tail;
-static int g_decode_thread_started;
-static pthread_t g_decode_thread;
+/* Two independent decoder workers keep a long music decode from
+ * serializing shorter dialogue/effect streams. Queue slots remain ordered
+ * per voice; the mixer only consumes the head slot once it is ready. */
+#define XWMA_DECODE_WORKERS 2
+static unsigned g_decode_threads_started;
+static pthread_t g_decode_threads[XWMA_DECODE_WORKERS];
 static volatile int g_decode_shutdown;
 static uint64_t g_pass_decode_wait_deadline_us;
 static uint64_t now_us(void);
@@ -309,10 +313,17 @@ static void *xwma_decode_main(void *unused) {
 }
 
 static int start_xwma_decode_worker(void) {
-    if (g_decode_thread_started) return 1;
-    if (pthread_create(&g_decode_thread, NULL, xwma_decode_main, NULL) != 0) return 0;
-    g_decode_thread_started = 1;
-    return 1;
+    if (g_decode_threads_started) return 1;
+
+    for (unsigned i = 0; i < XWMA_DECODE_WORKERS; i++) {
+        if (pthread_create(&g_decode_threads[i], NULL, xwma_decode_main, NULL) != 0)
+            break;
+        g_decode_threads_started++;
+    }
+
+    /* Keep a single worker as a valid fallback if the device cannot create
+     * the second thread. Fail only when no decoder worker could be started. */
+    return g_decode_threads_started != 0;
 }
 
 static void set_format(Voice *v, uint32_t wf) {
@@ -799,13 +810,14 @@ void xaudio2_shutdown(void) {
         pthread_join(g_engine_thread, NULL);
         g_engine_thread_started = 0;
     }
-    if (g_decode_thread_started) {
+    if (g_decode_threads_started) {
         __atomic_store_n(&g_decode_shutdown, 1, __ATOMIC_RELEASE);
         pthread_mutex_lock(&g_lock);
         pthread_cond_broadcast(&g_decode_cond);
         pthread_mutex_unlock(&g_lock);
-        pthread_join(g_decode_thread, NULL);
-        g_decode_thread_started = 0;
+        for (unsigned i = 0; i < g_decode_threads_started; i++)
+            pthread_join(g_decode_threads[i], NULL);
+        g_decode_threads_started = 0;
     }
 }
 

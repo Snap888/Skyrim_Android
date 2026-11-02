@@ -112,3 +112,26 @@ latency. Any streaming/partial-decode redesign must preserve packet ordering,
 dpds accounting, loop/play-region semantics and voice lifetime. First verify
 whether the 282 ms decode corresponds to an audible startup gap in a repeatable
 test.
+
+
+## 2026-11-02 — Parallel xWMA decode workers
+
+The refreshed runtime log shows xWMA worker latencies of 237 ms for one
+1.86 MB stereo stream (235.6 s decoded audio), 28 ms and 53 ms for two
+additional stereo streams, plus several later 24–28 ms jobs. The mixer also
+reports nonzero `pending_decode` frames. In contrast, the output timing report
+has `slow_mix=0`, and no explicit refill-gap events are present.
+
+The xWMA decode queue previously had one worker, so a long music decode could
+hold up independent voice jobs behind it. The queue now starts up to two
+workers, with a one-worker fallback if thread creation is constrained. Each
+worker owns a separate FFmpeg decoder context per job. Decoded buffers are
+published into their already-reserved per-voice queue slots; playback still
+consumes only the head slot, preserving submission order, play regions,
+looping and callback semantics. Shutdown signals and joins every started
+worker before voices or SDL are torn down.
+
+This is intended to reduce head-of-line blocking between independent voices;
+it does not make a single large WMA stream decode faster. Device testing is
+required to verify that parallel CPU use does not worsen frame pacing or
+audio scheduling.
