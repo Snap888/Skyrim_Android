@@ -75,7 +75,7 @@ the Microsoft contract and FFmpeg's xWMA demuxer packet model.
 
 - Verify on-device decoded duration against the `dpds` cumulative PCM byte count.
 - Investigate any remaining WMAPRO/WMAV2 decode errors with real `.xwm`/`.xwma`/`.fuz` samples.
-- Decoder overflow/noise rejection and asynchronous decode.
+- Decoder overflow/noise rejection and performance measurement on-device.
 - SDL/mixer routing validation on the target device.
 - Engine shutdown mutex lifetime issue.
 
