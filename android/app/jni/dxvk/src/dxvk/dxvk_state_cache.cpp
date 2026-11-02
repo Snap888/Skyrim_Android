@@ -989,7 +989,14 @@ namespace dxvk {
         m_workerQueue.pop();
       }
 
+      const auto compileStart = std::chrono::steady_clock::now();
       compilePipelines(item);
+      if (env::getEnvVar("DXVK_RUNTIME_DIAGNOSTICS") == "1") {
+        const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(
+          std::chrono::steady_clock::now() - compileStart).count();
+        Logger::info(str::format("DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=",
+          elapsed));
+      }
     }
   }
 
