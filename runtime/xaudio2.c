@@ -636,11 +636,11 @@ static void *engine_main(void *arg) {
     Uint32 min_queue_bytes = UINT32_MAX;
     for (;;) {
         if (g_dev) {
-            /* keep about 40 ms queued; a device that stops draining for 200 ms
-             * is dropped and mixing continues on the timer */
+            /* Keep 60 ms queued to absorb Android scheduling jitter; a device that
+             * stops draining for 200 ms is dropped and mixing continues on the timer. */
             Uint32 q0 = SDL_GetQueuedAudioSize(g_dev), q;
             uint64_t t0 = now_us();
-            while ((q = SDL_GetQueuedAudioSize(g_dev)) > (Uint32)(4 * frames * 2 * sizeof(float))) {
+            while ((q = SDL_GetQueuedAudioSize(g_dev)) > (Uint32)(6 * frames * 2 * sizeof(float))) {
                 if (q < q0) { q0 = q; t0 = now_us(); }
                 else if (now_us() - t0 > 200000) {
                     LOG("xaudio2: audio device stalled, mixing silently");
