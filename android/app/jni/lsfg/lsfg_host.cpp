@@ -16,6 +16,7 @@ extern "C" void lsfg_register_vk_context(void*, void*, void*, unsigned);
 extern "C" void lsfg_step3g_set_game_fps_limit_hook(int (*hook)(void));
 extern "C" void lsfg_set_vk_context_hook(void (*)(void*, void*, void*, unsigned));
 extern "C" void lsfg_step3e_install(void);
+extern "C" int lsfg_gpu_profiler_begin_session(int);
 extern "C" void lsfg_step3e_set_queue(void *queue, unsigned family);
 extern "C" void lsfg_step3g_set_copy_hook(void (*hook)(void*, void*, void*, uint32_t, uint32_t, uint32_t));
 extern "C" void lsfg_step3g_copy_impl(void*, void*, void*, uint32_t, uint32_t, uint32_t);
@@ -110,6 +111,8 @@ bool lsfg_host_init(const LsfgConfig *cfg) {
     g_game_fps_limit.store(cfg->game_fps_limit, std::memory_order_relaxed);
 
     LOGI("=== LSFG host init ===");
+    if (!lsfg_gpu_profiler_begin_session(cfg->enabled && cfg->multiplier > 1))
+        LOGW("LSFG GPU profiler CSV session could not be initialized");
     LOGI("STATUS: step1 extract + step2 SPIR-V + step3 present hook");
 
     if (!cfg->enabled) {
