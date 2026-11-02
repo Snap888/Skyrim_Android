@@ -268,3 +268,78 @@ build and performance validation remain pending.
    runs. Match duration and scene for ON/OFF.
 4. No APK build, native build, device validation or measured performance gain
    is claimed for commit `5922955`.
+
+## Latest runtime review and DXVK buffer-binding fast path — 2026-11-02
+
+The newest uploaded run is on branch `snap-patch-5` at the time of review.
+The GPU CSV contains 130,463 successful stage rows across 10,277 source-frame
+groups. Stage timings vary by the actual input extent, so the following
+full-resolution / reduced-resolution buckets are kept separate:
+
+- Full-resolution `GammaDelta_L6` (2448 wide): 12,454 samples,
+  average 1.419 ms, P95 2.277 ms, max 6.431 ms.
+- Full-resolution `GammaDelta_L5`: average 0.436 ms.
+- Full-resolution `Generate`: average 0.808 ms.
+- `Alpha` at 1836 wide: average 1.079 ms; `Beta` at 1836 wide:
+  average 0.766 ms.
+- Additional Alpha/Beta samples exist at widths 1224, 734 and 489,
+  reflecting runtime flow-scale changes. They are not pooled with 1836.
+
+The LSFG session changes multiplier (1x–4x), flow scale (0.40 and 1.00)
+and performance mode while recording. The GPU numbers above describe this
+mixed session, not a fixed-mode comparison with prior uploads. The CPU
+ON/OFF CSVs also differ substantially in sample count and runtime window;
+they are not a valid A/B pair.
+
+### Process exit and audio findings
+
+`last_exit.txt` reports Android `EXCESSIVE_RESOURCE_USAGE` with
+`EXCESSIVE CPU USAGE` (CPU 20 over roughly 18 minutes). The end of
+`log.txt` records `quit requested`, followed by
+`FORTIFY: pthread_mutex_lock called on a destroyed mutex` and SIGABRT.
+This establishes a teardown-time mutex-lifetime failure after the quit
+request, but the available native backtrace contains only `abort()`; it
+does not identify the owning mutex or prove that XAudio2 caused it.
+Do not treat this as a confirmed XAudio2 fix target until a symbolized
+logcat/native tombstone identifies the caller.
+
+The final CPU sample reports 228% aggregate across one-core-normalized
+threads, including an SDLThread sample at 86%. The guest thread sample
+shows a very high `InterlockedDecrement` call count, but sampling data alone
+does not establish whether that is a hot spin loop or expected guest
+synchronization. This needs a focused trace before changing scheduling or
+spin-wait behavior.
+
+The xWMA log now contains many short mono 44.1 kHz voice decodes, as well
+as a 21.184-second stereo 32 kHz stream (voice #127, 56 packets). Repeated
+`empty_queue` summaries with `pending_decode=0` show source queues empty
+between buffers; they do not alone prove audible underruns. FFmpeg also
+reports `Could not update timestamps for skipped samples` on multiple
+WMA2 packets. Keep decoder timing, EOS and queue-empty counts distinct.
+
+### DXVK identical buffer-slice binding optimization
+
+Commit `d1b8fdd` adds an early return to
+`DxvkContext::bindResourceBuffer()` when the exact buffer slice is already
+bound and no image or buffer view is active in that slot. It uses
+`DxvkBufferSlice::matches()`, which compares buffer identity, offset and
+length. The view-type guard preserves transitions from image/buffer views;
+a changed range or buffer continues through the existing dirty-state logic.
+
+This avoids marking descriptor-binding state dirty for repeated identical
+buffer binds (including the LSFG shared buffer bindings). It does not alter
+descriptor contents, barriers, shader math, dispatch topology or pass order.
+It is a CPU-side command-recording optimization; native build and device
+performance validation are still required. No FPS or GPU-time gain is
+claimed.
+
+### Next validation
+
+1. Build and test the current branch; watch for startup, shutdown and
+   audio-device lifecycle errors.
+2. For CPU performance, capture a fixed-scene LSFG ON/OFF pair with
+   identical duration, multiplier, flow scale, performance mode, resolution
+   and VSync; keep GPU profiling disabled for both.
+3. Capture a separate short GPU-profiled run with one fixed LSFG configuration.
+4. If the destroyed-mutex crash recurs, include Android logcat/native
+   tombstone with symbols and the lines immediately before `quit requested`.
