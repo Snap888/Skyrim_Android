@@ -496,3 +496,67 @@ The next analysis will identify which Gamma/Delta dispatches dominate level 6 an
 - [ ] Runtime timing and visual validation.
 
 No successful native build, APK or device validation is claimed.
+
+
+## Device runtime review — 2026-11-03 00:58 session
+
+### Artifacts and exact configuration
+
+The latest uploaded branch snapshot is at pre-documentation HEAD `2358e474eaf4c2374b459b8eca38386e5138d974` (upload commit; its diff adds the three runtime configuration snapshots). The new LSFG session starts at 00:58:37 on 2026-11-03.
+
+Runtime configuration:
+- LSFG enabled, multiplier x2, flow_scale 1.00, performance mode 0 (Performance).
+- Source / WSI extent: 2448x1080.
+- Effective flow extent: 1836x810 (0.75 scale).
+- Vulkan driver snapshot: Turnip Gen8 V38.
+- Runtime tuning snapshot: synchronous pipeline compile, DXVK thread diagnostics, Android Surface diagnostics and runtime diagnostics enabled. Game-thread CPU affinity and Skyrim worker spin-wait tuning remain explicitly marked not implemented.
+- GPU stage profiling is enabled and points to the per-game `dxvk_lsfg_gpu.csv`.
+
+### LSFG execution evidence
+
+The readable `lsfg.log` contains 1,120 lines for one ON session and no `[W]` or `[E]` entries.
+
+- 300/300 RCDATA resources extracted.
+- DXBC-to-SPIR-V translation completed 300/300, with zero failures/skips.
+- SPIR-V manifest audit: 300 compute modules, all 300 reflected successfully, zero reflection failures.
+- Real WSI present-image hook became live at 2448x1080.
+- DXVK-owned history and compute path initialized; two history wrappers were created and alternating source-image copies were recorded.
+- Mipmaps resources were initialized for 7 levels; Alpha/Beta resources for 7 levels and 3 history slots; Gamma/Delta/Generate resources for 7 Gamma levels and 3 paired Delta levels.
+- The log records repeated mipmaps and Generate command recording through source frame 9000. DXVK command-list completion reached copy #9000; the present counter reached frame #18000.
+
+These counters are consistent with the x2 run producing approximately one generated output per source frame. They prove that the corresponding commands were recorded and that copy command lists completed; they do not prove every compute dispatch produced correct pixels, nor do they replace visual validation.
+
+### CPU-side Present benchmark
+
+`Logs/dxvk_perf_on.csv` contains 76 ON windows, from frame 120 through 9120, at 2448x1080 and VSync=1. Every row reports requested/generated averages between 0.983333 and 1.0.
+
+| Metric | Result |
+|---|---:|
+| Mean of window `avg_cpu_present_ms` values | 7.112 ms |
+| Median of window averages | 6.555 ms |
+| P95 of window averages | 11.501 ms |
+| Minimum / maximum window average | 1.290 / 13.152 ms |
+| Largest `max_cpu_present_ms` in any window | 824.513 ms |
+| First 10 windows' mean | 6.665 ms |
+| Last 10 windows' mean | 10.880 ms |
+
+The last ten window averages are materially higher than the first ten, and the per-window average rises to roughly 11–13 ms near frames 8400–9120. This is a signal to investigate sustained-load behaviour, but the CSV alone cannot distinguish thermal throttling, scene workload, scheduler effects or another cause. The 824.513 ms maximum is an isolated Present-path stall, not representative frame time.
+
+This metric measures CPU-side DXVK PresentImage work. It is not total game frame time, GPU time or FPS.
+
+### Important evidence gaps
+
+- No `dxvk_perf_off.csv` is present in this upload. This is an ON-only run and cannot be used as an ON/OFF A/B result.
+- The 25.7 MB `dxvk_lsfg_gpu.csv` blob and 1.43 MB `log.txt` blob are present in the branch tree, but the GitHub file-content connector returned empty/unsupported content for those large blobs. No per-dispatch GPU timings, xWMA decode latency, refill-gap counts, mixer statistics or crash conclusions are inferred from them.
+- The LSFG log is a single ON session; it contains no OFF session to compare.
+- The config snapshots are not proof that the tested APK was built from the current branch HEAD. No APK hash/build provenance was supplied.
+
+### Conclusions and next validation
+
+1. The LSFG bootstrap, shader ingestion, SPIR-V reflection, DXVK history-copy path and command-list completion are working in this run.
+2. The x2 generation command path remains active for the duration of the captured session; visual output quality and actual displayed cadence still require a screenshot/video or on-device observation.
+3. CPU-side Present cost is variable and rises late in the run. Investigate the sustained-load rise and isolated long stalls separately from GPU pass cost.
+4. Do not make an ON/OFF performance claim until a matching OFF run is captured with the same scene, duration, resolution, VSync and runtime settings, with GPU profiling disabled in both CPU benchmark runs.
+5. Retrieve a readable/split GPU CSV and the runtime `log.txt` before drawing conclusions about individual Gamma/Delta dispatches or audio.
+
+No code change, APK build, or visual/device quality certification is implied by this log review.
