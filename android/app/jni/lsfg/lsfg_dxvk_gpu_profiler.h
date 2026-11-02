@@ -94,28 +94,58 @@ inline void lsfgGpuTimerEnd(DxvkContext* context, const LsfgGpuTimer& timer) {
       && endData.timestamp.time >= beginData.timestamp.time
       && timer.periodNs > 0.0;
 
+    // Keep the file open and serialize callback writes. Opening, probing and
+    // closing the CSV once per stage caused thousands of filesystem operations
+    // during a profiling run and distorted the CPU-side PresentImage timings.
     static std::mutex csvMutex;
+    static std::ofstream csvFile;
+    static std::string openedPath;
+    static uint32_t rowsSinceFlush = 0;
     std::lock_guard<std::mutex> lock(csvMutex);
-    const std::string path = lsfgGpuCsvPath();
-    std::ifstream existing(path.c_str());
-    const bool writeHeader = !existing.good();
-    existing.close();
 
-    std::ofstream file(path.c_str(), std::ios::out | std::ios::app);
-    if (!file.good())
-      return;
-    if (writeHeader)
-      file << "frame,stage,gpu_ms,width,height,status\n";
+    const std::string path = lsfgGpuCsvPath();
+    if (!csvFile.is_open() || path != openedPath) {
+      if (csvFile.is_open()) {
+        csvFile.flush();
+        csvFile.close();
+      }
+
+      openedPath = path;
+      std::ifstream existing(path.c_str());
+      const bool writeHeader = !existing.good();
+      existing.close();
+
+      csvFile.open(path.c_str(), std::ios::out | std::ios::app);
+      if (!csvFile.good()) {
+        csvFile.close();
+        openedPath.clear();
+        rowsSinceFlush = 0;
+        return;
+      }
+      if (writeHeader)
+        csvFile << "frame,stage,gpu_ms,width,height,status\n";
+      rowsSinceFlush = 0;
+    }
 
     if (valid) {
       const double gpuMs = double(endData.timestamp.time - beginData.timestamp.time)
                          * timer.periodNs / 1000000.0;
-      file << timer.frame << ',' << timer.stage << ',' << gpuMs << ','
-           << timer.width << ',' << timer.height << ",ok\n";
+      csvFile << timer.frame << ',' << timer.stage << ',' << gpuMs << ','
+              << timer.width << ',' << timer.height << ",ok\n";
     } else {
-      file << timer.frame << ',' << timer.stage << ",0,"
-           << timer.width << ',' << timer.height << ",unavailable:"
-           << int(result) << ':' << int(beginStatus) << ':' << int(endStatus) << "\n";
+      csvFile << timer.frame << ',' << timer.stage << ",0,"
+              << timer.width << ',' << timer.height << ",unavailable:"
+              << int(result) << ':' << int(beginStatus) << ':' << int(endStatus) << "\n";
+    }
+
+    // Bound data loss on an abnormal exit without flushing every single row.
+    if (++rowsSinceFlush >= 60) {
+      csvFile.flush();
+      rowsSinceFlush = 0;
+      if (!csvFile.good()) {
+        csvFile.close();
+        openedPath.clear();
+      }
     }
   });
 }
