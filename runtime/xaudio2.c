@@ -398,7 +398,8 @@ static int next_frame(Voice *v, float *out) {
         }
         if (!b->started) {
             b->started = 1;
-            push_event(v, 3, b->ctx);  /* OnBufferStart */        }
+            push_event(v, 3, b->ctx);  /* OnBufferStart */
+        }
         if (b->pos < b->end) {
             read_frame(v, b, b->pos++, out);
             v->played++;
@@ -823,7 +824,8 @@ SHIM(xv_DestroyVoice) {
      * Keep it alive until all out-of-lock xWMA decodes have returned. */
     if (!g_running && !g_pass_active && v->decoding == 0) free_voice_locked(v);
     pthread_mutex_unlock(&g_lock);
-    g_hcom_slots[M32(g + 8)] = NULL;    M32(g) = 0xDEAD0002u;
+    g_hcom_slots[M32(g + 8)] = NULL;
+    M32(g) = 0xDEAD0002u;
     gfree(g);
     RET(0, 1);
 }
@@ -1022,7 +1024,8 @@ SHIM(xa_Release) {
     uint32_t left;
     if (hcom_release(ARG(0), &left)) g_running = 0;
     RET(left, 1);
-}SHIM(xa_GetDeviceCount) { M32(ARG(1)) = 1; RET(0, 2); }
+}
+SHIM(xa_GetDeviceCount) { M32(ARG(1)) = 1; RET(0, 2); }
 SHIM(xa_GetDeviceDetails) {
     uint32_t d = ARG(2);
     memset(MEM + d, 0, 1068);
