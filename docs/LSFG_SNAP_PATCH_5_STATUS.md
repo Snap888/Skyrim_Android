@@ -210,7 +210,9 @@ does not bypass image hazard tracking. It reduces redundant CPU-side pipeline
 invalidation for repeated state binds; GPU shader math and dispatch order are
 unchanged. Device/build validation is still required.
 
-Audio: the new `Logs/log.txt` upload is 1.39 MB and the repository connector
-cannot return its contents, while `lsfg.log` contains only LSFG initialization
-and frame records. No new audio-specific evidence can be extracted from those
-files here, so no speculative mixer/decoder change is made.
+Audio: after retrieving the full `Logs/log.txt` blob, the log shows xWMA
+worker latencies of 237 ms, 28 ms and 53 ms for early stereo streams, plus
+later 24–28 ms jobs. `pending_decode` frames are nonzero, while
+`slow_mix=0` and no explicit refill-gap event appears. The separate audio
+update adds up to two xWMA decode workers to reduce head-of-line blocking
+between independent voices; per-voice queue order is preserved.
