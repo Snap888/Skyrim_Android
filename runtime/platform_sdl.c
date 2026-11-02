@@ -286,6 +286,9 @@ void platform_present_hook(void) {
     while (SDL_PollEvent(&e)) {
         if (e.type == SDL_QUIT) {
             LOG("quit requested");
+            /* Stop and join the XAudio2 engine before exit handlers tear down SDL. */
+            extern void xaudio2_shutdown(void);
+            xaudio2_shutdown();
             fflush(NULL);
             exit(0);
         }
