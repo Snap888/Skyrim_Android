@@ -455,11 +455,8 @@ static void engine_pass(CPU *c, int frames, float *out) {
     pthread_mutex_lock(&g_lock);
     for (int i = 0; i < MAX_VOICES; i++) {
         Voice *v = g_voices[i];
-        if (!v || !v->dead) continue;
-        for (int k = 0; k < v->qn; k++) free(v->q[(v->qhead + k) % MAX_QUEUE].decoded);
-        free(v->acc);
-        free(v);
-        g_voices[i] = NULL;
+        if (!v || !v->dead || v->decoding) continue;
+        free_voice_locked(v);
     }
     pthread_mutex_unlock(&g_lock);
 }
@@ -647,10 +644,9 @@ SHIM(xv_DestroyVoice) {
     g_hcom_slots[M32(g + 8)] = NULL;
     M32(g) = 0xDEAD0002u;
     gfree(g);
-    if (!g_running) {  /* no engine pass will free it */
+    if (!g_running && v->decoding == 0) {  /* no engine pass will free it */
         pthread_mutex_lock(&g_lock);
-        for (int i = 0; i < MAX_VOICES; i++)
-            if (g_voices[i] == v) { free(v->acc); free(v); g_voices[i] = NULL; }
+        if (v->decoding == 0) free_voice_locked(v);
         pthread_mutex_unlock(&g_lock);
     }
     RET(0, 1);
@@ -801,13 +797,14 @@ SHIM(xs_FlushSourceBuffers) {
      * the next pass: keep the current one, mark the rest finished */
     for (int k = v->running ? 1 : 0; k < v->qn; k++) {
         XBuf *b = &v->q[(v->qhead + k) % MAX_QUEUE];
+        b->flushed = 1;
         b->pos = b->end;
         b->loops_left = 0;
         b->flags &= ~0x40u;
     }
-    if (!v->running && v->qn && !g_running) {  /* stopped engine: drop at once */
-        for (int k = 0; k < v->qn; k++) free(v->q[(v->qhead + k) % MAX_QUEUE].decoded);
-        v->qn = 0;
+    if (!v->running && v->qn && !g_running && v->decoding == 0) {
+        /* No engine pass will consume flushed buffers. */
+        drop_flushed_buffers_locked(v);
     }
     pthread_mutex_unlock(&g_lock);
     RET(0, 1);
