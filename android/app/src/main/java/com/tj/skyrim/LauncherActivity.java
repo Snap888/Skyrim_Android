@@ -722,8 +722,7 @@ public class LauncherActivity extends Activity {
         if (enabled) {
             if (log.exists() && !log.delete())
                 throw new java.io.IOException("cannot reset previous LSFG GPU log: " + log);
-            if (!log.createNewFile())
-                throw new java.io.IOException("cannot create LSFG GPU log: " + log);
+            // Leave the CSV absent: the native profiler detects this and writes its header.
             Os.setenv("DXVK_LSFG_GPU_PROFILE_LOG", log.getAbsolutePath(), true);
             Os.setenv("DXVK_LSFG_GPU_PROFILE", "1", true);
         } else {
