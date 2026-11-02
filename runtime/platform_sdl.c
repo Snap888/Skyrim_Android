@@ -30,6 +30,7 @@ void platform_init(void) {
     LOG("platform: window %dx%d", w, h);
     load_key_script();
     { extern void lsfg_bootstrap(void); lsfg_bootstrap(); }
+    { extern void snapframe_bootstrap(void); snapframe_bootstrap(); }
 }
 
 void *platform_window(void) { return g_window; }
