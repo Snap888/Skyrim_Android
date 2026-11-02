@@ -111,8 +111,8 @@ The decoder no longer tries the entire compressed data buffer as one FFmpeg
 packet and no longer accepts an arbitrary 0.5-second partial result as success.
 It now:
 
-- derives the compressed packet size from `AudioBytes / PacketCount` when the
-  XAudio2 WMA descriptor is present;
+- uses WAVEFORMATEX `block_align` for each compressed packet and checks
+  `PacketCount` against the number of blocks (including a possibly shorter final block);
 - verifies that the packet size matches WAVEFORMATEX `block_align`;
 - submits every fixed-size compressed packet separately while retaining the
   FFmpeg decoder state between packets;
@@ -151,7 +151,8 @@ decoding even when packet boundaries are correct.
 
 The custom decoder now mirrors FFmpeg's xWMA demuxer initialization, including
 its WMAV2 bitrate normalization rules, WMAPRO fallback extradata, and bit-depth
-propagation. It also uses refcounted `AVPacket` buffers and rejects decoded
+propagation. Packet splitting also now matches the demuxer: one `block_align`
+packet per submission, with a shorter final block allowed. It also uses refcounted `AVPacket` buffers and rejects decoded
 PCM whose byte count differs from the final cumulative `dpds` value.
 
 The supplied sample was decoded successfully by the system FFmpeg reference
