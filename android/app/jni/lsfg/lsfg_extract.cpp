@@ -147,21 +147,32 @@ static const char *blob_kind(const uint8_t *p, size_t n) {
 }
 
 static int write_blob(const char *cache_dir, uint32_t id, const uint8_t *data, size_t size, FILE *manifest) {
-    char path[900];
-    snprintf(path, sizeof path, "%s/rcdata_%u.bin", cache_dir, id);
-    FILE *out = fopen(path, "wb");
+    char path[900], temporary[940];
+    int pn = snprintf(path, sizeof path, "%s/rcdata_%u.bin", cache_dir, id);
+    int tn = snprintf(temporary, sizeof temporary, "%s.tmp", path);
+    if (pn < 0 || (size_t)pn >= sizeof path || tn < 0 || (size_t)tn >= sizeof temporary)
+        return -1;
+
+    FILE *out = fopen(temporary, "wb");
     if (!out) {
-        LOGE("extract: cannot write %s: %s", path, strerror(errno));
+        LOGE("extract: cannot write %s: %s", temporary, strerror(errno));
         return -1;
     }
-    if (fwrite(data, 1, size, out) != size) {
-        fclose(out);
-        LOGE("extract: short write %s", path);
+    bool ok = fwrite(data, 1, size, out) == size;
+    if (ok) ok = fflush(out) == 0;
+    if (fclose(out) != 0) ok = false;
+    if (!ok || rename(temporary, path) != 0) {
+        int saved_errno = errno;
+        remove(temporary);
+        LOGE("extract: cannot publish %s: %s", path, strerror(saved_errno));
         return -1;
     }
-    fclose(out);
+
     const char *kind = blob_kind(data, size);
-    fprintf(manifest, "%u %zu %s\n", id, size, kind);
+    if (fprintf(manifest, "%u %zu %s\\n", id, size, kind) < 0) {
+        LOGE("extract: manifest write failed for resource id=%u", id);
+        return -1;
+    }
     LOGI("extract: id=%u size=%zu kind=%s", id, size, kind);
     return 0;
 }
