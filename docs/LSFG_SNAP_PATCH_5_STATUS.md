@@ -6,7 +6,7 @@
 - Working branch: [snap-patch-5](https://github.com/Snap888/Skyrim_Android/tree/snap-patch-5)
 - Base: `snap-patch-4`
 - Base commit: `c2a1077d631e552896b19da42e405579138e7a2b`
-- Current HEAD at this update: `332abe21b5b06d3ffad805bbfe6b9d9ccb92e854`
+- Current HEAD before this runtime-log update: `ce0dce236e8e37518187ecca4d87b2fb4a462be1`
 
 ## Changes
 
@@ -68,3 +68,40 @@ benchmark is required for a valid DXVK A/B comparison.
 Verification pending: Android NDK build, APK packaging and device retest of
 the profiler-disabled path. No FPS improvement or stability fix is claimed
 until measured on device.
+
+
+## Runtime test after profiler opt-in change — 2026-11-02
+
+New user-uploaded artifacts from `Logs/`:
+
+- `dxvk_perf_off.csv`: 21 windows, source frame markers 120–2520.
+- `dxvk_perf_on.csv`: 15 windows, source frame markers 120–1800.
+- Both runs report source extent 2448x1080 and VSync=1.
+- OFF reports `avg_lsfg_requested=0` and `avg_lsfg_generated=0`; ON reports
+  both values as 1 in every sampled window.
+- Arithmetic mean of the per-window `avg_cpu_present_ms` values: OFF
+  5.137 ms, ON 9.918 ms. Median of those window averages: OFF 6.536 ms,
+  ON 12.001 ms.
+- Maximum per-window `max_cpu_present_ms`: OFF 17.554 ms, ON 838.957 ms.
+  The ON run also contains large isolated maxima (for example 468.271 ms and
+  838.957 ms); these should be treated as outliers/stalls requiring
+  investigation, not as representative frame time.
+- `lsfg.log` confirms an ON session (`enabled=1`, multiplier 2), 300/300
+  SPIR-V reflection entries successful, active DXVK command-list path, and
+  command-list completion counter reaching 1800. A later session in the same
+  file starts with `enabled=0`; do not conflate it with the ON run.
+- `Logs/log.txt` is empty in this upload.
+- No `dxvk_lsfg_gpu.csv` is present. Since GPU profiling is opt-in, this run
+  does not provide updated per-stage GPU timings.
+
+Interpretation: ON has a higher CPU-side PresentImage window average in this
+sample, but the two CSVs have different sample counts/durations and the metric
+is not full frame time or FPS. The isolated ON maxima are not enough to
+diagnose their cause. This is evidence of additional CPU-side cost/stalls in
+the ON run, not a measured FPS delta or proof that a specific GPU pass is the
+cause.
+
+Next test: repeat a controlled ON/OFF pair in the same scene and duration,
+with the profiler disabled for the ordinary CPU benchmark. Then do a separate
+short ON-only diagnostic run with `DXVK_LSFG_GPU_PROFILE=1` to collect the
+GPU-stage CSV. Keep the two measurement modes separate.

@@ -63,3 +63,18 @@ ordinary gameplay. Re-enable it explicitly for a profiling run as described
 above. The next algorithmic optimization must preserve WinNative pass order,
 resource dependencies and DXVK command-list synchronization; do not skip or
 merge Gamma/Delta stages based on timing alone.
+
+
+## Follow-up ON/OFF run — 2026-11-02
+
+The newer upload includes paired `dxvk_perf_off.csv` and
+`dxvk_perf_on.csv`, but no `dxvk_lsfg_gpu.csv`. The CPU-side PresentImage
+window averages are 5.137 ms OFF (21 windows) and 9.918 ms ON (15 windows).
+The largest ON per-window maximum is 838.957 ms. These are not full frame
+times or FPS, and the unequal run lengths plus isolated outliers prevent a
+clean A/B conclusion. The ON runtime log confirms the DXVK command-list path
+and completion through 1800; it does not contain per-stage GPU timestamps.
+
+For the next measurement, keep the normal ON/OFF benchmark profiler-free and
+match scene, duration, resolution and VSync. Collect GPU stage timings in a
+separate ON diagnostic run by setting `DXVK_LSFG_GPU_PROFILE=1`.
