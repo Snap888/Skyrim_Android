@@ -1,4 +1,2 @@
-Mon Nov 02 20:12:09 GMT+03:00 2026: reason USER_REQUESTED status 0 importance 400 pss 121MB rss 225MB desc [REMOVE TASK] remove task
-Mon Nov 02 19:50:07 GMT+03:00 2026: reason USER_REQUESTED status 0 importance 400 pss 1660MB rss 1776MB desc [REMOVE TASK] remove task
-Mon Nov 02 19:35:54 GMT+03:00 2026: reason USER_REQUESTED status 0 importance 400 pss 1466MB rss 1584MB desc [REMOVE TASK] remove task
-device RAM 11193MB, available now 3751MB, low-memory threshold 300MB
+Mon Nov 02 20:43:48 GMT+03:00 2026: reason USER_REQUESTED status 0 importance 400 pss 129MB rss 246MB desc [REMOVE TASK] remove task
+device RAM 11193MB, available now 4127MB, low-memory threshold 300MB
