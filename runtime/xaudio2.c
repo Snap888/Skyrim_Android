@@ -605,7 +605,8 @@ static void engine_pass(CPU *c, int frames, float *out) {
         rt_invoke(c, fn, ev[i].method == 2 ? 1 : 2, args);
     }
     for (int i = 0; i < g_nengine_cb; i++) {
-        args[0] = g_engine_cb[i];        rt_invoke(c, M32(M32(g_engine_cb[i]) + 4), 1, args);  /* OnProcessingPassEnd */
+        args[0] = g_engine_cb[i];
+        rt_invoke(c, M32(M32(g_engine_cb[i]) + 4), 1, args);  /* OnProcessingPassEnd */
     }
     /* free voices destroyed during the pass */
     pthread_mutex_lock(&g_lock);
