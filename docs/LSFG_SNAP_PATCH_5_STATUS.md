@@ -395,6 +395,10 @@ claimed.
   semantics are preserved.
 - This reduces per-pass CPU work in common voice/submix routes; no measured
   audio latency or CPU reduction is claimed until a same-scene device test.
+- The mixer now buckets active submix voices by processing stage using one
+  registry scan and a compact prefix-offset array. This replaces the former
+  64-stage × 1024-slot nested scan (up to 65,536 registry checks per pass)
+  while preserving ascending voice-slot order within each processing stage.
 
 ### Validation status and next test
 
