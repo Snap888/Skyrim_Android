@@ -1,0 +1,746 @@
+
+===== skyrim-lsfg session 2026-11-02 17:47:08 =====
+17:47:08 [I] config enabled=1 mult=2 flow=1.00 perf=0
+17:47:08 [I] dll=/data/user/0/com.tj.skyrim/files/lsfg/Lossless.dll
+17:47:08 [I] cache=/data/user/0/com.tj.skyrim/no_backup/lsfg/cache
+17:47:08 [I] DXVK state cache=/data/user/0/com.tj.skyrim/no_backup/lsfg/dxvk
+17:47:08 [I] === LSFG host init ===
+17:47:08 [I] STATUS: step1 extract + step2 SPIR-V + step3 present hook
+17:47:08 [I] Lossless.dll found
+17:47:08 [I] extract: cache matches selected DLL at /data/user/0/com.tj.skyrim/no_backup/lsfg/cache
+17:47:08 [I] extract OK: 300 RCDATA blob(s) in /data/user/0/com.tj.skyrim/no_backup/lsfg/cache
+17:47:08 [I] === LSFG step 2: DXBC -> SPIR-V (300 resources) ===
+17:47:08 [I] translate progress 1/300 (cached 1)
+17:47:08 [I] translate progress 25/300 (cached 25)
+17:47:08 [I] translate progress 50/300 (cached 50)
+17:47:08 [I] translate progress 75/300 (cached 75)
+17:47:08 [I] translate progress 100/300 (cached 100)
+17:47:08 [I] translate progress 125/300 (cached 125)
+17:47:08 [I] translate progress 150/300 (cached 150)
+17:47:08 [I] translate progress 175/300 (cached 175)
+17:47:08 [I] translate progress 200/300 (cached 200)
+17:47:08 [I] translate progress 225/300 (cached 225)
+17:47:08 [I] translate progress 250/300 (cached 250)
+17:47:08 [I] translate progress 275/300 (cached 275)
+17:47:08 [I] translate progress 300/300 (cached 300)
+17:47:08 [I] translate done: ok=300 (cached=300) fail=0 skip=0 -> /data/user/0/com.tj.skyrim/no_backup/lsfg/cache/manifest_spirv.txt
+17:47:08 [I] translate OK: 300 SPIR-V module(s)
+17:47:08 [I] LSFG: Vk context hook installed (device+phys+queue on DxvkDevice create)
+17:47:08 [I] LSFG: present-image hook installed (step 3e/3f — real image only)
+17:47:08 [I] LSFG: DXVK frame-copy and generated-frame callbacks registered
+17:47:08 [I] STEP3: present hook + step3e image hook installed
+17:47:13 [I] LSFG: Vk context registered device=0x7217badc40 phys=0x71a7b64650 queue=0x7157baeb80 family=0
+17:47:13 [I] === LSFG step 3: present hook LIVE ===
+17:47:13 [I] present: first frame 2448x1080 vkfmt=0x25 spirv_modules=300 device=0x7217badc40
+17:47:13 [I] STATUS: hook receives frames; dimensions from SDL window
+17:47:13 [I] step3d: frame pair 2448x1080 OK
+17:47:13 [I] step3d role: mipmaps id=255 SPIR-V present compute
+17:47:13 [I] step3d role: generate id=256 SPIR-V present compute
+17:47:13 [I] step3d role: gamma[0] id=257 SPIR-V present compute
+17:47:13 [I] step3d role: gamma[1] id=259 SPIR-V present compute
+17:47:13 [I] step3d role: gamma[2] id=260 SPIR-V present compute
+17:47:13 [I] step3d role: gamma[3] id=261 SPIR-V present compute
+17:47:13 [I] step3d role: gamma[4] id=262 SPIR-V present compute
+17:47:13 [I] step3d role: delta[0] id=257 SPIR-V present compute
+17:47:13 [I] step3d role: delta[1] id=263 SPIR-V present compute
+17:47:13 [I] step3d role: delta[2] id=264 SPIR-V present compute
+17:47:13 [I] step3d role: delta[3] id=265 SPIR-V present compute
+17:47:13 [I] step3d role: delta[4] id=266 SPIR-V present compute
+17:47:13 [I] step3d role: delta[5] id=258 SPIR-V present compute
+17:47:13 [I] step3d role: delta[6] id=271 SPIR-V present compute
+17:47:13 [I] step3d role: delta[7] id=272 SPIR-V present compute
+17:47:13 [I] step3d role: delta[8] id=273 SPIR-V present compute
+17:47:13 [I] step3d role: delta[9] id=274 SPIR-V present compute
+17:47:13 [I] step3d role: alpha[0] id=267 SPIR-V present compute
+17:47:13 [I] step3d role: alpha[1] id=268 SPIR-V present compute
+17:47:13 [I] step3d role: alpha[2] id=269 SPIR-V present compute
+17:47:13 [I] step3d role: alpha[3] id=270 SPIR-V present compute
+17:47:13 [I] step3d role: beta[0] id=275 SPIR-V present compute
+17:47:13 [I] step3d role: beta[1] id=276 SPIR-V present compute
+17:47:13 [I] step3d role: beta[2] id=277 SPIR-V present compute
+17:47:13 [I] step3d role: beta[3] id=278 SPIR-V present compute
+17:47:13 [I] step3d role: beta[4] id=279 SPIR-V present compute
+17:47:13 [I] step3d role: p_mipmaps id=255 SPIR-V present compute
+17:47:13 [I] step3d role: p_generate id=256 SPIR-V present compute
+17:47:13 [I] step3d role: p_gamma[0] id=280 SPIR-V present compute
+17:47:13 [I] step3d role: p_gamma[1] id=282 SPIR-V present compute
+17:47:13 [I] step3d role: p_gamma[2] id=283 SPIR-V present compute
+17:47:13 [I] step3d role: p_gamma[3] id=284 SPIR-V present compute
+17:47:13 [I] step3d role: p_gamma[4] id=285 SPIR-V present compute
+17:47:13 [I] step3d role: p_delta[0] id=280 SPIR-V present compute
+17:47:13 [I] step3d role: p_delta[1] id=286 SPIR-V present compute
+17:47:13 [I] step3d role: p_delta[2] id=287 SPIR-V present compute
+17:47:13 [I] step3d role: p_delta[3] id=288 SPIR-V present compute
+17:47:13 [I] step3d role: p_delta[4] id=289 SPIR-V present compute
+17:47:13 [I] step3d role: p_delta[5] id=281 SPIR-V present compute
+17:47:13 [I] step3d role: p_delta[6] id=294 SPIR-V present compute
+17:47:13 [I] step3d role: p_delta[7] id=295 SPIR-V present compute
+17:47:13 [I] step3d role: p_delta[8] id=296 SPIR-V present compute
+17:47:13 [I] step3d role: p_delta[9] id=297 SPIR-V present compute
+17:47:13 [I] step3d role: p_alpha[0] id=290 SPIR-V present compute
+17:47:13 [I] step3d role: p_alpha[1] id=291 SPIR-V present compute
+17:47:13 [I] step3d role: p_alpha[2] id=292 SPIR-V present compute
+17:47:13 [I] step3d role: p_alpha[3] id=293 SPIR-V present compute
+17:47:13 [I] step3d role: p_beta[0] id=298 SPIR-V present compute
+17:47:13 [I] step3d role: p_beta[1] id=299 SPIR-V present compute
+17:47:13 [I] step3d role: p_beta[2] id=300 SPIR-V present compute
+17:47:13 [I] step3d role: p_beta[3] id=301 SPIR-V present compute
+17:47:13 [I] step3d role: p_beta[4] id=302 SPIR-V present compute
+17:47:13 [I] step3d role audit: present=52 missing=0 compute_ok=52 compute_invalid=0
+17:47:13 [I] === LSFG step 3d: descriptor reflection + frame pair ===
+17:47:13 [I] step3d shader: id=101 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=101 reflection OK bindings=5 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:13 [I] step3d shader: id=102 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=102 reflection OK bindings=6 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:13 [I] step3d shader: id=103 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=103 reflection OK bindings=6 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:13 [I] step3d shader: id=104 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=104 reflection OK bindings=7 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=105 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=105 reflection OK bindings=4 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=106 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=106 reflection OK bindings=4 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=107 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=107 reflection OK bindings=4 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=108 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=108 reflection OK bindings=4 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=109 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=109 reflection OK bindings=4 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=110 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=110 reflection OK bindings=4 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=111 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=111 reflection OK bindings=4 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=112 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=112 reflection OK bindings=12 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b838 t2 x1] [s0:b839 t2 x1] [s0:b840 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=113 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=113 reflection OK bindings=4 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=114 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=114 reflection OK bindings=4 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=115 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=115 reflection OK bindings=4 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=116 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=116 reflection OK bindings=6 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=117 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=117 reflection OK bindings=6 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:13 [I] step3d shader: id=118 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=118 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:13 [I] step3d shader: id=119 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=119 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:13 [I] step3d shader: id=120 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=120 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:13 [I] step3d shader: id=121 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=121 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:13 [I] step3d shader: id=122 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=122 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:13 [I] step3d shader: id=123 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=123 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:13 [I] step3d shader: id=124 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=124 reflection OK bindings=20 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b838 t2 x1] [s0:b839 t2 x1] [s0:b840 t2 x1] [s0:b841 t2 x1] [s0:b842 t2 x1] [s0:b843 t2 x1] [s0:b844 t2 x1] [s0:b845 t2 x1] [s0:b846 t2 x1] [s0:b847 t2 x1] [s0:b848 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=125 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=125 reflection OK bindings=5 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:13 [I] step3d shader: id=126 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=126 reflection OK bindings=6 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:13 [I] step3d shader: id=127 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=127 reflection OK bindings=6 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:13 [I] step3d shader: id=128 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=128 reflection OK bindings=6 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:13 [I] step3d shader: id=129 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=129 reflection OK bindings=6 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:13 [I] step3d shader: id=130 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=130 reflection OK bindings=6 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:13 [I] step3d shader: id=131 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=131 reflection OK bindings=6 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:13 [I] step3d shader: id=132 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=132 reflection OK bindings=19 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b838 t2 x1] [s0:b839 t2 x1] [s0:b840 t2 x1] [s0:b841 t2 x1] [s0:b842 t2 x1] [s0:b843 t2 x1] [s0:b844 t2 x1] [s0:b845 t2 x1] [s0:b846 t2 x1] [s0:b847 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=133 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=133 reflection OK bindings=4 [s0:b801 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=134 entry=main local_size=64,1,1
+17:47:13 [I] step3d: id=134 reflection OK bindings=4 [s0:b800 t6 x1] [s0:b801 t6 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=135 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=135 reflection OK bindings=4 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=136 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=136 reflection OK bindings=2 [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=137 entry=main local_size=64,1,1
+17:47:13 [I] step3d: id=137 reflection OK bindings=4 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=138 entry=main local_size=64,1,1
+17:47:13 [I] step3d: id=138 reflection OK bindings=4 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=139 entry=main local_size=64,1,1
+17:47:13 [I] step3d: id=139 reflection OK bindings=4 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=140 entry=main local_size=64,1,1
+17:47:13 [I] step3d: id=140 reflection OK bindings=4 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=141 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=141 reflection OK bindings=3 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=142 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=142 reflection OK bindings=3 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=143 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=143 reflection OK bindings=3 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=144 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=144 reflection OK bindings=3 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=145 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=145 reflection OK bindings=3 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=146 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=146 reflection OK bindings=5 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=147 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=147 reflection OK bindings=3 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=148 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=148 reflection OK bindings=2 [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=149 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=149 reflection OK bindings=3 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=150 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=150 reflection OK bindings=3 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=151 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=151 reflection OK bindings=2 [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=152 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=152 reflection OK bindings=3 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=153 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=153 reflection OK bindings=3 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=154 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=154 reflection OK bindings=2 [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=155 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=155 reflection OK bindings=3 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=156 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=156 reflection OK bindings=3 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=157 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=157 reflection OK bindings=2 [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=158 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=158 reflection OK bindings=3 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=159 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=159 reflection OK bindings=3 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=160 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=160 reflection OK bindings=2 [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=161 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=161 reflection OK bindings=3 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=162 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=162 reflection OK bindings=7 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=163 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=163 reflection OK bindings=7 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:13 [I] step3d shader: id=164 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=164 reflection OK bindings=6 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:13 [I] step3d shader: id=165 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=165 reflection OK bindings=6 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:13 [I] step3d shader: id=166 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=166 reflection OK bindings=9 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:13 [I] step3d shader: id=167 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=167 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:13 [I] step3d shader: id=168 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=168 reflection OK bindings=6 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:13 [I] step3d shader: id=169 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=169 reflection OK bindings=6 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:13 [I] step3d shader: id=170 entry=main local_size=32,32,1
+17:47:13 [I] step3d: id=170 reflection OK bindings=10 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1] [s0:b1092 t3 x1] [s0:b1093 t3 x1]
+17:47:13 [I] step3d shader: id=171 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=171 reflection OK bindings=7 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:13 [I] step3d shader: id=172 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=172 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:13 [I] step3d shader: id=173 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=173 reflection OK bindings=6 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:13 [I] step3d shader: id=174 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=174 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1]
+17:47:13 [I] step3d shader: id=175 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=175 reflection OK bindings=10 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1]
+17:47:13 [I] step3d shader: id=176 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=176 reflection OK bindings=10 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1]
+17:47:13 [I] step3d shader: id=177 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=177 reflection OK bindings=10 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1]
+17:47:13 [I] step3d shader: id=178 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=178 reflection OK bindings=10 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1]
+17:47:13 [I] step3d shader: id=179 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=179 reflection OK bindings=10 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1]
+17:47:13 [I] step3d shader: id=180 entry=main local_size=32,32,1
+17:47:13 [I] step3d: id=180 reflection OK bindings=12 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1] [s0:b1092 t3 x1] [s0:b1093 t3 x1]
+17:47:13 [I] step3d shader: id=181 entry=main local_size=16,16,1
+17:47:13 [I] step3d: id=181 reflection OK bindings=7 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1]
+17:47:13 [I] step3d shader: id=182 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=182 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:13 [I] step3d shader: id=183 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=183 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:13 [I] step3d shader: id=184 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=184 reflection OK bindings=11 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1] [s0:b1092 t3 x1] [s0:b1093 t3 x1]
+17:47:13 [I] step3d shader: id=185 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=185 reflection OK bindings=14 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1] [s0:b1092 t3 x1] [s0:b1093 t3 x1]
+17:47:13 [I] step3d shader: id=186 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=186 reflection OK bindings=14 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1] [s0:b1092 t3 x1] [s0:b1093 t3 x1]
+17:47:13 [I] step3d shader: id=187 entry=main local_size=8,8,1
+17:47:13 [I] step3d: id=187 reflection OK bindings=14 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1] [s0:b1092 t3 x1] [s0:b1093 t3 x1]
+17:47:13 [I] step3d shader: id=188 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=188 reflection OK bindings=14 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1] [s0:b1092 t3 x1] [s0:b1093 t3 x1]
+17:47:14 [I] step3d shader: id=189 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=189 reflection OK bindings=14 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1] [s0:b1092 t3 x1] [s0:b1093 t3 x1]
+17:47:14 [I] step3d shader: id=190 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=190 reflection OK bindings=13 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b838 t2 x1] [s0:b839 t2 x1] [s0:b840 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=191 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=191 reflection OK bindings=7 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=192 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=192 reflection OK bindings=6 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=193 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=193 reflection OK bindings=7 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:14 [I] step3d shader: id=194 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=194 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:14 [I] step3d shader: id=195 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=195 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:14 [I] step3d shader: id=196 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=196 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:14 [I] step3d shader: id=197 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=197 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:14 [I] step3d shader: id=198 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=198 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:14 [I] step3d shader: id=199 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=199 reflection OK bindings=10 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=200 entry=main local_size=16,16,1
+17:47:14 [I] step3d: id=200 reflection OK bindings=7 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=201 entry=main local_size=16,16,1
+17:47:14 [I] step3d: id=201 reflection OK bindings=7 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=202 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=202 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:14 [I] step3d shader: id=203 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=203 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:14 [I] step3d shader: id=204 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=204 reflection OK bindings=11 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1] [s0:b1092 t3 x1] [s0:b1093 t3 x1]
+17:47:14 [I] step3d shader: id=205 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=205 reflection OK bindings=14 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1] [s0:b1092 t3 x1] [s0:b1093 t3 x1]
+17:47:14 [I] step3d shader: id=206 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=206 reflection OK bindings=14 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1] [s0:b1092 t3 x1] [s0:b1093 t3 x1]
+17:47:14 [I] step3d shader: id=207 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=207 reflection OK bindings=14 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1] [s0:b1092 t3 x1] [s0:b1093 t3 x1]
+17:47:14 [I] step3d shader: id=208 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=208 reflection OK bindings=14 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1] [s0:b1092 t3 x1] [s0:b1093 t3 x1]
+17:47:14 [I] step3d shader: id=209 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=209 reflection OK bindings=14 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1] [s0:b1092 t3 x1] [s0:b1093 t3 x1]
+17:47:14 [I] step3d shader: id=210 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=210 reflection OK bindings=13 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b838 t2 x1] [s0:b839 t2 x1] [s0:b840 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=211 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=211 reflection OK bindings=7 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=212 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=212 reflection OK bindings=6 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=213 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=213 reflection OK bindings=7 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:14 [I] step3d shader: id=214 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=214 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:14 [I] step3d shader: id=215 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=215 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:14 [I] step3d shader: id=216 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=216 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:14 [I] step3d shader: id=217 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=217 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:14 [I] step3d shader: id=218 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=218 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:14 [I] step3d shader: id=219 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=219 reflection OK bindings=10 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=220 entry=main local_size=16,16,1
+17:47:14 [I] step3d: id=220 reflection OK bindings=7 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=221 entry=main local_size=16,16,1
+17:47:14 [I] step3d: id=221 reflection OK bindings=7 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=222 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=222 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:14 [I] step3d shader: id=223 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=223 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:14 [I] step3d shader: id=224 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=224 reflection OK bindings=11 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1] [s0:b1092 t3 x1] [s0:b1093 t3 x1]
+17:47:14 [I] step3d shader: id=225 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=225 reflection OK bindings=14 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1] [s0:b1092 t3 x1] [s0:b1093 t3 x1]
+17:47:14 [I] step3d shader: id=226 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=226 reflection OK bindings=14 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1] [s0:b1092 t3 x1] [s0:b1093 t3 x1]
+17:47:14 [I] step3d shader: id=227 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=227 reflection OK bindings=14 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1] [s0:b1092 t3 x1] [s0:b1093 t3 x1]
+17:47:14 [I] step3d shader: id=228 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=228 reflection OK bindings=14 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1] [s0:b1092 t3 x1] [s0:b1093 t3 x1]
+17:47:14 [I] step3d shader: id=229 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=229 reflection OK bindings=14 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1] [s0:b1092 t3 x1] [s0:b1093 t3 x1]
+17:47:14 [I] step3d shader: id=230 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=230 reflection OK bindings=13 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b838 t2 x1] [s0:b839 t2 x1] [s0:b840 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=231 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=231 reflection OK bindings=7 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=232 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=232 reflection OK bindings=6 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=233 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=233 reflection OK bindings=7 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:14 [I] step3d shader: id=234 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=234 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:14 [I] step3d shader: id=235 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=235 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:14 [I] step3d shader: id=236 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=236 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:14 [I] step3d shader: id=237 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=237 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:14 [I] step3d shader: id=238 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=238 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:14 [I] step3d shader: id=239 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=239 reflection OK bindings=10 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=240 entry=main local_size=16,16,1
+17:47:14 [I] step3d: id=240 reflection OK bindings=7 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=241 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=241 reflection OK bindings=3 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=242 entry=main local_size=32,32,1
+17:47:14 [I] step3d: id=242 reflection OK bindings=10 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1] [s0:b1092 t3 x1] [s0:b1093 t3 x1] [s0:b1094 t3 x1]
+17:47:14 [I] step3d shader: id=243 entry=main local_size=256,1,1
+17:47:14 [I] step3d: id=243 reflection OK bindings=6 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=244 entry=main local_size=256,1,1
+17:47:14 [I] step3d: id=244 reflection OK bindings=6 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=245 entry=main local_size=128,1,1
+17:47:14 [I] step3d: id=245 reflection OK bindings=6 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=246 entry=main local_size=128,1,1
+17:47:14 [I] step3d: id=246 reflection OK bindings=6 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=247 entry=main local_size=64,1,1
+17:47:14 [I] step3d: id=247 reflection OK bindings=4 [s0:b800 t6 x1] [s0:b801 t6 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=248 entry=main local_size=64,1,1
+17:47:14 [I] step3d: id=248 reflection OK bindings=4 [s0:b800 t6 x1] [s0:b801 t6 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=249 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=249 reflection OK bindings=4 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=250 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=250 reflection OK bindings=4 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=251 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=251 reflection OK bindings=4 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=252 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=252 reflection OK bindings=4 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=253 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=253 reflection OK bindings=4 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=254 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=254 reflection OK bindings=3 [s0:b800 t6 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=255 entry=main local_size=32,32,1
+17:47:14 [I] step3d: id=255 reflection OK bindings=10 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1] [s0:b1092 t3 x1] [s0:b1093 t3 x1] [s0:b1094 t3 x1]
+17:47:14 [I] step3d shader: id=256 entry=main local_size=16,16,1
+17:47:14 [I] step3d: id=256 reflection OK bindings=9 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b817 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=257 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=257 reflection OK bindings=15 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b817 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b838 t2 x1] [s0:b839 t2 x1] [s0:b840 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:14 [I] step3d shader: id=258 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=258 reflection OK bindings=15 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b817 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b838 t2 x1] [s0:b839 t2 x1] [s0:b840 t2 x1] [s0:b841 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=259 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=259 reflection OK bindings=8 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1]
+17:47:14 [I] step3d shader: id=260 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=260 reflection OK bindings=9 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1]
+17:47:14 [I] step3d shader: id=261 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=261 reflection OK bindings=9 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1]
+17:47:14 [I] step3d shader: id=262 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=262 reflection OK bindings=10 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b817 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=263 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=263 reflection OK bindings=8 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1]
+17:47:14 [I] step3d shader: id=264 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=264 reflection OK bindings=9 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1]
+17:47:14 [I] step3d shader: id=265 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=265 reflection OK bindings=9 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1]
+17:47:14 [I] step3d shader: id=266 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=266 reflection OK bindings=10 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b817 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=267 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=267 reflection OK bindings=4 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=268 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=268 reflection OK bindings=5 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=269 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=269 reflection OK bindings=7 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1]
+17:47:14 [I] step3d shader: id=270 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=270 reflection OK bindings=9 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1]
+17:47:14 [I] step3d shader: id=271 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=271 reflection OK bindings=5 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=272 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=272 reflection OK bindings=5 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=273 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=273 reflection OK bindings=5 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=274 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=274 reflection OK bindings=7 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b817 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=275 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=275 reflection OK bindings=15 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b838 t2 x1] [s0:b839 t2 x1] [s0:b840 t2 x1] [s0:b841 t2 x1] [s0:b842 t2 x1] [s0:b843 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=276 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=276 reflection OK bindings=5 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=277 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=277 reflection OK bindings=5 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=278 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=278 reflection OK bindings=5 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=279 entry=main local_size=32,32,1
+17:47:14 [I] step3d: id=279 reflection OK bindings=10 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1] [s0:b1092 t3 x1] [s0:b1093 t3 x1]
+17:47:14 [I] step3d shader: id=280 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=280 reflection OK bindings=11 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b817 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1]
+17:47:14 [I] step3d shader: id=281 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=281 reflection OK bindings=10 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b817 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=282 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=282 reflection OK bindings=6 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=283 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=283 reflection OK bindings=5 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=284 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=284 reflection OK bindings=5 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=285 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=285 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b817 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=286 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=286 reflection OK bindings=6 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=287 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=287 reflection OK bindings=5 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=288 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=288 reflection OK bindings=5 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=289 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=289 reflection OK bindings=8 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b817 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=290 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=290 reflection OK bindings=3 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=291 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=291 reflection OK bindings=3 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=292 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=292 reflection OK bindings=4 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=293 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=293 reflection OK bindings=5 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=294 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=294 reflection OK bindings=3 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=295 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=295 reflection OK bindings=3 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=296 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=296 reflection OK bindings=3 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=297 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=297 reflection OK bindings=6 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b817 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1]
+17:47:14 [I] step3d shader: id=298 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=298 reflection OK bindings=9 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b834 t2 x1] [s0:b835 t2 x1] [s0:b836 t2 x1] [s0:b837 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=299 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=299 reflection OK bindings=5 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=300 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=300 reflection OK bindings=5 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=301 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=301 reflection OK bindings=5 [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1]
+17:47:14 [I] step3d shader: id=302 entry=main local_size=32,32,1
+17:47:14 [I] step3d: id=302 reflection OK bindings=10 [s0:b800 t6 x1] [s0:b816 t0 x1] [s0:b832 t2 x1] [s0:b833 t2 x1] [s0:b1088 t3 x1] [s0:b1089 t3 x1] [s0:b1090 t3 x1] [s0:b1091 t3 x1] [s0:b1092 t3 x1] [s0:b1093 t3 x1]
+17:47:14 [I] step3d shader: id=303 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=303 reflection OK bindings=3 [s0:b0 t6 x1] [s0:b32 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=304 entry=main local_size=32,32,1
+17:47:14 [I] step3d: id=304 reflection OK bindings=10 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1] [s0:b51 t3 x1] [s0:b52 t3 x1] [s0:b53 t3 x1] [s0:b54 t3 x1]
+17:47:14 [I] step3d shader: id=305 entry=main local_size=16,16,1
+17:47:14 [I] step3d: id=305 reflection OK bindings=9 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b17 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b36 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=306 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=306 reflection OK bindings=15 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b17 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b36 t2 x1] [s0:b37 t2 x1] [s0:b38 t2 x1] [s0:b39 t2 x1] [s0:b40 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1]
+17:47:14 [I] step3d shader: id=307 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=307 reflection OK bindings=15 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b17 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b36 t2 x1] [s0:b37 t2 x1] [s0:b38 t2 x1] [s0:b39 t2 x1] [s0:b40 t2 x1] [s0:b41 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=308 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=308 reflection OK bindings=8 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1] [s0:b51 t3 x1]
+17:47:14 [I] step3d shader: id=309 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=309 reflection OK bindings=9 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1] [s0:b51 t3 x1]
+17:47:14 [I] step3d shader: id=310 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=310 reflection OK bindings=9 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1] [s0:b51 t3 x1]
+17:47:14 [I] step3d shader: id=311 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=311 reflection OK bindings=10 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b17 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b36 t2 x1] [s0:b37 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=312 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=312 reflection OK bindings=8 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1] [s0:b51 t3 x1]
+17:47:14 [I] step3d shader: id=313 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=313 reflection OK bindings=9 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1] [s0:b51 t3 x1]
+17:47:14 [I] step3d shader: id=314 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=314 reflection OK bindings=9 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1] [s0:b51 t3 x1]
+17:47:14 [I] step3d shader: id=315 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=315 reflection OK bindings=10 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b17 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b36 t2 x1] [s0:b37 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=316 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=316 reflection OK bindings=4 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=317 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=317 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=318 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=318 reflection OK bindings=7 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1] [s0:b51 t3 x1]
+17:47:14 [I] step3d shader: id=319 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=319 reflection OK bindings=9 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1] [s0:b51 t3 x1]
+17:47:14 [I] step3d shader: id=320 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=320 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=321 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=321 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=322 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=322 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=323 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=323 reflection OK bindings=7 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b17 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=324 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=324 reflection OK bindings=15 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b36 t2 x1] [s0:b37 t2 x1] [s0:b38 t2 x1] [s0:b39 t2 x1] [s0:b40 t2 x1] [s0:b41 t2 x1] [s0:b42 t2 x1] [s0:b43 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=325 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=325 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=326 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=326 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=327 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=327 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=328 entry=main local_size=32,32,1
+17:47:14 [I] step3d: id=328 reflection OK bindings=10 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1] [s0:b51 t3 x1] [s0:b52 t3 x1] [s0:b53 t3 x1]
+17:47:14 [I] step3d shader: id=329 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=329 reflection OK bindings=11 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b17 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b36 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1]
+17:47:14 [I] step3d shader: id=330 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=330 reflection OK bindings=10 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b17 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b36 t2 x1] [s0:b37 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=331 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=331 reflection OK bindings=6 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=332 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=332 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=333 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=333 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=334 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=334 reflection OK bindings=8 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b17 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=335 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=335 reflection OK bindings=6 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=336 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=336 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=337 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=337 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=338 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=338 reflection OK bindings=8 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b17 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=339 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=339 reflection OK bindings=3 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=340 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=340 reflection OK bindings=3 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=341 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=341 reflection OK bindings=4 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=342 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=342 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=343 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=343 reflection OK bindings=3 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=344 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=344 reflection OK bindings=3 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=345 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=345 reflection OK bindings=3 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=346 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=346 reflection OK bindings=6 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b17 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=347 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=347 reflection OK bindings=9 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b36 t2 x1] [s0:b37 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=348 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=348 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=349 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=349 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=350 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=350 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=351 entry=main local_size=32,32,1
+17:47:14 [I] step3d: id=351 reflection OK bindings=10 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1] [s0:b51 t3 x1] [s0:b52 t3 x1] [s0:b53 t3 x1]
+17:47:14 [I] step3d shader: id=352 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=352 reflection OK bindings=3 [s0:b0 t6 x1] [s0:b32 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=353 entry=main local_size=32,32,1
+17:47:14 [I] step3d: id=353 reflection OK bindings=10 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1] [s0:b51 t3 x1] [s0:b52 t3 x1] [s0:b53 t3 x1] [s0:b54 t3 x1]
+17:47:14 [I] step3d shader: id=354 entry=main local_size=16,16,1
+17:47:14 [I] step3d: id=354 reflection OK bindings=9 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b17 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b36 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=355 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=355 reflection OK bindings=15 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b17 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b36 t2 x1] [s0:b37 t2 x1] [s0:b38 t2 x1] [s0:b39 t2 x1] [s0:b40 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1]
+17:47:14 [I] step3d shader: id=356 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=356 reflection OK bindings=15 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b17 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b36 t2 x1] [s0:b37 t2 x1] [s0:b38 t2 x1] [s0:b39 t2 x1] [s0:b40 t2 x1] [s0:b41 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=357 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=357 reflection OK bindings=8 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1] [s0:b51 t3 x1]
+17:47:14 [I] step3d shader: id=358 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=358 reflection OK bindings=9 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1] [s0:b51 t3 x1]
+17:47:14 [I] step3d shader: id=359 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=359 reflection OK bindings=9 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1] [s0:b51 t3 x1]
+17:47:14 [I] step3d shader: id=360 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=360 reflection OK bindings=10 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b17 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b36 t2 x1] [s0:b37 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=361 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=361 reflection OK bindings=8 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1] [s0:b51 t3 x1]
+17:47:14 [I] step3d shader: id=362 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=362 reflection OK bindings=9 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1] [s0:b51 t3 x1]
+17:47:14 [I] step3d shader: id=363 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=363 reflection OK bindings=9 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1] [s0:b51 t3 x1]
+17:47:14 [I] step3d shader: id=364 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=364 reflection OK bindings=10 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b17 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b36 t2 x1] [s0:b37 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=365 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=365 reflection OK bindings=4 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=366 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=366 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=367 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=367 reflection OK bindings=7 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1] [s0:b51 t3 x1]
+17:47:14 [I] step3d shader: id=368 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=368 reflection OK bindings=9 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1] [s0:b51 t3 x1]
+17:47:14 [I] step3d shader: id=369 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=369 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=370 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=370 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=371 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=371 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=372 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=372 reflection OK bindings=7 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b17 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=373 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=373 reflection OK bindings=15 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b36 t2 x1] [s0:b37 t2 x1] [s0:b38 t2 x1] [s0:b39 t2 x1] [s0:b40 t2 x1] [s0:b41 t2 x1] [s0:b42 t2 x1] [s0:b43 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=374 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=374 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=375 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=375 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=376 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=376 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=377 entry=main local_size=32,32,1
+17:47:14 [I] step3d: id=377 reflection OK bindings=10 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1] [s0:b51 t3 x1] [s0:b52 t3 x1] [s0:b53 t3 x1]
+17:47:14 [I] step3d shader: id=378 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=378 reflection OK bindings=11 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b17 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b36 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1]
+17:47:14 [I] step3d shader: id=379 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=379 reflection OK bindings=10 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b17 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b36 t2 x1] [s0:b37 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=380 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=380 reflection OK bindings=6 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=381 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=381 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=382 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=382 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=383 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=383 reflection OK bindings=8 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b17 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=384 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=384 reflection OK bindings=6 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=385 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=385 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=386 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=386 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=387 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=387 reflection OK bindings=8 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b17 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=388 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=388 reflection OK bindings=3 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=389 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=389 reflection OK bindings=3 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=390 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=390 reflection OK bindings=4 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=391 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=391 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=392 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=392 reflection OK bindings=3 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=393 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=393 reflection OK bindings=3 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=394 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=394 reflection OK bindings=3 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=395 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=395 reflection OK bindings=6 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b17 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1]
+17:47:14 [I] step3d shader: id=396 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=396 reflection OK bindings=9 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b34 t2 x1] [s0:b35 t2 x1] [s0:b36 t2 x1] [s0:b37 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=397 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=397 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=398 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=398 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=399 entry=main local_size=8,8,1
+17:47:14 [I] step3d: id=399 reflection OK bindings=5 [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1]
+17:47:14 [I] step3d shader: id=400 entry=main local_size=32,32,1
+17:47:14 [I] step3d: id=400 reflection OK bindings=10 [s0:b0 t6 x1] [s0:b16 t0 x1] [s0:b32 t2 x1] [s0:b33 t2 x1] [s0:b48 t3 x1] [s0:b49 t3 x1] [s0:b50 t3 x1] [s0:b51 t3 x1] [s0:b52 t3 x1] [s0:b53 t3 x1]
+17:47:14 [I] step3d: CPU reflection metadata written to /data/user/0/com.tj.skyrim/no_backup/lsfg/cache/lsfg_reflection.tsv
+17:47:14 [I] step3d manifest audit: entries=300 compute_spv=300 with_bindings=300 max_bindings=20 reflection_ok=300 reflection_failed=0
+17:47:14 [I] step3d history_images_allocated=1 extent=2448x1080 phys=0x71a7b64650 queue=0x7157baeb80
+17:47:14 [I] step3d: history allocation and CPU reflection; GPU pipelines, descriptors and dispatch are owned by DXVK step3g/3i/3j
+17:47:14 [I] === LSFG step 3e: real present-image hook LIVE ===
+17:47:14 [I] step3e: first real WSI image 2448x1080 fmt=0x25 image=0x72d7bebbc0 device=0x7217badc40
+17:47:14 [I] === LSFG step 3f: DXVK-owned history and compute path ===
+17:47:14 [I] step3f: step3d prepares two frame images; step3g records the copy and GPU passes
+17:47:14 [I] step3f: WSI image #1 2448x1080 fmt=0x25 img=0x72d7bebbc0 history=step3d
+17:47:14 [I] step3g: reset persistent history wrappers generation=1
+17:47:14 [I] step3g: created persistent wrapper slot[0] image=0x72d7cc02c0 generation=1
+17:47:14 [I] step3h: mipmaps DXVK resources ready extent=2448x1080 flow=1836x810 scale=0.750
+17:47:14 [I] step3i: alpha/beta DXVK resources initialized: 7 levels, 3 history slots
+17:47:14 [I] step3h: mipmaps dispatch frame=0 history_slot=0 groups=29x13
+17:47:14 [I] step3g: first copy command recorded for history[0]; mask=0x1
+17:47:14 [I] === LSFG step 3g-a: DXVK cmd-stream copy LIVE ===
+17:47:14 [I] step3g: first copy 2448x1080 fmt=0x25 -> hist[0]=0x72d7cc02c0
+17:47:14 [I] step3g: copy #1 slot[0] slot_copy=1 2448x1080 fmt=0x25 (command recorded)
+17:47:14 [I] on_frame: extract_count=300 spirv=300 (present hook is authoritative)
+17:47:14 [I] step3g: GPU command-list completion #1 copy=1 slot[0] slot_completed=1
+17:47:14 [I] step3g: created persistent wrapper slot[1] image=0x72d7cc2960 generation=1
+17:47:14 [I] step3h: mipmaps dispatch frame=1 history_slot=1 groups=29x13
+17:47:14 [I] step3g: first copy command recorded for history[1]; mask=0x3
+17:47:14 [I] step3g: both history slots have copy commands recorded (GPU pixel contents not yet read back)
+17:47:14 [I] step3g: copy #2 slot[1] slot_copy=1 2448x1080 fmt=0x25 (command recorded)
+17:47:14 [I] step3j: gamma/delta/generate DXVK resources ready (7 gamma levels, 3 paired delta levels)
+17:47:14 [I] step3j: generate command recorded source_frame=2 generation=1/1 slot=0 extent=2448x1080
+17:47:15 [I] present: frame #60 2448x1080 history_images_ready=1 compute_path=DXVK-command-list
+17:47:17 [I] step3f: WSI image #60 2448x1080 fmt=0x25 img=0x72d7be2140 history=step3d
+17:47:17 [I] step3g: copy #60 slot[1] slot_copy=30 2448x1080 fmt=0x25 (command recorded)
+17:47:17 [I] step3g: GPU command-list completion #60 copy=60 slot[1] slot_completed=30
+17:47:20 [I] present: frame #300 2448x1080 history_images_ready=1 compute_path=DXVK-command-list
+17:47:25 [I] step3f: WSI image #300 2448x1080 fmt=0x25 img=0x72d7be81d0 history=step3d
+17:47:25 [I] step3g: copy #300 slot[1] slot_copy=150 2448x1080 fmt=0x25 (command recorded)
+17:47:25 [I] step3h: mipmaps dispatch frame=300 history_slot=0 groups=29x13
+17:47:25 [I] step3j: generate command recorded source_frame=300 generation=1/1 slot=0 extent=2448x1080
+17:47:25 [I] step3g: GPU command-list completion #300 copy=300 slot[1] slot_completed=150
+17:47:33 [I] step3h: mipmaps dispatch frame=600 history_slot=0 groups=29x13
+17:47:34 [I] step3j: generate command recorded source_frame=600 generation=1/1 slot=0 extent=2448x1080
+17:47:48 [I] present: frame #1800 2448x1080 history_images_ready=1 compute_path=DXVK-command-list
+17:47:48 [I] step3h: mipmaps dispatch frame=900 history_slot=0 groups=29x13
+17:47:48 [I] step3j: generate command recorded source_frame=900 generation=1/1 slot=0 extent=2448x1080
+17:48:02 [I] step3h: mipmaps dispatch frame=1200 history_slot=0 groups=29x13
+17:48:02 [I] step3j: generate command recorded source_frame=1200 generation=1/1 slot=0 extent=2448x1080
+17:48:15 [I] step3h: mipmaps dispatch frame=1500 history_slot=0 groups=29x13
+17:48:15 [I] step3j: generate command recorded source_frame=1500 generation=1/1 slot=0 extent=2448x1080
+17:48:21 [I] live settings applied multiplier=1x flow=1.00 performance=0 game_fps_limit=0
+17:48:49 [I] live settings applied multiplier=2x flow=1.00 performance=0 game_fps_limit=0
+17:48:58 [I] step3f: WSI image #1800 2448x1080 fmt=0x25 img=0x72d7cbbbf0 history=step3d
+17:48:58 [I] step3g: copy #1800 slot[1] slot_copy=900 2448x1080 fmt=0x25 (command recorded)
+17:48:58 [I] present: frame #3600 2448x1080 history_images_ready=1 compute_path=DXVK-command-list
+17:48:59 [I] step3h: mipmaps dispatch frame=1800 history_slot=0 groups=29x13
+17:48:59 [I] step3g: GPU command-list completion #1800 copy=1800 slot[1] slot_completed=900
+17:48:59 [I] step3j: generate command recorded source_frame=1800 generation=1/1 slot=0 extent=2448x1080
+17:49:12 [I] step3h: mipmaps dispatch frame=2100 history_slot=0 groups=29x13
+17:49:12 [I] step3j: generate command recorded source_frame=2100 generation=1/1 slot=0 extent=2448x1080
