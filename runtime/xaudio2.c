@@ -113,6 +113,7 @@ static SDL_AudioDeviceID g_dev;
 /* diagnostics */
 static unsigned g_xa_src_voices, g_xa_xwma_voices, g_xa_xwma_submits, g_xa_pcm_submits, g_xa_adpcm_submits;
 static uint64_t g_xa_mix_passes, g_xa_mix_clipped, g_xa_mix_invalid;
+static uint64_t g_xa_starved_pending, g_xa_starved_empty;
 static float g_xa_mix_peak;
 static pthread_cond_t g_decode_cond = PTHREAD_COND_INITIALIZER;
 static XDecodeJob *g_decode_head, *g_decode_tail;
@@ -197,7 +198,6 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
                      const uint8_t *extradata, int extradata_size,
                      uint32_t *out_frames);
 #endif
-
 /* xWMA decoding runs on a dedicated worker, never on the XAudio2 engine
  * thread. SubmitSourceBuffer reserves its queue slot and copies the guest
  * payload before returning; the worker publishes PCM when decoding finishes. */
@@ -392,13 +392,13 @@ static int next_frame(Voice *v, float *out) {
         /* xWMA decoding happens outside g_lock; never consume a reserved slot
          * until its decoded PCM is published by SubmitSourceBuffer. */
         if (!b->ready) {
+            g_xa_starved_pending++;
             for (int c = 0; c < v->in_ch; c++) out[c] = 0;
             return 0;
         }
         if (!b->started) {
             b->started = 1;
-            push_event(v, 3, b->ctx);  /* OnBufferStart */
-        }
+            push_event(v, 3, b->ctx);  /* OnBufferStart */        }
         if (b->pos < b->end) {
             read_frame(v, b, b->pos++, out);
             v->played++;
@@ -418,6 +418,7 @@ static int next_frame(Voice *v, float *out) {
         v->qhead = (v->qhead + 1) % MAX_QUEUE;
         v->qn--;
     }
+    g_xa_starved_empty++;
     for (int c = 0; c < v->in_ch; c++) out[c] = 0;
     return 0;
 }
@@ -583,6 +584,12 @@ static void engine_pass(CPU *c, int frames, float *out) {
         g_xa_mix_clipped = 0;
         g_xa_mix_invalid = 0;
         g_xa_mix_peak = 0.0f;
+        if (g_xa_starved_pending || g_xa_starved_empty)
+            XA_LOG("xaudio2: source starvation pending_decode=%llu empty_queue=%llu (last 1s)",
+                   (unsigned long long)g_xa_starved_pending,
+                   (unsigned long long)g_xa_starved_empty);
+        g_xa_starved_pending = 0;
+        g_xa_starved_empty = 0;
     }
     int nev = g_nev;
     static Event ev[MAX_EVENTS];
@@ -597,8 +604,7 @@ static void engine_pass(CPU *c, int frames, float *out) {
         rt_invoke(c, fn, ev[i].method == 2 ? 1 : 2, args);
     }
     for (int i = 0; i < g_nengine_cb; i++) {
-        args[0] = g_engine_cb[i];
-        rt_invoke(c, M32(M32(g_engine_cb[i]) + 4), 1, args);  /* OnProcessingPassEnd */
+        args[0] = g_engine_cb[i];        rt_invoke(c, M32(M32(g_engine_cb[i]) + 4), 1, args);  /* OnProcessingPassEnd */
     }
     /* free voices destroyed during the pass */
     pthread_mutex_lock(&g_lock);
@@ -624,6 +630,8 @@ static void *engine_main(void *arg) {
     int frames = g_rate * PASS_FRAMES_MS / 1000;
     float *out = malloc(sizeof(float) * 2 * (size_t)frames);
     uint64_t next = now_us();
+    uint64_t diag_passes = 0, queue_low = 0, slow_passes = 0, max_pass_us = 0;
+    Uint32 min_queue_bytes = UINT32_MAX;
     for (;;) {
         if (g_dev) {
             /* keep about 40 ms queued; a device that stops draining for 200 ms
@@ -648,8 +656,26 @@ static void *engine_main(void *arg) {
             next += PASS_FRAMES_MS * 1000;
         }
         if (!g_running) { usleep(PASS_FRAMES_MS * 1000); continue; }
+        if (g_dev) {
+            Uint32 queued = SDL_GetQueuedAudioSize(g_dev);
+            if (queued < min_queue_bytes) min_queue_bytes = queued;
+            if (queued < (Uint32)(frames * 2 * sizeof(float))) queue_low++;
+        }
+        uint64_t mix_start = now_us();
         engine_pass(c, frames, out);
+        uint64_t mix_us = now_us() - mix_start;
+        if (mix_us > max_pass_us) max_pass_us = mix_us;
+        if (mix_us > (uint64_t)PASS_FRAMES_MS * 1000) slow_passes++;
         if (g_dev) SDL_QueueAudio(g_dev, out, (Uint32)(sizeof(float) * 2 * (size_t)frames));
+        if (++diag_passes >= 100) {
+            if (queue_low || slow_passes)
+                XA_LOG("xaudio2: output timing queue_low=%llu min_queue=%uB slow_mix=%llu max_mix=%llums (last 1s)",
+                       (unsigned long long)queue_low, min_queue_bytes,
+                       (unsigned long long)slow_passes,
+                       (unsigned long long)(max_pass_us / 1000));
+            diag_passes = queue_low = slow_passes = max_pass_us = 0;
+            min_queue_bytes = UINT32_MAX;
+        }
     }
     return NULL;
 }
@@ -797,8 +823,7 @@ SHIM(xv_DestroyVoice) {
      * Keep it alive until all out-of-lock xWMA decodes have returned. */
     if (!g_running && !g_pass_active && v->decoding == 0) free_voice_locked(v);
     pthread_mutex_unlock(&g_lock);
-    g_hcom_slots[M32(g + 8)] = NULL;
-    M32(g) = 0xDEAD0002u;
+    g_hcom_slots[M32(g + 8)] = NULL;    M32(g) = 0xDEAD0002u;
     gfree(g);
     RET(0, 1);
 }
@@ -997,8 +1022,7 @@ SHIM(xa_Release) {
     uint32_t left;
     if (hcom_release(ARG(0), &left)) g_running = 0;
     RET(left, 1);
-}
-SHIM(xa_GetDeviceCount) { M32(ARG(1)) = 1; RET(0, 2); }
+}SHIM(xa_GetDeviceCount) { M32(ARG(1)) = 1; RET(0, 2); }
 SHIM(xa_GetDeviceDetails) {
     uint32_t d = ARG(2);
     memset(MEM + d, 0, 1068);
