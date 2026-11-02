@@ -50,7 +50,7 @@ enum { FMT_PCM16, FMT_PCM8, FMT_F32, FMT_PCM24, FMT_PCM32, FMT_ADPCM, FMT_XWMA, 
 
 typedef struct {
     uint32_t flags, bytes, data, play_begin, play_len, loop_begin, loop_len, loop_count, ctx;
-    int16_t *decoded;   /* ADPCM, decoded at submit */
+    int16_t *decoded;   /* ADPCM/xWMA decoded PCM */
     uint32_t nframes;   /* frames in the whole buffer */
     uint32_t pos, end;  /* current frame, end of the play region */
     int loops_left;     /* 255 = forever */
