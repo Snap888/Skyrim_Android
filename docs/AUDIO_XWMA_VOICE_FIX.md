@@ -196,3 +196,18 @@ The supplied sample's 7,435-byte data chunk divides exactly into five
 successfully by the system FFmpeg reference decoder; the Android in-process implementation has not yet been built or run
 against this sample. The sample therefore establishes the expected packet
 layout and PCM length, but does not by itself prove the Android fix is working.
+
+
+## Music crackle: master mix headroom
+
+The software mixer previously hard-clamped the summed master output to [-1, 1].
+When several sources (especially stereo music plus dialogue/effects) exceed
+full scale, this creates abrupt waveform clipping that can sound like crackle
+or harsh distortion. The master now uses a continuous soft-knee limiter above
+0.90 full scale, with a bounded output, and reports the raw peak, limited
+sample count, and non-finite sample count once per second when relevant.
+
+The next Android test should check whether crackle is reduced and inspect
+`xaudio2: mix peak=...` lines. If the peak remains below 0.90 and there are no
+invalid samples, the crackle is more likely caused by source decode, queue
+underruns, or device scheduling than master clipping.
