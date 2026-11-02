@@ -112,6 +112,8 @@ static int g_rate = 48000, g_running, g_thread_started, g_pass_active;
 static SDL_AudioDeviceID g_dev;
 /* diagnostics */
 static unsigned g_xa_src_voices, g_xa_xwma_voices, g_xa_xwma_submits, g_xa_pcm_submits, g_xa_adpcm_submits;
+static uint64_t g_xa_mix_passes, g_xa_mix_clipped, g_xa_mix_invalid;
+static float g_xa_mix_peak;
 static pthread_cond_t g_decode_cond = PTHREAD_COND_INITIALIZER;
 static XDecodeJob *g_decode_head, *g_decode_tail;
 static int g_decode_thread_started;
@@ -549,10 +551,39 @@ static void engine_pass(CPU *c, int frames, float *out) {
                 else if (ch == 2) { l += 0.707f * s; r += 0.707f * s; }
                 else if (ch >= 4) { if (ch % 2 == 0) l += 0.707f * s; else r += 0.707f * s; }
             }
-            out[2 * f] = l > 1 ? 1 : l < -1 ? -1 : l;
-            out[2 * f + 1] = r > 1 ? 1 : r < -1 ? -1 : r;
+            /* A hard clamp creates audible high-order distortion when music,
+             * voices and effects sum above full scale. Use a continuous soft
+             * knee so the output remains bounded without a sharp clip edge. */
+            float sample[2] = { l, r };
+            for (int c = 0; c < 2; c++) {
+                float x = sample[c];
+                if (!isfinite(x)) {
+                    x = 0.0f;
+                    g_xa_mix_invalid++;
+                }
+                float ax = fabsf(x);
+                if (ax > g_xa_mix_peak) g_xa_mix_peak = ax;
+                if (ax > 0.90f) {
+                    g_xa_mix_clipped++;
+                    float over = (ax - 0.90f) / 0.10f;
+                    float limited = 0.90f + 0.10f * (over / (1.0f + over));
+                    x = copysignf(limited, x);
+                }
+                out[2 * f + c] = x;
+            }
         }
     } else memset(out, 0, sizeof(float) * 2 * (size_t)frames);
+    if (++g_xa_mix_passes >= 100) {
+        if (g_xa_mix_clipped || g_xa_mix_invalid || g_xa_mix_peak > 0.90f)
+            XA_LOG("xaudio2: mix peak=%.3f soft_limited=%llu invalid=%llu (last 1s)",
+                   g_xa_mix_peak,
+                   (unsigned long long)g_xa_mix_clipped,
+                   (unsigned long long)g_xa_mix_invalid);
+        g_xa_mix_passes = 0;
+        g_xa_mix_clipped = 0;
+        g_xa_mix_invalid = 0;
+        g_xa_mix_peak = 0.0f;
+    }
     int nev = g_nev;
     static Event ev[MAX_EVENTS];
     memcpy(ev, g_ev, sizeof(Event) * (size_t)nev);
