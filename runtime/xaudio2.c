@@ -88,6 +88,19 @@ struct Voice {
     float *acc;         /* input accumulation for submix/master: in_ch * frames */
 };
 
+typedef struct XDecodeJob {
+    Voice *voice;
+    int slot;
+    uint8_t *data;
+    uint32_t bytes;
+    uint32_t *dpds;
+    uint32_t packet_count;
+    int channels, rate, block_align, avg_bps, tag, bits, extra_size;
+    uint8_t extra[64];
+    unsigned submit_no;
+    struct XDecodeJob *next;
+} XDecodeJob;
+
 static HComClass k_xa, k_src, k_sub, k_mst, k_fx;
 static pthread_mutex_t g_lock;
 static Voice *g_voices[MAX_VOICES];
@@ -98,6 +111,9 @@ static int g_rate = 48000, g_running, g_thread_started, g_pass_active;
 static SDL_AudioDeviceID g_dev;
 /* diagnostics */
 static unsigned g_xa_src_voices, g_xa_xwma_voices, g_xa_xwma_submits, g_xa_pcm_submits, g_xa_adpcm_submits;
+static pthread_cond_t g_decode_cond = PTHREAD_COND_INITIALIZER;
+static XDecodeJob *g_decode_head, *g_decode_tail;
+static int g_decode_thread_started;
 
 /* Called with g_lock held. A voice may be destroyed while an xWMA buffer is
  * decoding outside the mixer lock; decoding is the lifetime reference. */
@@ -177,6 +193,95 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
                      const uint8_t *extradata, int extradata_size,
                      uint32_t *out_frames);
 #endif
+
+/* xWMA decoding runs on a dedicated worker, never on the XAudio2 engine
+ * thread. SubmitSourceBuffer reserves its queue slot and copies the guest
+ * payload before returning; the worker publishes PCM when decoding finishes. */
+static void *xwma_decode_main(void *unused) {
+    (void)unused;
+    for (;;) {
+        pthread_mutex_lock(&g_lock);
+        while (!g_decode_head)
+            pthread_cond_wait(&g_decode_cond, &g_lock);
+        XDecodeJob *job = g_decode_head;
+        g_decode_head = job->next;
+        if (!g_decode_head) g_decode_tail = NULL;
+        pthread_mutex_unlock(&g_lock);
+
+        int16_t *decoded = NULL;
+        uint32_t nframes = 0;
+        int mute_large_stereo = XWMA_MUTE_LARGE_STEREO &&
+            job->channels == 2 && job->bytes > XWMA_MUSIC_MUTE_THRESHOLD;
+        if (mute_large_stereo) {
+            if (job->submit_no <= 20 || job->submit_no % 50 == 0)
+                XA_LOG("xaudio2: xWMA MUTED stereo-large tag=%04x bytes=%u rate=%d packets=%u threshold=%u submit #%u",
+                       job->tag, job->bytes, job->rate, job->packet_count,
+                       XWMA_MUSIC_MUTE_THRESHOLD, job->submit_no);
+        } else {
+#ifdef LB_HAS_FFMPEG
+            decoded = xwma_decode(job->data, job->bytes, job->channels, job->rate,
+                                  job->block_align, job->avg_bps, job->tag, job->bits,
+                                  job->dpds, job->packet_count,
+                                  job->extra, job->extra_size, &nframes);
+            if (!decoded || !nframes) {
+                XA_LOG("xaudio2: xWMA decode FAILED tag=%04x bytes=%u packets=%u submit #%u",
+                       job->tag, job->bytes, job->packet_count, job->submit_no);
+                free(decoded);
+                decoded = NULL;
+                nframes = 0;
+            } else if (job->submit_no <= 10 || job->submit_no % 50 == 0) {
+                XA_LOG("xaudio2: xWMA decoded tag=%04x %d ch %d Hz bytes=%u -> %u frames submit #%u",
+                       job->tag, job->channels, job->rate, job->bytes,
+                       nframes, job->submit_no);
+            }
+#else
+            if (job->submit_no <= 20 || job->submit_no % 50 == 0)
+                XA_LOG("xaudio2: xWMA SILENT tag=%04x %d ch %d Hz avg_bps=%d bytes=%u packets=%u submit #%u (need FFmpeg)",
+                       job->tag, job->channels, job->rate, job->avg_bps,
+                       job->bytes, job->packet_count, job->submit_no);
+#endif
+        }
+
+        free(job->data);
+        free(job->dpds);
+
+        pthread_mutex_lock(&g_lock);
+        Voice *v = job->voice;
+        XBuf *slot = &v->q[job->slot];
+        slot->decoded = decoded;
+        slot->nframes = nframes;
+        slot->pos = slot->play_begin < slot->nframes ? slot->play_begin : slot->nframes;
+        slot->end = slot->play_len ? slot->play_begin + slot->play_len : slot->nframes;
+        if (slot->end > slot->nframes) slot->end = slot->nframes;
+        if (!slot->loop_len && slot->loop_count)
+            slot->loop_len = slot->end - slot->loop_begin;
+        slot->loops_left = slot->loop_count == 255 ? 255 : (int)slot->loop_count;
+        if (slot->flushed) {
+            slot->pos = slot->end;
+            slot->loops_left = 0;
+        }
+        slot->ready = 1;
+        if (v->decoding > 0) v->decoding--;
+
+        if (v->destroy_pending && !g_running && !g_pass_active && v->decoding == 0) {
+            free_voice_locked(v);
+        } else if (!v->dead && !g_running && !v->running && v->decoding == 0) {
+            drop_flushed_buffers_locked(v);
+        }
+        pthread_mutex_unlock(&g_lock);
+        free(job);
+    }
+    return NULL;
+}
+
+static int start_xwma_decode_worker(void) {
+    if (g_decode_thread_started) return 1;
+    pthread_t thread;
+    if (pthread_create(&thread, NULL, xwma_decode_main, NULL) != 0) return 0;
+    pthread_detach(thread);
+    g_decode_thread_started = 1;
+    return 1;
+}
 
 static void set_format(Voice *v, uint32_t wf) {
     uint16_t tag = M16(wf);
@@ -510,6 +615,8 @@ static void *engine_main(void *arg) {
 
 static void engine_start_thread(void) {
     if (g_thread_started) return;
+    if (!start_xwma_decode_worker())
+        XA_LOG("xaudio2: failed to start xWMA decode worker");
     g_thread_started = 1;
     if (!SDL_WasInit(SDL_INIT_AUDIO)) SDL_InitSubSystem(SDL_INIT_AUDIO);
     SDL_AudioSpec want = {0}, have;
@@ -694,79 +801,56 @@ SHIM(xs_SubmitSourceBuffer) {
     x->ctx = M32(b + 32);
 
     if (v->fmt == FMT_XWMA) {
-        /* Reserve queue order, then release the global mixer lock while
-         * FFmpeg decodes. A long music buffer must not stall every voice. */
-        x->ready = 0;
-        v->qn++;
-        v->decoding++;
-        unsigned submit_no = ++g_xa_xwma_submits;
-
-        uint32_t bytes = x->bytes, data = x->data;
-        int channels = v->in_ch, rate = v->rate;
-        int block_align = v->block_align, avg_bps = v->xwma_avg_bps;
-        int tag = v->xwma_tag, bits = v->xwma_bits;
-        int extra_size = v->xwma_extra_size;
-        uint8_t extra[sizeof v->xwma_extra];
-        memcpy(extra, v->xwma_extra, sizeof extra);
+        /* Decode asynchronously: this method can be called by an XAudio2
+         * callback on the engine thread, so decoding here can drain SDL's
+         * queued audio and create audible gaps in long dialogue streams. */
+        if (!start_xwma_decode_worker()) {
+            pthread_mutex_unlock(&g_lock);
+            RET(0x80004005u, 3); /* E_FAIL */
+        }
+        uint32_t bytes = x->bytes;
         uint32_t packet_count = bwma ? M32(bwma + 4) : 0;
         uint32_t *packet_info = bwma && packet_count
             ? (uint32_t *)(MEM + M32(bwma)) : NULL;
-        (void)data; (void)block_align; (void)bits; (void)extra;
-        (void)extra_size; (void)packet_info;
-        int mute_large_stereo = XWMA_MUTE_LARGE_STEREO &&
-            channels == 2 && bytes > XWMA_MUSIC_MUTE_THRESHOLD;
-        pthread_mutex_unlock(&g_lock);
-
-        int16_t *decoded = NULL;
-        uint32_t nframes = 0;
-        if (mute_large_stereo) {
-            if (submit_no <= 20 || submit_no % 50 == 0)
-                XA_LOG("xaudio2: xWMA MUTED stereo-large tag=%04x bytes=%u rate=%d packets=%u threshold=%u submit #%u",
-                       tag, bytes, rate, packet_count,
-                       XWMA_MUSIC_MUTE_THRESHOLD, submit_no);
-        } else {
-#ifdef LB_HAS_FFMPEG
-            decoded = xwma_decode(MEM + data, bytes, channels, rate,
-                                  block_align, avg_bps, tag, bits,
-                                  packet_info, packet_count,
-                                  extra, extra_size, &nframes);
-            if (!decoded || !nframes) {
-                XA_LOG("xaudio2: xWMA decode FAILED tag=%04x bytes=%u packets=%u submit #%u",
-                       tag, bytes, packet_count, submit_no);
-                free(decoded);
-                decoded = NULL;
-                nframes = 0;
-            } else if (submit_no <= 10 || submit_no % 50 == 0) {
-                XA_LOG("xaudio2: xWMA decoded tag=%04x %d ch %d Hz bytes=%u -> %u frames submit #%u",
-                       tag, channels, rate, bytes, nframes, submit_no);
-            }
-#else
-            if (submit_no <= 20 || submit_no % 50 == 0)
-                XA_LOG("xaudio2: xWMA SILENT tag=%04x %d ch %d Hz avg_bps=%d bytes=%u packets=%u submit #%u (need FFmpeg)",
-                       tag, channels, rate, avg_bps, bytes, packet_count, submit_no);
-#endif
+        if (!bytes || (packet_count && packet_count > bytes)) {
+            pthread_mutex_unlock(&g_lock);
+            RET(0x88960001u, 3);
         }
 
-        pthread_mutex_lock(&g_lock);
-        x->decoded = decoded;
-        x->nframes = nframes;
-        x->pos = x->play_begin < x->nframes ? x->play_begin : x->nframes;
-        x->end = x->play_len ? x->play_begin + x->play_len : x->nframes;
-        if (x->end > x->nframes) x->end = x->nframes;
-        if (!x->loop_len && x->loop_count) x->loop_len = x->end - x->loop_begin;
-        x->loops_left = x->loop_count == 255 ? 255 : (int)x->loop_count;
-        if (x->flushed) {
-            x->pos = x->end;
-            x->loops_left = 0;
+        XDecodeJob *job = calloc(1, sizeof *job);
+        if (job) job->data = malloc(bytes);
+        if (job && packet_count && packet_info)
+            job->dpds = malloc((size_t)packet_count * sizeof(uint32_t));
+        if (!job || !job->data || (packet_count && packet_info && !job->dpds)) {
+            if (job) { free(job->data); free(job->dpds); free(job); }
+            pthread_mutex_unlock(&g_lock);
+            RET(0x8007000Eu, 3); /* E_OUTOFMEMORY */
         }
-        x->ready = 1;
-        v->decoding--;
 
-        if (v->destroy_pending && !g_running && !g_pass_active && v->decoding == 0) {
-            free_voice_locked(v);
-        } else if (!v->dead && !g_running && !v->running && v->decoding == 0) {
-            drop_flushed_buffers_locked(v);
-        }
+        memcpy(job->data, MEM + x->data, bytes);
+        if (job->dpds)
+            memcpy(job->dpds, packet_info, (size_t)packet_count * sizeof(uint32_t));
+        job->voice = v;
+        job->slot = (int)((v->qhead + v->qn) % MAX_QUEUE);
+        job->bytes = bytes;
+        job->packet_count = packet_count;
+        job->channels = v->in_ch;
+        job->rate = v->rate;
+        job->block_align = v->block_align;
+        job->avg_bps = v->xwma_avg_bps;
+        job->tag = v->xwma_tag;
+        job->bits = v->xwma_bits;
+        job->extra_size = v->xwma_extra_size;
+        memcpy(job->extra, v->xwma_extra, sizeof job->extra);
+        job->submit_no = ++g_xa_xwma_submits;
+
+        x->ready = 0;
+        v->qn++;
+        v->decoding++;
+        if (g_decode_tail) g_decode_tail->next = job;
+        else g_decode_head = job;
+        g_decode_tail = job;
+        pthread_cond_signal(&g_decode_cond);
         pthread_mutex_unlock(&g_lock);
         RET(0, 3);
     }
