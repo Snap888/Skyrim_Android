@@ -305,8 +305,13 @@ static void bindImage(DxvkContext* context, uint32_t slot, const FlowImage& imag
 static bool dispatchAlpha(DxvkContext* context, const Rc<DxvkImageView>* flowViews,
                           uint32_t history) {
   for (unsigned stage = 0; stage < 4; stage++) {
+    // WinNative binds the Alpha pipeline once per stage, then dispatches all
+    // seven pyramid levels with per-level descriptor/resource updates.
+    // DxvkContext::bindShader marks the compute pipeline dirty unconditionally,
+    // so rebinding the same shader for every level needlessly recommits it.
+    context->bindResourceSampler(0, g_sampler);
+    context->bindShader(VK_SHADER_STAGE_COMPUTE_BIT, g_alphaShaders[stage]);
     for (unsigned level = 0; level < AlphaLevels; level++) {
-      context->bindResourceSampler(0, g_sampler);
       if (stage == 0) {
         context->bindResourceView(1, flowViews[level], nullptr);
         bindImage(context, 2, g_alphaTemp1[level]);
@@ -324,7 +329,6 @@ static bool dispatchAlpha(DxvkContext* context, const Rc<DxvkImageView>* flowVie
         bindImage(context, 4, g_alphaHistory[level][history][1]);
       }
 
-      context->bindShader(VK_SHADER_STAGE_COMPUTE_BIT, g_alphaShaders[stage]);
       const VkExtent2D extent = stage < 2
         ? g_alphaTemp1[level].extent : g_alphaTemp3[level][0].extent;
       if (!context->dispatchChecked((extent.width + 7u) >> 3, (extent.height + 7u) >> 3, 1)) {
