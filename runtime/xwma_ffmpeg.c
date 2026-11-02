@@ -88,8 +88,26 @@ static int drain(AVCodecContext *ctx, AVFrame *frame, int want_ch,
     }
 }
 
+static int xwma_normalize_bitrate(int channels, int rate, int bitrate)
+{
+    /* Match libavformat/xwma.c: some xWMA encoders write placeholder bitrates. */
+    if (channels == 1) {
+        if ((rate == 22050 || rate == 32000) &&
+            (bitrate == 48000 || bitrate == 192000))
+            bitrate = 20000;
+        else if (rate == 44100 && (bitrate == 96000 || bitrate == 192000))
+            bitrate = 48000;
+    } else if (channels == 2) {
+        if (rate == 22050 && (bitrate == 48000 || bitrate == 192000))
+            bitrate = 32000;
+        else if (rate == 32000 && bitrate == 192000)
+            bitrate = 48000;
+    }
+    return bitrate;
+}
+
 static AVCodecContext *open_ctx(const AVCodec *codec, int channels, int rate,
-                                int block_align, int avg_bps,
+                                int block_align, int avg_bps, int bits_per_sample,
                                 const uint8_t *extradata, int extradata_size)
 {
     AVCodecContext *ctx = avcodec_alloc_context3(codec);
@@ -102,13 +120,30 @@ static AVCodecContext *open_ctx(const AVCodec *codec, int channels, int rate,
     ctx->channel_layout = av_get_default_channel_layout(channels);
 #endif
     if (block_align > 0) ctx->block_align = block_align;
-    if (avg_bps > 0) ctx->bit_rate = (int64_t)avg_bps * 8;
+    if (avg_bps > 0)
+        ctx->bit_rate = xwma_normalize_bitrate(channels, ctx->sample_rate, avg_bps * 8);
     ctx->request_sample_fmt = AV_SAMPLE_FMT_FLTP;
 
-    if (extradata && extradata_size > 0) {
+    /* xWMA RIFF files normally omit WMA codec extradata. Match the fake
+     * extradata synthesized by FFmpeg's libavformat/xwma.c demuxer. */
+    if ((!extradata || extradata_size <= 0) && codec->id == AV_CODEC_ID_WMAV2) {
+        extradata_size = 6;
+        extradata = NULL;
+    } else if ((!extradata || extradata_size <= 0) && codec->id == AV_CODEC_ID_WMAPRO) {
+        extradata_size = 18;
+        extradata = NULL;
+    }
+    if (extradata_size > 0) {
         ctx->extradata = av_mallocz((size_t)extradata_size + AV_INPUT_BUFFER_PADDING_SIZE);
         if (!ctx->extradata) { avcodec_free_context(&ctx); return NULL; }
-        memcpy(ctx->extradata, extradata, (size_t)extradata_size);
+        if (extradata) {
+            memcpy(ctx->extradata, extradata, (size_t)extradata_size);
+        } else if (codec->id == AV_CODEC_ID_WMAV2 && extradata_size >= 6) {
+            ctx->extradata[4] = 31;
+        } else if (codec->id == AV_CODEC_ID_WMAPRO && extradata_size >= 18) {
+            ctx->extradata[0] = (uint8_t)(bits_per_sample > 0 ? bits_per_sample : 16);
+            ctx->extradata[14] = 224;
+        }
         ctx->extradata_size = extradata_size;
     }
     int open_err = avcodec_open2(ctx, codec, NULL);
@@ -157,7 +192,7 @@ static int feed_block(AVCodecContext *ctx, const uint8_t *p, int psz,
 }
 
 int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
-                     int block_align, int avg_bps, int tag,
+                     int block_align, int avg_bps, int tag, int bits_per_sample,
                      const uint32_t *cum_bytes, uint32_t packet_count,
                      const uint8_t *extradata, int extradata_size,
                      uint32_t *out_frames)
@@ -232,7 +267,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
     }
 
     AVCodecContext *ctx = open_ctx(codec, channels, rate, (int)packet_size,
-                                   avg_bps, extradata, extradata_size);
+                                   avg_bps, bits_per_sample, extradata, extradata_size);
     if (!ctx) {
         fprintf(stderr,
                 "xwma_ffmpeg: open failed tag=%04x ch=%d rate=%d packet=%u extra=%d\n",
@@ -276,6 +311,16 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
         }
     }
     avcodec_free_context(&ctx);
+
+    if (dpds_valid) {
+        size_t decoded_bytes = len * sizeof(int16_t);
+        if (decoded_bytes != (size_t)dpds_last) {
+            fprintf(stderr,
+                    "xwma_ffmpeg: dpds mismatch decoded=%zu expected=%u bytes (packets=%u tag=%04x)\n",
+                    decoded_bytes, dpds_last, packet_count, tag);
+            decode_failed = 1;
+        }
+    }
 
     {
         uint32_t frames = (uint32_t)(len / (size_t)channels);
