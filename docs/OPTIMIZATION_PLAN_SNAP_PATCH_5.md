@@ -218,3 +218,46 @@ Commit: [Add per-dispatch LSFG Gamma Delta GPU timings](https://github.com/Snap8
 В новом CSV проверить, какие конкретно Gamma/Delta dispatch формируют прежний дорогой агрегат L6, и сверить сумму per-dispatch intervals с `GammaDelta_L6`. До получения нового CSV нельзя объявлять конкретный shader stage причиной bottleneck.
 
 **Проверка:** commit и source diff опубликованы; Android NDK build, APK packaging и device runtime test ещё не подтверждены. Следующий этап остаётся измерительным — алгоритмические изменения не вносить до анализа новых timestamps.
+
+
+## Device capture review — 2026-11-03 00:58
+
+The latest ON-only x2 capture confirms the LSFG command path remains active
+through source frame 9000 / present counter 18000. All 300 shader resources
+were extracted and translated; SPIR-V reflection passed 300/300. DXVK history
+copy completion reached #9000. This is runtime command-path evidence, not
+pixel-quality certification.
+
+CPU-side PresentImage benchmark (76 windows, frames 120–9120):
+- mean of window averages: 7.112 ms;
+- median: 6.555 ms; P95: 11.501 ms;
+- isolated maximum `max_cpu_present_ms`: 824.513 ms;
+- first ten window averages mean: 6.665 ms; last ten: 10.880 ms.
+
+The late-run increase needs a controlled sustained-load reproduction. Do not
+assume thermal throttling or attribute the isolated stall to LSFG GPU compute
+without synchronized CPU/GPU traces. The run reports requested/generated
+averages close to 1.0, consistent with x2.
+
+The upload contains no OFF benchmark. The GPU CSV (25.7 MB) and runtime
+`log.txt` (1.43 MB) exist in Git but their contents were not retrievable via
+the current file-content interface, so GPU per-dispatch and audio conclusions
+remain open.
+
+### Updated immediate priorities
+
+1. Capture a matched OFF/ON CPU benchmark pair, with GPU profiling disabled
+   in both passes and a fixed scene/configuration.
+2. Capture a separate short ON-only GPU-profiled run and make the per-dispatch
+   Gamma/Delta CSV readable/split into manageable chunks; compare individual
+   stages with aggregate `GammaDelta_L6`.
+3. Provide a readable runtime `log.txt` (or filtered audio diagnostics)
+   before changing XAudio2, xWMA decode scheduling or mixer behaviour.
+4. If the late-run Present increase reproduces, correlate per-window CPU
+   Present timing with device temperature/clocks, source FPS, scene workload,
+   and DXVK thread CPU placement.
+5. Keep visual x2 validation separate: inspect fast camera pans, ghosting,
+   warped edges, trails and generated-frame pacing.
+
+No optimization is approved solely from this capture. No APK build, measured
+FPS gain, audio fix or visual-quality result is claimed.
