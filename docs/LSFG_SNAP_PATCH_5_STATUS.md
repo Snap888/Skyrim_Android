@@ -155,3 +155,21 @@ and on reproducing any audible crackle with a matching log.
    shader math or WinNative pass order.
 4. Keep audio changes evidence-driven; collect logcat and note the exact
    audible event if crackles persist.
+
+## WinNative paired-pass order correction — 2026-11-02
+
+Source comparison against `WinNative/app/src/main/cpp/winlator/vk/lsfg/lsfg_chain.cpp`
+found that the DXVK generation loop previously dispatched all five Gamma
+stages before the ten Delta stages on L4–L6. WinNative interleaves paired
+stages: Gamma 0, Delta 0, Gamma 1, Delta 1, through Gamma 4, Delta 4, then
+Delta 5–9.
+
+Commit `77b76cf` changes `dispatchLsfgGeneration()` to match that exact
+dispatch order. Levels without Delta continue to dispatch their five Gamma
+stages in order. DXVK remains responsible for image-hazard tracking and
+barriers; no direct Vulkan queue submission or CPU wait was introduced.
+
+This corrects a source-level pass-order mismatch. It is not yet a measured
+performance improvement, and it does not complete the descriptor/temporal
+producer-consumer audit. Native build, Vulkan validation and device image
+quality remain pending.
