@@ -1,6 +1,12 @@
 #include "dxvk_device.h"
 #include "dxvk_queue.h"
 
+#ifdef __ANDROID__
+#include <sched.h>
+#include <sys/syscall.h>
+#include <unistd.h>
+#endif
+
 namespace dxvk {
   
   DxvkSubmissionQueue::DxvkSubmissionQueue(DxvkDevice* device)
@@ -84,6 +90,13 @@ namespace dxvk {
   void DxvkSubmissionQueue::submitCmdLists() {
     env::setThreadName("dxvk-submit");
 
+#ifdef __ANDROID__
+    if (env::getEnvVar("DXVK_THREAD_DIAGNOSTICS") == "1") {
+      Logger::info(str::format("DXVK-THREAD: role=submit tid=",
+        ::syscall(SYS_gettid), " cpu=", ::sched_getcpu()));
+    }
+#endif
+
     std::unique_lock<dxvk::mutex> lock(m_mutex);
 
     while (!m_stopped.load()) {
@@ -139,6 +152,13 @@ namespace dxvk {
   
   void DxvkSubmissionQueue::finishCmdLists() {
     env::setThreadName("dxvk-queue");
+
+#ifdef __ANDROID__
+    if (env::getEnvVar("DXVK_THREAD_DIAGNOSTICS") == "1") {
+      Logger::info(str::format("DXVK-THREAD: role=finish tid=",
+        ::syscall(SYS_gettid), " cpu=", ::sched_getcpu()));
+    }
+#endif
 
     std::unique_lock<dxvk::mutex> lock(m_mutex);
 
