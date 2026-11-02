@@ -642,11 +642,35 @@ static void engine_pass(CPU *c, int frames, float *out) {
         Voice *v = g_voices[i];
         if (v && !v->dead && v->kind == V_SOURCE && v->running) mix_source(v, frames, tmp, c);
     }
-    /* submixes in processing-stage order, then the master */
+    /* Bucket active submixes by stage in one registry scan. The previous
+     * stage-outer loop rescanned all MAX_VOICES slots 64 times per pass. */
+    Voice *stage_voices[MAX_VOICES];
+    int stage_counts[64] = { 0 };
+    int stage_offsets[65] = { 0 };
+    int stage_cursor[64];
+
+    for (int i = 0; i < MAX_VOICES; i++) {
+        Voice *v = g_voices[i];
+        if (v && !v->dead && v->kind == V_SUBMIX)
+            stage_counts[v->stage]++;
+    }
+
+    for (int stage = 0; stage < 64; stage++) {
+        stage_offsets[stage + 1] = stage_offsets[stage] + stage_counts[stage];
+        stage_cursor[stage] = stage_offsets[stage];
+    }
+
+    /* Ascending registry order within each stage preserves the old order. */
+    for (int i = 0; i < MAX_VOICES; i++) {
+        Voice *v = g_voices[i];
+        if (v && !v->dead && v->kind == V_SUBMIX)
+            stage_voices[stage_cursor[v->stage]++] = v;
+    }
+
+    /* Process submixes in processing-stage order, then the master. */
     for (int stage = 0; stage < 64; stage++)
-        for (int i = 0; i < MAX_VOICES; i++) {
-            Voice *v = g_voices[i];
-            if (!v || v->dead || v->kind != V_SUBMIX || v->stage != stage) continue;
+        for (int i = stage_offsets[stage]; i < stage_offsets[stage + 1]; i++) {
+            Voice *v = stage_voices[i];
             route(v, v->acc, frames);
         }
     if (g_master && g_master->acc) {
