@@ -969,8 +969,7 @@ namespace dxvk {
 
       /* Capture the completed game image before HUD composition. The copy is
        * recorded into this same command list and therefore needs no CPU readback. */
-      if (i == 0 && g_snapFrameCopyHook
-       && (info.imageUsage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT))
+      if (i == 0 && g_snapFrameCopyHook)
         g_snapFrameCopyHook(
             m_context.ptr(),
             m_imageViews.at(imageIndex).ptr(),
