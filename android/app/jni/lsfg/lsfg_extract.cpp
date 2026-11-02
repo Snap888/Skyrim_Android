@@ -169,7 +169,7 @@ static int write_blob(const char *cache_dir, uint32_t id, const uint8_t *data, s
     }
 
     const char *kind = blob_kind(data, size);
-    if (fprintf(manifest, "%u %zu %s\\n", id, size, kind) < 0) {
+    if (fprintf(manifest, "%u %zu %s\n", id, size, kind) < 0) {
         LOGE("extract: manifest write failed for resource id=%u", id);
         return -1;
     }
