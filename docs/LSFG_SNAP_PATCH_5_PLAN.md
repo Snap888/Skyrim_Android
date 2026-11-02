@@ -74,7 +74,25 @@
 - [x] Branch created from `snap-patch-4`.
 - [x] Baseline LSFG source and documentation inspected.
 - [x] Plan recorded.
-- [ ] Resource/cache hardening.
-- [ ] Shader/pass audit fixes.
+- [x] Resource/cache hardening: overflow-safe PE RVA mapping and resource-directory bounds; atomic resource-blob publication.
+- [x] Temporal warm-up reset when the effective flow scale changes.
+- [ ] Full shader/pass audit fixes (descriptor and temporal producer/consumer mapping).
 - [ ] Native build / CI verification.
 - [ ] Device image-quality validation.
+
+## Implemented in snap-patch-5
+
+### Commit `15c70a5` — PE resource bounds
+- RVA mapping now accepts a required byte range and maps only bytes backed by section raw data.
+- Uses subtraction-based range checks to avoid integer overflow in file-offset and resource-directory bounds.
+- Validates resource-directory-relative child offsets and complete resource-data payload ranges before dereferencing or writing.
+
+### Commit `c41de0b` / `25aff4d` — atomic extraction
+- Extracted RCDATA blobs are written to temporary files, flushed, closed, and renamed into place.
+- The manifest line is emitted only after the blob is published; manifest line endings remain standard newline bytes.
+
+### Commit `85eef73` — temporal history reset
+- A change in effective flow scale now resets the temporal warm-up counter.
+- Generate remains gated until three successful shared-pass frames have repopulated the newly allocated mipmap and Alpha/Beta resources.
+
+These are source-level changes only. Android NDK compilation, APK packaging, Vulkan runtime behavior, and output-image quality remain unverified.
