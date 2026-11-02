@@ -2,11 +2,11 @@
 
 Experimental, independent frame-generation engine for Skyrim_Android.
 
-**Status: architecture/scaffold only. No generated frames are produced yet.**
-This module is intentionally isolated from the existing `lsfg` target and is
-not included in the application build. This commit creates the module boundary
-and records the implementation/integration plan; it does not claim a working
-frame-generation implementation.
+**Status: capture prototype. No generated frames are produced yet.**
+This module is isolated from the existing `lsfg` implementation. It is now
+compiled as a separate host target and has an independent DXVK callback that
+copies the completed game image into a two-image GPU history ring. Optical flow,
+interpolation and generated-frame presentation are not implemented.
 
 ## Goals
 
@@ -29,9 +29,19 @@ frame-generation implementation.
 This is a proposed algorithm, not an implemented or measured result. See
 [DESIGN.md](DESIGN.md) for the architecture and staged integration plan.
 
-## Build isolation
+## Current capture prototype
 
-The local `CMakeLists.txt` defines a small host library, but the parent
-`android/app/jni/CMakeLists.txt` does not add this directory yet. The host API
-is scaffolding only. Vulkan/DXVK resources, compute shaders, frame capture,
-and presentation are future implementation stages.
+- DXVK callback runs after the game image is blitted to the WSI image and before
+  the HUD overlay is drawn.
+- The callback records a GPU-to-GPU image copy in the active DXVK command list;
+  it performs no CPU readback and submits no unrelated Vulkan queue work.
+- Two private DXVK images are allocated for frame history. They are released
+  from a device-destroy callback while the DXVK allocator is still alive.
+- Capture is disabled by default. To enable this diagnostic prototype, create
+  `<game-directory>/port/snapframe.conf` with `enabled=1`.
+- The prototype currently only captures frames. It does not interpolate or
+  alter presentation, and enabling it adds two full-resolution GPU images and
+  a copy per real frame.
+
+The module is added to the JNI CMake build as a separate static target. No
+compute shaders or runtime selector have been added yet.
