@@ -105,3 +105,13 @@ Next test: repeat a controlled ON/OFF pair in the same scene and duration,
 with the profiler disabled for the ordinary CPU benchmark. Then do a separate
 short ON-only diagnostic run with `DXVK_LSFG_GPU_PROFILE=1` to collect the
 GPU-stage CSV. Keep the two measurement modes separate.
+
+
+## Launcher-controlled LSFG GPU profiling — 2026-11-02
+
+The launcher now exposes an opt-in **LSFG GPU stage profiling (CSV)** checkbox.
+When enabled, it sets `DXVK_LSFG_GPU_PROFILE=1` before starting Skyrim,
+resets `port/dxvk_lsfg_gpu.csv`, and supplies its absolute path through
+`DXVK_LSFG_GPU_PROFILE_LOG`. The profiler prioritizes this explicit path.
+When disabled, both variables are unset. The selected state and output path
+are recorded in `port/lsfg_gpu_profile.conf`. Profiling remains OFF by default.

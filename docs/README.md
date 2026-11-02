@@ -609,3 +609,14 @@ APK и device retest ещё не выполнены. Успешные GPU timest
 Следующий тест: повторить OFF/ON на одной сцене и одинаковой длительности,
 не включая GPU profiler в обычном benchmark. Отдельно выполнить короткий
 ON-прогон с `DXVK_LSFG_GPU_PROFILE=1` для измерения pass timings.
+
+
+## LSFG GPU profiling from launcher settings
+
+In `snap-patch-5`, GPU stage timing can be enabled without manually setting
+process environment variables. Open the launcher, enable **LSFG GPU stage
+profiling (CSV)** under **Experimental runtime tuning**, then start Skyrim
+with LSFG enabled. After a clean exit, collect
+`<Skyrim folder>/port/dxvk_lsfg_gpu.csv`. The option is OFF by default because
+timestamp queries and CSV writes add diagnostic overhead. The launcher writes
+the selected state to `port/lsfg_gpu_profile.conf`.

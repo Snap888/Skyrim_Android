@@ -315,6 +315,8 @@ public class LauncherActivity extends Activity {
         text(root, "Records surface create/change/destroy, actual SurfaceView dimensions, display dimensions and refresh rate.", 13, false);
         check(root, "runtimeTuningLogs", "Write runtime tuning configuration and diagnostics", true);
         text(root, "Configuration and DXVK log are stored in the selected game folder under port/. Android Surface events are also visible in logcat (tag SDL).", 13, false);
+        check(root, "lsfgGpuProfile", "LSFG GPU stage profiling (CSV)", false);
+        text(root, "Writes per-stage Vulkan GPU timings to port/dxvk_lsfg_gpu.csv. Diagnostic mode adds timestamp queries and file I/O; keep OFF during normal gameplay.", 13, false);
 
         preset.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             boolean first = true;
@@ -642,6 +644,7 @@ public class LauncherActivity extends Activity {
             writeGpuDriverConfig(new File(folder));
             configureDxvkPerfEnvironment(new File(folder), perfEnabled, perfLsfgOn);
             configureRuntimeTuning(new File(folder));
+            configureLsfgGpuProfiler(new File(folder));
             // the native side builds the same mode list from this aspect (see modes())
             int[] av = ASPECT_V[sel("aspect")];
             try (Writer w = new OutputStreamWriter(new FileOutputStream(new File(save, "display.cfg")))) {
@@ -705,6 +708,36 @@ public class LauncherActivity extends Activity {
     private void setRuntimeEnv(String name, boolean enabled) throws Exception {
         if (enabled) Os.setenv(name, "1", true);
         else Os.unsetenv(name);
+    }
+
+    /* Configure LSFG GPU timestamp profiling before SkyrimActivity starts.
+     * The native profiler caches its environment setting on first use. */
+    private void configureLsfgGpuProfiler(File game) throws Exception {
+        File port = new File(game, "port");
+        if (!port.exists() && !port.mkdirs())
+            throw new java.io.IOException("cannot create port GPU profiler folder");
+
+        boolean enabled = checks.get("lsfgGpuProfile").isChecked();
+        File log = new File(port, "dxvk_lsfg_gpu.csv");
+        if (enabled) {
+            if (log.exists() && !log.delete())
+                throw new java.io.IOException("cannot reset previous LSFG GPU log: " + log);
+            if (!log.createNewFile())
+                throw new java.io.IOException("cannot create LSFG GPU log: " + log);
+            Os.setenv("DXVK_LSFG_GPU_PROFILE_LOG", log.getAbsolutePath(), true);
+            Os.setenv("DXVK_LSFG_GPU_PROFILE", "1", true);
+        } else {
+            Os.unsetenv("DXVK_LSFG_GPU_PROFILE");
+            Os.unsetenv("DXVK_LSFG_GPU_PROFILE_LOG");
+        }
+
+        File config = new File(port, "lsfg_gpu_profile.conf");
+        try (Writer w = new OutputStreamWriter(new FileOutputStream(config))) {
+            w.write("enabled=" + (enabled ? "1" : "0") + "\n");
+            w.write("csv_path=" + (enabled ? log.getAbsolutePath() : "disabled") + "\n");
+        }
+        android.util.Log.i("SkyrimRuntime", "LSFG GPU profiler: enabled=" + enabled
+                + (enabled ? ", csv=" + log.getAbsolutePath() : ""));
     }
 
     /* Configure benchmark variables in this app process before SDL loads DXVK.

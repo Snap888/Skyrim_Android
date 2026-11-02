@@ -2,7 +2,7 @@
 
 The DXVK LSFG profiler is opt-in and writes `dxvk_lsfg_gpu.csv` asynchronously from DXVK command-list completion callbacks. It is disabled by default to avoid per-stage query allocation, timestamp commands, completion callbacks and CSV file I/O during normal gameplay.
 
-Enable it for a diagnostic run by setting `DXVK_LSFG_GPU_PROFILE=1` in the game process environment. Accepted values are `1`, `true` and `yes` (case-sensitive). Unset the variable or use another value for normal gameplay. It does not submit a separate Vulkan queue, wait for the GPU, or call `vkQueueWaitIdle`.
+Enable it for a diagnostic run from the Android launcher: turn on **LSFG GPU stage profiling (CSV)** in the experimental runtime settings. The launcher sets `DXVK_LSFG_GPU_PROFILE=1` before starting the game and passes an absolute output path through `DXVK_LSFG_GPU_PROFILE_LOG`. The native profiler also accepts `1`, `true` and `yes` (case-sensitive) when configured manually. It does not submit a separate Vulkan queue, wait for the GPU, or call `vkQueueWaitIdle`.
 
 ## Output location
 
@@ -27,12 +27,12 @@ A row with status `ok` contains a GPU timestamp delta converted using Vulkan's `
 
 ## Test procedure
 
-1. Set `DXVK_LSFG_GPU_PROFILE=1` for the diagnostic run.
+1. In the launcher, enable **LSFG GPU stage profiling (CSV)** under Experimental runtime tuning.
 2. Build and install the APK from the current `snap-patch-5` branch.
 3. Run Skyrim with LSFG enabled and allow the generation chain to warm up.
 4. Close the game cleanly so pending command lists can retire.
-5. Retrieve `port/dxvk_lsfg_gpu.csv` (or the configured log directory).
-6. Send the CSV together with the corresponding `dxvk_perf_on.csv` / `dxvk_perf.log` and the device/driver details.
+5. Retrieve `port/dxvk_lsfg_gpu.csv`.
+6. Send the CSV together with the corresponding `dxvk_perf_on.csv` and device/driver details.
 
 The CSV is generated only when the instrumented GPU chain is executed. Java-only CI does not compile or validate the native C++/Vulkan code; a successful Android NDK build and an actual device run are still required.
 

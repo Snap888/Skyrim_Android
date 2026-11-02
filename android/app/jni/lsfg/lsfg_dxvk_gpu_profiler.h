@@ -29,6 +29,10 @@ struct LsfgGpuTimer {
 };
 
 inline std::string lsfgGpuCsvPath() {
+  const char* explicitPath = std::getenv("DXVK_LSFG_GPU_PROFILE_LOG");
+  if (explicitPath && *explicitPath)
+    return std::string(explicitPath);
+
   const char* dir = std::getenv("DXVK_LOG_PATH");
   if (dir && *dir && std::string(dir) != "none")
     return std::string(dir) + "/dxvk_lsfg_gpu.csv";
