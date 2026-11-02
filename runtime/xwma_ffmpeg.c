@@ -120,6 +120,7 @@ static AVCodecContext *open_ctx(const AVCodec *codec, int channels, int rate,
     ctx->channel_layout = av_get_default_channel_layout(channels);
 #endif
     if (block_align > 0) ctx->block_align = block_align;
+    if (bits_per_sample > 0) ctx->bits_per_coded_sample = bits_per_sample;
     if (avg_bps > 0)
         ctx->bit_rate = xwma_normalize_bitrate(channels, ctx->sample_rate, avg_bps * 8);
     ctx->request_sample_fmt = AV_SAMPLE_FMT_FLTP;
@@ -164,29 +165,22 @@ static int feed_block(AVCodecContext *ctx, const uint8_t *p, int psz,
                       AVPacket *pkt, AVFrame *frame, int channels,
                       int16_t **pcm, size_t *len, size_t *cap)
 {
-    uint8_t *padded = av_malloc((size_t)psz + AV_INPUT_BUFFER_PADDING_SIZE);
-    if (!padded) return AVERROR(ENOMEM);
-    memcpy(padded, p, (size_t)psz);
-    memset(padded + psz, 0, AV_INPUT_BUFFER_PADDING_SIZE);
-    pkt->data = padded;
-    pkt->size = psz;
-    int err = avcodec_send_packet(ctx, pkt);
+    av_packet_unref(pkt);
+    int err = av_new_packet(pkt, psz);
+    if (err < 0) return err;
+    memcpy(pkt->data, p, (size_t)psz);
+
+    err = avcodec_send_packet(ctx, pkt);
     if (err == AVERROR(EAGAIN)) {
-        /* The decoder still has output from the previous packet.  Drain it
-         * and retry this same packet; treating EAGAIN as success here silently
-         * discarded encoded WMA packets and shortened voice playback. */
+        /* Drain pending output and retry this exact packet. */
         int dr = drain(ctx, frame, channels, pcm, len, cap);
         if (dr < 0) {
-            av_free(padded);
-            pkt->data = NULL;
-            pkt->size = 0;
+            av_packet_unref(pkt);
             return dr;
         }
         err = avcodec_send_packet(ctx, pkt);
     }
-    av_free(padded);
-    pkt->data = NULL;
-    pkt->size = 0;
+    av_packet_unref(pkt);
     if (err < 0) return err;
     return drain(ctx, frame, channels, pcm, len, cap);
 }
@@ -243,8 +237,11 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
             if (value < prev) { dpds_valid = 0; break; }
             prev = value;
         }
-        if (dpds_valid) dpds_last = prev;
-        else fprintf(stderr, "xwma_ffmpeg: invalid non-monotonic dpds table (%u packets)\n",
+        if (dpds_valid) {
+            dpds_last = prev;
+            if (dpds_last % (uint32_t)(channels * 2) != 0) dpds_valid = 0;
+        }
+        if (!dpds_valid) fprintf(stderr, "xwma_ffmpeg: invalid non-monotonic dpds table (%u packets)\n",
                      packet_count);
     }
 
