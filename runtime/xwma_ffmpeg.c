@@ -236,6 +236,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
     size_t cap = 0, len = 0;
     int16_t *pcm = NULL;
     int decode_failed = 0;
+    int codec_extra_size = 0, codec_flags = -1, codec_bitrate = 0;
     AVPacket *pkt = av_packet_alloc();
     AVFrame *frame = av_frame_alloc();
     if (!pkt || !frame) {
@@ -252,6 +253,10 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
                 tag, channels, rate, packet_size, extradata_size);
         goto done;
     }
+    codec_extra_size = ctx->extradata_size;
+    codec_bitrate = (int)(ctx->bit_rate / 1000);
+    if (tag == 0x0161 && ctx->extradata_size >= 6)
+        codec_flags = (int)ctx->extradata[4] | ((int)ctx->extradata[5] << 8);
 
     /* xWMA's data chunk is a sequence of fixed-size codec packets. Feeding the
      * complete data chunk as one AVPacket is not equivalent: WMA decoders may
@@ -308,9 +313,9 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
         double sec_dpds = (dpds_valid && rate > 0)
             ? (double)dpds_last / (double)(channels * 2 * rate) : 0.0;
         fprintf(stderr,
-                "xwma_ffmpeg: packets=%u block_align=%u pcm_frames=%u pcm=%.3fs dpds=%.3fs tag=%04x ba=%d\n",
+                "xwma_ffmpeg: packets=%u block_align=%u pcm_frames=%u pcm=%.3fs dpds=%.3fs tag=%04x ba=%d extra=%d flags=%d bitrate=%dkbps\n",
                 packet_count, packet_size, frames, sec_pcm, sec_dpds,
-                tag, block_align);
+                tag, block_align, codec_extra_size, codec_flags, codec_bitrate);
     }
 
 done:
