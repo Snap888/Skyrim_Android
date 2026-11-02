@@ -98,6 +98,7 @@ namespace dxvk {
 
     std::vector<DxvkStateCacheEntry>  m_entries;
     std::atomic<bool>                 m_stopThreads = { false };
+    bool                              m_inlineCompile = false;
 
     dxvk::mutex                       m_entryLock;
 
