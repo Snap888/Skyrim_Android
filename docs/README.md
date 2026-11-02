@@ -434,6 +434,7 @@ gradlew.bat assembleDebug "-PndkVersion=29.0.14206865"
 
 ## 11. Документы по теме
 
+- [Android runtime tuning map](ANDROID_RUNTIME_TUNING_MAP.md) — experimental settings, synchronous pipeline compilation, thread/Surface diagnostics, deferred game-thread affinity and worker back-off work.
 - [LSFG implementation notes](LSFG_IMPLEMENTATION.md) — подробная история и
   архитектурные заметки реализации.
 - [LSFG chain recovery](LSFG_CHAIN_RECOVERY.md) — recovered LSFG 3.1 pass graph,
