@@ -116,8 +116,10 @@ static uint64_t g_xa_mix_passes, g_xa_mix_clipped, g_xa_mix_invalid;
 static uint64_t g_xa_starved_pending, g_xa_starved_empty;
 static float g_xa_mix_peak;
 static pthread_cond_t g_decode_cond = PTHREAD_COND_INITIALIZER;
+static pthread_cond_t g_decode_ready_cond = PTHREAD_COND_INITIALIZER;
 static XDecodeJob *g_decode_head, *g_decode_tail;
 static int g_decode_thread_started;
+static uint64_t g_pass_decode_wait_deadline_us;
 static uint64_t now_us(void);
 
 /* Called with g_lock held. A voice may be destroyed while an xWMA buffer is
@@ -275,6 +277,7 @@ static void *xwma_decode_main(void *unused) {
         slot->ready = 1;
         if (v->decoding > 0) v->decoding--;
 
+        pthread_cond_broadcast(&g_decode_ready_cond);
         if (v->destroy_pending && !g_running && !g_pass_active && v->decoding == 0) {
             free_voice_locked(v);
         } else if (!v->dead && !g_running && !v->running && v->decoding == 0) {
@@ -385,20 +388,62 @@ static void push_event(Voice *v, int method, uint32_t arg) {
     g_ev[g_nev++] = (Event){v->callback, method, arg, v};
 }
 
+/* Run queued voice callbacks at the exact buffer boundary. The engine lock
+ * must be released because game callbacks commonly submit the next buffer. */
+static Event g_dispatch_ev[MAX_EVENTS];
+static void dispatch_events_locked(CPU *c) {
+    int count = g_nev;
+    if (!count) return;
+    memcpy(g_dispatch_ev, g_ev, sizeof(Event) * (size_t)count);
+    g_nev = 0;
+    pthread_mutex_unlock(&g_lock);
+    for (int i = 0; i < count; i++) {
+        Event *e = &g_dispatch_ev[i];
+        if (e->v->dead) continue;
+        uint32_t fn = M32(M32(e->cb) + 4 * (uint32_t)e->method);
+        uint32_t args[2] = { e->cb, e->arg };
+        rt_invoke(c, fn, e->method == 2 ? 1 : 2, args);
+    }
+    pthread_mutex_lock(&g_lock);
+}
+
+/* Give an asynchronous xWMA decode a small part of the current output
+ * period to finish. The condition wait releases g_lock for the decoder. */
+static int wait_for_decode_locked(void) {
+    uint64_t now = now_us();
+    if (!g_pass_decode_wait_deadline_us || now >= g_pass_decode_wait_deadline_us)
+        return 0;
+    uint64_t left = g_pass_decode_wait_deadline_us - now;
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    ts.tv_sec += (time_t)(left / 1000000u);
+    ts.tv_nsec += (long)((left % 1000000u) * 1000u);
+    if (ts.tv_nsec >= 1000000000L) { ts.tv_sec++; ts.tv_nsec -= 1000000000L; }
+    pthread_cond_timedwait(&g_decode_ready_cond, &g_lock, &ts);
+    return 1;
+}
+
 /* Next source frame, advancing through the queue. Returns 0 when starved. */
-static int next_frame(Voice *v, float *out) {
+static int next_frame(Voice *v, float *out, CPU *c) {
     while (v->qn) {
         XBuf *b = &v->q[v->qhead];
         /* xWMA decoding happens outside g_lock; never consume a reserved slot
          * until its decoded PCM is published by SubmitSourceBuffer. */
         if (!b->ready) {
+            if (wait_for_decode_locked()) continue;
             g_xa_starved_pending++;
-            for (int c = 0; c < v->in_ch; c++) out[c] = 0;
+            for (int ch = 0; ch < v->in_ch; ch++) out[ch] = 0;
             return 0;
         }
         if (!b->started) {
             b->started = 1;
             push_event(v, 3, b->ctx);  /* OnBufferStart */
+            dispatch_events_locked(c);
+            if (v->dead) {
+                for (int ch = 0; ch < v->in_ch; ch++) out[ch] = 0;
+                return 0;
+            }
+            continue; /* callbacks may have flushed or appended buffers */
         }
         if (b->pos < b->end) {
             read_frame(v, b, b->pos++, out);
@@ -409,15 +454,23 @@ static int next_frame(Voice *v, float *out) {
                 b->end = b->loop_begin + b->loop_len;
                 if (b->end > b->nframes) b->end = b->nframes;
                 push_event(v, 5, b->ctx);  /* OnLoopEnd */
+                dispatch_events_locked(c);
+                if (v->dead) return 0;
             }
             return 1;
         }
-        /* buffer finished */
+        /* Retire the completed buffer before invoking OnBufferEnd: the game
+         * callback can now safely enqueue its replacement in this same pass. */
         push_event(v, 4, b->ctx);  /* OnBufferEnd */
         if (b->flags & 0x40) push_event(v, 2, 0);  /* XAUDIO2_END_OF_STREAM -> OnStreamEnd */
         free(b->decoded);
         v->qhead = (v->qhead + 1) % MAX_QUEUE;
         v->qn--;
+        dispatch_events_locked(c);
+        if (v->dead) {
+            for (int ch = 0; ch < v->in_ch; ch++) out[ch] = 0;
+            return 0;
+        }
     }
     g_xa_starved_empty++;
     for (int c = 0; c < v->in_ch; c++) out[c] = 0;
@@ -463,11 +516,11 @@ static void route(Voice *v, const float *in, int frames) {
     }
 }
 
-static void mix_source(Voice *v, int frames, float *tmp) {
+static void mix_source(Voice *v, int frames, float *tmp, CPU *c) {
     float step = v->ratio * (float)v->rate / (float)g_rate;
     int ch = v->in_ch;
     if (!v->primed) {
-        next_frame(v, v->cur);
+        next_frame(v, v->cur, c);
         memcpy(v->prev, v->cur, sizeof v->prev);
         v->primed = 1;
         v->frac = 0;
@@ -477,7 +530,7 @@ static void mix_source(Voice *v, int frames, float *tmp) {
         v->frac += step;
         while (v->frac >= 1.0) {
             memcpy(v->prev, v->cur, sizeof v->prev);
-            next_frame(v, v->cur);
+            next_frame(v, v->cur, c);
             v->frac -= 1.0;
         }
     }
@@ -526,13 +579,15 @@ static void engine_pass(CPU *c, int frames, float *out) {
 
     pthread_mutex_lock(&g_lock);
     g_nev = 0;
+    /* At most 4 ms of this 10 ms pass may be spent waiting for xWMA PCM. */
+    g_pass_decode_wait_deadline_us = now_us() + 4000u;
     for (int i = 0; i < MAX_VOICES; i++) {
         Voice *v = g_voices[i];
         if (v && !v->dead && v->acc) memset(v->acc, 0, sizeof(float) * (size_t)(v->in_ch * frames));
     }
     for (int i = 0; i < MAX_VOICES; i++) {
         Voice *v = g_voices[i];
-        if (v && !v->dead && v->kind == V_SOURCE && v->running) mix_source(v, frames, tmp);
+        if (v && !v->dead && v->kind == V_SOURCE && v->running) mix_source(v, frames, tmp, c);
     }
     /* submixes in processing-stage order, then the master */
     for (int stage = 0; stage < 64; stage++)
