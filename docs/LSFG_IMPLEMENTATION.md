@@ -296,3 +296,12 @@ source and the status document.
 The correction is source-reviewed but not yet validated by an Android native
 build or device test. Descriptor/resource semantics and generated image
 quality remain separate acceptance gates.
+
+## Alpha command-recording optimization — 2026-11-02
+
+The current DXVK Alpha shared-pass implementation binds the compute shader
+and sampler once per Alpha stage, then updates the per-level image bindings
+for all seven pyramid levels. This matches WinNative's stage-first dispatch
+structure and avoids repeatedly marking the same compute pipeline dirty.
+Per-level resources and dispatches remain unchanged. Runtime performance
+impact remains unverified pending a native build and device benchmark.
