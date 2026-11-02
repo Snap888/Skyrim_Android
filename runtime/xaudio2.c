@@ -5,8 +5,8 @@
  *
  * Callbacks run with g_lock released: the game submits buffers from inside
  * them and calls into XAudio2 from its own threads while holding its locks.
- * A pass is: OnProcessingPassStart / OnVoiceProcessingPassStart (unlocked),
- * mix (locked, buffer events recorded), then the recorded events (unlocked). */
+ * Pass-start callbacks run before mixing; OnBufferEnd is dispatched at the
+ * exact buffer boundary so the game can refill before the rest of the pass. */
 #include "hcom.h"
 #include <SDL2/SDL.h>
 #include <math.h>
@@ -438,12 +438,6 @@ static int next_frame(Voice *v, float *out, CPU *c) {
         if (!b->started) {
             b->started = 1;
             push_event(v, 3, b->ctx);  /* OnBufferStart */
-            dispatch_events_locked(c);
-            if (v->dead) {
-                for (int ch = 0; ch < v->in_ch; ch++) out[ch] = 0;
-                return 0;
-            }
-            continue; /* callbacks may have flushed or appended buffers */
         }
         if (b->pos < b->end) {
             read_frame(v, b, b->pos++, out);
@@ -454,8 +448,6 @@ static int next_frame(Voice *v, float *out, CPU *c) {
                 b->end = b->loop_begin + b->loop_len;
                 if (b->end > b->nframes) b->end = b->nframes;
                 push_event(v, 5, b->ctx);  /* OnLoopEnd */
-                dispatch_events_locked(c);
-                if (v->dead) return 0;
             }
             return 1;
         }
