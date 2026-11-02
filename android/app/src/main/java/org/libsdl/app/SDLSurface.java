@@ -81,9 +81,38 @@ public class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
     }
 
     // Called when we have a valid drawing surface
+    private boolean surfaceDiagnosticsEnabled() {
+        try {
+            return getContext().getSharedPreferences("launcher", Context.MODE_PRIVATE)
+                    .getBoolean("runtimeSurfaceLogs", true);
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private void logSurfaceState(String event, SurfaceHolder holder, int width, int height,
+                                 int deviceWidth, int deviceHeight) {
+        if (!surfaceDiagnosticsEnabled()) return;
+        Surface surface = holder != null ? holder.getSurface() : null;
+        boolean valid = surface != null && surface.isValid();
+        float refresh = 0.0f;
+        try {
+            if (mDisplay != null) refresh = mDisplay.getRefreshRate();
+        } catch (Exception ignored) {
+        }
+        Log.i("SDL", "SURFACE_DIAG event=" + event
+                + " valid=" + valid
+                + " view=" + width + "x" + height
+                + " device=" + deviceWidth + "x" + deviceHeight
+                + " refreshHz=" + refresh
+                + " ready=" + mIsSurfaceReady
+                + " activity=" + (SDLActivity.mSingleton != null));
+    }
+
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
         Log.v("SDL", "surfaceCreated()");
+        logSurfaceState("created", holder, getWidth(), getHeight(), 0, 0);
         SDLActivity.onNativeSurfaceCreated();
     }
 
@@ -91,6 +120,7 @@ public class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
         Log.v("SDL", "surfaceDestroyed()");
+        logSurfaceState("destroyed", holder, getWidth(), getHeight(), 0, 0);
 
         // Transition to pause, if needed
         SDLActivity.mNextNativeState = SDLActivity.NativeState.PAUSED;
@@ -132,6 +162,7 @@ public class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
 
         Log.v("SDL", "Window size: " + width + "x" + height);
         Log.v("SDL", "Device size: " + nDeviceWidth + "x" + nDeviceHeight);
+        logSurfaceState("changed", holder, width, height, nDeviceWidth, nDeviceHeight);
         SDLActivity.nativeSetScreenResolution(width, height, nDeviceWidth, nDeviceHeight, mDisplay.getRefreshRate());
         SDLActivity.onNativeResize();
 
