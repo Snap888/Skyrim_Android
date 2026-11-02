@@ -241,7 +241,7 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
             dpds_last = prev;
             if (dpds_last % (uint32_t)(channels * 2) != 0) dpds_valid = 0;
         }
-        if (!dpds_valid) fprintf(stderr, "xwma_ffmpeg: invalid non-monotonic dpds table (%u packets)\n",
+        if (!dpds_valid) fprintf(stderr, "xwma_ffmpeg: invalid dpds table (non-monotonic or misaligned) (%u packets)\n",
                      packet_count);
     }
 
@@ -324,12 +324,10 @@ int16_t *xwma_decode(const uint8_t *data, uint32_t size, int channels, int rate,
         double sec_pcm = (rate > 0) ? (double)frames / (double)rate : 0.0;
         double sec_dpds = (dpds_valid && rate > 0)
             ? (double)dpds_last / (double)(channels * 2 * rate) : 0.0;
-        double sec_input = (avg_bps > 0)
-            ? (double)size / (double)avg_bps : 0.0;
         fprintf(stderr,
-                "xwma_ffmpeg: packets=%u packet_size=%u pcm_frames=%u pcm=%.3fs input_est=%.3fs dpds=%.3fs tag=%04x ba=%d\n",
-                packet_count, packet_size, frames, sec_pcm, sec_input,
-                sec_dpds, tag, block_align);
+                "xwma_ffmpeg: packets=%u packet_size=%u pcm_frames=%u pcm=%.3fs dpds=%.3fs tag=%04x ba=%d\n",
+                packet_count, packet_size, frames, sec_pcm, sec_dpds,
+                tag, block_align);
     }
 
 done:
