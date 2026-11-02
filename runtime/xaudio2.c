@@ -272,6 +272,12 @@ static void push_event(Voice *v, int method, uint32_t arg) {
 static int next_frame(Voice *v, float *out) {
     while (v->qn) {
         XBuf *b = &v->q[v->qhead];
+        /* xWMA decoding happens outside g_lock; never consume a reserved slot
+         * until its decoded PCM is published by SubmitSourceBuffer. */
+        if (!b->ready) {
+            for (int c = 0; c < v->in_ch; c++) out[c] = 0;
+            return 0;
+        }
         if (!b->started) {
             b->started = 1;
             push_event(v, 3, b->ctx);  /* OnBufferStart */
