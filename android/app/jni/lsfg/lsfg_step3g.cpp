@@ -59,6 +59,7 @@ static unsigned g_wrap_width;
 static unsigned g_wrap_height;
 static unsigned g_wrap_format;
 static unsigned g_last_generation_pp;
+static float g_wrap_flow_scale = -1.0f;
 
 
 struct LsfgConstants {
@@ -271,6 +272,19 @@ extern "C" void lsfg_step3g_copy_impl(
     // Latch UI changes once per source frame so mipmaps, flow and Generate
     // cannot observe different quality/multiplier values mid-frame.
     lsfg_host_begin_frame_settings();
+
+    // Flow-scale changes rebuild mipmap and Alpha/Beta resources lazily below.
+    // Those resources contain fresh, uninitialized temporal history, so the
+    // previous warm-up count must not authorize Generate on the first frame
+    // after a quality/performance setting change.
+    const float frameFlowScale = lsfg_host_flow_scale();
+    if (g_wrap_flow_scale > 0.0f && g_wrap_flow_scale != frameFlowScale) {
+        g_wrap_frames = 0;
+        g_last_generation_pp = 0;
+        lsfg_log("I", "step3g: flow scale changed %.3f -> %.3f; restarting temporal warmup",
+                 g_wrap_flow_scale, frameFlowScale);
+    }
+    g_wrap_flow_scale = frameFlowScale;
 
     auto *ctx     = reinterpret_cast<DxvkContext*>(ctx_v);
     auto *srcView = reinterpret_cast<DxvkImageView*>(src_view_v);
