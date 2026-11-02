@@ -2,6 +2,13 @@
 #include "dxvk_pipemanager.h"
 #include "dxvk_state_cache.h"
 
+#include <chrono>
+#ifdef __ANDROID__
+#include <sched.h>
+#include <sys/syscall.h>
+#include <unistd.h>
+#endif
+
 namespace dxvk {
 
   static const Sha1Hash       g_nullHash      = Sha1Hash::compute(nullptr, 0);
@@ -185,7 +192,10 @@ namespace dxvk {
         writeCacheEntry(file, e);
     }
 
-    // Use half the available CPU cores for pipeline compilation
+    m_inlineCompile = env::getEnvVar("DXVK_NO_ASYNC") == "1";
+
+    // Use half the available CPU cores for pipeline compilation unless
+    // synchronous first-use compilation was explicitly requested.
     uint32_t numCpuCores = dxvk::thread::hardware_concurrency();
     uint32_t numWorkers  = ((std::max(1u, numCpuCores) - 1) * 5) / 7;
 
@@ -194,21 +204,25 @@ namespace dxvk {
 
     if (device->config().numCompilerThreads > 0)
       numWorkers = device->config().numCompilerThreads;
-    
-    Logger::info(str::format("DXVK: Using ", numWorkers, " compiler threads"));
-    
-    // Start the worker threads and the file writer
+
+    if (m_inlineCompile)
+      numWorkers = 0;
+
+    Logger::info(str::format("DXVK: Pipeline compilation mode: ",
+      m_inlineCompile ? "synchronous first-use (DXVK_NO_ASYNC=1)" : "asynchronous",
+      ", compiler threads=", numWorkers));
+
+    // Keep the cache writer asynchronous; only pipeline compilation changes mode.
     m_workerBusy.store(numWorkers);
 
     for (uint32_t i = 0; i < numWorkers; i++) {
       m_workerThreads.emplace_back([this] () { workerFunc(); });
 
-      // TODO: better solution for this.
 #ifndef DXVK_NATIVE
       m_workerThreads[i].set_priority(ThreadPriority::Lowest);
 #endif
     }
-    
+
     m_writerThread = dxvk::thread([this] () { writerFunc(); });
   }
   
@@ -274,35 +288,50 @@ namespace dxvk {
 
     if (key.eq(g_nullShaderKey))
       return;
-    
-    // Add the shader so we can look it up by its key
-    std::unique_lock<dxvk::mutex> entryLock(m_entryLock);
-    m_shaderMap.insert({ key, shader });
 
-    // Deferred lock, don't stall workers unless we have to
+    std::vector<WorkerItem> inlineItems;
     std::unique_lock<dxvk::mutex> workerLock;
 
-    auto pipelines = m_pipelineMap.equal_range(key);
+    {
+      // Add the shader so it can be looked up by its key.
+      std::unique_lock<dxvk::mutex> entryLock(m_entryLock);
+      m_shaderMap.insert({ key, shader });
 
-    for (auto p = pipelines.first; p != pipelines.second; p++) {
-      WorkerItem item;
+      auto pipelines = m_pipelineMap.equal_range(key);
 
-      if (!getShaderByKey(p->second.vs,  item.gp.vs)
-       || !getShaderByKey(p->second.tcs, item.gp.tcs)
-       || !getShaderByKey(p->second.tes, item.gp.tes)
-       || !getShaderByKey(p->second.gs,  item.gp.gs)
-       || !getShaderByKey(p->second.fs,  item.gp.fs)
-       || !getShaderByKey(p->second.cs,  item.cp.cs))
-        continue;
-      
-      if (!workerLock)
-        workerLock = std::unique_lock<dxvk::mutex>(m_workerLock);
-      
-      m_workerQueue.push(item);
+      for (auto p = pipelines.first; p != pipelines.second; p++) {
+        WorkerItem item;
+
+        if (!getShaderByKey(p->second.vs,  item.gp.vs)
+         || !getShaderByKey(p->second.tcs, item.gp.tcs)
+         || !getShaderByKey(p->second.tes, item.gp.tes)
+         || !getShaderByKey(p->second.gs,  item.gp.gs)
+         || !getShaderByKey(p->second.fs,  item.gp.fs)
+         || !getShaderByKey(p->second.cs,  item.cp.cs))
+          continue;
+
+        if (m_inlineCompile) {
+          inlineItems.push_back(item);
+        } else {
+          if (!workerLock)
+            workerLock = std::unique_lock<dxvk::mutex>(m_workerLock);
+          m_workerQueue.push(item);
+        }
+      }
     }
 
     if (workerLock)
       m_workerCond.notify_all();
+
+    if (!inlineItems.empty()) {
+      const auto start = std::chrono::steady_clock::now();
+      for (const auto& item : inlineItems)
+        compilePipelines(item);
+      const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now() - start).count();
+      Logger::info(str::format("DXVK: Synchronous first-use pipeline compile: ",
+        inlineItems.size(), " pipeline(s), ", elapsed, " us"));
+    }
   }
 
 
@@ -927,6 +956,15 @@ namespace dxvk {
 
   void DxvkStateCache::workerFunc() {
     env::setThreadName("dxvk-shader");
+
+#ifdef __ANDROID__
+    if (env::getEnvVar("DXVK_THREAD_DIAGNOSTICS") == "1") {
+      const long tid = ::syscall(SYS_gettid);
+      const int cpu = ::sched_getcpu();
+      Logger::info(str::format("DXVK-THREAD: role=shader-cache-worker tid=",
+        tid, " cpu=", cpu));
+    }
+#endif
 
     while (!m_stopThreads.load()) {
       WorkerItem item;
