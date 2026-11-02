@@ -113,7 +113,7 @@ static SDL_AudioDeviceID g_dev;
 /* diagnostics */
 static unsigned g_xa_src_voices, g_xa_xwma_voices, g_xa_xwma_submits, g_xa_pcm_submits, g_xa_adpcm_submits;
 static uint64_t g_xa_mix_passes, g_xa_mix_clipped, g_xa_mix_invalid;
-static uint64_t g_xa_starved_pending, g_xa_starved_empty;
+static uint64_t g_xa_starved_pending_frames, g_xa_starved_empty_frames;
 static float g_xa_mix_peak;
 static pthread_cond_t g_decode_cond = PTHREAD_COND_INITIALIZER;
 static pthread_cond_t g_decode_ready_cond = PTHREAD_COND_INITIALIZER;
@@ -431,7 +431,7 @@ static int next_frame(Voice *v, float *out, CPU *c) {
          * until its decoded PCM is published by SubmitSourceBuffer. */
         if (!b->ready) {
             if (wait_for_decode_locked()) continue;
-            g_xa_starved_pending++;
+            g_xa_starved_pending_frames++;
             for (int ch = 0; ch < v->in_ch; ch++) out[ch] = 0;
             return 0;
         }
@@ -464,7 +464,7 @@ static int next_frame(Voice *v, float *out, CPU *c) {
             return 0;
         }
     }
-    g_xa_starved_empty++;
+    g_xa_starved_empty_frames++;
     for (int c = 0; c < v->in_ch; c++) out[c] = 0;
     return 0;
 }
@@ -632,12 +632,12 @@ static void engine_pass(CPU *c, int frames, float *out) {
         g_xa_mix_clipped = 0;
         g_xa_mix_invalid = 0;
         g_xa_mix_peak = 0.0f;
-        if (g_xa_starved_pending || g_xa_starved_empty)
-            XA_LOG("xaudio2: source starvation pending_decode=%llu empty_queue=%llu (last 1s)",
-                   (unsigned long long)g_xa_starved_pending,
-                   (unsigned long long)g_xa_starved_empty);
-        g_xa_starved_pending = 0;
-        g_xa_starved_empty = 0;
+        if (g_xa_starved_pending_frames || g_xa_starved_empty_frames)
+            XA_LOG("xaudio2: source starvation frames pending_decode=%llu empty_queue=%llu (last 1s)",
+                   (unsigned long long)g_xa_starved_pending_frames,
+                   (unsigned long long)g_xa_starved_empty_frames);
+        g_xa_starved_pending_frames = 0;
+        g_xa_starved_empty_frames = 0;
     }
     int nev = g_nev;
     static Event ev[MAX_EVENTS];
