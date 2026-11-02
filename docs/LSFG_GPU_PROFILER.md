@@ -123,3 +123,21 @@ every 60 rows instead of probing/opening/closing the file for each stage.
 This is a diagnostics-overhead reduction only; it does not change the LSFG
 algorithm or claim a gameplay performance improvement. Android NDK build and
 device validation of this source change are pending.
+
+
+## Session isolation — snap-patch-5
+
+At LSFG host initialization, the profiler output is now reset for every launch,
+before the runtime LSFG enabled/multiplier gate is evaluated. This applies even
+when LSFG is OFF or GPU profiling is disabled. The CSV receives a fresh header
+and a `SESSION` marker whose status is `session_started`,
+`lsfg_disabled`, or `profiling_disabled`. Stage rows from a previous launch
+can therefore no longer be mistaken for the current OFF run.
+
+A change of output path during a process also starts a fresh CSV instead of
+appending to an unrelated session. GPU stage rows continue to be written only
+when profiling is enabled and the corresponding LSFG dispatch executes.
+
+This is a diagnostics-integrity change; it does not alter GPU work, pass order,
+synchronization, or frame generation. Native Android build and device validation
+are still required.
