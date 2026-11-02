@@ -410,3 +410,39 @@ claimed.
   decode starvation, non-EOS refill gaps, SDL queue depth, and mixer-pass
   duration in the same log. A teardown tombstone with symbols is still needed
   if the destroyed-mutex abort recurs.
+
+
+## Комплексный runtime review и план оптимизации — 2026-11-02
+
+Последняя пара тестов LSFG ON/OFF:
+
+| Метрика CPU Present | OFF | ON |
+|---|---:|---:|
+| Среднее оконных средних | 1,64 мс | 16,64 мс |
+| Медиана оконных средних | 0,86 мс | 10,96 мс |
+| Минимум | 0,09 мс | 3,34 мс |
+| Максимум | 4,94 мс | 31,48 мс |
+
+Медиана здесь лучше описывает типичное измеренное окно, так как среднее чувствительно к всплескам. Но CPU Present не является полным временем кадра и не равен FPS. Пользователь также отмечает конкретную игровую локацию с сильной просадкой Game FPS, которая по игровому графику меньше при LSFG ON. Требуется повторяемый тест в одной сцене с отдельными source FPS, output/FG rate, CPU Present и GPU timings.
+
+### Уточнение по артефактам
+
+- OFF подтверждён конфигурацией `lsfg.enabled=0`; requested/generated равны нулю.
+- `dxvk_lsfg_gpu.csv` в последней загрузке не является результатом OFF: при выключенном LSFG GPU pass не исполнялись. Файл содержит данные предыдущей ON-сессии, вероятно из-за отсутствия очистки/маркировки сессии.
+- Приоритетная диагностическая задача — очищать/создавать profiler CSV для каждой сессии, включая OFF, и добавлять session/run ID + config snapshot.
+
+### Shutdown
+
+Последовательность `quit requested` → FORTIFY destroyed mutex → signal 6 появилась после ручного закрытия приложения. По указанию владельца проекта не считать её ошибкой игры и не включать в текущие оптимизационные задачи. Анализировать заново только при самопроизвольном завершении.
+
+### Новые направления работ
+
+1. Аудио: музыка, голоса, эффекты; локализация XAudio2 queue starvation, xWMA decode/refill и проверка уже реализованного параллельного decode.
+2. DXVK: воспроизведение локальной просадки FPS, разбор синхронной pipeline compilation и разложение Present path на отдельные стадии.
+3. LSFG: визуальные артефакты при быстрых движениях; проверка source history, timestamps, flow/motion/occlusion, resource lifetime и pass dependencies.
+4. CPU scheduling: измерить топологию и affinity реальных потоков; провести осторожный A/B с приоритетами/affinity. GPU compute не переносится на CPU cores; эксперимент касается CPU-side command recording/submission и worker scheduling.
+5. Regression: после каждого изменения отдельная сборка и device A/B, не менять несколько подсистем одновременно.
+
+Подробный порядок, ограничения, тестовая матрица и acceptance criteria находятся в [OPTIMIZATION_PLAN_SNAP_PATCH_5.md](OPTIMIZATION_PLAN_SNAP_PATCH_5.md).
+
+Этот раздел фиксирует анализ и план. Он не означает, что новые оптимизации реализованы, APK собран или результаты подтверждены на устройстве.
