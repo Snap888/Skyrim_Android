@@ -128,3 +128,33 @@ as a layout error rather than silently decoding a partial stream.
 
 Android compilation and on-device playback are still required to confirm the
 result with the Skyrim voice and music assets.
+
+## Real FUZ sample analysis (DialogueGe__0003526D_1.fuz)
+
+A supplied vanilla voice sample was inspected byte-for-byte.
+
+- FUZ container: version 1, 3,141-byte LIP payload, 7,510-byte XWMA RIFF payload.
+- RIFF audio: WMAV2 (`0x0161`), mono, 44,100 Hz, 32,000 bit/s, block alignment 1,487.
+- Compressed data: 7,435 bytes = exactly 5 packets × 1,487 bytes.
+- `dpds`: five cumulative decoded-byte values: 16,384; 28,672; 40,960; 61,440; 77,824.
+- FFmpeg reference decode: 38,912 mono frames / 77,824 PCM bytes = 0.882358 seconds.
+- The final decoded PCM byte count exactly matches the final `dpds` value.
+
+The reference decode exposed an important missing initialization detail in the
+custom XAudio2 path. Bethesda xWMA RIFF streams normally have no WMA codec
+extradata, but FFmpeg's xWMA demuxer synthesizes it before opening WMAV2:
+six zeroed bytes with byte 4 set to 31. For WMAPRO it synthesizes 18 bytes,
+setting byte 0 to the coded bit depth and byte 14 to 224. The custom decoder
+previously passed an empty extradata block straight to libavcodec. This can
+cause invalid WMAV2 bit-reservoir/block flags and incomplete or failed
+decoding even when packet boundaries are correct.
+
+The custom decoder now mirrors FFmpeg's xWMA demuxer initialization, including
+its WMAV2 bitrate normalization rules, WMAPRO fallback extradata, and bit-depth
+propagation. It also uses refcounted `AVPacket` buffers and rejects decoded
+PCM whose byte count differs from the final cumulative `dpds` value.
+
+The supplied sample was decoded successfully by the system FFmpeg reference
+decoder; the Android in-process implementation has not yet been built or run
+against this sample. The sample therefore establishes the expected packet
+layout and PCM length, but does not by itself prove the Android fix is working.
