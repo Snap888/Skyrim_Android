@@ -119,6 +119,9 @@ static Voice *g_master;
 static uint32_t g_engine_cb[16];
 static int g_nengine_cb;
 static int g_rate = 48000, g_running, g_thread_started, g_pass_active;
+static pthread_t g_engine_thread;
+static int g_engine_thread_started;
+static volatile int g_engine_shutdown;
 static SDL_AudioDeviceID g_dev;
 /* diagnostics */
 static unsigned g_xa_src_voices, g_xa_xwma_voices, g_xa_xwma_submits, g_xa_pcm_submits, g_xa_adpcm_submits;
@@ -129,6 +132,8 @@ static pthread_cond_t g_decode_cond = PTHREAD_COND_INITIALIZER;
 static pthread_cond_t g_decode_ready_cond = PTHREAD_COND_INITIALIZER;
 static XDecodeJob *g_decode_head, *g_decode_tail;
 static int g_decode_thread_started;
+static pthread_t g_decode_thread;
+static volatile int g_decode_shutdown;
 static uint64_t g_pass_decode_wait_deadline_us;
 static uint64_t now_us(void);
 
@@ -217,8 +222,12 @@ static void *xwma_decode_main(void *unused) {
     (void)unused;
     for (;;) {
         pthread_mutex_lock(&g_lock);
-        while (!g_decode_head)
+        while (!g_decode_head && !__atomic_load_n(&g_decode_shutdown, __ATOMIC_ACQUIRE))
             pthread_cond_wait(&g_decode_cond, &g_lock);
+        if (!g_decode_head && __atomic_load_n(&g_decode_shutdown, __ATOMIC_ACQUIRE)) {
+            pthread_mutex_unlock(&g_lock);
+            break;
+        }
         XDecodeJob *job = g_decode_head;
         g_decode_head = job->next;
         if (!g_decode_head) g_decode_tail = NULL;
@@ -301,9 +310,7 @@ static void *xwma_decode_main(void *unused) {
 
 static int start_xwma_decode_worker(void) {
     if (g_decode_thread_started) return 1;
-    pthread_t thread;
-    if (pthread_create(&thread, NULL, xwma_decode_main, NULL) != 0) return 0;
-    pthread_detach(thread);
+    if (pthread_create(&g_decode_thread, NULL, xwma_decode_main, NULL) != 0) return 0;
     g_decode_thread_started = 1;
     return 1;
 }
@@ -698,12 +705,14 @@ static void *engine_main(void *arg) {
     uint64_t diag_passes = 0, queue_low = 0, slow_passes = 0, max_pass_us = 0;
     Uint32 min_queue_bytes = UINT32_MAX;
     for (;;) {
+        if (__atomic_load_n(&g_engine_shutdown, __ATOMIC_ACQUIRE)) break;
         if (g_dev) {
             /* Keep 60 ms queued to absorb Android scheduling jitter; a device that
              * stops draining for 200 ms is dropped and mixing continues on the timer. */
             Uint32 q0 = SDL_GetQueuedAudioSize(g_dev), q;
             uint64_t t0 = now_us();
             while ((q = SDL_GetQueuedAudioSize(g_dev)) > (Uint32)(6 * frames * 2 * sizeof(float))) {
+                if (__atomic_load_n(&g_engine_shutdown, __ATOMIC_ACQUIRE)) break;
                 if (q < q0) { q0 = q; t0 = now_us(); }
                 else if (now_us() - t0 > 200000) {
                     LOG("xaudio2: audio device stalled, mixing silently");
@@ -720,6 +729,7 @@ static void *engine_main(void *arg) {
             if (t < next) usleep((useconds_t)(next - t));
             next += PASS_FRAMES_MS * 1000;
         }
+        if (__atomic_load_n(&g_engine_shutdown, __ATOMIC_ACQUIRE)) break;
         if (!g_running) { usleep(PASS_FRAMES_MS * 1000); continue; }
         if (g_dev) {
             Uint32 queued = SDL_GetQueuedAudioSize(g_dev);
@@ -742,6 +752,14 @@ static void *engine_main(void *arg) {
             min_queue_bytes = UINT32_MAX;
         }
     }
+    /* Close SDL audio while the engine thread still owns the device lifecycle.
+     * The caller joins this thread before SDL teardown can destroy device locks. */
+    if (g_dev) {
+        SDL_CloseAudioDevice(g_dev);
+        g_dev = 0;
+    }
+    free(out);
+    LOG("xaudio2: engine thread stopped cleanly");
     return NULL;
 }
 
@@ -761,9 +779,34 @@ static void engine_start_thread(void) {
     rt_host_affinity_end();
     if (!g_dev) LOG("xaudio2: SDL_OpenAudioDevice failed: %s (mixing silently)", SDL_GetError());
     else SDL_PauseAudioDevice(g_dev, 0);
-    pthread_t t;
-    pthread_create(&t, NULL, engine_main, NULL);
-    pthread_detach(t);
+    if (pthread_create(&g_engine_thread, NULL, engine_main, NULL) == 0) {
+        g_engine_thread_started = 1;
+    } else {
+        LOG("xaudio2: failed to start engine thread");
+        if (g_dev) { SDL_CloseAudioDevice(g_dev); g_dev = 0; }
+        g_thread_started = 0;
+    }
+}
+
+
+/* Stop and join XAudio2-owned threads before SDL tears down its audio device.
+ * The decoder worker is joined as well so no outstanding job can touch a
+ * Voice after the host begins process teardown. */
+void xaudio2_shutdown(void) {
+    if (g_engine_thread_started) {
+        __atomic_store_n(&g_engine_shutdown, 1, __ATOMIC_RELEASE);
+        g_running = 0;
+        pthread_join(g_engine_thread, NULL);
+        g_engine_thread_started = 0;
+    }
+    if (g_decode_thread_started) {
+        __atomic_store_n(&g_decode_shutdown, 1, __ATOMIC_RELEASE);
+        pthread_mutex_lock(&g_lock);
+        pthread_cond_broadcast(&g_decode_cond);
+        pthread_mutex_unlock(&g_lock);
+        pthread_join(g_decode_thread, NULL);
+        g_decode_thread_started = 0;
+    }
 }
 
 /* ---------------------------------------------------------------- voices */
