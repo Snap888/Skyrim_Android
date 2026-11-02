@@ -644,7 +644,7 @@ SHIM(xv_DestroyVoice) {
     g_hcom_slots[M32(g + 8)] = NULL;
     M32(g) = 0xDEAD0002u;
     gfree(g);
-    if (!g_running && v->decoding == 0) {  /* no engine pass will free it */
+    if (!g_running) {  /* no engine pass will free it */
         pthread_mutex_lock(&g_lock);
         if (v->decoding == 0) free_voice_locked(v);
         pthread_mutex_unlock(&g_lock);
