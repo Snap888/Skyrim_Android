@@ -72,7 +72,7 @@ struct Voice {
     uint8_t adpcm_coef[64];
     int ncoef;
     float ratio, max_ratio;
-    int running, decoding;
+    int running, decoding, destroy_pending;
     XBuf q[MAX_QUEUE];
     int qhead, qn;
     uint64_t played;
@@ -635,20 +635,19 @@ SHIM(xv_DestroyVoice) {
     uint32_t g = ARG(0);
     pthread_mutex_lock(&g_lock);
     v->dead = 1;
+    v->destroy_pending = 1;
     if (v == g_master) g_master = NULL;
     for (int i = 0; i < MAX_VOICES; i++) {
         Voice *o = g_voices[i];
         if (o) for (int k = 0; k < o->nsends; k++) if (o->send[k] == v) o->send[k] = NULL;
     }
+    /* When the engine is stopped no future pass can release this voice.
+     * Keep it alive until all out-of-lock xWMA decodes have returned. */
+    if (!g_running && v->decoding == 0) free_voice_locked(v);
     pthread_mutex_unlock(&g_lock);
     g_hcom_slots[M32(g + 8)] = NULL;
     M32(g) = 0xDEAD0002u;
     gfree(g);
-    if (!g_running) {  /* no engine pass will free it */
-        pthread_mutex_lock(&g_lock);
-        if (v->decoding == 0) free_voice_locked(v);
-        pthread_mutex_unlock(&g_lock);
-    }
     RET(0, 1);
 }
 SHIM(xs_Start) {
@@ -759,7 +758,7 @@ SHIM(xs_SubmitSourceBuffer) {
         x->ready = 1;
         v->decoding--;
 
-        if (v->dead && !g_running && v->decoding == 0) {
+        if (v->destroy_pending && !g_running && v->decoding == 0) {
             free_voice_locked(v);
         } else if (!v->dead && !g_running && !v->running && v->decoding == 0) {
             drop_flushed_buffers_locked(v);
