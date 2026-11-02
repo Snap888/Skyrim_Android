@@ -118,7 +118,7 @@ It now:
 - flushes the decoder after the final packet;
 - validates the decoded-packet cumulative table as monotonic decoded-byte
   accounting, without treating it as compressed offsets;
-- logs packet count, packet size, decoded PCM frames, and the duration represented by the final cumulative decoded-byte value.
+- logs packet count, packet size, decoded PCM frames, `dpds` duration, effective extradata size/flags, and normalized bitrate.
 
 This follows the Microsoft XAUDIO2_BUFFER_WMA contract and FFmpeg's xWMA
 demuxer packet model. A mismatched packet count or block alignment is reported
@@ -149,7 +149,8 @@ decoding even when packet boundaries are correct.
 
 The custom decoder now mirrors FFmpeg's xWMA demuxer initialization, including
 its WMAV2 bitrate normalization rules, WMAPRO fallback extradata, and bit-depth
-propagation. Packet splitting also now matches the demuxer: one `block_align`
+propagation. Runtime logs now expose the effective extradata size/flags and
+normalized bitrate so the Android run can confirm the fallback is active. Packet splitting also now matches the demuxer: one `block_align`
 packet per submission, with a shorter final block allowed. It also uses refcounted `AVPacket` buffers and rejects decoded PCM whose
 byte count differs from the final cumulative `dpds` value.
 
