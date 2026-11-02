@@ -109,3 +109,16 @@ This is a partial P2 correctness fix only. Descriptor remapping, temporal
 producer/consumer mapping, output timestamps, target reuse and full shader
 equivalence still require audit. DXVK's tracked resource barriers remain in
 use; the change adds no host wait or separate Vulkan queue submission.
+
+## DXVK command-recording optimization — 2026-11-02
+
+The Alpha shared pass now binds its sampler and compute shader once per
+stage, then updates only the per-level image resources for each of the seven
+dispatches. This follows WinNative's stage-first shared-pass structure and
+avoids redundant `DxvkContext::bindShader()` calls, which unconditionally
+mark the compute pipeline dirty. No shader math, descriptor mapping,
+dispatch dimensions or resource dependencies changed.
+
+The source change is committed as `ceb481b`. Native build and device
+performance validation are pending; compare CPU PresentImage timings with
+the GPU profiler disabled.
