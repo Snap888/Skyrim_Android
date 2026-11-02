@@ -324,11 +324,13 @@ namespace dxvk {
       m_workerCond.notify_all();
 
     if (!inlineItems.empty()) {
+      m_workerBusy.fetch_add(1);
       const auto start = std::chrono::steady_clock::now();
       for (const auto& item : inlineItems)
         compilePipelines(item);
       const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::steady_clock::now() - start).count();
+      m_workerBusy.fetch_sub(1);
       Logger::info(str::format("DXVK: Synchronous first-use pipeline compile: ",
         inlineItems.size(), " pipeline(s), ", elapsed, " us"));
     }
