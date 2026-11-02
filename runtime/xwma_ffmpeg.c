@@ -1,7 +1,7 @@
 /* xWMA decode via FFmpeg for Skyrim (tag 0x0161 / 0x0162).
  *
- * xWMA data is a sequence of fixed-size compressed packets (block_align).
- * Submit each packet separately, preserving decoder state across packets.
+ * xWMA data is a sequence of block_align compressed packets; the final
+ * packet may be shorter. Preserve decoder state across packet submissions.
  * XAUDIO2_BUFFER_WMA::pDecodedPacketCumulativeBytes is decoded PCM byte
  * accounting (the RIFF dpds table), never compressed input offsets.
  */
