@@ -348,7 +348,17 @@ static void engine_pass(CPU *c, int frames, float *out) {
         uint64_t need = (uint64_t)(frames * v->ratio * (float)v->rate / (float)g_rate) + 2, have = 0;
         for (int k = 0; k < v->qn; k++) { XBuf *b = &v->q[(v->qhead + k) % MAX_QUEUE]; have += b->end - b->pos; }
         cbs[ncb] = v->callback;
-        req[ncb++] = have >= need ? 0 : (uint32_t)((need - have) * (uint64_t)(v->fmt == FMT_ADPCM ? v->block_align / (v->spb ? v->spb : 1) + 1 : v->bpf));
+        /* XAudio2 explicitly reports BytesRequired=0 for xWMA/XMA:
+         * compressed packets do not have a meaningful per-frame byte count. */
+        if (v->fmt == FMT_XWMA) {
+            req[ncb++] = 0;
+        } else {
+            req[ncb++] = have >= need ? 0 :
+                (uint32_t)((need - have) * (uint64_t)
+                    (v->fmt == FMT_ADPCM
+                        ? v->block_align / (v->spb ? v->spb : 1) + 1
+                        : v->bpf));
+        }
     }
     pthread_mutex_unlock(&g_lock);
     for (int i = 0; i < ncb; i++) {
