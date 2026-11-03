@@ -1533,7 +1533,7 @@ extern "C" int snapframe_host_update_settings(int enabled, int flow_scale_percen
         snapframeLog("SnapFrame: live settings queued enabled=%d flow_scale=%u%% (previous=%u%%)\n",
             requestedEnabled, requestedScale, previousScale);
         snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed),
-            "settings_queued", g_width, g_height, "enable_or_flow_scale_changed");
+            "settings_queued", 0, 0, "enable_or_flow_scale_changed");
     }
     return 1;
 }
