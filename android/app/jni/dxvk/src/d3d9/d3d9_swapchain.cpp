@@ -45,6 +45,21 @@ extern "C" void snapframe_dxvk_set_log_hook(SnapFrameLogHook hook) {
   g_snapFrameLogHook.store(hook, std::memory_order_release);
 }
 
+using SnapFrameCanGenerateHook = bool (*)(void);
+using SnapFrameGenerateHook = void* (*)(void*, void*, uint32_t, uint32_t, uint32_t);
+using SnapFramePresentResultHook = void (*)(int);
+static std::atomic<SnapFrameCanGenerateHook> g_snapFrameCanGenerateHook{nullptr};
+static std::atomic<SnapFrameGenerateHook> g_snapFrameGenerateHook{nullptr};
+static std::atomic<SnapFramePresentResultHook> g_snapFramePresentResultHook{nullptr};
+extern "C" void snapframe_dxvk_set_generation_hooks(
+    SnapFrameCanGenerateHook canGenerateHook,
+    SnapFrameGenerateHook generateHook,
+    SnapFramePresentResultHook presentResultHook) {
+  g_snapFrameCanGenerateHook.store(canGenerateHook, std::memory_order_release);
+  g_snapFrameGenerateHook.store(generateHook, std::memory_order_release);
+  g_snapFramePresentResultHook.store(presentResultHook, std::memory_order_release);
+}
+
 using LsfgGenerationCountHook = unsigned (*)(void);
 using LsfgCanGenerateHook = bool (*)(void);
 using LsfgGenerateHook = void* (*)(void*, void*, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
@@ -1057,13 +1072,25 @@ namespace dxvk {
       SubmitPresent(sync, i);
     }
 
-    /* LSFG: append generated presentations after the source frame. */
+    /* Append generated presentations after the source frame. LSFG keeps
+     * priority when its own generator is active; SnapFrame is an independent
+     * fallback and never runs alongside an active LSFG generation pass. */
     const uint32_t lsfgGenerations = g_lsfgGenerationCountHook ? g_lsfgGenerationCountHook() : 0;
     const bool lsfgCanGenerate = lsfgGenerations && g_lsfgCanGenerateHook
                               && g_lsfgCanGenerateHook() && g_lsfgGenerateHook;
-    perfRequested = lsfgCanGenerate ? lsfgGenerations : 0;
-    if (lsfgCanGenerate) {
-      for (uint32_t generation = 0; generation < lsfgGenerations; generation++) {
+    const SnapFrameCanGenerateHook snapFrameCanGenerateHook =
+      g_snapFrameCanGenerateHook.load(std::memory_order_acquire);
+    const SnapFrameGenerateHook snapFrameGenerateHook =
+      g_snapFrameGenerateHook.load(std::memory_order_acquire);
+    const bool snapFrameCanGenerate = !lsfgCanGenerate
+      && snapFrameCanGenerateHook && snapFrameGenerateHook
+      && snapFrameCanGenerateHook();
+    const uint32_t generationCount = lsfgCanGenerate ? lsfgGenerations
+      : (snapFrameCanGenerate ? 1u : 0u);
+    const bool snapFrameGeneration = !lsfgCanGenerate && snapFrameCanGenerate;
+    perfRequested = generationCount;
+    if (generationCount) {
+      for (uint32_t generation = 0; generation < generationCount; generation++) {
         SynchronizePresent();
 
         vk::PresenterInfo generatedInfo = m_presenter->info();
@@ -1086,11 +1113,16 @@ namespace dxvk {
           { 0, 0 },
           { generatedInfo.imageExtent.width, generatedInfo.imageExtent.height } };
 
-        void* generatedOpaque = g_lsfgGenerateHook(
-          m_context.ptr(), m_device.ptr(),
-          generatedInfo.imageExtent.width, generatedInfo.imageExtent.height,
-          static_cast<uint32_t>(generatedInfo.format.format),
-          lsfgGenerations, generation);
+        void* generatedOpaque = lsfgCanGenerate
+          ? g_lsfgGenerateHook(
+              m_context.ptr(), m_device.ptr(),
+              generatedInfo.imageExtent.width, generatedInfo.imageExtent.height,
+              static_cast<uint32_t>(generatedInfo.format.format),
+              lsfgGenerations, generation)
+          : snapFrameGenerateHook(
+              m_context.ptr(), m_device.ptr(),
+              generatedInfo.imageExtent.width, generatedInfo.imageExtent.height,
+              static_cast<uint32_t>(generatedInfo.format.format));
         auto* generatedView = static_cast<Rc<DxvkImageView>*>(generatedOpaque);
 
         const bool generationFailed = generatedView == nullptr || *generatedView == nullptr;
@@ -1119,8 +1151,14 @@ namespace dxvk {
           m_hud->render(m_context, generatedInfo.format, generatedInfo.imageExtent);
 
         SubmitPresent(generatedSync, generation + 1);
+        if (snapFrameGeneration) {
+          const SnapFramePresentResultHook resultHook =
+            g_snapFramePresentResultHook.load(std::memory_order_acquire);
+          if (resultHook) resultHook(generationFailed ? 0 : 1);
+        }
         if (!generationFailed) {
-          hud::addLsfgGeneratedFrame();
+          if (lsfgCanGenerate)
+            hud::addLsfgGeneratedFrame();
           ++perfGenerated;
         }
         if (generationFailed)
