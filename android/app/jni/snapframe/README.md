@@ -68,8 +68,9 @@ failure; collect the complete log through the point where the app exits or
 stops progressing. If the present-path marker appears, the following
 `capture skipped` or allocation diagnostics identify the next failure point.
 
-The module is added to the JNI CMake build as a separate static target. No
-compute shaders or runtime selector have been added yet. The Android native
+The module is added to the JNI CMake build as a separate static target. The
+first GLSL compute shader source and host-side SPIR-V packaging script now
+exist, but no compute pipeline or runtime selector has been added yet. The Android native
 CMake project currently consumes generated DXVK shader headers; it does not
 compile standalone GLSL sources itself. A dedicated, reproducible
 GLSL-to-SPIR-V packaging step must be established before adding the first
@@ -96,6 +97,6 @@ The tool requires `glslangValidator` and `spirv-val` (or explicit
 `android/app/jni/snapframe/generated/snapframe_shaders.h`. Android NDK builds
 consume the generated header and do not need the shader compiler. The shader
 is source/build infrastructure only at this stage: no compute pipeline,
-descriptor binding, dispatch, or runtime output is wired yet. Runtime support
-for sampled source formats and `R16_SFLOAT` storage images must be checked on
-the physical device before dispatch.
+descriptor binding, dispatch, or runtime output is wired yet. The capture host now checks sampled-image support for the actual history
+format before allocating its two images. Runtime support for the source format
+and `R16_SFLOAT` storage images must still be checked before compute dispatch.
