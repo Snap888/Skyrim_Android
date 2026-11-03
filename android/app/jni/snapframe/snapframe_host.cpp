@@ -1417,6 +1417,7 @@ extern "C" void snapframe_config_defaults(SnapFrameConfig *config) {
     config->multiplier = 2;
     config->quality = SNAPFRAME_QUALITY_BALANCED;
     config->flow_scale_percent = 50;
+    config->motion_analysis = 1;
     config->profiling_enabled = 1;
     config->diagnostic_suite = 0;
     config->diagnostic_phase_frames = 1800;
@@ -1471,7 +1472,7 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
     snapframeLog( "SnapFrame: host initialized enabled=%d quality=%d flow_scale=%d%% motion_analysis=%d mode=%s\n",
             validated.enabled, validated.quality, validated.flow_scale_percent,
             g_motionAnalysisEnabled ? 1 : 0,
-            g_motionAnalysisEnabled ? "capture+luma+bidirectional-flow+fb-consistency" : "capture-only");
+            g_motionAnalysisEnabled ? "capture+luma+bidirectional-flow+fb-consistency+midpoint-warp" : "capture-only");
     return 1;
 }
 
