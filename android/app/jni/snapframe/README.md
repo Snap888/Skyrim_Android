@@ -5,7 +5,7 @@ Experimental, independent frame-generation engine for Skyrim_Android.
 **Status: GPU capture, temporal luminance and coarse block-matching motion estimation prototype. No interpolated/generated frames are presented yet.**
 This module is isolated from the existing `lsfg` implementation. It is now
 compiled as a separate host target and has an independent DXVK callback that
-copies the completed game image into a two-image GPU history ring. A first coarse block-matching motion field is estimated from a two-slot luma history; flow refinement, interpolation and generated-frame presentation are not implemented.
+copies the completed game image into a two-image GPU history ring. A first coarse bidirectional block-matching motion pair is estimated from a two-slot luma history; flow refinement, consistency validation, interpolation and generated-frame presentation are not implemented.
 
 ## Goals
 
@@ -18,14 +18,14 @@ copies the completed game image into a two-image GPU history ring. A first coars
 ## Initial algorithm direction
 
 1. Build reduced-resolution luminance pyramids for two consecutive real frames.
-2. Estimate forward and backward motion using coarse-to-fine block matching.
+2. Estimate forward and backward motion using coarse-to-fine block matching. The initial coarse bidirectional pass is implemented; pyramid refinement is pending.
 3. Refine motion locally and calculate forward/backward consistency confidence.
 4. Detect likely disocclusion/occlusion regions and low-confidence vectors.
 5. Warp both source frames toward the requested intermediate timestamp.
 6. Blend valid samples; use conservative spatial fallback where motion is uncertain.
 7. Add temporal stabilization only after the basic pipeline is validated.
 
-This is the target algorithm. Only capture, luma preprocessing and the first coarse block-matching pass are implemented; the remaining stages are not yet measured or implemented. See [DESIGN.md](DESIGN.md) for the staged integration plan.
+This is the target algorithm. Capture, luma preprocessing and a first coarse bidirectional block-matching pass are implemented; the remaining stages are not yet measured or implemented. See [DESIGN.md](DESIGN.md) for the staged integration plan.
 
 ## Current capture + preprocessing test
 
@@ -42,7 +42,7 @@ This is the target algorithm. Only capture, luma preprocessing and the first coa
   ```ini
   enabled=1
   ```
-- This stage captures each real frame, downsamples to R16F luma in a two-slot history ring, and—after two valid frames—runs a coarse block-matching pass into a 1/16-resolution RGBA16F motion field. The pass searches a 9x9 displacement window over 3x3 luma patches and stores motion, best/second-best confidence and matching cost. It does not interpolate or alter presentation. Enabling it adds two full-resolution history images, two half-resolution luma images, one low-resolution motion image, a GPU copy and compute work per real frame. Treat it as a diagnostic test, not a performance mode.
+- This stage captures each real frame, downsamples to R16F luma in a two-slot history ring, and—after two valid frames—runs a coarse block-matching pass into a 1/16-resolution RGBA16F motion field. The pass searches a 9x9 displacement window over 3x3 luma patches and stores motion, best/second-best confidence and matching cost. It does not interpolate or alter presentation. Enabling it adds two full-resolution history images, two half-resolution luma images, two low-resolution motion images, a GPU copy and two motion compute dispatches per real frame. Treat it as a diagnostic test, not a performance mode.
 
 When the game starts, SnapFrame creates a separate diagnostic file at
 `<game-directory>/port/snapframe.log` (truncated for each launch). It records
@@ -67,7 +67,7 @@ When enabled, the diagnostic sequence is:
 6. `two real frames captured` — at least two copies were recorded.
 7. `luma compute resources ready` — the R16F output, sampler and shader were created.
 8. `luma dispatch accepted` — DXVK committed the luma compute pipeline and recorded the dispatch. This confirms command recording, not numeric correctness.
-9. `block-matching flow ready` and `flow dispatch accepted` — the RGBA16F motion output and compute dispatch are available. This still does not validate motion-vector values.
+9. `bidirectional block-matching flow ready` and `bidirectional flow pair accepted` — both RGBA16F motion outputs and both dispatches are available. This still does not validate motion-vector values.
 
 If the log contains only `host initialized` and no `entered D3D9SwapChainEx::PresentImage`,
 the current evidence does not show that the game reached its first D3D9 present.
@@ -133,3 +133,8 @@ The `shaders/block_match_flow.comp` kernel runs after the current frame's luma p
 The motion field is diagnostic/preparatory data only. It is not yet consumed by a warp, occlusion resolver, interpolation pass, or presentation path. The search is intentionally conservative and may fail on repeated textures, disocclusion, thin geometry, particles, and HUD elements. Its GPU cost and numerical output have not yet been measured on device. The output format is queried at runtime; unsupported devices keep capture/luma active and skip motion estimation.
 
 The DXVK helper preserves resource slots 0..2 and the previous compute state around the three-binding motion dispatch. This does not constitute a full synchronization/presentation solution; subsequent stages must explicitly consume the flow image in the same command stream or add a lifetime-safe handoff.
+
+
+### Bidirectional coarse motion (current implementation)
+
+The host allocates two RGBA16F fields for each adjacent-frame pair. Output 0 is current-to-previous (the current-frame sample searches the previous frame); output 1 is previous-to-current (the inputs are reversed). A pair is counted as accepted only when both dispatches are recorded. Both fields are overwritten on the next real-frame pair and are not yet consumed by an interpolation stage. This is a directional pair, not yet a forward/backward consistency test.
