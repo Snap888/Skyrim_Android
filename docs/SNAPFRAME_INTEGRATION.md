@@ -2,7 +2,7 @@
 
 ## Current status
 
-The portable SnapFrame v1 library is pinned and linked into the Android runtime. The existing DXVK-bound implementation in `android/app/jni/snapframe` remains the active GPU path. The portable engine is not yet the owner of frame processing because the concrete DXVK `SnapFrameBackendV1` adapter is still to be implemented.
+The portable SnapFrame v1 library is pinned and linked into the Android runtime. A concrete `SnapFrameBackendV1` adapter now routes DXVK frame callbacks through the portable core and invokes the existing real DXVK GPU pipeline using an opaque native-frame token. The shader algorithms and WSI present hooks remain unchanged. This is a real backend adapter, not a mock. The adapter is currently a single host-level instance; migrating process-global GPU state to per-device adapter objects remains outstanding.
 
 ## Existing GPU path
 
@@ -14,25 +14,27 @@ Keep this implementation intact until a new adapter has output parity and lifecy
 
 Header: `snap_frame/snap_frame.h`.
 
-The portable core owns configuration validation, frame sequencing, bypass/fallback state and host-visible counters. The backend owns device-bound resources, shader dispatch, barriers, synchronization and generated-frame scheduling.
+The portable core owns configuration validation, frame sequencing, bypass/fallback state and host-visible counters. The adapter passes an opaque stack-scoped native-frame token synchronously; it is never retained. The backend delegates GPU resource ownership, shader dispatch, barriers, synchronization and generated-frame scheduling to the existing DXVK host.
 
 API v1 supports multiplier 1 (bypass) and multiplier 2 (one midpoint). The current legacy LSFG menu's x2/x3/x4 values are not interchangeable with SnapFrame v1 multiplier values; do not map x3/x4 into the new API.
 
 ## Backend migration requirements
 
-1. Move resource ownership from process-global variables to per-DXVK-device state.
-2. Map the real DXVK frame callback to `SnapFrameFrameInput` using a monotonically increasing frame id and an opaque native token.
-3. Preserve the existing shader algorithms and resource formats.
-4. Implement `initialize`, `update_config`, `reset_history`, `process_frame` and `shutdown`.
-5. Keep DXVK synchronization and present ownership inside the adapter.
-6. Count a generated frame only after the existing DXVK present hook accepts it.
-7. Reset/release resources before device teardown and rebuild them after device recreation.
-8. Preserve original-frame present as the fallback for every backend error.
+1. **Outstanding:** move resource ownership from process-global variables to per-DXVK-device state.
+2. **Implemented:** map the real DXVK frame callback to `SnapFrameFrameInput` with a monotonic frame id and opaque native token.
+3. **Preserved:** existing shader algorithms and resource formats are unchanged.
+4. **Implemented:** `initialize`, `update_config`, `reset_history`, `process_frame` and `shutdown` are wired through `SnapFrameBackendV1`.
+5. **Preserved:** DXVK synchronization and present ownership remain in the legacy DXVK host.
+6. **Preserved:** generated-frame counters update only after the DXVK present-result hook accepts the generated present. The portable output reports zero at dispatch time because acceptance is asynchronous.
+7. **Preserved:** the device-destroy hook releases old resources; the host adapter rebuilds resources on the next device callback. Per-device engine instances remain outstanding.
+8. **Preserved:** backend errors bypass generated output and leave the real-frame present path intact.
 
 ## Hot settings
 
-The portable core exposes hot enable/config/quality setters. GPU-dependent changes are only genuinely hot if the backend implements `update_config` and applies them at a safe synchronization point. The current legacy host now supports hot enable/disable and flow scale (25–100%): JNI updates atomics and requests a history reset; the serialized DXVK copy callback consumes the request, releases temporal resources and recreates them with the new scale. The UI does not directly mutate Vulkan objects. If a change requires resource recreation, defer it until the GPU is no longer using the old resources.
+The portable core exposes hot enable/config/quality setters. The adapter currently accepts only enable/disable and flow scale (25–100%); it rejects changes to quality, multiplier, motion analysis, profiling and diagnostic fields because those are not wired to the legacy GPU host. JNI updates the portable core config, the adapter forwards validated values to atomics and requests a history reset, and the serialized DXVK copy callback releases/recreates temporal resources with the new scale. The UI does not directly mutate Vulkan objects.
 
 ## Validation
 
-Portable/mock tests do not validate Vulkan dispatch. Real validation requires Android ARM64 build, device execution, GPU timestamp checks, generated-frame acceptance counters and visual comparison against the unchanged legacy path.
+The existing host's asynchronous GPU timestamp queries and CSV logs remain authoritative. `SnapFrameFrameOutput` timing fields are currently zero because legacy timing values arrive asynchronously; generated-frame output is also zero at dispatch time because WSI acceptance is reported later by DXVK. This avoids inventing timing or accepted-frame values.
+
+Portable API tests do not validate Vulkan dispatch. The concrete adapter still requires Android ARM64 compile validation, device execution, GPU timestamp checks, generated-frame acceptance counters and visual comparison against the unchanged pre-adapter path.
