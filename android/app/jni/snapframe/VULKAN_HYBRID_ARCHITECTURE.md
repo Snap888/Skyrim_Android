@@ -60,3 +60,16 @@ A practical future experiment would be a driver-independent spatial upscaler bef
 The follow-up 75% run records a 12.961 ms median total chain (P90 13.833 ms), with forward/backward flow medians of 5.025/5.068 ms. The flow passes remain the dominant cost. This is not a controlled comparison against the previous 16.339 ms run. More importantly, the runtime log still identified the old 9x9/step-2 matcher although source had moved to the 49-candidate 5x5/step-4 plus 5x5-refine matcher. Host-side startup diagnostics and flow boundary accounting have been corrected to match the current shader; a new device build must confirm the actual shader version before any speedup is attributed to the lattice change.
 
 The uploaded run ends partway through phase 2. Large-motion samples occur under the static_scene label and near-zero-motion samples occur near the end of slow_camera_pan, so phase labels are not reliable in this capture. The next test must follow the phase instructions exactly and complete all seven phases. The high-motion samples still frequently hit the +/-10 search boundary; this supports moving to a true multi-level luma pyramid rather than increasing the single-level search radius.
+
+
+### Latest 49-candidate device run and SAD optimization (2026-11-03)
+
+The newest upload confirms the active 49-candidate matcher in the runtime startup log. Phases 1–3 completed at 1,800 frames each with zero skips or dispatch failures; phase 4 reached 1,500/1,800 before the uploaded log ended. Phases 5–7 are not present. The supplied config has 75% flow scale and profiling/motion diagnostics enabled; LSFG is disabled.
+
+The 59 flow snapshots show repeated large motion (roughly 7–8 half-resolution luma texels) and significant +/-10 boundary saturation in nominal phases 1–3. This is consistent with an under-sized single-level search window, but phase labels and measured movement are not fully aligned. A phase-disciplined complete run is still required before judging static-scene or camera-pan quality.
+
+Across 238 valid GPU timing samples per stage, medians are: capture 0.504 ms, luma 0.399 ms, forward flow 5.019 ms, backward flow 5.017 ms, consistency 0.012 ms, midpoint 1.554 ms and total chain 12.706 ms. The two flow passes account for about 79% of the median chain and remain the optimization priority. This is the first confirmed 49-candidate runtime sample, not a controlled A/B against the 89-candidate matcher.
+
+A follow-up shader change adds exact SAD early termination: a candidate's patch evaluation stops only when its partial non-negative SAD is strictly greater than the current second-best complete cost. Such a candidate cannot affect the best match, second-best match or confidence margin. Strict greater-than preserves equal-cost tie behavior. This reduces texture reads on favorable candidate distributions without changing the search result; actual savings require device measurements. Keep the 3x3 patch, 49-candidate lattice, boundary suppression and current-frame fallback unchanged for this comparison.
+
+Next algorithmic work remains a true multi-level luma pyramid for large motion. Do not widen the single-level search radius. Pyramid resource allocation, per-level extents, dispatch barriers and vector scaling must be implemented and validated as a separate change after the SAD early-out has a measured baseline.
