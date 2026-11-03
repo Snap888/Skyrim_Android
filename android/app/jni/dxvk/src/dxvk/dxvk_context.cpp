@@ -1524,6 +1524,8 @@ namespace dxvk {
     const Rc<DxvkShader> previousComputeShader = m_state.cp.shaders.cs;
     const DxvkShaderResourceSlot previousResource0 = m_rc[0];
     const DxvkShaderResourceSlot previousResource1 = m_rc[1];
+    const bool previousResource0Tracked = m_rcTracked.test(0);
+    const bool previousResource1Tracked = m_rcTracked.test(1);
 
     this->bindShader(VK_SHADER_STAGE_COMPUTE_BIT, shader);
     this->bindResourceView(0, sourceView, nullptr);
@@ -1533,8 +1535,8 @@ namespace dxvk {
 
     m_rc[0] = previousResource0;
     m_rc[1] = previousResource1;
-    m_rcTracked.clr(0);
-    m_rcTracked.clr(1);
+    if (previousResource0Tracked) m_rcTracked.set(0); else m_rcTracked.clr(0);
+    if (previousResource1Tracked) m_rcTracked.set(1); else m_rcTracked.clr(1);
     m_flags.set(DxvkContextFlag::CpDirtyResources,
                 DxvkContextFlag::GpDirtyResources);
     this->bindShader(VK_SHADER_STAGE_COMPUTE_BIT, previousComputeShader);
