@@ -565,6 +565,16 @@ namespace dxvk {
       const Rc<DxvkImageView>&    outputView,
             uint32_t              groupsX,
             uint32_t              groupsY);
+    /* Runs block-matching motion estimation between two luma frames. */
+    bool dispatchSnapFrameFlow(
+      const Rc<DxvkShader>&       shader,
+      const Rc<DxvkImageView>&    previousView,
+      const Rc<DxvkImageView>&    currentView,
+      const Rc<DxvkSampler>&      sourceSampler,
+      const Rc<DxvkImageView>&    flowOutputView,
+            uint32_t              groupsX,
+            uint32_t              groupsY);
+
 
     /**
      * rief Flushes pending resource hazards after compute work
