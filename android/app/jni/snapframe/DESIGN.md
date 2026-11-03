@@ -374,3 +374,64 @@ every 600th accepted flow pair during the active suite (every fifth aggregate re
 contains the grid coordinate, forward and backward displacement/confidence/
 matching-cost values, and the consistency mask value. This preserves the
 spatial field for external vector visualization while limiting file growth.
+
+
+## 11. Validation-first implementation status — 2026-11-03
+
+The latest uploaded diagnostic run has completed three full 1,800-frame
+phases and entered the fourth phase, but the log ends around frame 5,640.
+There is no seventh-phase result or `TEST_SUITE_COMPLETE` marker. The
+available flow samples contain no non-finite values, but many vectors reach
+the +/-4 luma-texel search boundary. Boundary saturation is evidence that the
+search range may be insufficient or that matches are ambiguous; it must not
+be interpreted as validated large motion.
+
+The timing CSV reports a large forward/backward asymmetry for the same
+compute kernel and dimensions. Until the Vulkan timestamp query lifecycle
+and timestamp stage placement are audited, per-stage GPU timings are
+diagnostic observations only and must not drive performance tuning. The
+reviewed `snapframe_flow_vectors.csv` was empty, so spatial vector validation
+is blocked until readback completion and output-file handling are verified.
+
+### Required numerical gate before reconstruction
+
+- Verify the asynchronous readback callback is registered at the intended
+  600-pair cadence, reaches its success path, and writes a complete header and
+  rows. Log distinct statuses for staging allocation, command recording,
+  callback completion, map/invalidate, and file write failures.
+- Audit `DxvkGpuQuery`, timestamp writes, query-pool reset, completion
+  callbacks, queue-family timestamp support, and Vulkan timestamp stage
+  semantics. Confirm that both directional dispatches are measured within
+  comparable command-stream boundaries.
+- Add a deterministic validation mode that supplies an identical image pair
+  and translated image pairs with known offsets. Validate zero-motion output,
+  vector sign, scale, confidence and consistency for interior and boundary
+  blocks. Record expected and observed values.
+- Fix the matcher based on ground-truth failures: search-range saturation,
+  low-texture ambiguity, patch boundaries and tie-breaking. Confidence must
+  reflect ambiguity, not just the best/second-best numerical gap.
+- Re-run the same validation set before using flow in a reconstruction pass.
+
+### Reconstruction milestones (not yet implemented)
+
+After the numerical gate passes, implement a separate GPU warp/reconstruction
+prototype for a single midpoint (t=0.5): warp A forward and B backward, sample
+the confidence/validity mask, choose the more reliable source near invalid
+projections, and blend only mutually supported samples. Add a debug output
+that can be read back for offline comparison, but keep normal rendering and
+presentation untouched.
+
+Only after the midpoint output is visually and numerically checked should
+SnapFrame acquire a generated-frame target and integrate presentation. The
+presentation design must explicitly account for WSI image lifetime, queue
+ownership, acquire/present semaphores, frame pacing, resize and device loss.
+The engine selector must remain separate from LSFG, with a safe real-frame
+fallback. LSFG sources and runtime behavior are out of scope for this branch's
+SnapFrame work.
+
+**Current state:** capture, luma preprocessing, bidirectional coarse flow,
+forward/backward consistency and sparse diagnostics are implemented at source
+level. Motion accuracy, shader runtime behavior, reliable per-stage GPU
+timings, midpoint reconstruction and generated-frame presentation remain
+unverified or unimplemented. No APK build or device test was performed for
+this milestone.
