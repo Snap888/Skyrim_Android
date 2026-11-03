@@ -1417,7 +1417,7 @@ extern "C" void snapframe_config_defaults(SnapFrameConfig *config) {
     config->enabled = 0;
     config->multiplier = 2;
     config->quality = SNAPFRAME_QUALITY_BALANCED;
-    config->flow_scale_percent = 50;
+    config->flow_scale_percent = 75;
     config->motion_analysis = 1;
     config->profiling_enabled = 1;
     config->diagnostic_suite = 0;
