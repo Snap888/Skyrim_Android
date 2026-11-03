@@ -387,8 +387,8 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
         }
         if (g_flowAvailable) {
             snapframeLog("SnapFrame: block-matching flow ready output=%ux%u format=RGBA16F search=9x9 patch=3x3 scale=1/16\n",
-                ((width / 2u + width % 2u + 3u) / 4u),
-                ((height / 2u + height % 2u + 3u) / 4u));
+                ((width / 2u + width % 2u + 7u) / 8u),
+                ((height / 2u + height % 2u + 7u) / 8u));
         } else {
             g_flowView = Rc<DxvkImageView>();
             g_flowImage = Rc<DxvkImage>();
@@ -504,20 +504,20 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
         if (dispatched) {
             ++g_lumaDispatchCount;
             if (g_lumaDispatchCount == 1 || (g_lumaDispatchCount % 300u) == 0)
-                snapframeLog("SnapFrame: luma dispatch accepted count=%llu groups=%ux%u\\n",
+                snapframeLog("SnapFrame: luma dispatch accepted count=%llu groups=%ux%u\n",
                     static_cast<unsigned long long>(g_lumaDispatchCount), groupsX, groupsY);
         } else {
             ++g_lumaFailureCount;
             if (g_lumaFailureCount == 1 || (g_lumaFailureCount % 60u) == 0)
-                snapframeLog("SnapFrame: luma dispatch failed count=%llu\\n",
+                snapframeLog("SnapFrame: luma dispatch failed count=%llu\n",
                     static_cast<unsigned long long>(g_lumaFailureCount));
         }
 
         g_lumaValid[slot] = dispatched;
         if (dispatched && g_flowAvailable && g_lumaValid[slot ^ 1u]) {
             const unsigned previousSlot = slot ^ 1u;
-            const uint32_t flowWidth = (lumaWidth + 3u) / 4u;
-            const uint32_t flowHeight = (lumaHeight + 3u) / 4u;
+            const uint32_t flowWidth = (lumaWidth + 7u) / 8u;
+            const uint32_t flowHeight = (lumaHeight + 7u) / 8u;
             const uint32_t flowGroupsX = (flowWidth + 7u) / 8u;
             const uint32_t flowGroupsY = (flowHeight + 7u) / 8u;
             const bool flowDispatched = context->dispatchSnapFrameFlow(
@@ -526,12 +526,12 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
             if (flowDispatched) {
                 ++g_flowDispatchCount;
                 if (g_flowDispatchCount == 1 || (g_flowDispatchCount % 120u) == 0)
-                    snapframeLog("SnapFrame: flow dispatch accepted count=%llu groups=%ux%u\\n",
+                    snapframeLog("SnapFrame: flow dispatch accepted count=%llu groups=%ux%u\n",
                         static_cast<unsigned long long>(g_flowDispatchCount), flowGroupsX, flowGroupsY);
             } else {
                 ++g_flowFailureCount;
                 if (g_flowFailureCount == 1 || (g_flowFailureCount % 30u) == 0)
-                    snapframeLog("SnapFrame: flow dispatch failed count=%llu\\n",
+                    snapframeLog("SnapFrame: flow dispatch failed count=%llu\n",
                         static_cast<unsigned long long>(g_flowFailureCount));
             }
         }
