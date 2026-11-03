@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstdint>
 #include <mutex>
+#include <new>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -74,7 +75,9 @@ void snapframeEvent(uint64_t frame, const char* event, uint32_t width,
 std::atomic<int> g_initialized{0};
 std::atomic<int> g_enabled{0};
 std::atomic<uint64_t> g_capturedFrames{0};
+std::atomic<uint64_t> g_generatedFrames{0};
 std::atomic<uint64_t> g_skippedFrames{0};
+std::atomic<int> g_midpointFrameReady{0};
 std::atomic<uint64_t> g_copyCallbackCalls{0};
 std::atomic<int> g_resetHistoryRequested{0};
 
@@ -1049,6 +1052,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
         clearHistory();
         snapframeLog("SnapFrame: history reset requested; cached GPU resources released\n");
     }
+    g_midpointFrameReady.store(0, std::memory_order_release);
     if (!g_enabled.load(std::memory_order_acquire))
         return;
     const uint64_t callbackCall =
@@ -1230,6 +1234,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
                                     ? "rgba16f_midpoint_image_written" : "dispatch_rejected");
                             if (midpointDispatched) {
                                 ++g_midpointDispatchCount;
+                                g_midpointFrameReady.store(1, std::memory_order_release);
                                 // The following present/composite pass samples this storage output.
                                 context->flushComputeBarriers();
                                 if (g_midpointDispatchCount == 1
@@ -1395,6 +1400,10 @@ extern "C" void snapframe_dxvk_set_copy_hook(
     void (*hook)(void*, void*, void*, uint32_t, uint32_t, uint32_t));
 extern "C" void snapframe_dxvk_set_device_destroy_hook(void (*hook)(void*));
 extern "C" void snapframe_dxvk_set_log_hook(void (*hook)(const char*));
+extern "C" void snapframe_dxvk_set_generation_hooks(
+    bool (*canGenerateHook)(void),
+    void* (*generateHook)(void*, void*, uint32_t, uint32_t, uint32_t),
+    void (*presentResultHook)(int));
 
 extern "C" void snapframe_config_defaults(SnapFrameConfig *config) {
     if (!config) return;
@@ -1436,12 +1445,17 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
 
     g_enabled.store(validated.enabled ? 1 : 0, std::memory_order_release);
     g_capturedFrames.store(0, std::memory_order_relaxed);
+    g_generatedFrames.store(0, std::memory_order_relaxed);
+    g_midpointFrameReady.store(0, std::memory_order_relaxed);
     g_skippedFrames.store(0, std::memory_order_relaxed);
     g_copyCallbackCalls.store(0, std::memory_order_relaxed);
     g_resetHistoryRequested.store(1, std::memory_order_release);
     g_initialized.store(1, std::memory_order_release);
 
     snapframe_dxvk_set_copy_hook(snapframeCopyFrame);
+    snapframe_dxvk_set_generation_hooks(
+        snapframe_host_can_generate, snapframe_host_generate_view,
+        snapframe_host_present_result);
     snapframe_dxvk_set_device_destroy_hook(snapframeDeviceDestroyed);
     snapframe_dxvk_set_log_hook(snapframeForwardDxvkLog);
     snapframeEvent(0, "host_init", 0, 0,
@@ -1461,6 +1475,8 @@ extern "C" void snapframe_host_shutdown(void) {
     g_initialized.store(0, std::memory_order_release);
     g_resetHistoryRequested.store(1, std::memory_order_release);
     snapframe_dxvk_set_copy_hook(nullptr);
+    snapframe_dxvk_set_generation_hooks(nullptr, nullptr, nullptr);
+    g_midpointFrameReady.store(0, std::memory_order_release);
     /* Keep the device-destroy hook registered so owned images are released
      * before DXVK tears down the device allocator. */
 }
@@ -1477,9 +1493,58 @@ extern "C" int snapframe_host_set_enabled(int enabled) {
     return 1;
 }
 
+
+extern "C" bool snapframe_host_can_generate(void) {
+    return snapframe_host_active()
+        && g_midpointAvailable
+        && g_midpointView != nullptr
+        && g_midpointFrameReady.load(std::memory_order_acquire) != 0;
+}
+
+extern "C" void* snapframe_host_generate_view(
+    void* contextPtr, void* devicePtr,
+    uint32_t width, uint32_t height, uint32_t formatValue) {
+    if (!contextPtr || !devicePtr
+        || !snapframe_host_can_generate()
+        || reinterpret_cast<DxvkDevice*>(devicePtr) != g_device
+        || width != g_width || height != g_height
+        || static_cast<VkFormat>(formatValue) != g_format) {
+        g_midpointFrameReady.store(0, std::memory_order_release);
+        snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed),
+            "midpoint_present_rejected", width, height,
+            "missing_ready_image_or_device_extent_format_mismatch");
+        return nullptr;
+    }
+
+    auto* generatedView = new (std::nothrow) Rc<DxvkImageView>(g_midpointView);
+    if (!generatedView) {
+        g_midpointFrameReady.store(0, std::memory_order_release);
+        snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed),
+            "midpoint_present_rejected", width, height, "view_reference_allocation_failed");
+        return nullptr;
+    }
+
+    g_midpointFrameReady.store(0, std::memory_order_release);
+    snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed),
+        "midpoint_present_requested", width, height, "additional_wsi_present_uses_rgba16f_midpoint");
+    return generatedView;
+}
+
+extern "C" void snapframe_host_present_result(int success) {
+    if (success) {
+        g_generatedFrames.fetch_add(1, std::memory_order_relaxed);
+        snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed),
+            "midpoint_present_queued", g_width, g_height, "additional_wsi_present_submitted");
+    } else {
+        snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed),
+            "midpoint_present_failed", g_width, g_height, "fallback_real_frame_presented");
+    }
+}
+
 extern "C" void snapframe_host_get_stats(SnapFrameStats *stats) {
     if (!stats) return;
     memset(stats, 0, sizeof(*stats));
     stats->captured_frames = g_capturedFrames.load(std::memory_order_relaxed);
+    stats->generated_frames = g_generatedFrames.load(std::memory_order_relaxed);
     stats->skipped_frames = g_skippedFrames.load(std::memory_order_relaxed);
 }
