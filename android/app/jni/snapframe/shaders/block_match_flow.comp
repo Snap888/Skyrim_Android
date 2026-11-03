@@ -79,7 +79,7 @@ void main() {
 
     // First search a +/-8 luma-texel window on a 2-texel lattice (9x9).
     // Refine the winning location with a 3x3 full-resolution neighborhood.
-    // This expands the useful range to +/-9 while evaluating 90 candidates,
+    // This expands the useful range to +/-9 while evaluating 89 candidates,
     // close to the old 81-candidate search cost.
     const int coarseRadius = 8;
     const int coarseStep = 2;
