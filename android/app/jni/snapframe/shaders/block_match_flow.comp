@@ -41,7 +41,7 @@ void evaluateCandidate(
         }
     }
 
-    int distanceSquared = dot(motion, motion);
+    int distanceSquared = motion.x * motion.x + motion.y * motion.y;
     if (cost < bestCost) {
         secondCost = bestCost;
         bestCost = cost;
