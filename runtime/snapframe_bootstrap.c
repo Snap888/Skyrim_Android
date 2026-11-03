@@ -14,15 +14,18 @@ void snapframe_bootstrap(void) {
     char gpuLogPath[1200];
     char flowLogPath[1200];
     char flowVectorsLogPath[1200];
+    char eventLogPath[1200];
     snprintf(path, sizeof(path), "%s/port/snapframe.conf", g_game_dir);
     snprintf(logPath, sizeof(logPath), "%s/port/snapframe.log", g_game_dir);
     snprintf(gpuLogPath, sizeof(gpuLogPath), "%s/port/snapframe_gpu.csv", g_game_dir);
     snprintf(flowLogPath, sizeof(flowLogPath), "%s/port/snapframe_flow.csv", g_game_dir);
     snprintf(flowVectorsLogPath, sizeof(flowVectorsLogPath), "%s/port/snapframe_flow_vectors.csv", g_game_dir);
+    snprintf(eventLogPath, sizeof(eventLogPath), "%s/port/snapframe_events.csv", g_game_dir);
     snapframe_host_set_log_path(logPath);
     snapframe_host_set_gpu_log_path(gpuLogPath);
     snapframe_host_set_flow_log_path(flowLogPath);
     snapframe_host_set_flow_vectors_log_path(flowVectorsLogPath);
+    snapframe_host_set_event_log_path(eventLogPath);
     FILE *file = fopen(path, "r");
     if (file) {
         char line[512];
@@ -61,8 +64,8 @@ void snapframe_bootstrap(void) {
     snapframe_host_log("bootstrap entered");
     snapframe_host_init(&config);
     char summary[1400];
-    snprintf(summary, sizeof(summary), "config=%s log=%s gpu_csv=%s flow_csv=%s enabled=%d multiplier=%d quality=%d flow_scale=%d motion_analysis=%d profiling=%d diagnostic_suite=%d phase_frames=%d",
-             path, logPath, gpuLogPath, flowLogPath, config.enabled, config.multiplier,
+    snprintf(summary, sizeof(summary), "config=%s log=%s gpu_csv=%s flow_csv=%s events_csv=%s enabled=%d multiplier=%d quality=%d flow_scale=%d motion_analysis=%d profiling=%d diagnostic_suite=%d phase_frames=%d",
+             path, logPath, gpuLogPath, flowLogPath, eventLogPath, config.enabled, config.multiplier,
              config.quality, config.flow_scale_percent, config.motion_analysis,
              config.profiling_enabled, config.diagnostic_suite, config.diagnostic_phase_frames);
     snapframe_host_log(summary);
