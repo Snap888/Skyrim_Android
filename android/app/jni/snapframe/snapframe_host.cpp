@@ -418,7 +418,7 @@ void recordFlowReadback(
             std::lock_guard<std::mutex> lock(g_flowLogMutex);
             if (g_flowLogFile) {
                 fprintf(g_flowLogFile,
-                    "%llu,%u,%u,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,"
+                    "%llu,%u,%u,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,"
                     "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,"
                     "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%.6f,%.3f,%llu,ok\n",
                     static_cast<unsigned long long>(frame), flowWidth, flowHeight,
