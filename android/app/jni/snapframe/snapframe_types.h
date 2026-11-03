@@ -33,7 +33,7 @@ typedef struct SnapFrameFrameInfo {
 
 typedef struct SnapFrameStats {
     uint64_t captured_frames;
-    uint64_t generated_frames;
+    uint64_t generated_frames; /* Additional WSI presents queued successfully. */
     uint64_t skipped_frames;
     uint64_t invalid_history_frames;
     float preprocess_gpu_ms;
