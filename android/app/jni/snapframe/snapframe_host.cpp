@@ -370,7 +370,10 @@ void recordFlowReadback(
             std::lock_guard<std::mutex> lock(g_flowLogMutex);
             if (g_flowLogFile) {
                 fprintf(g_flowLogFile,
-                    "%llu,%u,%u,0,0,0,0,0,0,0,0,0,0,0,0,0,completion_error:%d\n",
+                    "%llu,%u,%u,"
+                    "0,0,0,0,0,0,0,0,0,0,"
+                    "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"
+                    "0,0,0,completion_error:%d\n",
                     static_cast<unsigned long long>(frame), flowWidth, flowHeight, int(result));
                 fflush(g_flowLogFile);
             }
@@ -381,7 +384,10 @@ void recordFlowReadback(
             std::lock_guard<std::mutex> lock(g_flowLogMutex);
             if (g_flowLogFile) {
                 fprintf(g_flowLogFile,
-                    "%llu,%u,%u,0,0,0,0,0,0,0,0,0,0,0,0,0,readback_mapping_failed\n",
+                    "%llu,%u,%u,"
+                    "0,0,0,0,0,0,0,0,0,0,"
+                    "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"
+                    "0,0,0,readback_mapping_failed\n",
                     static_cast<unsigned long long>(frame), flowWidth, flowHeight);
                 fflush(g_flowLogFile);
             }
