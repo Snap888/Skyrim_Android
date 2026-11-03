@@ -63,6 +63,7 @@ DxvkDevice* g_lumaShaderDevice = nullptr;
 DxvkDevice* g_flowShaderDevice = nullptr;
 bool g_lumaAvailable = false;
 bool g_flowAvailable = false;
+bool g_lumaValid[2] = { false, false };
 uint64_t g_lumaDispatchCount = 0;
 uint64_t g_lumaFailureCount = 0;
 uint64_t g_flowDispatchCount = 0;
@@ -88,6 +89,7 @@ void clearHistory() {
     g_lumaSampler = Rc<DxvkSampler>();
     g_lumaAvailable = false;
     g_flowAvailable = false;
+    g_lumaValid[0] = g_lumaValid[1] = false;
     g_lumaDispatchCount = 0;
     g_lumaFailureCount = 0;
     g_flowDispatchCount = 0;
@@ -289,8 +291,8 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             const VkResult flowImageResult = device->adapter()->imageFormatProperties(
                 flowFormat, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
                 VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 0, flowImageProperties);
-            const uint32_t flowWidth = (lumaWidth + 3u) / 4u;
-            const uint32_t flowHeight = (lumaHeight + 3u) / 4u;
+            const uint32_t flowWidth = (lumaWidth + 7u) / 8u;
+            const uint32_t flowHeight = (lumaHeight + 7u) / 8u;
             const bool flowSupported =
                 (flowProperties.optimalTilingFeatures & flowRequired) == flowRequired
                 && flowImageResult == VK_SUCCESS
@@ -511,7 +513,8 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
                     static_cast<unsigned long long>(g_lumaFailureCount));
         }
 
-        if (g_flowAvailable && g_frameIndex > 0) {
+        g_lumaValid[slot] = dispatched;
+        if (dispatched && g_flowAvailable && g_lumaValid[slot ^ 1u]) {
             const unsigned previousSlot = slot ^ 1u;
             const uint32_t flowWidth = (lumaWidth + 3u) / 4u;
             const uint32_t flowHeight = (lumaHeight + 3u) / 4u;
@@ -553,8 +556,6 @@ void snapframeDeviceDestroyed(void* devicePtr) {
         clearHistory();
         g_lumaShader = Rc<DxvkShader>();
         g_lumaShaderDevice = nullptr;
-        g_flowShader = Rc<DxvkShader>();
-        g_flowShaderDevice = nullptr;
         g_flowShader = Rc<DxvkShader>();
         g_flowShaderDevice = nullptr;
     }
