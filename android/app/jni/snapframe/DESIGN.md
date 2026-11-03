@@ -203,8 +203,11 @@ first PresentImage entry, WSI image usage/format, callback dispatch, and host
 callback entry. The copy-hook pointer is atomically published/read to avoid a
 setter-versus-present data race. These markers distinguish failure to reach
 PresentImage from an unsupported source usage or a history allocation/copy problem. The two history images are allocated only after checking sampled-image support
-for their WSI format. Compute/storage support for the separate `R16_SFLOAT`
-luminance output still needs explicit physical-device validation.
+for their WSI format. The host now also reports `R16_SFLOAT` luminance-output capability: optimal-tiling
+storage and sampled feature bits, the concrete 2D image configuration, the
+`shaderStorageImageExtendedFormats` device feature, and the half-resolution
+extent limits. This is diagnostic only; capture continues even when the
+compute output is unsupported.
 
 The current Android CMake path does not compile standalone GLSL. The Android
 project generator copies generated shader headers from a desktop DXVK Meson
@@ -226,10 +229,10 @@ available in the NDK build.
 - [ ] Build APK and verify the new present-path/callback diagnostics on device.
 - [ ] Confirm two real frames are captured before adding compute work.
 - [x] Check sampled-image support before allocating the WSI-format history images.
-- [ ] Validate `R16_SFLOAT` storage-image support on the target GPU.
+- [x] Add host-side `R16_SFLOAT` storage/sampled-image capability and extent checks (device runtime result still pending).
 - [x] Add first luminance downsample GLSL source and a host-side GLSL-to-SPIR-V header generator.
 - [ ] Run glslangValidator + spirv-val and commit the generated SPIR-V header.
-- [ ] Implement format-capability checks, compute pipeline/descriptor setup, and first dispatch.
+- [ ] Implement compute pipeline/descriptor setup and first checked dispatch; verify the capability diagnostic on the target GPU.
 - [ ] Implement motion estimation and reconstruction.
 - [ ] Add runtime selector and safe presentation integration.
 - [ ] Run device A/B tests and tune.
