@@ -389,9 +389,7 @@ be interpreted as validated large motion.
 The timing CSV reports a large forward/backward asymmetry for the same
 compute kernel and dimensions. Until the Vulkan timestamp query lifecycle
 and timestamp stage placement are audited, per-stage GPU timings are
-diagnostic observations only and must not drive performance tuning. The
-reviewed `snapframe_flow_vectors.csv` was empty, so spatial vector validation
-is blocked until readback completion and output-file handling are verified.
+diagnostic observations only and must not drive performance tuning. The `snapframe_flow_vectors.csv` blob exists in the uploaded Git tree (7,866,563 bytes), so it is not empty. The connector did not expose its full contents because of the large blob; numerical inspection of the rows remains outstanding.
 
 ### Required numerical gate before reconstruction
 
