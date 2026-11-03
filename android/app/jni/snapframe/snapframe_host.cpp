@@ -99,7 +99,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
     const uint64_t callbackCall =
         g_copyCallbackCalls.fetch_add(1, std::memory_order_relaxed) + 1;
     if (callbackCall == 1)
-        fprintf(stderr, "SnapFrame: host copy callback entered\\n");
+        fprintf(stderr, "SnapFrame: host copy callback entered\n");
     if (g_resetHistoryRequested.exchange(0, std::memory_order_acq_rel))
         clearHistory();
 
