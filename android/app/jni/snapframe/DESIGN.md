@@ -433,3 +433,20 @@ level. Motion accuracy, shader runtime behavior, reliable per-stage GPU
 timings, midpoint reconstruction and generated-frame presentation remain
 unverified or unimplemented. No APK build or device test was performed for
 this milestone.
+
+
+### Flow-grid scale limitation
+
+The current `flow_scale_percent` setting is parsed, clamped and reported, but
+it is not yet applied to flow-image dimensions or shader sampling geometry.
+The current matcher remains fixed at one output texel per 8x8 half-resolution
+luma region (16x16 source pixels). A logged value of 50% must therefore not be
+interpreted as a half-density flow grid or a measured 50% workload reduction.
+
+The scale control will be implemented together with a consistent mapping in
+both the block matcher and forward/backward consistency shader. That change
+must update allocation extents, dispatch dimensions, readback sizes, boundary
+handling and the luma-to-flow coordinate transform as one unit. Do not change
+only the output image extent: the current shader has a hard-coded 8-texel
+stride, and doing so would produce incorrect vector locations and consistency
+projections.
