@@ -2,7 +2,7 @@
 
 ## Current status
 
-The portable Snap AI Engine is fetched at a pinned upstream commit and linked into the Android game runtime. The AI controller is not yet connected to live SnapFrame telemetry or DXVK dispatch decisions. No AI-controlled GPU savings are claimed.
+The portable Snap AI Engine is fetched at a pinned upstream commit, built as a separate Android shared library, explicitly loaded before the game runtime, and its API version is checked/logged during SnapFrame bootstrap. The AI controller is not yet instantiated as an active policy loop or connected to live SnapFrame telemetry/DXVK dispatch decisions. No AI-controlled GPU savings are claimed.
 
 Upstream source: `Snap888/Snap_AI_Engine`, commit `f60acfcb7b09722d5927215957c46045b11f7897`.
 
