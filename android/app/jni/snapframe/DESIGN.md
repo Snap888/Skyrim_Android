@@ -87,10 +87,10 @@ The host API and DXVK capture backend exist. The first GLSL preprocessing
 kernel now has an R16F output allocation, sampler, DXVK compute shader/pipeline
 registration, and a state-preserving dispatch helper on the active command
 list. This validates GPU preprocessing, bidirectional coarse motion, consistency,
-and an initial internal midpoint color-warp compute stage. The profiler and
-sparse diagnostics are present. The midpoint output is not yet presented as an
-additional WSI frame; robust pyramid refinement, occlusion handling and
-frame-pacing integration remain pending.
+an initial midpoint color-warp compute stage, and a DXVK additional-WSI-present
+hook. The profiler and sparse diagnostics are present. The path still needs a
+full native build and on-device validation; robust pyramid refinement,
+occlusion handling and pacing measurements remain pending.
 
 ## 4. Integration plan
 
@@ -292,10 +292,10 @@ evidence that the GPU produced numerically correct luminance values.
 
 A two-slot R16F luma history now feeds `shaders/block_match_flow.comp`. The flow field is stored at 1/16 source resolution in RGBA16F and contains displacement in half-resolution luma texels, a best/second-best SAD confidence estimate, and normalized matching cost. The 9x9 search over 3x3 patches is intentionally a first baseline, not production optical flow. Runtime checks gate the RGBA16F storage image; if unsupported, capture and luma preprocessing remain active.
 
-The DXVK flow dispatch binds previous luma, current luma and one output image in slots 0..2, preserving all three prior resource slots and compute state. The host records two dispatches for each adjacent-frame pair: current-to-previous and previous-to-current, into separate RGBA16F images. A pair is counted only when both dispatches are accepted. The host dispatches only when both temporal luma slots are valid and the current luma dispatch was accepted. No generated frame is reconstructed or presented yet. The device test must check for `bidirectional flow pair accepted`; that confirms command recording for both directions, not numerical motion-field correctness. Sparse GPU readback now records aggregate flow/mask statistics and periodic per-cell vectors; inspect those outputs before trusting vector values.
+The DXVK flow dispatch binds previous luma, current luma and one output image in slots 0..2, preserving all three prior resource slots and compute state. The host records two dispatches for each adjacent-frame pair: current-to-previous and previous-to-current, into separate RGBA16F images. A pair is counted only when both dispatches are accepted. The host dispatches only when both temporal luma slots are valid and the current luma dispatch was accepted. The adjacent-frame fields now feed the consistency and midpoint-warp passes; a valid midpoint is handed to the additional WSI-present loop. The device test must check for `bidirectional flow pair accepted`; that confirms command recording for both directions, not numerical motion-field correctness. Sparse GPU readback now records aggregate flow/mask statistics and periodic per-cell vectors; inspect those outputs before trusting vector values.
 
 
-The two directional fields are preparatory inputs for the next consistency pass. They are not yet checked against one another, confidence is only a local best-versus-second-best SAD separation, and no occlusion/disocclusion classification is performed. The motion images are reused for each subsequent adjacent-frame pair; any later interpolation consumer must read them before the next pair overwrites them or introduce an explicit per-frame lifetime/ring.
+The two directional fields feed the forward/backward consistency pass and midpoint warp. Confidence remains a local best-versus-second-best SAD estimate attenuated by cycle consistency; there is no robust occlusion/disocclusion classifier yet. The motion images are reused for each subsequent adjacent-frame pair, and the midpoint warp consumes them in the same command list before they are overwritten.
 
 
 ## 8. Implemented forward/backward consistency milestone
@@ -309,9 +309,9 @@ cycle-closure error, and attenuates the result using local match confidence.
 
 This is only a first confidence/validity estimate. It is not a full occlusion
 or disocclusion classifier, and it has not been numerically validated against
-ground truth. No warping, interpolation, HUD composition, or generated-frame
-presentation is included. Device shader compilation and APK build have not
-been run as part of this change.
+ground truth. The midpoint warp now consumes this mask, and DXVK queues one
+additional WSI present when the output is valid; the native APK build and
+device-side visual validation remain outstanding.
 
 Next validation gate:
 1. Build the generated SPIR-V header with glslangValidator and spirv-val.
@@ -543,9 +543,9 @@ when a run terminates or one of the compute stages stops progressing.
 
 The event timeline reports command recording/dispatch acceptance, not GPU
 completion or numerical correctness. Existing timestamp and sparse readback
-logs remain necessary for GPU timing and motion-field validation. The branch
-still has no midpoint reconstruction or generated-frame presentation; this
-diagnostic change does not make frame generation active.
+logs remain necessary for GPU timing and motion-field validation. The event timeline now includes midpoint resource/dispatch and additional-present
+request/result markers. The diagnostic change itself does not validate pixel
+quality or guarantee that the generated image reaches scan-out.
 
 ## 14. Midpoint color-warp compute stage — 2026-11-03
 
