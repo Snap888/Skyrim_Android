@@ -99,7 +99,8 @@ The first SnapFrame compute source is
 for odd source dimensions.
 
 To build the compute test manually, make sure the build host has Python 3,
-`glslangValidator`, and `spirv-val`. CMake invokes
+`glslangValidator`, and `spirv-val`.
+On Ubuntu/Debian, install the tools with `sudo apt-get install glslang-tools spirv-tools`. CMake invokes
 `tools/compile_snapframe_shaders.py` automatically during configure and emits
 `generated/snapframe_shaders.h`; the NDK build then consumes this header and
 does not need the shader tools. The standalone command is also available:
