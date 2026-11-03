@@ -294,3 +294,27 @@ The DXVK flow dispatch binds previous luma, current luma and one output image in
 
 
 The two directional fields are preparatory inputs for the next consistency pass. They are not yet checked against one another, confidence is only a local best-versus-second-best SAD separation, and no occlusion/disocclusion classification is performed. The motion images are reused for each subsequent adjacent-frame pair; any later interpolation consumer must read them before the next pair overwrites them or introduce an explicit per-frame lifetime/ring.
+
+
+## 8. Implemented forward/backward consistency milestone
+
+The current branch now contains a GPU consistency kernel in
+`shaders/flow_consistency.comp`, a dedicated DXVK dispatch helper, runtime
+R16F output allocation, shader registration, and host-side dispatch/failure
+counters. The pass samples the current-to-previous and previous-to-current
+RGBA16F fields, follows the forward vector to the reverse field, computes the
+cycle-closure error, and attenuates the result using local match confidence.
+
+This is only a first confidence/validity estimate. It is not a full occlusion
+or disocclusion classifier, and it has not been numerically validated by
+readback or visualization. No warping, interpolation, HUD composition, or
+generated-frame presentation is included. Device shader compilation and APK
+build have not been run as part of this change.
+
+Next validation gate:
+1. Build the generated SPIR-V header with glslangValidator and spirv-val.
+2. Build the Android APK locally and run it on the target Adreno device.
+3. Confirm `forward/backward consistency accepted` increments with no failures.
+4. Add a debug visualization/readback path to inspect the R16F mask and both
+   motion directions on controlled static, pan, and moving-object scenes.
+5. Only after numeric validation, use the mask in a two-sided warp prototype.

@@ -2,10 +2,10 @@
 
 Experimental, independent frame-generation engine for Skyrim_Android.
 
-**Status: GPU capture, temporal luminance and coarse block-matching motion estimation prototype. No interpolated/generated frames are presented yet.**
+**Status: GPU capture, temporal luminance, bidirectional coarse motion estimation, and an initial forward/backward consistency compute pass. No interpolated/generated frames are presented yet; numerical correctness and device performance remain unverified.**
 This module is isolated from the existing `lsfg` implementation. It is now
 compiled as a separate host target and has an independent DXVK callback that
-copies the completed game image into a two-image GPU history ring. A first coarse bidirectional block-matching motion pair is estimated from a two-slot luma history; flow refinement, consistency validation, interpolation and generated-frame presentation are not implemented.
+copies the completed game image into a two-image GPU history ring. A first coarse bidirectional block-matching motion pair is estimated from a two-slot luma history; pyramid refinement, occlusion handling, interpolation and generated-frame presentation are not implemented.
 
 ## Goals
 
@@ -25,7 +25,7 @@ copies the completed game image into a two-image GPU history ring. A first coars
 6. Blend valid samples; use conservative spatial fallback where motion is uncertain.
 7. Add temporal stabilization only after the basic pipeline is validated.
 
-This is the target algorithm. Capture, luma preprocessing and a first coarse bidirectional block-matching pass are implemented; the remaining stages are not yet measured or implemented. See [DESIGN.md](DESIGN.md) for the staged integration plan.
+This is the target algorithm. Capture, luma preprocessing, bidirectional block matching and a first forward/backward consistency mask are implemented as GPU dispatches; the values have not yet been read back or visually validated. Pyramid refinement, occlusion handling, interpolation and presentation remain unimplemented. See [DESIGN.md](DESIGN.md) for the staged integration plan.
 
 ## Current capture + preprocessing test
 
@@ -141,3 +141,26 @@ The host allocates two RGBA16F fields for each adjacent-frame pair. Output 0 is 
 
 
 The block matcher rejects candidate patches that leave the previous-frame bounds instead of clamping samples to the edge. The current patch center is kept inside the valid image region. This avoids artificial edge matches; edge vectors can still be less constrained and remain unvalidated until the consistency/readback stage.
+
+
+### Forward/backward consistency pass (new, unvalidated)
+
+After both directional block-matching dispatches have been recorded, SnapFrame
+runs `shaders/flow_consistency.comp`. It projects each current-to-previous
+vector into the reverse field, evaluates the forward/backward cycle error,
+and combines that error with the two local match-confidence values. The result
+is a reduced-resolution R16F soft validity mask. Values near 1 indicate a
+mutually consistent pair of local matches; values near 0 are rejected.
+
+The pass is intentionally conservative and is not a complete occlusion
+classifier. It cannot reliably distinguish all disocclusions from repeated
+textures, low-texture regions, animated foliage, particles, or HUD motion.
+The R16F mask is currently diagnostic/preparatory data only: no interpolation
+shader consumes it and no intermediate frame is presented. A dispatch being
+accepted proves only that DXVK recorded the compute work, not that the mask
+contains correct values.
+
+The host allocates the mask only when the luma and bidirectional flow stages
+are available. It is generated on the same active DXVK command list after
+both flow dispatches. The DXVK helper preserves compute state and resource
+slots 0..2. The shader compiler/validator list includes this third kernel.

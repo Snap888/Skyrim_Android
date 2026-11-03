@@ -426,6 +426,11 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             g_flowView[1] = Rc<DxvkImageView>();
             g_flowImage[0] = Rc<DxvkImage>();
             g_flowImage[1] = Rc<DxvkImage>();
+            g_consistencyView = Rc<DxvkImageView>();
+            g_consistencyImage = Rc<DxvkImage>();
+            g_consistencyAvailable = false;
+            g_consistencyShader = Rc<DxvkShader>();
+            g_consistencyShaderDevice = nullptr;
             snapframeLog("SnapFrame: exception while creating luma/flow compute resources\n");
         }
         if (g_lumaAvailable) {
@@ -714,7 +719,7 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
     snapframe_dxvk_set_copy_hook(snapframeCopyFrame);
     snapframe_dxvk_set_device_destroy_hook(snapframeDeviceDestroyed);
     snapframe_dxvk_set_log_hook(snapframeForwardDxvkLog);
-    snapframeLog( "SnapFrame: host initialized enabled=%d quality=%d flow_scale=%d%% mode=capture+luma-preprocess-test\n",
+    snapframeLog( "SnapFrame: host initialized enabled=%d quality=%d flow_scale=%d%% mode=capture+luma+bidirectional-flow+fb-consistency-test\n",
             validated.enabled, validated.quality, validated.flow_scale_percent);
     return 1;
 }
