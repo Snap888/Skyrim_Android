@@ -1,9 +1,9 @@
 
-===== skyrim-lsfg session 2026-11-03 21:06:14 =====
-21:06:14 [I] config enabled=0 mult=2 flow=0.70 perf=0
-21:06:14 [I] dll=/data/user/0/com.tj.skyrim/files/lsfg/Lossless.dll
-21:06:14 [I] cache=/data/user/0/com.tj.skyrim/no_backup/lsfg/cache
-21:06:14 [I] DXVK state cache=/data/user/0/com.tj.skyrim/no_backup/lsfg/dxvk
-21:06:14 [I] === LSFG host init ===
-21:06:14 [I] STATUS: step1 extract + step2 SPIR-V + step3 present hook
-21:06:14 [I] LSFG disabled in config (enabled=0 mult=2)
+===== skyrim-lsfg session 2026-11-03 22:01:18 =====
+22:01:18 [I] config enabled=0 mult=2 flow=0.70 perf=0
+22:01:18 [I] dll=/data/user/0/com.tj.skyrim/files/lsfg/Lossless.dll
+22:01:18 [I] cache=/data/user/0/com.tj.skyrim/no_backup/lsfg/cache
+22:01:18 [I] DXVK state cache=/data/user/0/com.tj.skyrim/no_backup/lsfg/dxvk
+22:01:18 [I] === LSFG host init ===
+22:01:18 [I] STATUS: step1 extract + step2 SPIR-V + step3 present hook
+22:01:18 [I] LSFG disabled in config (enabled=0 mult=2)
