@@ -220,9 +220,7 @@ does not establish accuracy across the scene.
 The GPU timing CSV reports very different times for the forward and backward
 dispatches even though both use the same kernel and workload. Timestamp
 results are therefore provisional until the DXVK/Vulkan query stages, query
-availability and command-list completion ordering are verified. The spatial
-vector CSV was empty in the reviewed upload; the callback/write path must be
-verified before relying on the spatial samples.
+availability and command-list completion ordering are verified. The spatial vector CSV exists in the uploaded Git tree (7,866,563 bytes), so it is not empty. The connector did not expose its full contents because of the large blob; numerical inspection of the vector rows remains outstanding.
 
 ### Implementation order from this gate
 
