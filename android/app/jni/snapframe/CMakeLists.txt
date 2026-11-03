@@ -1,4 +1,4 @@
-# Experimental SnapFrame host + DXVK capture prototype.
+# SnapFrame DXVK capture host and first luma preprocessing compute test.
 add_library(snapframe_host STATIC
     snapframe_host.cpp
 )
