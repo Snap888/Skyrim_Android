@@ -54,6 +54,37 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
         return false;
     }
 
+    // The first preprocessing kernel writes half-resolution R16F luminance.
+    // Check both format feature bits and the concrete image configuration before
+    // attempting to create that output. Capture remains usable if compute is not.
+    const VkFormatProperties lumaFormatProperties =
+        device->adapter()->formatProperties(VK_FORMAT_R16_SFLOAT);
+    const VkFormatFeatureFlags requiredLumaFeatures =
+        VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+    VkImageFormatProperties lumaImageProperties{};
+    const VkResult lumaImageResult = device->adapter()->imageFormatProperties(
+        VK_FORMAT_R16_SFLOAT,
+        VK_IMAGE_TYPE_2D,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        0,
+        lumaImageProperties);
+    const bool lumaExtendedFormatsEnabled =
+        device->features().core.features.shaderStorageImageExtendedFormats;
+    const bool lumaFormatSupported =
+        (lumaFormatProperties.optimalTilingFeatures & requiredLumaFeatures)
+            == requiredLumaFeatures
+        && lumaImageResult == VK_SUCCESS
+        && lumaExtendedFormatsEnabled
+        && ((width + 1u) / 2u) <= lumaImageProperties.maxExtent.width
+        && ((height + 1u) / 2u) <= lumaImageProperties.maxExtent.height;
+    fprintf(stderr,
+            "SnapFrame: R16F luma output %s (features=0x%x imageResult=%d extendedFormats=%d)\\n",
+            lumaFormatSupported ? "supported" : "unsupported",
+            static_cast<unsigned>(lumaFormatProperties.optimalTilingFeatures),
+            static_cast<int>(lumaImageResult),
+            lumaExtendedFormatsEnabled ? 1 : 0);
+
     for (unsigned i = 0; i < 2; ++i) {
         DxvkImageCreateInfo imageInfo{};
         imageInfo.type = VK_IMAGE_TYPE_2D;
