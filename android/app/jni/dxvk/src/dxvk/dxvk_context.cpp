@@ -1606,24 +1606,26 @@ namespace dxvk {
     const Rc<DxvkShader>&       shader,
     const Rc<DxvkImageView>&    currentToPreviousView,
     const Rc<DxvkImageView>&    previousToCurrentView,
+    const Rc<DxvkImageView>&    referenceLumaView,
     const Rc<DxvkSampler>&      sourceSampler,
     const Rc<DxvkImageView>&    consistencyOutputView,
           uint32_t              groupsX,
           uint32_t              groupsY) {
     if (shader == nullptr || currentToPreviousView == nullptr
-     || previousToCurrentView == nullptr || sourceSampler == nullptr
-     || consistencyOutputView == nullptr || !groupsX || !groupsY)
+     || previousToCurrentView == nullptr || referenceLumaView == nullptr
+     || sourceSampler == nullptr || consistencyOutputView == nullptr
+     || !groupsX || !groupsY)
       return false;
 
     const DxvkComputePipelineState previousComputeState = m_state.cp;
     const DxvkContextFlags previousFlags = m_flags;
     const VkPipeline previousComputePipeline = m_cpActivePipeline;
     const VkDescriptorSet previousComputeSet = m_cpSet;
-    const DxvkShaderResourceSlot previousResources[3] = {
-      m_rc[0], m_rc[1], m_rc[2],
+    const DxvkShaderResourceSlot previousResources[4] = {
+      m_rc[0], m_rc[1], m_rc[2], m_rc[3],
     };
-    const bool previousTracked[3] = {
-      m_rcTracked.test(0), m_rcTracked.test(1), m_rcTracked.test(2),
+    const bool previousTracked[4] = {
+      m_rcTracked.test(0), m_rcTracked.test(1), m_rcTracked.test(2), m_rcTracked.test(3),
     };
 
     this->bindShader(VK_SHADER_STAGE_COMPUTE_BIT, shader);
@@ -1632,9 +1634,11 @@ namespace dxvk {
     this->bindResourceView(1, previousToCurrentView, Rc<DxvkBufferView>());
     this->bindResourceSampler(1, sourceSampler);
     this->bindResourceView(2, consistencyOutputView, Rc<DxvkBufferView>());
+    this->bindResourceView(3, referenceLumaView, Rc<DxvkBufferView>());
+    this->bindResourceSampler(3, sourceSampler);
     const bool dispatched = this->dispatchChecked(groupsX, groupsY, 1);
 
-    for (uint32_t i = 0; i < 3; i++) {
+    for (uint32_t i = 0; i < 4; i++) {
       m_rc[i] = previousResources[i];
       if (previousTracked[i]) m_rcTracked.set(i); else m_rcTracked.clr(i);
     }
