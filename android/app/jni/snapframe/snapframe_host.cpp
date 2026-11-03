@@ -1319,6 +1319,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
     }
     g_midpointFrameReady.store(0, std::memory_order_release);
 
+    const uint64_t skippedBefore = g_skippedFrames.load(std::memory_order_relaxed);
     const int adapterResult = snapframe_engine_adapter_process_frame(
         contextPtr, sourceViewPtr, devicePtr, width, height, formatValue);
     if (adapterResult == 0) {
@@ -1326,7 +1327,8 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
         snapframeCopyFrameImpl(contextPtr, sourceViewPtr, devicePtr,
             width, height, formatValue);
     } else if (adapterResult < 0) {
-        g_skippedFrames.fetch_add(1, std::memory_order_relaxed);
+        if (g_skippedFrames.load(std::memory_order_relaxed) == skippedBefore)
+            g_skippedFrames.fetch_add(1, std::memory_order_relaxed);
         snapframeLog("SnapFrame: portable backend failed; presenting real frame only\\n");
     }
 }
