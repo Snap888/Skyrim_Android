@@ -83,6 +83,16 @@ DxvkDevice* g_consistencyShaderDevice = nullptr;
 bool g_lumaAvailable = false;
 bool g_flowAvailable = false;
 bool g_consistencyAvailable = false;
+uint32_t g_flowScalePercent = 50;
+
+uint32_t flowBlockStride() {
+    return (800u + g_flowScalePercent - 1u) / g_flowScalePercent;
+}
+
+uint32_t flowExtent(uint32_t lumaExtent) {
+    const uint32_t stride = flowBlockStride();
+    return (lumaExtent + stride - 1u) / stride;
+}
 bool g_lumaValid[2] = { false, false };
 uint64_t g_lumaDispatchCount = 0;
 uint64_t g_lumaFailureCount = 0;
@@ -712,8 +722,8 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             const VkResult flowImageResult = device->adapter()->imageFormatProperties(
                 flowFormat, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
                 VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 0, flowImageProperties);
-            const uint32_t flowWidth = (lumaWidth + 7u) / 8u;
-            const uint32_t flowHeight = (lumaHeight + 7u) / 8u;
+            const uint32_t flowWidth = flowExtent(lumaWidth);
+            const uint32_t flowHeight = flowExtent(lumaHeight);
             const bool flowSupported =
                 (flowProperties.optimalTilingFeatures & flowRequired) == flowRequired
                 && flowImageResult == VK_SUCCESS
@@ -794,13 +804,14 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                             { 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
                             { 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
                             { 2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_WRITE_BIT },
+                            { 3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
                         };
                         DxvkInterfaceSlots consistencyIface{};
                         SpirvCodeBuffer consistencyCode(
                             snapframe::shaders::k_flow_consistency_word_count,
                             snapframe::shaders::k_flow_consistency);
                         g_consistencyShader = device->createShader(
-                            VK_SHADER_STAGE_COMPUTE_BIT, 3, consistencySlots,
+                            VK_SHADER_STAGE_COMPUTE_BIT, 4, consistencySlots,
                             consistencyIface, consistencyCode);
                     }
                     g_consistencyAvailable = g_consistencyImage != nullptr
@@ -858,9 +869,10 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             snapframeLog("SnapFrame: luma compute resource creation failed; capture remains active\n");
         }
         if (g_flowAvailable) {
-            snapframeLog("SnapFrame: bidirectional block-matching flow ready outputs=2 extent=%ux%u format=RGBA16F search=9x9 patch=3x3 scale=1/16\n",
-                ((width / 2u + width % 2u + 7u) / 8u),
-                ((height / 2u + height % 2u + 7u) / 8u));
+            snapframeLog("SnapFrame: bidirectional block-matching flow ready outputs=2 extent=%ux%u format=RGBA16F search=9x9 patch=3x3 flow_scale=%u%% block_stride=%u luma_texels\n",
+                flowExtent(width / 2u + width % 2u),
+                flowExtent(height / 2u + height % 2u),
+                g_flowScalePercent, flowBlockStride());
         } else {
             g_flowView[0] = Rc<DxvkImageView>();
             g_flowView[1] = Rc<DxvkImageView>();
@@ -1006,8 +1018,8 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
         g_lumaValid[slot] = dispatched;
         if (dispatched && g_flowAvailable && g_lumaValid[slot ^ 1u]) {
             const unsigned previousSlot = slot ^ 1u;
-            const uint32_t flowWidth = (lumaWidth + 7u) / 8u;
-            const uint32_t flowHeight = (lumaHeight + 7u) / 8u;
+            const uint32_t flowWidth = flowExtent(lumaWidth);
+            const uint32_t flowHeight = flowExtent(lumaHeight);
             const uint32_t flowGroupsX = (flowWidth + 7u) / 8u;
             const uint32_t flowGroupsY = (flowHeight + 7u) / 8u;
             // Slot 0 stores current->previous; slot 1 stores previous->current.
@@ -1040,7 +1052,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
                     const bool consistencyDispatched =
                         context->dispatchSnapFrameConsistency(
                             g_consistencyShader, g_flowView[0], g_flowView[1],
-                            g_lumaSampler, g_consistencyView,
+                            g_lumaView[slot], g_lumaSampler, g_consistencyView,
                             (flowWidth + 7u) / 8u, (flowHeight + 7u) / 8u);
                     if (consistencyDispatched && profileThisFrame) context->flushComputeBarriers();
                     endGpuTimer(context, consistencyTimer);
@@ -1210,6 +1222,7 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
         validated.flow_scale_percent = 100;
     if (validated.diagnostic_phase_frames < 300) validated.diagnostic_phase_frames = 300;
     if (validated.diagnostic_phase_frames > 36000) validated.diagnostic_phase_frames = 36000;
+    g_flowScalePercent = static_cast<uint32_t>(validated.flow_scale_percent);
     g_motionAnalysisEnabled = validated.motion_analysis != 0;
     g_diagnosticSuiteEnabled = validated.diagnostic_suite != 0 && g_motionAnalysisEnabled;
     if (validated.diagnostic_suite != 0 && !g_motionAnalysisEnabled)
