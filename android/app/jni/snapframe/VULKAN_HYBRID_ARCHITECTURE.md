@@ -95,3 +95,21 @@ The 355-sample GPU CSV reports median/P90 ms: capture 0.523/0.640, luma 0.400/0.
 The 88 flow snapshots show continued large-motion clipping: peak forward boundary saturation is 2,418/5,600 cells (43.2%) at frame 5,881, with confidence 0.0432 and 0.143% consistency >0.5. Frame 9,121 reaches 2,250/5,600 boundary cells (40.2%). Near-static snapshots still reach near-perfect confidence/consistency. Keep the current boundary suppression and real-frame fallback; do not increase the single-level radius.
 
 The implementation currently has one half-resolution luma image per history slot. `luma_downsample.comp` is the initial 2x reduction, not a multi-level pyramid. The next algorithmic stage requires per-slot level resources, downsample dispatches and explicit barriers, coarse-to-fine vector propagation with scale conversion, and matching forward/backward consistency units. Preserve the existing single-level path as fallback until deterministic identical-frame and known-translation tests validate every level. The latest upload does not establish a controlled device benefit for center-first SAD evaluation order.
+
+
+
+## Device validation update — 2026-11-04 (LSFG disabled, 75% flow)
+
+Branch upload: `fa63892031d9e80a852dc96dc9948ab45268448a`.
+
+The active test configuration is SnapFrame enabled, 75% flow scale, 2448x1080 capture, 112x50 motion grid and Turnip Gen8 V38. LSFG is explicitly disabled in both `Logs/lsfg.conf` and `Logs/lsfg.log`; the LSFG GPU profile is disabled and its CSV reports `profiling_disabled`. This run therefore isolates SnapFrame. The DXVK perf log also labels the run `lsfg_off`.
+
+Five diagnostic phases completed 1,800 frames each with no reported skipped frames or dispatch failures. Phase 6 reached about 1,680/1,800 frames; phase 7 and suite completion are absent. The aggregate flow CSV contains 89 snapshots. Forward-flow boundary saturation peaks at 2,862/5,600 cells (51.1%) at frame 7,201; confidence is 0.0367 and consistency >0.5 is 0.375%. Near-static samples still reach approximately 0.994–0.996 confidence and 99.4–99.6% consistency. This again identifies the single-level +/-10 search range as the large-displacement limitation, not a general failure on static imagery.
+
+GPU timing medians/P90 are: capture 0.582/0.703 ms, luma 0.401/0.459 ms, forward flow 4.321/5.274 ms, backward flow 4.345/5.407 ms, consistency 0.012/0.014 ms, midpoint 1.554/1.788 ms and total chain 11.261/13.343 ms. The two flow passes account for roughly 77% of the median chain. Relative to the previous upload, this is a small increase (about 1.4% total), not a controlled regression or a basis for attributing performance to center-first SAD ordering.
+
+The DXVK performance CSV reports CPU-side Present timing (median 37.77 ms, P90 43.64 ms), which is distinct from GPU timestamps and has substantial outliers. Its generated-request/queued fields remain near 1 despite LSFG being disabled; these fields must not be treated as proof of actual generated frames until their instrumentation semantics are verified. The LSFG config/host log are authoritative for this run.
+
+The next optimization remains a true coarse-to-fine luma pyramid. The current implementation still uses one half-resolution luma image per history slot and a single-level +/-10 matcher. Implement pyramid levels as independent per-slot images/views with explicit dispatch barriers, flow-vector scale conversion, and consistent units for both directions and midpoint reconstruction. Preserve the current single-level implementation as a fallback until deterministic identical-frame and known-translation tests pass. A 50% flow-scale run is a useful separate tradeoff experiment, but do not change the 75% default based on this log alone.
+
+Instrumentation follow-up: inspect the DXVK generated-request/queued counter definitions and why the uploaded event CSV cannot be fetched as text. Do not infer missing events from the empty connector payload.
