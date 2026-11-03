@@ -13,7 +13,7 @@ SnapFrame: R16F luma output supported (features=0x1fd83 imageResult=0 extendedFo
 SnapFrame: forward/backward consistency resources ready format=R16_SFLOAT extent=112x50
 SnapFrame: midpoint reconstruction resources ready output=RGBA16F extent=2448x1080
 SnapFrame: luma compute resources ready outputs=2 extent=1224x540 format=R16_SFLOAT
-SnapFrame: bidirectional block-matching flow ready outputs=2 extent=112x50 format=RGBA16F search=coarse9x9-step2+refine3x3 range=+/-9 patch=3x3 flow_scale=75% block_stride=11 luma_texels
+SnapFrame: bidirectional block-matching flow ready outputs=2 extent=112x50 format=RGBA16F search=coarse5x5-step4+refine5x5 range=+/-10 patch=3x3 candidates_max=49 flow_scale=75% block_stride=11 luma_texels
 SnapFrame: allocated two-frame history 2448x1080 format=0x25
 SnapFrame: TEST_PHASE_BEGIN index=1 name=static_scene target_frames=1800
 SnapFrame: TEST_ACTION remain still; do not move the camera
@@ -126,3 +126,115 @@ SnapFrame: bidirectional flow pair accepted count=3360 groups=14x7
 SnapFrame: forward/backward consistency accepted count=3360
 SnapFrame: bidirectional flow pair accepted count=3480 groups=14x7
 SnapFrame: forward/backward consistency accepted count=3480
+SnapFrame: TEST_PHASE_PROGRESS phase=slow_camera_pan elapsed_frames=1800 target_frames=1800
+SnapFrame: luma dispatch accepted count=3600 groups=153x68
+SnapFrame: captured=3600 skipped=0 extent=2448x1080
+SnapFrame: TEST_PHASE_RESULT phase=slow_camera_pan frames=1800 luma_ok=1800 flow_pairs_ok=1800 consistency_ok=1800 midpoint_warp_ok=1800 skipped=0 luma_fail_total=0 flow_fail_total=0 consistency_fail_total=0 midpoint_warp_fail_total=0
+SnapFrame: TEST_PHASE_BEGIN index=3 name=fast_camera_rotation target_frames=1800
+SnapFrame: TEST_ACTION rotate the camera quickly in several directions
+SnapFrame: TEST_PHASE_PROGRESS phase=fast_camera_rotation elapsed_frames=0 target_frames=1800
+SnapFrame: bidirectional flow pair accepted count=3600 groups=14x7
+SnapFrame: midpoint warp accepted count=3600 extent=2448x1080 output=RGBA16F
+SnapFrame: forward/backward consistency accepted count=3600
+SnapFrame: flow vector dump complete frame=3601 rows=5600 grid=112x50
+SnapFrame: bidirectional flow pair accepted count=3720 groups=14x7
+SnapFrame: forward/backward consistency accepted count=3720
+SnapFrame: bidirectional flow pair accepted count=3840 groups=14x7
+SnapFrame: forward/backward consistency accepted count=3840
+SnapFrame: TEST_PHASE_PROGRESS phase=fast_camera_rotation elapsed_frames=300 target_frames=1800
+SnapFrame: luma dispatch accepted count=3900 groups=153x68
+SnapFrame: midpoint warp accepted count=3900 extent=2448x1080 output=RGBA16F
+SnapFrame: bidirectional flow pair accepted count=3960 groups=14x7
+SnapFrame: forward/backward consistency accepted count=3960
+SnapFrame: bidirectional flow pair accepted count=4080 groups=14x7
+SnapFrame: forward/backward consistency accepted count=4080
+SnapFrame: TEST_PHASE_PROGRESS phase=fast_camera_rotation elapsed_frames=600 target_frames=1800
+SnapFrame: luma dispatch accepted count=4200 groups=153x68
+SnapFrame: bidirectional flow pair accepted count=4200 groups=14x7
+SnapFrame: midpoint warp accepted count=4200 extent=2448x1080 output=RGBA16F
+SnapFrame: forward/backward consistency accepted count=4200
+SnapFrame: flow vector dump complete frame=4201 rows=5600 grid=112x50
+SnapFrame: bidirectional flow pair accepted count=4320 groups=14x7
+SnapFrame: forward/backward consistency accepted count=4320
+SnapFrame: bidirectional flow pair accepted count=4440 groups=14x7
+SnapFrame: forward/backward consistency accepted count=4440
+SnapFrame: TEST_PHASE_PROGRESS phase=fast_camera_rotation elapsed_frames=900 target_frames=1800
+SnapFrame: luma dispatch accepted count=4500 groups=153x68
+SnapFrame: midpoint warp accepted count=4500 extent=2448x1080 output=RGBA16F
+SnapFrame: bidirectional flow pair accepted count=4560 groups=14x7
+SnapFrame: forward/backward consistency accepted count=4560
+SnapFrame: bidirectional flow pair accepted count=4680 groups=14x7
+SnapFrame: forward/backward consistency accepted count=4680
+SnapFrame: TEST_PHASE_PROGRESS phase=fast_camera_rotation elapsed_frames=1200 target_frames=1800
+SnapFrame: luma dispatch accepted count=4800 groups=153x68
+SnapFrame: bidirectional flow pair accepted count=4800 groups=14x7
+SnapFrame: midpoint warp accepted count=4800 extent=2448x1080 output=RGBA16F
+SnapFrame: forward/backward consistency accepted count=4800
+SnapFrame: flow vector dump complete frame=4801 rows=5600 grid=112x50
+SnapFrame: bidirectional flow pair accepted count=4920 groups=14x7
+SnapFrame: forward/backward consistency accepted count=4920
+SnapFrame: bidirectional flow pair accepted count=5040 groups=14x7
+SnapFrame: forward/backward consistency accepted count=5040
+SnapFrame: TEST_PHASE_PROGRESS phase=fast_camera_rotation elapsed_frames=1500 target_frames=1800
+SnapFrame: luma dispatch accepted count=5100 groups=153x68
+SnapFrame: midpoint warp accepted count=5100 extent=2448x1080 output=RGBA16F
+SnapFrame: bidirectional flow pair accepted count=5160 groups=14x7
+SnapFrame: forward/backward consistency accepted count=5160
+SnapFrame: bidirectional flow pair accepted count=5280 groups=14x7
+SnapFrame: forward/backward consistency accepted count=5280
+SnapFrame: TEST_PHASE_PROGRESS phase=fast_camera_rotation elapsed_frames=1800 target_frames=1800
+SnapFrame: luma dispatch accepted count=5400 groups=153x68
+SnapFrame: captured=5400 skipped=0 extent=2448x1080
+SnapFrame: TEST_PHASE_RESULT phase=fast_camera_rotation frames=1800 luma_ok=1800 flow_pairs_ok=1800 consistency_ok=1800 midpoint_warp_ok=1800 skipped=0 luma_fail_total=0 flow_fail_total=0 consistency_fail_total=0 midpoint_warp_fail_total=0
+SnapFrame: TEST_PHASE_BEGIN index=4 name=moving_npc_combat target_frames=1800
+SnapFrame: TEST_ACTION observe moving NPCs/combat without rapid camera movement
+SnapFrame: TEST_PHASE_PROGRESS phase=moving_npc_combat elapsed_frames=0 target_frames=1800
+SnapFrame: bidirectional flow pair accepted count=5400 groups=14x7
+SnapFrame: midpoint warp accepted count=5400 extent=2448x1080 output=RGBA16F
+SnapFrame: forward/backward consistency accepted count=5400
+SnapFrame: flow vector dump complete frame=5401 rows=5600 grid=112x50
+SnapFrame: bidirectional flow pair accepted count=5520 groups=14x7
+SnapFrame: forward/backward consistency accepted count=5520
+SnapFrame: bidirectional flow pair accepted count=5640 groups=14x7
+SnapFrame: forward/backward consistency accepted count=5640
+SnapFrame: TEST_PHASE_PROGRESS phase=moving_npc_combat elapsed_frames=300 target_frames=1800
+SnapFrame: luma dispatch accepted count=5700 groups=153x68
+SnapFrame: midpoint warp accepted count=5700 extent=2448x1080 output=RGBA16F
+SnapFrame: bidirectional flow pair accepted count=5760 groups=14x7
+SnapFrame: forward/backward consistency accepted count=5760
+SnapFrame: bidirectional flow pair accepted count=5880 groups=14x7
+SnapFrame: forward/backward consistency accepted count=5880
+SnapFrame: TEST_PHASE_PROGRESS phase=moving_npc_combat elapsed_frames=600 target_frames=1800
+SnapFrame: luma dispatch accepted count=6000 groups=153x68
+SnapFrame: bidirectional flow pair accepted count=6000 groups=14x7
+SnapFrame: midpoint warp accepted count=6000 extent=2448x1080 output=RGBA16F
+SnapFrame: forward/backward consistency accepted count=6000
+SnapFrame: flow vector dump complete frame=6001 rows=5600 grid=112x50
+SnapFrame: bidirectional flow pair accepted count=6120 groups=14x7
+SnapFrame: forward/backward consistency accepted count=6120
+SnapFrame: bidirectional flow pair accepted count=6240 groups=14x7
+SnapFrame: forward/backward consistency accepted count=6240
+SnapFrame: TEST_PHASE_PROGRESS phase=moving_npc_combat elapsed_frames=900 target_frames=1800
+SnapFrame: luma dispatch accepted count=6300 groups=153x68
+SnapFrame: midpoint warp accepted count=6300 extent=2448x1080 output=RGBA16F
+SnapFrame: bidirectional flow pair accepted count=6360 groups=14x7
+SnapFrame: forward/backward consistency accepted count=6360
+SnapFrame: bidirectional flow pair accepted count=6480 groups=14x7
+SnapFrame: forward/backward consistency accepted count=6480
+SnapFrame: TEST_PHASE_PROGRESS phase=moving_npc_combat elapsed_frames=1200 target_frames=1800
+SnapFrame: luma dispatch accepted count=6600 groups=153x68
+SnapFrame: bidirectional flow pair accepted count=6600 groups=14x7
+SnapFrame: midpoint warp accepted count=6600 extent=2448x1080 output=RGBA16F
+SnapFrame: forward/backward consistency accepted count=6600
+SnapFrame: flow vector dump complete frame=6601 rows=5600 grid=112x50
+SnapFrame: bidirectional flow pair accepted count=6720 groups=14x7
+SnapFrame: forward/backward consistency accepted count=6720
+SnapFrame: bidirectional flow pair accepted count=6840 groups=14x7
+SnapFrame: forward/backward consistency accepted count=6840
+SnapFrame: TEST_PHASE_PROGRESS phase=moving_npc_combat elapsed_frames=1500 target_frames=1800
+SnapFrame: luma dispatch accepted count=6900 groups=153x68
+SnapFrame: midpoint warp accepted count=6900 extent=2448x1080 output=RGBA16F
+SnapFrame: bidirectional flow pair accepted count=6960 groups=14x7
+SnapFrame: forward/backward consistency accepted count=6960
+SnapFrame: bidirectional flow pair accepted count=7080 groups=14x7
+SnapFrame: forward/backward consistency accepted count=7080
