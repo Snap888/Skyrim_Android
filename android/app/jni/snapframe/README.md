@@ -199,3 +199,52 @@ performed only after the active command list completes and is not consumed by
 the runtime rendering path. These summaries are diagnostics, not ground-truth
 accuracy tests; controlled synthetic translations and visual inspection are
 still required. No rebuild is needed between phases.
+
+
+## Current engineering gate — 2026-11-03
+
+The latest uploaded run completed `static_scene`, `slow_camera_pan`, and
+`fast_camera_rotation` (1,800 captured frames each). `moving_npc_combat`
+started but the log ends at approximately frame 5,640; phases 5–7 and the
+`TEST_SUITE_COMPLETE` marker are absent. This is an incomplete run, not
+evidence of a crash.
+
+The sampled flow CSV is structurally readable and reports no non-finite
+samples in the available rows. It nevertheless shows frequent vectors
+saturated at the +/-4 luma-texel search boundary, especially during the
+first two phases. A high boundary count means the matcher may be reporting
+motion outside its search range; it is not a valid large-motion estimate.
+Some near-zero-motion samples have high confidence and consistency, but this
+does not establish accuracy across the scene.
+
+The GPU timing CSV reports very different times for the forward and backward
+dispatches even though both use the same kernel and workload. Timestamp
+results are therefore provisional until the DXVK/Vulkan query stages, query
+availability and command-list completion ordering are verified. The spatial
+vector CSV was empty in the reviewed upload; the callback/write path must be
+verified before relying on the spatial samples.
+
+### Implementation order from this gate
+
+1. Make vector readback completion and file output observable; ensure the
+   600-pair dump produces rows or an explicit failure reason.
+2. Audit timestamp query lifecycle and Vulkan timestamp stage semantics.
+   Do not optimize based on the current per-stage asymmetry.
+3. Add deterministic GPU validation scenes: identical frames (expected zero
+   displacement) and known translated patterns (known sign and magnitude).
+   Compare every output cell against ground truth, including image borders.
+4. Correct search-range/boundary behavior and confidence calibration based
+   on those tests; do not treat dispatch acceptance as correctness.
+5. Only after the numerical gate passes, implement two-sided warp,
+   confidence-aware reconstruction and a generated-frame target.
+6. Keep generated-frame presentation disabled until swapchain image lifetime,
+   acquire/present semaphore ordering and pacing are proven.
+
+The runtime currently has capture, luma, bidirectional coarse block matching,
+forward/backward consistency and diagnostic readback only. No warp, blend,
+intermediate-frame reconstruction, or generated-frame presentation is
+implemented. Do not describe the current module as usable frame generation.
+
+**Build/test status:** no APK was built and no GitHub Actions workflow was
+triggered during this work. Local Android build and device validation remain
+pending.
