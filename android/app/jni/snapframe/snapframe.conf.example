@@ -3,7 +3,7 @@
 enabled=1
 multiplier=2
 quality=1
-flow_scale_percent=50
+flow_scale_percent=75
 motion_analysis=1
 profiling_enabled=1
 diagnostic_suite=0
@@ -22,4 +22,5 @@ diagnostic_phase_frames=1800
 # Set motion_analysis=0 to keep capture-only diagnostics.
 # diagnostic_suite=1 runs the seven-phase motion-analysis test and therefore requires motion_analysis=1.
 # profiling_enabled is independent: it controls GPU timestamps and diagnostic readback only.
-# flow_scale_percent changes the motion-grid density (lower values use a coarser grid).
+# flow_scale_percent changes motion-grid density: 75 is the new balanced default;
+# 100 gives finer detail at higher GPU cost; 50 is faster but can smear thin motion.
