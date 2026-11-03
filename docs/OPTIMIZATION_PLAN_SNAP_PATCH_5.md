@@ -261,3 +261,10 @@ remain open.
 
 No optimization is approved solely from this capture. No APK build, measured
 FPS gain, audio fix or visual-quality result is claimed.
+
+
+## Audio validation update — 2026-11-03
+
+**Result:** the project owner reports clean audio in the latest Android device test; crackling is no longer audible. The combined audio changes are therefore considered successful in the tested configuration. This is an end-to-end listening confirmation, not a controlled component-by-component A/B test. No fresh log was supplied, so exact SDL queue depth, starvation counts, and added output latency remain unquantified.
+
+**Decision:** freeze the current audio implementation. Do not continue changing XAudio2, xWMA decode, mixer gain, or SDL queue targets without a new reproducible symptom and supporting diagnostics. Shift optimization effort to the remaining LSFG/DXVK and CPU/GPU bottlenecks. Audio success does not imply LSFG APK/build validation.
