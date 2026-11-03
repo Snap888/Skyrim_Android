@@ -74,7 +74,6 @@ void snapframeEvent(uint64_t frame, const char* event, uint32_t width,
 std::atomic<int> g_initialized{0};
 std::atomic<int> g_enabled{0};
 std::atomic<uint64_t> g_capturedFrames{0};
-std::atomic<uint64_t> g_generatedFrames{0};
 std::atomic<uint64_t> g_skippedFrames{0};
 std::atomic<uint64_t> g_copyCallbackCalls{0};
 std::atomic<int> g_resetHistoryRequested{0};
@@ -549,7 +548,6 @@ void clearHistory() {
     g_midpointAvailable = false;
     g_midpointDispatchCount = 0;
     g_midpointFailureCount = 0;
-    g_generatedFrames.store(0, std::memory_order_relaxed);
     g_lumaSampler = Rc<DxvkSampler>();
     g_lumaAvailable = false;
     g_flowAvailable = false;
@@ -1215,7 +1213,6 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
                                     ? "rgba16f_midpoint_image_written" : "dispatch_rejected");
                             if (midpointDispatched) {
                                 ++g_midpointDispatchCount;
-                                g_generatedFrames.fetch_add(1, std::memory_order_relaxed);
                                 // The following present/composite pass samples this storage output.
                                 context->flushComputeBarriers();
                                 if (g_midpointDispatchCount == 1
@@ -1467,6 +1464,5 @@ extern "C" void snapframe_host_get_stats(SnapFrameStats *stats) {
     if (!stats) return;
     memset(stats, 0, sizeof(*stats));
     stats->captured_frames = g_capturedFrames.load(std::memory_order_relaxed);
-    stats->generated_frames = g_generatedFrames.load(std::memory_order_relaxed);
     stats->skipped_frames = g_skippedFrames.load(std::memory_order_relaxed);
 }
