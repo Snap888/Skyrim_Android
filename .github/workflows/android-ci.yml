@@ -90,6 +90,51 @@ jobs:
       - name: Build portable Android libraries
         run: cmake --build "$RUNNER_TEMP/snap-ai-engine-build" --parallel 2
 
+  snapframe-dxvk-host-arm64:
+    name: Skyrim DXVK SnapFrame host ARM64 compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install NDK and CMake
+        run: |
+          sdkmanager --install "cmake;${{ env.CMAKE_VERSION }}" "ndk;${{ env.NDK_VERSION }}"
+
+      - name: Install Vulkan shader tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y glslang-tools spirv-tools
+
+      - name: Configure Skyrim native build
+        run: |
+          mkdir -p gen
+          printf 'void snapframe_ci_dummy(void) {}\\n' > gen/snapframe_ci_dummy.c
+          "$ANDROID_HOME/cmake/$CMAKE_VERSION/bin/cmake" \
+            -S android/app/jni \
+            -B "$RUNNER_TEMP/skyrim-native-build" \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_HOME/ndk/$NDK_VERSION/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-28 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLB_GEN_JOBS=1 \
+            -DLB_HAS_FFMPEG=OFF \
+            -DSNAP_AI_BUILD_TESTS=OFF \
+            -DSNAP_AI_BUILD_EXAMPLE=OFF \
+            -DSNAP_FRAME_BUILD_TESTS=OFF \
+            -DSNAP_FRAME_BUILD_EXAMPLE=OFF \
+            -DSNAP_FRAME_BUILD_DXVK_LEGACY=OFF
+
+      - name: Compile the real DXVK SnapFrame host
+        run: |
+          "$ANDROID_HOME/cmake/$CMAKE_VERSION/bin/cmake" \
+            --build "$RUNNER_TEMP/skyrim-native-build" \
+            --target snapframe_host --parallel 2
+
   apk:
     name: Full arm64 APK build
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_apk }}
