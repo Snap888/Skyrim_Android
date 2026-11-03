@@ -83,8 +83,10 @@ Planned ownership under `android/app/jni/snapframe/`:
 - `snapframe_profiler.*`: per-stage GPU timestamps and CSV output.
 - `DESIGN.md`: algorithm decisions, measured limits, and integration status.
 
-Only the host API and design document exist in this scaffold. The DXVK backend,
-shaders, profiler, and real frame-generation implementation do not exist yet.
+The host API and DXVK capture backend exist, and the first GLSL preprocessing
+source plus SPIR-V packaging script have been added. The compute pipeline,
+dispatch backend, profiler, and real frame-generation implementation do not
+exist yet.
 
 ## 4. Integration plan
 
@@ -200,9 +202,9 @@ recording the copy. The DXVK present path now emits one-time diagnostics for
 first PresentImage entry, WSI image usage/format, callback dispatch, and host
 callback entry. The copy-hook pointer is atomically published/read to avoid a
 setter-versus-present data race. These markers distinguish failure to reach
-PresentImage from an unsupported source usage or a history allocation/copy problem. The two
-history images are sampled-capable; compute/storage format support still needs
-explicit physical-device validation.
+PresentImage from an unsupported source usage or a history allocation/copy problem. The two history images are allocated only after checking sampled-image support
+for their WSI format. Compute/storage support for the separate `R16_SFLOAT`
+luminance output still needs explicit physical-device validation.
 
 The current Android CMake path does not compile standalone GLSL. The Android
 project generator copies generated shader headers from a desktop DXVK Meson
@@ -223,7 +225,8 @@ available in the NDK build.
 - [x] Add opt-in configuration bootstrap; capture remains disabled by default.
 - [ ] Build APK and verify the new present-path/callback diagnostics on device.
 - [ ] Confirm two real frames are captured before adding compute work.
-- [ ] Validate supported compute/storage formats on the target GPU.
+- [x] Check sampled-image support before allocating the WSI-format history images.
+- [ ] Validate `R16_SFLOAT` storage-image support on the target GPU.
 - [x] Add first luminance downsample GLSL source and a host-side GLSL-to-SPIR-V header generator.
 - [ ] Run glslangValidator + spirv-val and commit the generated SPIR-V header.
 - [ ] Implement format-capability checks, compute pipeline/descriptor setup, and first dispatch.
