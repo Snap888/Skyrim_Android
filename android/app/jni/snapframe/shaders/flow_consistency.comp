@@ -18,7 +18,7 @@ void main() {
 
     vec4 forwardFlow = texelFetch(flowCurrentToPrevious, p, 0);
     ivec2 lumaExtent = textureSize(referenceLuma, 0);
-    ivec2 blockStride = max(ivec2(1), ivec2(round(vec2(lumaExtent) / vec2(extent))));
+    ivec2 blockStride = max(ivec2(1), ivec2(ceil(vec2(lumaExtent) / vec2(extent))));
     ivec2 blockCenter = min(p * blockStride + blockStride / 2, lumaExtent - ivec2(2));
     vec2 lumaPosition = vec2(blockCenter) + forwardFlow.xy;
     ivec2 reverseCoord = ivec2(floor(lumaPosition / vec2(blockStride)));
