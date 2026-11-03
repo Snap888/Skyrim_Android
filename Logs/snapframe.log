@@ -16,6 +16,7 @@ SnapFrame: bidirectional block-matching flow ready outputs=2 extent=153x68 forma
 SnapFrame: allocated two-frame history 2448x1080 format=0x25
 SnapFrame: TEST_PHASE_BEGIN index=1 name=static_scene target_frames=1800
 SnapFrame: TEST_ACTION remain still; do not move the camera
+SnapFrame: TEST_PHASE_PROGRESS phase=static_scene elapsed_frames=0 target_frames=1800
 SnapFrame: luma dispatch accepted count=1 groups=153x68
 SnapFrame: captured=1 skipped=0 extent=2448x1080
 SnapFrame: bidirectional flow pair accepted count=1 groups=20x9
@@ -26,11 +27,13 @@ SnapFrame: bidirectional flow pair accepted count=120 groups=20x9
 SnapFrame: forward/backward consistency accepted count=120
 SnapFrame: bidirectional flow pair accepted count=240 groups=20x9
 SnapFrame: forward/backward consistency accepted count=240
+SnapFrame: TEST_PHASE_PROGRESS phase=static_scene elapsed_frames=300 target_frames=1800
 SnapFrame: luma dispatch accepted count=300 groups=153x68
 SnapFrame: bidirectional flow pair accepted count=360 groups=20x9
 SnapFrame: forward/backward consistency accepted count=360
 SnapFrame: bidirectional flow pair accepted count=480 groups=20x9
 SnapFrame: forward/backward consistency accepted count=480
+SnapFrame: TEST_PHASE_PROGRESS phase=static_scene elapsed_frames=600 target_frames=1800
 SnapFrame: luma dispatch accepted count=600 groups=153x68
 SnapFrame: bidirectional flow pair accepted count=600 groups=20x9
 SnapFrame: forward/backward consistency accepted count=600
@@ -38,11 +41,13 @@ SnapFrame: bidirectional flow pair accepted count=720 groups=20x9
 SnapFrame: forward/backward consistency accepted count=720
 SnapFrame: bidirectional flow pair accepted count=840 groups=20x9
 SnapFrame: forward/backward consistency accepted count=840
+SnapFrame: TEST_PHASE_PROGRESS phase=static_scene elapsed_frames=900 target_frames=1800
 SnapFrame: luma dispatch accepted count=900 groups=153x68
 SnapFrame: bidirectional flow pair accepted count=960 groups=20x9
 SnapFrame: forward/backward consistency accepted count=960
 SnapFrame: bidirectional flow pair accepted count=1080 groups=20x9
 SnapFrame: forward/backward consistency accepted count=1080
+SnapFrame: TEST_PHASE_PROGRESS phase=static_scene elapsed_frames=1200 target_frames=1800
 SnapFrame: luma dispatch accepted count=1200 groups=153x68
 SnapFrame: bidirectional flow pair accepted count=1200 groups=20x9
 SnapFrame: forward/backward consistency accepted count=1200
@@ -50,27 +55,32 @@ SnapFrame: bidirectional flow pair accepted count=1320 groups=20x9
 SnapFrame: forward/backward consistency accepted count=1320
 SnapFrame: bidirectional flow pair accepted count=1440 groups=20x9
 SnapFrame: forward/backward consistency accepted count=1440
+SnapFrame: TEST_PHASE_PROGRESS phase=static_scene elapsed_frames=1500 target_frames=1800
 SnapFrame: luma dispatch accepted count=1500 groups=153x68
 SnapFrame: bidirectional flow pair accepted count=1560 groups=20x9
 SnapFrame: forward/backward consistency accepted count=1560
 SnapFrame: bidirectional flow pair accepted count=1680 groups=20x9
 SnapFrame: forward/backward consistency accepted count=1680
+SnapFrame: TEST_PHASE_PROGRESS phase=static_scene elapsed_frames=1800 target_frames=1800
 SnapFrame: luma dispatch accepted count=1800 groups=153x68
 SnapFrame: captured=1800 skipped=0 extent=2448x1080
 SnapFrame: TEST_PHASE_RESULT phase=static_scene frames=1800 luma_ok=1800 flow_pairs_ok=1799 consistency_ok=1799 skipped=0 luma_fail_total=0 flow_fail_total=0 consistency_fail_total=0
 SnapFrame: TEST_PHASE_BEGIN index=2 name=slow_camera_pan target_frames=1800
 SnapFrame: TEST_ACTION slowly pan the camera horizontally and vertically
+SnapFrame: TEST_PHASE_PROGRESS phase=slow_camera_pan elapsed_frames=0 target_frames=1800
 SnapFrame: bidirectional flow pair accepted count=1800 groups=20x9
 SnapFrame: forward/backward consistency accepted count=1800
 SnapFrame: bidirectional flow pair accepted count=1920 groups=20x9
 SnapFrame: forward/backward consistency accepted count=1920
 SnapFrame: bidirectional flow pair accepted count=2040 groups=20x9
 SnapFrame: forward/backward consistency accepted count=2040
+SnapFrame: TEST_PHASE_PROGRESS phase=slow_camera_pan elapsed_frames=300 target_frames=1800
 SnapFrame: luma dispatch accepted count=2100 groups=153x68
 SnapFrame: bidirectional flow pair accepted count=2160 groups=20x9
 SnapFrame: forward/backward consistency accepted count=2160
 SnapFrame: bidirectional flow pair accepted count=2280 groups=20x9
 SnapFrame: forward/backward consistency accepted count=2280
+SnapFrame: TEST_PHASE_PROGRESS phase=slow_camera_pan elapsed_frames=600 target_frames=1800
 SnapFrame: luma dispatch accepted count=2400 groups=153x68
 SnapFrame: bidirectional flow pair accepted count=2400 groups=20x9
 SnapFrame: forward/backward consistency accepted count=2400
@@ -78,98 +88,13 @@ SnapFrame: bidirectional flow pair accepted count=2520 groups=20x9
 SnapFrame: forward/backward consistency accepted count=2520
 SnapFrame: bidirectional flow pair accepted count=2640 groups=20x9
 SnapFrame: forward/backward consistency accepted count=2640
+SnapFrame: TEST_PHASE_PROGRESS phase=slow_camera_pan elapsed_frames=900 target_frames=1800
 SnapFrame: luma dispatch accepted count=2700 groups=153x68
 SnapFrame: bidirectional flow pair accepted count=2760 groups=20x9
 SnapFrame: forward/backward consistency accepted count=2760
 SnapFrame: bidirectional flow pair accepted count=2880 groups=20x9
 SnapFrame: forward/backward consistency accepted count=2880
+SnapFrame: TEST_PHASE_PROGRESS phase=slow_camera_pan elapsed_frames=1200 target_frames=1800
 SnapFrame: luma dispatch accepted count=3000 groups=153x68
 SnapFrame: bidirectional flow pair accepted count=3000 groups=20x9
 SnapFrame: forward/backward consistency accepted count=3000
-SnapFrame: bidirectional flow pair accepted count=3120 groups=20x9
-SnapFrame: forward/backward consistency accepted count=3120
-SnapFrame: bidirectional flow pair accepted count=3240 groups=20x9
-SnapFrame: forward/backward consistency accepted count=3240
-SnapFrame: luma dispatch accepted count=3300 groups=153x68
-SnapFrame: bidirectional flow pair accepted count=3360 groups=20x9
-SnapFrame: forward/backward consistency accepted count=3360
-SnapFrame: bidirectional flow pair accepted count=3480 groups=20x9
-SnapFrame: forward/backward consistency accepted count=3480
-SnapFrame: luma dispatch accepted count=3600 groups=153x68
-SnapFrame: captured=3600 skipped=0 extent=2448x1080
-SnapFrame: TEST_PHASE_RESULT phase=slow_camera_pan frames=1800 luma_ok=1800 flow_pairs_ok=1800 consistency_ok=1800 skipped=0 luma_fail_total=0 flow_fail_total=0 consistency_fail_total=0
-SnapFrame: TEST_PHASE_BEGIN index=3 name=fast_camera_rotation target_frames=1800
-SnapFrame: TEST_ACTION rotate the camera quickly in several directions
-SnapFrame: bidirectional flow pair accepted count=3600 groups=20x9
-SnapFrame: forward/backward consistency accepted count=3600
-SnapFrame: bidirectional flow pair accepted count=3720 groups=20x9
-SnapFrame: forward/backward consistency accepted count=3720
-SnapFrame: bidirectional flow pair accepted count=3840 groups=20x9
-SnapFrame: forward/backward consistency accepted count=3840
-SnapFrame: luma dispatch accepted count=3900 groups=153x68
-SnapFrame: bidirectional flow pair accepted count=3960 groups=20x9
-SnapFrame: forward/backward consistency accepted count=3960
-SnapFrame: bidirectional flow pair accepted count=4080 groups=20x9
-SnapFrame: forward/backward consistency accepted count=4080
-SnapFrame: luma dispatch accepted count=4200 groups=153x68
-SnapFrame: bidirectional flow pair accepted count=4200 groups=20x9
-SnapFrame: forward/backward consistency accepted count=4200
-SnapFrame: bidirectional flow pair accepted count=4320 groups=20x9
-SnapFrame: forward/backward consistency accepted count=4320
-SnapFrame: bidirectional flow pair accepted count=4440 groups=20x9
-SnapFrame: forward/backward consistency accepted count=4440
-SnapFrame: luma dispatch accepted count=4500 groups=153x68
-SnapFrame: bidirectional flow pair accepted count=4560 groups=20x9
-SnapFrame: forward/backward consistency accepted count=4560
-SnapFrame: bidirectional flow pair accepted count=4680 groups=20x9
-SnapFrame: forward/backward consistency accepted count=4680
-SnapFrame: luma dispatch accepted count=4800 groups=153x68
-SnapFrame: bidirectional flow pair accepted count=4800 groups=20x9
-SnapFrame: forward/backward consistency accepted count=4800
-SnapFrame: bidirectional flow pair accepted count=4920 groups=20x9
-SnapFrame: forward/backward consistency accepted count=4920
-SnapFrame: bidirectional flow pair accepted count=5040 groups=20x9
-SnapFrame: forward/backward consistency accepted count=5040
-SnapFrame: luma dispatch accepted count=5100 groups=153x68
-SnapFrame: bidirectional flow pair accepted count=5160 groups=20x9
-SnapFrame: forward/backward consistency accepted count=5160
-SnapFrame: bidirectional flow pair accepted count=5280 groups=20x9
-SnapFrame: forward/backward consistency accepted count=5280
-SnapFrame: luma dispatch accepted count=5400 groups=153x68
-SnapFrame: captured=5400 skipped=0 extent=2448x1080
-SnapFrame: TEST_PHASE_RESULT phase=fast_camera_rotation frames=1800 luma_ok=1800 flow_pairs_ok=1800 consistency_ok=1800 skipped=0 luma_fail_total=0 flow_fail_total=0 consistency_fail_total=0
-SnapFrame: TEST_PHASE_BEGIN index=4 name=moving_npc_combat target_frames=1800
-SnapFrame: TEST_ACTION observe moving NPCs/combat without rapid camera movement
-SnapFrame: bidirectional flow pair accepted count=5400 groups=20x9
-SnapFrame: forward/backward consistency accepted count=5400
-SnapFrame: bidirectional flow pair accepted count=5520 groups=20x9
-SnapFrame: forward/backward consistency accepted count=5520
-SnapFrame: bidirectional flow pair accepted count=5640 groups=20x9
-SnapFrame: forward/backward consistency accepted count=5640
-SnapFrame: luma dispatch accepted count=5700 groups=153x68
-SnapFrame: bidirectional flow pair accepted count=5760 groups=20x9
-SnapFrame: forward/backward consistency accepted count=5760
-SnapFrame: bidirectional flow pair accepted count=5880 groups=20x9
-SnapFrame: forward/backward consistency accepted count=5880
-SnapFrame: luma dispatch accepted count=6000 groups=153x68
-SnapFrame: bidirectional flow pair accepted count=6000 groups=20x9
-SnapFrame: forward/backward consistency accepted count=6000
-SnapFrame: bidirectional flow pair accepted count=6120 groups=20x9
-SnapFrame: forward/backward consistency accepted count=6120
-SnapFrame: bidirectional flow pair accepted count=6240 groups=20x9
-SnapFrame: forward/backward consistency accepted count=6240
-SnapFrame: luma dispatch accepted count=6300 groups=153x68
-SnapFrame: bidirectional flow pair accepted count=6360 groups=20x9
-SnapFrame: forward/backward consistency accepted count=6360
-SnapFrame: bidirectional flow pair accepted count=6480 groups=20x9
-SnapFrame: forward/backward consistency accepted count=6480
-SnapFrame: luma dispatch accepted count=6600 groups=153x68
-SnapFrame: bidirectional flow pair accepted count=6600 groups=20x9
-SnapFrame: forward/backward consistency accepted count=6600
-SnapFrame: bidirectional flow pair accepted count=6720 groups=20x9
-SnapFrame: forward/backward consistency accepted count=6720
-SnapFrame: bidirectional flow pair accepted count=6840 groups=20x9
-SnapFrame: forward/backward consistency accepted count=6840
-SnapFrame: luma dispatch accepted count=6900 groups=153x68
-SnapFrame: bidirectional flow pair accepted count=6960 groups=20x9
-SnapFrame: forward/backward consistency accepted count=6960
