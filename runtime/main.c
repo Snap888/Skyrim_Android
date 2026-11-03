@@ -16,9 +16,12 @@
 #include <errno.h>
 #include <sys/stat.h>
 #ifdef __ANDROID__
+#include <pthread.h>
+#include <stdio.h>
 #include <SDL2/SDL.h>
 #include <jni.h>
 #include "lsfg_host.h"
+#include "snapframe_host.h"
 #endif
 
 uint8_t *MEM;
@@ -54,6 +57,75 @@ Java_com_tj_skyrim_SkyrimActivity_nativeSetLsfgSettings(
     (void)clazz;
     return lsfg_host_update_settings(multiplier, flow_percent, performance, game_fps_limit)
         ? JNI_TRUE : JNI_FALSE;
+}
+
+static pthread_mutex_t g_snapframeConfigMutex = PTHREAD_MUTEX_INITIALIZER;
+
+static int persist_snapframe_settings(int enabled, int flow_percent) {
+    char path[1200], temporary[1240], line[1024];
+    snprintf(path, sizeof(path), "%s/port/snapframe.conf", g_game_dir);
+    snprintf(temporary, sizeof(temporary), "%s.tmp", path);
+
+    pthread_mutex_lock(&g_snapframeConfigMutex);
+    FILE *input = fopen(path, "r");
+    FILE *output = fopen(temporary, "w");
+    if (!output) {
+        if (input) fclose(input);
+        pthread_mutex_unlock(&g_snapframeConfigMutex);
+        return 0;
+    }
+
+    int wrote_enabled = 0, wrote_flow = 0;
+    while (input && fgets(line, sizeof(line), input)) {
+        char *key = line;
+        while (*key == ' ' || *key == '\\t') ++key;
+        if (!strncmp(key, "enabled=", 8)) {
+            fprintf(output, "enabled=%d\\n", enabled ? 1 : 0);
+            wrote_enabled = 1;
+        } else if (!strncmp(key, "flow_scale_percent=", 19)) {
+            fprintf(output, "flow_scale_percent=%d\\n", flow_percent);
+            wrote_flow = 1;
+        } else {
+            fputs(line, output);
+        }
+    }
+    if (input) fclose(input);
+    if (!wrote_enabled) fprintf(output, "enabled=%d\\n", enabled ? 1 : 0);
+    if (!wrote_flow) fprintf(output, "flow_scale_percent=%d\\n", flow_percent);
+
+    int ok = fflush(output) == 0;
+    if (fclose(output) != 0) ok = 0;
+    if (ok && rename(temporary, path) == 0) {
+        pthread_mutex_unlock(&g_snapframeConfigMutex);
+        return 1;
+    }
+    remove(temporary);
+    pthread_mutex_unlock(&g_snapframeConfigMutex);
+    return 0;
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_tj_skyrim_SkyrimActivity_nativeGetSnapFrameSettings(JNIEnv *env, jclass clazz) {
+    (void)clazz;
+    int enabled = 0, flow_percent = 75;
+    int active = snapframe_host_get_settings(&enabled, &flow_percent);
+    jint values[3] = { active, enabled, flow_percent };
+    jintArray result = (*env)->NewIntArray(env, 3);
+    if (result) (*env)->SetIntArrayRegion(env, result, 0, 3, values);
+    return result;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_tj_skyrim_SkyrimActivity_nativeSetSnapFrameSettings(
+        JNIEnv *env, jclass clazz, jint enabled, jint flow_percent) {
+    (void)env;
+    (void)clazz;
+    if (flow_percent < 25 || flow_percent > 100) return JNI_FALSE;
+    if (!snapframe_host_update_settings(enabled ? 1 : 0, flow_percent))
+        return JNI_FALSE;
+    if (!persist_snapframe_settings(enabled ? 1 : 0, flow_percent))
+        fprintf(stderr, "SnapFrame: live settings applied but config persistence failed\\n");
+    return JNI_TRUE;
 }
 #endif
 
