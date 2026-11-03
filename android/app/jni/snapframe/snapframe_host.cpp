@@ -135,6 +135,7 @@ uint32_t g_diagnosticPhaseFrames = 1800;
 uint32_t g_diagnosticPhase = UINT32_MAX;
 uint64_t g_phaseStartCaptured = 0, g_phaseStartLuma = 0, g_phaseStartFlow = 0;
 uint64_t g_phaseStartConsistency = 0, g_phaseStartSkipped = 0;
+uint64_t g_phaseStartMidpoint = 0;
 uint64_t g_phaseLastProgress = 0;
 
 const char* diagnosticPhaseName(uint32_t phase) {
@@ -145,16 +146,18 @@ const char* diagnosticPhaseName(uint32_t phase) {
 
 void logDiagnosticPhaseResult(uint32_t phase, uint64_t frames) {
     snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed), "test_phase_result", g_width, g_height, diagnosticPhaseName(phase));
-    snapframeLog("SnapFrame: TEST_PHASE_RESULT phase=%s frames=%llu luma_ok=%llu flow_pairs_ok=%llu consistency_ok=%llu skipped=%llu luma_fail_total=%llu flow_fail_total=%llu consistency_fail_total=%llu\n",
+    snapframeLog("SnapFrame: TEST_PHASE_RESULT phase=%s frames=%llu luma_ok=%llu flow_pairs_ok=%llu consistency_ok=%llu midpoint_warp_ok=%llu skipped=%llu luma_fail_total=%llu flow_fail_total=%llu consistency_fail_total=%llu midpoint_warp_fail_total=%llu\n",
         diagnosticPhaseName(phase),
         static_cast<unsigned long long>(frames),
         static_cast<unsigned long long>(g_lumaDispatchCount - g_phaseStartLuma),
         static_cast<unsigned long long>(g_flowDispatchCount - g_phaseStartFlow),
         static_cast<unsigned long long>(g_consistencyDispatchCount - g_phaseStartConsistency),
+        static_cast<unsigned long long>(g_midpointDispatchCount - g_phaseStartMidpoint),
         static_cast<unsigned long long>(g_skippedFrames.load(std::memory_order_relaxed) - g_phaseStartSkipped),
         static_cast<unsigned long long>(g_lumaFailureCount),
         static_cast<unsigned long long>(g_flowFailureCount),
-        static_cast<unsigned long long>(g_consistencyFailureCount));
+        static_cast<unsigned long long>(g_consistencyFailureCount),
+        static_cast<unsigned long long>(g_midpointFailureCount));
 }
 
 void beginDiagnosticPhase(uint32_t phase, uint64_t captured) {
@@ -172,6 +175,7 @@ void beginDiagnosticPhase(uint32_t phase, uint64_t captured) {
     g_phaseStartLuma = g_lumaDispatchCount;
     g_phaseStartFlow = g_flowDispatchCount;
     g_phaseStartConsistency = g_consistencyDispatchCount;
+    g_phaseStartMidpoint = g_midpointDispatchCount;
     g_phaseStartSkipped = g_skippedFrames.load(std::memory_order_relaxed);
     g_phaseLastProgress = 0;
     snapframeEvent(captured, "test_phase_begin", g_width, g_height, diagnosticPhaseName(phase));
@@ -569,7 +573,7 @@ void clearHistory() {
     g_skipReasonLogged = false;
     g_diagnosticPhase = UINT32_MAX;
     g_phaseStartCaptured = g_phaseStartLuma = g_phaseStartFlow = 0;
-    g_phaseStartConsistency = g_phaseStartSkipped = 0;
+    g_phaseStartConsistency = g_phaseStartSkipped = g_phaseStartMidpoint = 0;
 }
 
 bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat format) {
