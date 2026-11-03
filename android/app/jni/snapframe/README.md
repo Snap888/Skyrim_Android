@@ -2,7 +2,7 @@
 
 Experimental, independent frame-generation engine for Skyrim_Android.
 
-**Status: GPU capture, temporal luminance, bidirectional coarse motion estimation, and an initial forward/backward consistency compute pass. No interpolated/generated frames are presented yet; numerical correctness and device performance remain unverified.**
+**Status: GPU capture, temporal luminance, bidirectional coarse motion estimation, forward/backward consistency, sampled flow readback and opt-in GPU timestamp diagnostics. No interpolated/generated frames are presented yet; numerical accuracy and device performance remain unverified.**
 This module is isolated from the existing `lsfg` implementation. It is now
 compiled as a separate host target and has an independent DXVK callback that
 copies the completed game image into a two-image GPU history ring. A first coarse bidirectional block-matching motion pair is estimated from a two-slot luma history; pyramid refinement, occlusion handling, interpolation and generated-frame presentation are not implemented.
@@ -10,7 +10,7 @@ copies the completed game image into a two-image GPU history ring. A first coars
 ## Goals
 
 - Implement an original hybrid motion-estimation and frame-warping pipeline.
-- Run image processing on the Vulkan GPU; avoid GPU-to-CPU readback.
+- Run image processing on the Vulkan GPU; keep CPU readback out of the normal path and use sparse readback only for diagnostics.
 - Keep the existing LSFG implementation unchanged and available for A/B tests.
 - Make the engine independently switchable: Off / LSFG / SnapFrame.
 - Add per-stage GPU timing and diagnostic counters before performance tuning.
@@ -44,8 +44,10 @@ This is the target algorithm. Capture, luma preprocessing, bidirectional block m
   ```
 - This stage captures each real frame, downsamples to R16F luma in a two-slot history ring, and—after two valid frames—runs a coarse block-matching pass into a 1/16-resolution RGBA16F motion field. The pass searches a 9x9 displacement window over 3x3 luma patches and stores motion, best/second-best confidence and matching cost. It does not interpolate or alter presentation. Enabling it adds two full-resolution history images, two half-resolution luma images, two low-resolution motion images, a GPU copy and two motion compute dispatches per real frame. Treat it as a diagnostic test, not a performance mode.
 
-When the game starts, SnapFrame creates a separate diagnostic file at
-`<game-directory>/port/snapframe.log` (truncated for each launch). It records
+When the game starts, SnapFrame creates separate diagnostic outputs under
+`<game-directory>/port/`: `snapframe.log`, `snapframe_gpu.csv`,
+`snapframe_flow.csv`, and `snapframe_flow_vectors.csv` (each truncated for a
+new launch). The text log records
 bootstrap/configuration, DXVK PresentImage entry, WSI image details, callback
 entry, format capability checks, history allocation, capture skips and frame
 counters. History allocation validates the exact `TRANSFER_DST | SAMPLED`
@@ -187,5 +189,13 @@ based on successfully captured frames, not wall time.
 
 All currently implemented GPU stages remain active in every phase. This is
 not a numerical shader self-test: dispatch acceptance does not prove vector
-accuracy. GPU readback, visualization and timestamp-based GPU cost measurement
-remain separate validation gates. No rebuild is needed between phases.
+accuracy. Sampled GPU timestamp rows are written every 30th captured frame to
+`snapframe_gpu.csv` (capture copy, luma, forward flow, backward flow,
+consistency and total chain). Every 120th accepted flow pair, the two flow
+fields and consistency mask are copied into a host-visible staging buffer;
+summary statistics go to `snapframe_flow.csv`. A spatial vector dump is
+written every 600th accepted pair to `snapframe_flow_vectors.csv`. Readback is
+performed only after the active command list completes and is not consumed by
+the runtime rendering path. These summaries are diagnostics, not ground-truth
+accuracy tests; controlled synthetic translations and visual inspection are
+still required. No rebuild is needed between phases.
