@@ -326,3 +326,25 @@ SnapFrame: bidirectional flow pair accepted count=9720 groups=14x7
 SnapFrame: forward/backward consistency accepted count=9720
 SnapFrame: bidirectional flow pair accepted count=9840 groups=14x7
 SnapFrame: forward/backward consistency accepted count=9840
+SnapFrame: TEST_PHASE_PROGRESS phase=hud_inventory_map elapsed_frames=900 target_frames=1800
+SnapFrame: luma dispatch accepted count=9900 groups=153x68
+SnapFrame: midpoint warp accepted count=9900 extent=2448x1080 output=RGBA16F
+SnapFrame: bidirectional flow pair accepted count=9960 groups=14x7
+SnapFrame: forward/backward consistency accepted count=9960
+SnapFrame: bidirectional flow pair accepted count=10080 groups=14x7
+SnapFrame: forward/backward consistency accepted count=10080
+SnapFrame: TEST_PHASE_PROGRESS phase=hud_inventory_map elapsed_frames=1200 target_frames=1800
+SnapFrame: luma dispatch accepted count=10200 groups=153x68
+SnapFrame: bidirectional flow pair accepted count=10200 groups=14x7
+SnapFrame: midpoint warp accepted count=10200 extent=2448x1080 output=RGBA16F
+SnapFrame: forward/backward consistency accepted count=10200
+SnapFrame: flow vector dump complete frame=10201 rows=5600 grid=112x50
+SnapFrame: bidirectional flow pair accepted count=10320 groups=14x7
+SnapFrame: forward/backward consistency accepted count=10320
+SnapFrame: bidirectional flow pair accepted count=10440 groups=14x7
+SnapFrame: forward/backward consistency accepted count=10440
+SnapFrame: TEST_PHASE_PROGRESS phase=hud_inventory_map elapsed_frames=1500 target_frames=1800
+SnapFrame: luma dispatch accepted count=10500 groups=153x68
+SnapFrame: midpoint warp accepted count=10500 extent=2448x1080 output=RGBA16F
+SnapFrame: bidirectional flow pair accepted count=10560 groups=14x7
+SnapFrame: forward/backward consistency accepted count=10560
