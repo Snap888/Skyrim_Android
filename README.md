@@ -146,7 +146,7 @@ Everything the port writes goes into a `port` folder inside your Skyrim folder: 
 
 ## Controls
 - Bluetooth, USB, and integrated controllers should work fine (Xbox layout by default; see Nintendo button layout).
-- The in-game top-left **☰** menu opens LSFG settings, the Android on-screen keyboard, and the touch-controls editor.
+- The in-game top-left **☰** menu opens LSFG settings, Snap AI / Frame Generation settings (currently Frame Generation enable and Flow Scale), the Android on-screen keyboard, and the touch-controls editor.
 - In **LSFG settings**, the ON/OFF slider fully bypasses frame generation at runtime (OFF uses 1x); ON restores the selected 2x/3x/4x multiplier. See [in-game LSFG settings](docs/LSFG_IN_GAME_SETTINGS.md).
 - The touch overlay provides left and right analog sticks, a four-way D-pad, A/B/X/Y, LB/RB, analog LT/RT, Start/Back, and QS/QL (Skyrim's default F5 quick-save and F9 quick-load shortcuts).
 - In **Touch controls editor**, drag a button or either stick to reposition it. The layout is saved as `port/save/touch_layout.cfg` and restored on the next launch. Tap the ☰ menu again and select the editor item to leave edit mode.
