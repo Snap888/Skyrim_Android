@@ -31,7 +31,7 @@ API v1 supports multiplier 1 (bypass) and multiplier 2 (one midpoint). The curre
 
 ## Hot settings
 
-The portable core exposes hot enable/config/quality setters. GPU-dependent changes are only genuinely hot if the backend implements `update_config` and applies them at a safe synchronization point. If a change requires resource recreation, defer it until the GPU is no longer using the old resources.
+The portable core exposes hot enable/config/quality setters. GPU-dependent changes are only genuinely hot if the backend implements `update_config` and applies them at a safe synchronization point. The current legacy host now supports hot enable/disable and flow scale (25–100%): JNI updates atomics and requests a history reset; the serialized DXVK copy callback consumes the request, releases temporal resources and recreates them with the new scale. The UI does not directly mutate Vulkan objects. If a change requires resource recreation, defer it until the GPU is no longer using the old resources.
 
 ## Validation
 
