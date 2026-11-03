@@ -2,7 +2,7 @@
 
 ## Status
 
-The branch has not yet completed an Android NDK build, a concrete DXVK adapter build, or physical-device GPU validation. The Android CI workflow's Java compilation job is currently running; its full APK job is skipped unless explicitly dispatched with generated `gen/` sources.
+The portable Snap AI/SnapFrame shared libraries have passed Android ARM64 NDK CI. Java compilation has passed. The concrete DXVK adapter and JNI bridge are now included in a separate ARM64 compile job; its result is pending. No full APK or physical-device GPU validation has been completed. The full APK job is skipped unless explicitly dispatched with generated `gen/` sources.
 
 ## Portable API tests
 
@@ -12,6 +12,7 @@ Run upstream Snap AI and SnapFrame C API tests in the Snap_AI_Engine repository 
 
 - Snap AI create/destroy, disabled state, profile changes, invalid metrics, scene cut, non-monotonic frame ids and bounded output.
 - SnapFrame create/destroy, disabled/bypass, frame ordering, backend failure, update_config, reset_history, resize and device recreation.
+- DXVK adapter fallback when portable engine creation fails; backend-error bypass; accepted-present counting only after DXVK reports success.
 - Verify SnapFrame remains functional when Snap AI is absent, disabled or returns an error.
 - Verify Frame Generation OFF prevents backend dispatch.
 - Verify original-frame present fallback on every backend failure.
@@ -19,7 +20,7 @@ Run upstream Snap AI and SnapFrame C API tests in the Snap_AI_Engine repository 
 
 ## Required Android menu scenarios
 
-The Frame Generation and Flow Scale controls are now present in the in-game menu; Snap AI is not yet live.
+The Frame Generation and Flow Scale controls are now present in the in-game menu and route through SnapFrameBackendV1; Snap AI is not yet live.
 
 1. Toggle Frame Generation during gameplay.
 2. Change Flow Scale across low/mid/high values and verify history reset/reallocation.
