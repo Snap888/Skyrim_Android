@@ -49,7 +49,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
         device->adapter()->formatProperties(format);
     if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT)) {
         fprintf(stderr,
-                "SnapFrame: history format unsupported: format=0x%x lacks sampled-image support\\n",
+                "SnapFrame: history format unsupported: format=0x%x lacks sampled-image support\n",
                 static_cast<unsigned>(format));
         return false;
     }
