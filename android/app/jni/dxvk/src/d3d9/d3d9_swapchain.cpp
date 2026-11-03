@@ -112,7 +112,7 @@ namespace dxvk {
             stream << "=== DXVK_PERF_START run=" << run
                    << " lsfg_mode_is_runtime_observed=true ===\n";
             stream << "columns: frame,avg_cpu_present_ms,min_cpu_present_ms,max_cpu_present_ms,"
-                      "avg_lsfg_requested,avg_lsfg_generated,width,height,vsync\n";
+                      "avg_generated_requested,avg_generated_queued,width,height,vsync\n";
             stream.flush();
           }
         }
@@ -1157,8 +1157,9 @@ namespace dxvk {
           if (resultHook) resultHook(generationFailed ? 0 : 1);
         }
         if (!generationFailed) {
-          if (lsfgCanGenerate)
-            hud::addLsfgGeneratedFrame();
+          // The existing FG HUD counter represents generated output FPS;
+          // include SnapFrame as well as LSFG (the paths are mutually exclusive).
+          hud::addLsfgGeneratedFrame();
           ++perfGenerated;
         }
         if (generationFailed)
