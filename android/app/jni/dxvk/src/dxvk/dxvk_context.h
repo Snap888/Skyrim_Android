@@ -556,6 +556,16 @@ namespace dxvk {
             uint32_t          y,
             uint32_t          z);
 
+    /* Runs the isolated SnapFrame luma kernel while preserving D3D9 resource
+     * bindings and the previous compute shader state. */
+    bool dispatchSnapFrame(
+      const Rc<DxvkShader>&       shader,
+      const Rc<DxvkImageView>&    sourceView,
+      const Rc<DxvkSampler>&      sourceSampler,
+      const Rc<DxvkImageView>&    outputView,
+            uint32_t              groupsX,
+            uint32_t              groupsY);
+
     /**
      * rief Flushes pending resource hazards after compute work
      *
