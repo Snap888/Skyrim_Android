@@ -19,7 +19,13 @@ Run upstream Snap AI and SnapFrame C API tests in the Snap_AI_Engine repository 
 
 ## Required Android menu scenarios
 
-1. Toggle Snap AI during gameplay.
+The Frame Generation and Flow Scale controls are now present in the in-game menu; Snap AI is not yet live.
+
+1. Toggle Frame Generation during gameplay.
+2. Change Flow Scale across low/mid/high values and verify history reset/reallocation.
+3. Restart the game and verify persisted settings.
+4. Verify the UI reports unavailable Snap AI control until the adapter is complete.
+5. Toggle Snap AI during gameplay (pending implementation).
 2. Toggle Frame Generation during gameplay.
 3. Change Performance/Balanced/Quality.
 4. Change flow scale and supported motion settings.
