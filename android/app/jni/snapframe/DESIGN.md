@@ -215,13 +215,13 @@ storage and sampled feature bits, the concrete 2D image configuration, the
 extent limits. This is diagnostic only; capture continues even when the
 compute output is unsupported.
 
-The current Android CMake path does not compile standalone GLSL. The Android
-project generator copies generated shader headers from a desktop DXVK Meson
-build, while the runtime DXVK shader loader consumes SPIR-V code buffers.
-Before adding SnapFrame compute stages, implement and document an explicit
-GLSL-to-SPIR-V compile/validation/embed path that is reproducible in the
-existing Android build workflow; do not assume glslc or glslangValidator is
-available in the NDK build.
+The Android NDK build does not compile standalone GLSL. SnapFrame's CMake
+configure step now invokes the host-side
+`tools/compile_snapframe_shaders.py` when Python 3, `glslangValidator`, and
+`spirv-val` are available, producing a C++ SPIR-V header before compiling the
+host target. The NDK consumes that header and does not need shader tools. If
+the host tools are absent, CMake warns and leaves capture enabled while
+disabling the luma dispatch; the dedicated runtime log reports this condition.
 
 ## 8. Current status
 
