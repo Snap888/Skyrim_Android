@@ -54,7 +54,11 @@ When the game starts, SnapFrame creates a separate diagnostic file at
 `<game-directory>/port/snapframe.log` (truncated for each launch). It records
 bootstrap/configuration, DXVK PresentImage entry, WSI image details, callback
 entry, format capability checks, history allocation, capture skips and frame
-counters. The same messages are also mirrored to the normal stderr log. This
+counters. History allocation validates the exact `TRANSFER_DST | SAMPLED`
+image-usage combination and requested extent before creating the two images.
+Pending history resets are consumed before the enabled-state early return, so
+disabling SnapFrame releases cached GPU images and the sampler on the next
+DXVK present callback. The same messages are also mirrored to the normal stderr log. This
 makes it possible to send `snapframe.log` without the large general game log.
 
 When enabled, the diagnostic sequence is:
