@@ -65,7 +65,7 @@ These changes establish the portable library build/link boundary. They do **not*
 ## Validation status
 
 - Branch creation and base equality: verified with Git commit comparison.
-- Portable Android build integration: committed, but not yet validated by an Android NDK build.
+- Portable Snap AI + SnapFrame ARM64 shared-library build: passed Android NDK CI (run #41736778626).
 - DXVK adapter parity: not implemented.
 - Snap AI telemetry/control loop: not implemented.
 - In-game Snap AI / Frame Generation section: added with working Frame Generation and Flow Scale controls for the legacy host; Snap AI adaptive control is explicitly marked unavailable until the telemetry adapter is connected.
