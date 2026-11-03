@@ -348,3 +348,5 @@ SnapFrame: luma dispatch accepted count=10500 groups=153x68
 SnapFrame: midpoint warp accepted count=10500 extent=2448x1080 output=RGBA16F
 SnapFrame: bidirectional flow pair accepted count=10560 groups=14x7
 SnapFrame: forward/backward consistency accepted count=10560
+SnapFrame: bidirectional flow pair accepted count=10680 groups=14x7
+SnapFrame: forward/backward consistency accepted count=10680
