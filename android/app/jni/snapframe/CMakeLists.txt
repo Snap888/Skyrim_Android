@@ -2,6 +2,30 @@
 add_library(snapframe_host STATIC
     snapframe_host.cpp
 )
+
+# Compile SnapFrame GLSL on the build host before the NDK compiles the C++
+# host. The Android toolchain itself does not need glslang or spirv-val.
+find_package(Python3 COMPONENTS Interpreter QUIET)
+find_program(SNAPFRAME_GLSLANG_VALIDATOR glslangValidator)
+find_program(SNAPFRAME_SPIRV_VAL spirv-val)
+if(Python3_Interpreter_FOUND AND SNAPFRAME_GLSLANG_VALIDATOR AND SNAPFRAME_SPIRV_VAL)
+  execute_process(
+    COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/compile_snapframe_shaders.py"
+      --glslang "${SNAPFRAME_GLSLANG_VALIDATOR}"
+      --spirv-val "${SNAPFRAME_SPIRV_VAL}"
+    RESULT_VARIABLE SNAPFRAME_SHADER_RESULT
+    OUTPUT_VARIABLE SNAPFRAME_SHADER_OUTPUT
+    ERROR_VARIABLE SNAPFRAME_SHADER_ERROR
+  )
+  if(SNAPFRAME_SHADER_RESULT EQUAL 0)
+    message(STATUS "${SNAPFRAME_SHADER_OUTPUT}")
+  else()
+    message(WARNING "SnapFrame shader compilation failed; capture remains available but luma dispatch is disabled: ${SNAPFRAME_SHADER_ERROR}")
+  endif()
+else()
+  message(WARNING "SnapFrame shader tools not found on build host (Python3, glslangValidator, spirv-val); capture remains available but luma dispatch is disabled.")
+endif()
 target_include_directories(snapframe_host PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(snapframe_host PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../dxvk
