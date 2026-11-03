@@ -32,7 +32,7 @@ set(SNAP_FRAME_BUILD_DXVK_LEGACY ON CACHE BOOL "" FORCE)
 set(SNAP_FRAME_DXVK_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dxvk" CACHE PATH "" FORCE)
 FetchContent_Declare(snap_ai_engine
     GIT_REPOSITORY https://github.com/Snap888/Snap_AI_Engine.git
-    GIT_TAG aaf0c8472c2106244aeaae59f4a35d39a5352762
+    GIT_TAG 12d89ff6b8adbb4da642912c13afec95f58bdc5e
     GIT_SHALLOW FALSE
 )
 FetchContent_MakeAvailable(snap_ai_engine)
