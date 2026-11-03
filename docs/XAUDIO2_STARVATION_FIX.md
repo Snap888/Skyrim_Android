@@ -144,3 +144,12 @@ The latest device log and source review identified a harsh transition in `mix_so
 The mixer now applies a short 5 ms linear gain ramp per source voice: it fades toward zero while source data is unavailable and fades back to unity after a valid source frame is read. This changes only rendered gain; it does not advance, rewind, reorder, or discard source frames, and it leaves buffer callbacks, play regions, loops, and xWMA decode scheduling unchanged. The ramp also applies to ordinary end-of-queue silence, avoiding an abrupt tail when a source stops.
 
 This is an audio-continuity mitigation, not a decoder throughput fix. Validate with a fresh APK and the same scene; compare audible clicks, `pending_decode`, worker latency, `empty_queue`, and output timing. No device playback test has been performed for this change.
+
+
+## 2026-11-03 — Master-bus headroom and device-format telemetry
+
+The audio path review found that all XAudio2 source voices are accumulated into the master bus before a nonlinear soft limiter. Earlier sampled diagnostics showed pre-limiter peaks as high as 1.86, so multi-voice sums can drive the limiter frequently. This is a plausible source of audible distortion across music, effects and dialogue, but it is not proof that the limiter is the only cause.
+
+The master output now receives a fixed -6 dB headroom gain before the existing soft limiter. The pre-gain `mix peak` measurement is intentionally retained so logs remain comparable; the `soft_limited` counter now reflects samples that still exceed the limiter knee after headroom. SDL's obtained frequency, format, channel count and buffer size are also logged at device startup to verify the actual output path.
+
+This is a targeted A/B mitigation and diagnostic build, not a device-verified final fix. It reduces output level by approximately 6 dB; check whether crackling decreases without unacceptable volume loss. If artifacts remain with `soft_limited=0`, prioritize output queue/device scheduling and sample-boundary discontinuities instead of further reducing gain.
