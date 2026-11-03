@@ -325,6 +325,11 @@ namespace dxvk {
     // Enable additional device features if supported
     enabledFeatures.extExtendedDynamicState.extendedDynamicState = m_deviceFeatures.extExtendedDynamicState.extendedDynamicState;
 
+    // SnapFrame's first R16F storage-image kernel requires this core feature.
+    // Enable it only when the physical device advertises support.
+    enabledFeatures.core.features.shaderStorageImageExtendedFormats =
+      m_deviceFeatures.core.features.shaderStorageImageExtendedFormats;
+
     enabledFeatures.ext4444Formats.formatA4B4G4R4 = m_deviceFeatures.ext4444Formats.formatA4B4G4R4;
     enabledFeatures.ext4444Formats.formatA4R4G4B4 = m_deviceFeatures.ext4444Formats.formatA4R4G4B4;
     
