@@ -43,7 +43,11 @@ void snapframe_bootstrap(void) {
         fclose(file);
     }
 
+    snapframe_host_log("bootstrap entered");
     snapframe_host_init(&config);
-    fprintf(stderr, "SnapFrame: config=%s enabled=%d (prototype captures frames only)\n",
-            path, config.enabled);
+    char summary[1400];
+    snprintf(summary, sizeof(summary), "config=%s log=%s enabled=%d multiplier=%d quality=%d flow_scale=%d profiling=%d",
+             path, logPath, config.enabled, config.multiplier, config.quality,
+             config.flow_scale_percent, config.profiling_enabled);
+    snapframe_host_log(summary);
 }
