@@ -129,11 +129,11 @@ jobs:
             -DSNAP_FRAME_BUILD_EXAMPLE=OFF \
             -DSNAP_FRAME_BUILD_DXVK_LEGACY=OFF
 
-      - name: Compile the real DXVK SnapFrame host
+      - name: Compile the DXVK host and JNI settings bridge
         run: |
           "$ANDROID_HOME/cmake/$CMAKE_VERSION/bin/cmake" \
             --build "$RUNNER_TEMP/skyrim-native-build" \
-            --target snapframe_host --parallel 2
+            --target snapframe_host snapframe_jni_compile_check --parallel 2
 
   apk:
     name: Full arm64 APK build
