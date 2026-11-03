@@ -711,7 +711,12 @@ static void engine_pass(CPU *c, int frames, float *out) {
              * knee so the output remains bounded without a sharp clip edge. */
             float sample[2] = { l, r };
             for (int c = 0; c < 2; c++) {
-                float x = sample[c];
+                /* Leave fixed headroom before the nonlinear safety limiter.
+                 * The previous device log showed pre-limiter peaks up to 1.86;
+                 * reducing the bus by 6 dB prevents ordinary multi-voice sums
+                 * from driving the limiter continuously. Keep the pre-gain
+                 * peak counter above so A/B logs remain comparable. */
+                float x = sample[c] * 0.50118723f; /* -6 dB */
                 if (!isfinite(x)) {
                     x = 0.0f;
                     g_xa_mix_invalid++;
@@ -862,7 +867,11 @@ static void engine_start_thread(void) {
     g_dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
     rt_host_affinity_end();
     if (!g_dev) LOG("xaudio2: SDL_OpenAudioDevice failed: %s (mixing silently)", SDL_GetError());
-    else SDL_PauseAudioDevice(g_dev, 0);
+    else {
+        XA_LOG("xaudio2: SDL device obtained freq=%d format=0x%04x channels=%u samples=%u (requested %dHz F32 stereo)",
+               have.freq, have.format, have.channels, have.samples, g_rate);
+        SDL_PauseAudioDevice(g_dev, 0);
+    }
     if (pthread_create(&g_engine_thread, NULL, engine_main, NULL) == 0) {
         g_engine_thread_started = 1;
     } else {
