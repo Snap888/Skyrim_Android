@@ -73,3 +73,14 @@ Across 238 valid GPU timing samples per stage, medians are: capture 0.504 ms, lu
 A follow-up shader change adds exact SAD early termination: a candidate's patch evaluation stops only when its partial non-negative SAD is strictly greater than the current second-best complete cost. Such a candidate cannot affect the best match, second-best match or confidence margin. Strict greater-than preserves equal-cost tie behavior. This reduces texture reads on favorable candidate distributions without changing the search result; actual savings require device measurements. Keep the 3x3 patch, 49-candidate lattice, boundary suppression and current-frame fallback unchanged for this comparison.
 
 Next algorithmic work remains a true multi-level luma pyramid for large motion. Do not widen the single-level search radius. Pyramid resource allocation, per-level extents, dispatch barriers and vector scaling must be implemented and validated as a separate change after the SAD early-out has a measured baseline.
+
+
+### Latest device run — 2026-11-03 (SAD early-out)
+
+The latest upload (`2fbbc80e038e0589fb6b750b8b64dfd90c433572`) confirms the 49-candidate matcher, 75% flow scale, 2448x1080 capture and 112x50 flow grid. LSFG was disabled. Phases 1–5 completed 1,800 frames each without skips or dispatch failures; phase 6 reached about 840/1,800 frames and the uploaded log ends before phase 6/7 results. The 82 aggregate flow snapshots show the same phase/motion mismatch: some nominal static-scene samples contain large movement, while some slow-pan samples are nearly static.
+
+GPU timings (329 valid samples per stage) are: capture median 0.503 ms, luma 0.400 ms, forward flow 3.496 ms, backward flow 3.484 ms, consistency 0.012 ms, midpoint 1.554 ms and total chain 9.487 ms. Relative to the previous run's 12.706 ms total-chain median and 5.019/5.017 ms flow medians, these are lower by about 25% total and 30% per flow pass. This is encouraging evidence that exact SAD early termination may help, but the runs are not controlled for scene, thermal state or workload; no guaranteed speedup is claimed.
+
+High-motion snapshots still hit the +/-10 boundary: up to 2,034/5,600 cells (36.3%) at frame 8,521, with forward confidence 0.0407 and only 0.018% cells above 0.5 consistency. Near-static snapshots reach approximately 0.99 confidence/consistency. Keep the boundary suppression and current-frame fallback. Do not expand the single-level radius; a multi-level pyramid remains the correct direction for large displacement.
+
+A follow-up exact-work optimization now evaluates the 3x3 SAD patch center first, then axial neighbors and corners, retaining strict partial-SAD > second-best early termination. All nine samples still contribute for candidates that can affect ranking, so this changes evaluation order rather than match semantics. Commit `0a118fd93428a1bdf534f3f8763d59a1489be85d`; device benefit remains unmeasured.
