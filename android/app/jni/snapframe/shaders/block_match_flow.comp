@@ -2,8 +2,9 @@
 
 // Coarse block-matching motion field over half-resolution luma.
 // One output texel represents an 8x8 luma region (16x16 source pixels).
-// Motion is expressed in luma texels; confidence is the best/second-best
-// SAD separation and is deliberately conservative in ambiguous regions.
+// Motion is expressed in half-resolution luma texels. The host runs this
+// kernel twice with reversed inputs: current->previous, then previous->current.
+// Confidence is local best/second-best SAD separation, not FB consistency.
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
