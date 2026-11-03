@@ -334,8 +334,26 @@ void recordFlowReadback(
 
     context->addCompletionCallback([readback, frame, flowWidth, flowHeight,
                                     pixels, flowBytes, maskOffset](VkResult result) {
+        if (result != VK_SUCCESS) {
+            std::lock_guard<std::mutex> lock(g_flowLogMutex);
+            if (g_flowLogFile) {
+                fprintf(g_flowLogFile,
+                    "%llu,%u,%u,0,0,0,0,0,0,0,0,0,0,0,0,0,completion_error:%d\\n",
+                    static_cast<unsigned long long>(frame), flowWidth, flowHeight, int(result));
+                fflush(g_flowLogFile);
+            }
+            return;
+        }
         const uint16_t* data = reinterpret_cast<const uint16_t*>(readback->mapPtr(0));
-        if (!data) return;
+        if (!data) {
+            std::lock_guard<std::mutex> lock(g_flowLogMutex);
+            if (g_flowLogFile) {
+                fprintf(g_flowLogFile, "%llu,%u,%u,0,0,0,0,0,0,0,0,0,0,0,0,0,readback_mapping_failed\\n",
+                    static_cast<unsigned long long>(frame), flowWidth, flowHeight);
+                fflush(g_flowLogFile);
+            }
+            return;
+        }
         const SnapFrameFlowStats forward = summarizeFlow(data, pixels);
         const SnapFrameFlowStats backward = summarizeFlow(
             reinterpret_cast<const uint16_t*>(reinterpret_cast<const uint8_t*>(data) + flowBytes),
