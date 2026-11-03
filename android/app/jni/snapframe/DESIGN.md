@@ -209,7 +209,11 @@ first PresentImage entry, WSI image usage/format, callback dispatch, and host
 callback entry. The copy-hook pointer is atomically published/read to avoid a
 setter-versus-present data race. These markers distinguish failure to reach
 PresentImage from an unsupported source usage or a history allocation/copy problem. The two history images are allocated only after checking sampled-image support
-for their WSI format. The host now also reports `R16_SFLOAT` luminance-output capability: optimal-tiling
+and querying the exact `TRANSFER_DST | SAMPLED` image-usage combination and
+requested extent for their WSI format. When an enable/disable or history-reset
+request is pending, the next DXVK present callback consumes it before the
+inactive-state return, releasing the cached history images and sampler even
+when SnapFrame has just been disabled. The host now also reports `R16_SFLOAT` luminance-output capability: optimal-tiling
 storage and sampled feature bits, the concrete 2D image configuration, the
 `shaderStorageImageExtendedFormats` device feature, and the half-resolution
 extent limits. This is diagnostic only; capture continues even when the
