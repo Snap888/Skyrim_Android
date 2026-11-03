@@ -37,8 +37,13 @@ void main() {
     float confidence = clamp(min(fwd.z, bwd.z) * consistency, 0.0, 1.0);
     // Preserve both source samples where motion evidence is weak. The blend
     // remains deterministic and avoids black/undefined pixels at occlusions.
-    vec4 warped = mix((prev + curr) * 0.5, (prev + curr) * 0.5, 0.5);
+    float prevWeight = clamp(fwd.z * consistency, 0.0, 1.0);
+    float currWeight = clamp(bwd.z * consistency, 0.0, 1.0);
+    float weightSum = prevWeight + currWeight;
+    vec4 confidenceWeighted = weightSum > 1.0e-4
+        ? (prev * prevWeight + curr * currWeight) / weightSum
+        : (prev + curr) * 0.5;
     float motionWeight = smoothstep(0.08, 0.65, confidence);
-    vec4 result = mix((prev + curr) * 0.5, warped, motionWeight);
+    vec4 result = mix((prev + curr) * 0.5, confidenceWeighted, motionWeight);
     imageStore(midpointOutput, p, result);
 }
