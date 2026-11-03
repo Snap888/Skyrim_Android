@@ -687,3 +687,50 @@ Requested/generated averages в CSV находятся между 0,983333 и 1,
 ### Ограничения анализа
 
 В текущей загрузке нет `dxvk_perf_off.csv`, поэтому это не A/B тест. Большие файлы `dxvk_lsfg_gpu.csv` (25,7 МБ) и `log.txt` (1,43 МБ) присутствуют в Git tree, но их содержимое не удалось прочитать через GitHub file connector. Поэтому не публикуются новые GPU stage timings и выводы по звуку/xWMA. Подробный разбор и следующий тест — в [статусе snap-patch-5](LSFG_SNAP_PATCH_5_STATUS.md).
+
+
+## Состояние ветки `frame_gen` — 3 ноября 2026
+
+Работа по SnapFrame ведётся отдельно от `snap-patch-5`. Ветка содержит
+самостоятельный модуль `android/app/jni/snapframe/`; LSFG остаётся отдельной
+подсистемой. Текущий прототип захватывает реальные кадры, строит half-res
+luma, оценивает двунаправленное coarse motion и формирует forward/backward
+consistency mask. Он **не реконструирует и не показывает промежуточные кадры**.
+
+### Перенос аудио из snap-patch-5
+
+В `frame_gen` перенесены изменения `runtime/xaudio2.c`, совпадающие с
+реализацией `snap-patch-5`:
+
+- плавный 5 ms gain ramp на source voice при временном starvation;
+- -6 dB master-bus headroom перед soft limiter с сохранением pre-gain peak
+  telemetry;
+- запуск SDL audio device в paused state и старт после prefill 120 ms;
+- повышение steady-state queue target до 120 ms;
+- логирование фактического SDL device format, частоты, каналов и buffer size;
+- учёт ошибок `SDL_QueueAudio` и расширенный output timing log.
+
+Владелец проекта сообщил о чистом звуке на устройстве на сборке
+`snap-patch-5`. Это подтверждает combined audio result той ветки, но не
+является отдельной проверкой перенесённого кода в `frame_gen`. После
+переноса требуется локальная сборка и прослушивание. Подробности и ограничения:
+[AUDIO/XAudio2 status](XAUDIO2_STARVATION_FIX.md).
+
+### SnapFrame — следующий инженерный этап
+
+Последний доступный диагностический прогон `frame_gen` завершил первые три
+фазы по 1,800 кадров; четвёртая фаза была неполной, полного
+`TEST_SUITE_COMPLETE` нет. В flow CSV присутствуют неfinite-free samples,
+но заметна высокая доля displacement vectors на границе search window.
+GPU timestamp CSV показывает сильную асимметрию между одинаковыми forward и
+backward kernels; эти времена пока нельзя считать достоверной стоимостью
+отдельных dispatch. Пространственный dump требует отдельной проверки записи.
+
+Поэтому следующий этап — не включение генерации в Present, а обязательная
+валидация: исправить/проверить readback vector dump, проверить Vulkan timestamp
+query semantics, добавить controlled zero-motion/known-translation тесты и
+сопоставить GPU output с ground truth. Только после прохождения этих ворот
+начинать warp/reconstruction shader и отдельную presentation design.
+
+**Ограничения процесса:** APK не собирался, GitHub Actions не запускались.
+Сборку и тест на устройстве выполняет владелец проекта локально.
