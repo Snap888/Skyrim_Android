@@ -367,6 +367,9 @@ void recordFlowReadback(
     context->addCompletionCallback([readback, frame, flowWidth, flowHeight,
                                     pixels, flowBytes, maskOffset, dumpVectors](VkResult result) {
         if (result != VK_SUCCESS) {
+            if (dumpVectors)
+                snapframeLog("SnapFrame: flow vector readback completion failed frame=%llu result=%d\n",
+                    static_cast<unsigned long long>(frame), int(result));
             std::lock_guard<std::mutex> lock(g_flowLogMutex);
             if (g_flowLogFile) {
                 fprintf(g_flowLogFile,
@@ -381,6 +384,9 @@ void recordFlowReadback(
         }
         const uint16_t* data = reinterpret_cast<const uint16_t*>(readback->mapPtr(0));
         if (!data) {
+            if (dumpVectors)
+                snapframeLog("SnapFrame: flow vector readback mapping failed frame=%llu\n",
+                    static_cast<unsigned long long>(frame));
             std::lock_guard<std::mutex> lock(g_flowLogMutex);
             if (g_flowLogFile) {
                 fprintf(g_flowLogFile,
@@ -467,6 +473,14 @@ void recordFlowReadback(
                     }
                 }
                 fflush(g_vectorLogFile);
+                const bool writeFailed = ferror(g_vectorLogFile) != 0;
+                snapframeLog("SnapFrame: flow vector dump %s frame=%llu rows=%llu grid=%ux%u\n",
+                    writeFailed ? "write-error" : "complete",
+                    static_cast<unsigned long long>(frame),
+                    static_cast<unsigned long long>(pixels), flowWidth, flowHeight);
+            } else {
+                snapframeLog("SnapFrame: flow vector dump skipped frame=%llu reason=file-not-open\n",
+                    static_cast<unsigned long long>(frame));
             }
         }
     });
