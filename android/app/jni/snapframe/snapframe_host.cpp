@@ -114,7 +114,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
         || width > historyImageProperties.maxExtent.width
         || height > historyImageProperties.maxExtent.height) {
         snapframeLog(
-                "SnapFrame: history image config unsupported format=0x%x result=%d extent=%ux%u max=%ux%u usage=TRANSFER_DST|SAMPLED\\n",
+                "SnapFrame: history image config unsupported format=0x%x result=%d extent=%ux%u max=%ux%u usage=TRANSFER_DST|SAMPLED\n",
                 static_cast<unsigned>(format), static_cast<int>(historyImageResult),
                 width, height, historyImageProperties.maxExtent.width,
                 historyImageProperties.maxExtent.height);
