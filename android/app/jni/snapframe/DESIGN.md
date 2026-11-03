@@ -613,3 +613,8 @@ The DXVK present path increments perfGenerated after the additional present is q
 The GitHub file reader returned empty content for the uploaded snapframe_events.csv and snapframe_flow_vectors.csv in this retrieval, although the text log reports completed vector dumps. Their rows could not be independently checked here. Confirm that these files are non-empty in the repository or upload them again as plain-text CSV.
 
 Current assessment: no black-frame symptom is reported; midpoint dispatch is active; visible geometry distortion is consistent with unreliable, search-boundary motion vectors and a biased reverse-grid projection. The two conservative shader corrections are committed, but their runtime effect, FPS uplift, and full native build remain unverified.
+
+
+### Generated FPS HUD instrumentation follow-up
+
+The existing DXVK FG generated-frame counter is now incremented for every successfully queued generated output, including SnapFrame (LSFG and SnapFrame generation paths are mutually exclusive in the present loop). This routes SnapFrame into the existing generated-FPS HUD field without adding a second overlapping counter. The field is available only when the DXVK FPS HUD is enabled. It reports generated presents queued by the renderer, not confirmed display scan-outs. Verify on device that the HUD field updates during SnapFrame and remains correct with LSFG disabled/enabled.
