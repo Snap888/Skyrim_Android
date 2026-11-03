@@ -824,7 +824,7 @@ static void *engine_main(void *arg) {
         }
         if (__atomic_load_n(&g_engine_shutdown, __ATOMIC_ACQUIRE)) break;
         if (!g_running) { usleep(PASS_FRAMES_MS * 1000); continue; }
-        if (g_dev) {
+        if (g_dev && !g_dev_paused) {
             Uint32 queued = SDL_GetQueuedAudioSize(g_dev);
             if (queued < min_queue_bytes) min_queue_bytes = queued;
             if (queued < (Uint32)(frames * 2 * sizeof(float))) queue_low++;
@@ -847,8 +847,7 @@ static void *engine_main(void *arg) {
             }
         }
         if (++diag_passes >= 100) {
-            if (queue_low || slow_passes || enqueue_failures)
-                XA_LOG("xaudio2: output timing queue_low=%llu min_queue=%uB target=%uB slow_mix=%llu max_mix=%llums enqueue_fail=%llu (last 1s)",
+            XA_LOG("xaudio2: output timing queue_low=%llu min_queue=%uB target=%uB slow_mix=%llu max_mix=%llums enqueue_fail=%llu (last 1s)",
                        (unsigned long long)queue_low, min_queue_bytes, queue_target_bytes,
                        (unsigned long long)slow_passes,
                        (unsigned long long)(max_pass_us / 1000),
