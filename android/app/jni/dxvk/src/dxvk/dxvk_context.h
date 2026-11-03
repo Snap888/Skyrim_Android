@@ -583,6 +583,18 @@ namespace dxvk {
       const Rc<DxvkImageView>&    consistencyOutputView,
             uint32_t              groupsX,
             uint32_t              groupsY);
+    /* Reconstructs a midpoint color frame from two color frames and motion. */
+    bool dispatchSnapFrameWarp(
+      const Rc<DxvkShader>&       shader,
+      const Rc<DxvkImageView>&    previousColorView,
+      const Rc<DxvkImageView>&    currentColorView,
+      const Rc<DxvkImageView>&    currentToPreviousView,
+      const Rc<DxvkImageView>&    previousToCurrentView,
+      const Rc<DxvkImageView>&    consistencyView,
+      const Rc<DxvkSampler>&      sourceSampler,
+      const Rc<DxvkImageView>&    outputView,
+            uint32_t              groupsX,
+            uint32_t              groupsY);
 
 
     /**
