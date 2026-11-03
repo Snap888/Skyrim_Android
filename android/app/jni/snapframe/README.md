@@ -2,7 +2,7 @@
 
 Experimental, independent frame-generation engine for Skyrim_Android.
 
-**Status: capture prototype. No generated frames are produced yet.**
+**Status: first real GPU preprocessing test. No interpolated/generated frames are presented yet.**
 This module is isolated from the existing `lsfg` implementation. It is now
 compiled as a separate host target and has an independent DXVK callback that
 copies the completed game image into a two-image GPU history ring. Optical flow,
@@ -67,6 +67,8 @@ When enabled, the diagnostic sequence is:
    the host callback actually ran.
 5. `allocated two-frame history` — the private history images were allocated.
 6. `two real frames captured` — at least two copies were recorded.
+7. `luma compute resources ready` — the R16F output, sampler and shader were created.
+8. `luma dispatch accepted` — DXVK committed the compute pipeline and recorded the dispatch. This confirms command recording, not yet the numeric correctness of the output.
 
 If the log contains only `host initialized` and no `entered D3D9SwapChainEx::PresentImage`,
 the current evidence does not show that the game reached its first D3D9 present.
@@ -77,8 +79,14 @@ stops progressing. If the present-path marker appears, the following
 `capture skipped` or allocation diagnostics identify the next failure point.
 
 The module is added to the JNI CMake build as a separate static target. The
-first GLSL compute shader source and host-side SPIR-V packaging script now
-exist, but no compute pipeline or runtime selector has been added yet. The Android native
+first GLSL compute shader now has a DXVK compute pipeline/resource path and is
+dispatched on the same active command list immediately after each captured
+frame. It writes half-resolution R16F luminance. CMake attempts to compile and
+validate the GLSL automatically on the build host when Python 3, glslangValidator
+and spirv-val are installed. If they are missing, the APK still builds with
+capture-only diagnostics and `snapframe.log` explicitly reports that luma
+compute was disabled. No optical flow, interpolation, or generated-frame
+presentation is implemented yet. The Android native
 CMake project currently consumes generated DXVK shader headers; it does not
 compile standalone GLSL sources itself. A dedicated, reproducible
 GLSL-to-SPIR-V packaging step must be established before adding the first
