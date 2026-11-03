@@ -282,7 +282,7 @@ reconstruction.
 
 The matcher has been revised to a coarse-to-fine search: 9x9 candidates
 spaced two luma texels apart over +/-8, then 3x3 refinement around the best
-coarse match. This gives a +/-9 effective range using 90 candidate positions.
+coarse match. This gives a +/-9 effective range using 89 candidate positions.
 The host boundary-saturation diagnostic now uses the matching +/-9 threshold.
 
 This change has not been GLSL-compiled, built into an APK, or tested on the
