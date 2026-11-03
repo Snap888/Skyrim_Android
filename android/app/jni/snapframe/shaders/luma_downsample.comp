@@ -1,0 +1,34 @@
+#version 450
+
+// First SnapFrame preprocessing kernel.
+// Produces a half-resolution Rec.709 luminance image from the real frame.
+// The caller must bind a sampled source image and an R16_SFLOAT storage image.
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform sampler2D sourceColor;
+layout(set = 0, binding = 1, r16f) writeonly uniform image2D destinationLuma;
+
+float sampleLuma(ivec2 coord, ivec2 sourceExtent) {
+    ivec2 p = clamp(coord, ivec2(0), sourceExtent - ivec2(1));
+    vec3 rgb = texelFetch(sourceColor, p, 0).rgb;
+    return dot(rgb, vec3(0.2126, 0.7152, 0.0722));
+}
+
+void main() {
+    ivec2 dst = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 dstExtent = imageSize(destinationLuma);
+    if (any(greaterThanEqual(dst, dstExtent)))
+        return;
+
+    ivec2 srcExtent = textureSize(sourceColor, 0);
+    ivec2 base = dst * 2;
+
+    float luma = 0.25 * (
+        sampleLuma(base + ivec2(0, 0), srcExtent) +
+        sampleLuma(base + ivec2(1, 0), srcExtent) +
+        sampleLuma(base + ivec2(0, 1), srcExtent) +
+        sampleLuma(base + ivec2(1, 1), srcExtent));
+
+    imageStore(destinationLuma, dst, vec4(luma, 0.0, 0.0, 1.0));
+}
