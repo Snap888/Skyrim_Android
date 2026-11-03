@@ -309,7 +309,7 @@ SnapFrameFlowStats summarizeFlow(const uint16_t* values, uint64_t count) {
         if (confidence >= 0.75f) ++stats.confidenceGe075;
         if (confidence >= 0.9f) ++stats.confidenceGe09;
         if (confidence >= 0.5f && magnitude > 0.5) ++stats.highConfidenceNonZero;
-        const bool boundary = std::fabs(dx) >= 3.5f || std::fabs(dy) >= 3.5f;
+        const bool boundary = std::fabs(dx) >= 8.5f || std::fabs(dy) >= 8.5f;
         if (boundary) {
             ++stats.boundarySaturated;
             if (confidence < 0.1f) ++stats.boundaryLowConfidence;
@@ -869,7 +869,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             snapframeLog("SnapFrame: luma compute resource creation failed; capture remains active\n");
         }
         if (g_flowAvailable) {
-            snapframeLog("SnapFrame: bidirectional block-matching flow ready outputs=2 extent=%ux%u format=RGBA16F search=9x9 patch=3x3 flow_scale=%u%% block_stride=%u luma_texels\n",
+            snapframeLog("SnapFrame: bidirectional block-matching flow ready outputs=2 extent=%ux%u format=RGBA16F search=coarse9x9-step2+refine3x3 range=+/-9 patch=3x3 flow_scale=%u%% block_stride=%u luma_texels\n",
                 flowExtent(width / 2u + width % 2u),
                 flowExtent(height / 2u + height % 2u),
                 g_flowScalePercent, flowBlockStride());
