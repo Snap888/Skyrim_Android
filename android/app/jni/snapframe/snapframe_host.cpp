@@ -74,6 +74,7 @@ void snapframeEvent(uint64_t frame, const char* event, uint32_t width,
 std::atomic<int> g_initialized{0};
 std::atomic<int> g_enabled{0};
 std::atomic<uint64_t> g_capturedFrames{0};
+std::atomic<uint64_t> g_generatedFrames{0};
 std::atomic<uint64_t> g_skippedFrames{0};
 std::atomic<uint64_t> g_copyCallbackCalls{0};
 std::atomic<int> g_resetHistoryRequested{0};
@@ -548,6 +549,7 @@ void clearHistory() {
     g_midpointAvailable = false;
     g_midpointDispatchCount = 0;
     g_midpointFailureCount = 0;
+    g_generatedFrames.store(0, std::memory_order_relaxed);
     g_lumaSampler = Rc<DxvkSampler>();
     g_lumaAvailable = false;
     g_flowAvailable = false;
@@ -1197,6 +1199,34 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
                         width, height, consistencyDispatched ? "dispatch_accepted" : "dispatch_rejected");
                     if (consistencyDispatched) {
                         ++g_consistencyDispatchCount;
+                        if (g_midpointAvailable) {
+                            const SnapFrameGpuTimer midpointTimer = beginGpuTimer(
+                                context, device, "midpoint_warp", nextCapturedFrame,
+                                width, height, profileThisFrame);
+                            const bool midpointDispatched = context->dispatchSnapFrameWarp(
+                                g_midpointShader, g_historyViews[previousSlot],
+                                g_historyViews[slot], g_flowView[0], g_flowView[1],
+                                g_consistencyView, g_lumaSampler, g_midpointView,
+                                (width + 7u) / 8u, (height + 7u) / 8u);
+                            endGpuTimer(context, midpointTimer);
+                            snapframeEvent(nextCapturedFrame,
+                                midpointDispatched ? "midpoint_warp_ok" : "midpoint_warp_failed",
+                                width, height, midpointDispatched
+                                    ? "rgba16f_midpoint_image_written" : "dispatch_rejected");
+                            if (midpointDispatched) {
+                                ++g_midpointDispatchCount;
+                                g_generatedFrames.fetch_add(1, std::memory_order_relaxed);
+                                // The following present/composite pass samples this storage output.
+                                context->flushComputeBarriers();
+                                if (g_midpointDispatchCount == 1
+                                 || (g_midpointDispatchCount % 300u) == 0u)
+                                    snapframeLog("SnapFrame: midpoint warp accepted count=%llu extent=%ux%u output=RGBA16F\n",
+                                        static_cast<unsigned long long>(g_midpointDispatchCount),
+                                        width, height);
+                            } else {
+                                ++g_midpointFailureCount;
+                            }
+                        }
                         if (g_profilingEnabled && (g_flowDispatchCount % 120u) == 0u) {
                             endGpuTimer(context, totalTimer);
                             totalTimerEnded = true;
@@ -1437,5 +1467,6 @@ extern "C" void snapframe_host_get_stats(SnapFrameStats *stats) {
     if (!stats) return;
     memset(stats, 0, sizeof(*stats));
     stats->captured_frames = g_capturedFrames.load(std::memory_order_relaxed);
+    stats->generated_frames = g_generatedFrames.load(std::memory_order_relaxed);
     stats->skipped_frames = g_skippedFrames.load(std::memory_order_relaxed);
 }
