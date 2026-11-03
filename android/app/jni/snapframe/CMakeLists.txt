@@ -1,4 +1,4 @@
-# SnapFrame DXVK capture host and first luma preprocessing compute test.
+# SnapFrame DXVK capture host and GPU preprocessing/motion/midpoint compute pipeline.
 add_library(snapframe_host STATIC
     snapframe_host.cpp
 )
@@ -23,7 +23,7 @@ if(Python3_Interpreter_FOUND AND SNAPFRAME_GLSLANG_VALIDATOR AND SNAPFRAME_SPIRV
     message(STATUS "${SNAPFRAME_SHADER_OUTPUT}")
   else()
     file(REMOVE "${SNAPFRAME_GENERATED_SHADER_HEADER}")
-    message(WARNING "SnapFrame shader compilation failed; capture remains available but luma dispatch is disabled: ${SNAPFRAME_SHADER_ERROR}")
+    message(WARNING "SnapFrame shader compilation failed; capture remains available but SnapFrame compute dispatches are disabled: ${SNAPFRAME_SHADER_ERROR}")
   endif()
 else()
   file(REMOVE "${SNAPFRAME_GENERATED_SHADER_HEADER}")
