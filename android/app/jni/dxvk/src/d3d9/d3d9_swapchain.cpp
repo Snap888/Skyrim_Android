@@ -27,11 +27,12 @@ extern "C" void lsfg_step3g_set_copy_hook(LsfgCopyHook hook) {
 
 /* SnapFrame captures the source image independently of LSFG. */
 using SnapFrameCopyHook = void (*)(void*, void*, void*, uint32_t, uint32_t, uint32_t);
-static SnapFrameCopyHook g_snapFrameCopyHook = nullptr;
+static std::atomic<SnapFrameCopyHook> g_snapFrameCopyHook{nullptr};
+static std::atomic<uint64_t> g_snapFramePresentEntryCount{0};
 static std::atomic<uint64_t> g_snapFramePresentPathCount{0};
 static std::atomic<uint64_t> g_snapFrameCallbackDispatchCount{0};
 extern "C" void snapframe_dxvk_set_copy_hook(SnapFrameCopyHook hook) {
-  g_snapFrameCopyHook = hook;
+  g_snapFrameCopyHook.store(hook, std::memory_order_release);
 }
 
 using LsfgGenerationCountHook = unsigned (*)(void);
@@ -925,6 +926,10 @@ namespace dxvk {
 
 
   void D3D9SwapChainEx::PresentImage(UINT SyncInterval) {
+    const uint64_t presentEntryCount =
+      g_snapFramePresentEntryCount.fetch_add(1, std::memory_order_relaxed) + 1;
+    if (presentEntryCount == 1)
+      fprintf(stderr, "SnapFrame: entered D3D9SwapChainEx::PresentImage\\n");
     const auto perfStart = std::chrono::steady_clock::now();
     uint32_t perfGenerated = 0;
     uint32_t perfRequested = 0;
@@ -974,28 +979,30 @@ namespace dxvk {
       /* Capture the completed game image before HUD composition. The copy is
        * recorded into this same command list and therefore needs no CPU readback. */
       if (i == 0) {
+        const SnapFrameCopyHook copyHook =
+          g_snapFrameCopyHook.load(std::memory_order_acquire);
         const uint64_t presentPathCount =
           g_snapFramePresentPathCount.fetch_add(1, std::memory_order_relaxed) + 1;
         if (presentPathCount == 1) {
           fprintf(stderr,
-            "SnapFrame: DXVK present path reached extent=%ux%u format=0x%x usage=0x%x copy_hook=%d\n",
+            "SnapFrame: DXVK present path reached extent=%ux%u format=0x%x usage=0x%x copy_hook=%d\\n",
             info.imageExtent.width, info.imageExtent.height,
             static_cast<unsigned>(info.format.format),
             static_cast<unsigned>(info.imageUsage),
-            g_snapFrameCopyHook != nullptr);
+            copyHook != nullptr);
         }
-        if (g_snapFrameCopyHook) {
+        if (copyHook) {
           const uint64_t dispatchCount =
             g_snapFrameCallbackDispatchCount.fetch_add(1, std::memory_order_relaxed) + 1;
           if (dispatchCount == 1)
-            fprintf(stderr, "SnapFrame: dispatching first DXVK copy callback\n");
-          g_snapFrameCopyHook(
-              m_context.ptr(),
-              m_imageViews.at(imageIndex).ptr(),
-              m_device.ptr(),
-              info.imageExtent.width,
-              info.imageExtent.height,
-              static_cast<uint32_t>(info.format.format));
+            fprintf(stderr, "SnapFrame: dispatching first DXVK copy callback\\n");
+          copyHook(
+            m_context.ptr(),
+            m_imageViews.at(imageIndex).ptr(),
+            m_device.ptr(),
+            info.imageExtent.width,
+            info.imageExtent.height,
+            static_cast<uint32_t>(info.format.format));
         }
       }
 
