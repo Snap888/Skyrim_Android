@@ -204,6 +204,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
 #if SNAPFRAME_HAS_LUMA_SHADER
     if (lumaFormatSupported) {
         bool createdShader = false;
+        bool createdFlowShader = false;
         try {
             const uint32_t lumaWidth = width / 2u + width % 2u;
             const uint32_t lumaHeight = height / 2u + height % 2u;
@@ -280,13 +281,92 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             }
             if (!g_lumaAvailable && needShaderRegistration)
                 g_lumaShader = Rc<DxvkShader>();
+
+            const VkFormat flowFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+            const VkFormatProperties flowProperties = device->adapter()->formatProperties(flowFormat);
+            const VkFormatFeatureFlags flowRequired = VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+            VkImageFormatProperties flowImageProperties{};
+            const VkResult flowImageResult = device->adapter()->imageFormatProperties(
+                flowFormat, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
+                VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 0, flowImageProperties);
+            const uint32_t flowWidth = (lumaWidth + 3u) / 4u;
+            const uint32_t flowHeight = (lumaHeight + 3u) / 4u;
+            const bool flowSupported =
+                (flowProperties.optimalTilingFeatures & flowRequired) == flowRequired
+                && flowImageResult == VK_SUCCESS
+                && flowWidth <= flowImageProperties.maxExtent.width
+                && flowHeight <= flowImageProperties.maxExtent.height
+                && device->features().core.features.shaderStorageImageExtendedFormats;
+
+            if (g_lumaAvailable && flowSupported) {
+                DxvkImageCreateInfo flowInfo{};
+                flowInfo.type = VK_IMAGE_TYPE_2D;
+                flowInfo.format = flowFormat;
+                flowInfo.flags = 0;
+                flowInfo.sampleCount = VK_SAMPLE_COUNT_1_BIT;
+                flowInfo.extent = { flowWidth, flowHeight, 1 };
+                flowInfo.numLayers = 1;
+                flowInfo.mipLevels = 1;
+                flowInfo.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+                flowInfo.stages = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+                flowInfo.access = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
+                flowInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+                flowInfo.layout = VK_IMAGE_LAYOUT_GENERAL;
+                flowInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                flowInfo.shared = VK_FALSE;
+                g_flowImage = device->createImage(flowInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                if (g_flowImage != nullptr) {
+                    DxvkImageViewCreateInfo flowViewInfo{};
+                    flowViewInfo.type = VK_IMAGE_VIEW_TYPE_2D;
+                    flowViewInfo.format = flowFormat;
+                    flowViewInfo.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+                    flowViewInfo.aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+                    flowViewInfo.minLevel = 0;
+                    flowViewInfo.numLevels = 1;
+                    flowViewInfo.minLayer = 0;
+                    flowViewInfo.numLayers = 1;
+                    g_flowView = device->createImageView(g_flowImage, flowViewInfo);
+                }
+
+                const bool needFlowRegistration = g_flowShaderDevice != device || g_flowShader == nullptr;
+                if (needFlowRegistration) {
+                    g_flowShader = Rc<DxvkShader>();
+                    g_flowShaderDevice = nullptr;
+                    const DxvkResourceSlot flowSlots[] = {
+                        { 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
+                        { 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
+                        { 2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_WRITE_BIT },
+                    };
+                    DxvkInterfaceSlots flowIface{};
+                    SpirvCodeBuffer flowCode(snapframe::shaders::k_block_match_flow_word_count,
+                                             snapframe::shaders::k_block_match_flow);
+                    g_flowShader = device->createShader(VK_SHADER_STAGE_COMPUTE_BIT, 3, flowSlots, flowIface, flowCode);
+                    createdFlowShader = true;
+                }
+                g_flowAvailable = g_flowImage != nullptr && g_flowView != nullptr && g_flowShader != nullptr;
+                if (g_flowAvailable && needFlowRegistration) {
+                    device->registerShader(g_flowShader);
+                    g_flowShaderDevice = device;
+                }
+            } else {
+                g_flowAvailable = false;
+                snapframeLog("SnapFrame: block-matching flow unsupported result=%d features=0x%x extent=%ux%u\\n",
+                    static_cast<int>(flowImageResult), static_cast<unsigned>(flowProperties.optimalTilingFeatures),
+                    flowWidth, flowHeight);
+            }
         } catch (...) {
             g_lumaAvailable = false;
             if (createdShader) {
                 g_lumaShader = Rc<DxvkShader>();
                 g_lumaShaderDevice = nullptr;
             }
-            snapframeLog("SnapFrame: exception while creating luma compute resources\n");
+            if (createdFlowShader) {
+                g_flowShader = Rc<DxvkShader>();
+                g_flowShaderDevice = nullptr;
+            }
+            g_flowView = Rc<DxvkImageView>();
+            g_flowImage = Rc<DxvkImage>();
+            snapframeLog("SnapFrame: exception while creating luma/flow compute resources\n");
         }
         if (g_lumaAvailable) {
             snapframeLog("SnapFrame: luma compute resources ready outputs=2 extent=%ux%u format=R16_SFLOAT\n",
@@ -302,6 +382,14 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             g_lumaImage[1] = Rc<DxvkImage>();
             g_lumaSampler = Rc<DxvkSampler>();
             snapframeLog("SnapFrame: luma compute resource creation failed; capture remains active\n");
+        }
+        if (g_flowAvailable) {
+            snapframeLog("SnapFrame: block-matching flow ready output=%ux%u format=RGBA16F search=9x9 patch=3x3\n",
+                ((width / 2u + width % 2u + 3u) / 4u),
+                ((height / 2u + height % 2u + 3u) / 4u));
+        } else {
+            g_flowView = Rc<DxvkImageView>();
+            g_flowImage = Rc<DxvkImage>();
         }
     } else {
         snapframeLog("SnapFrame: luma compute disabled by GPU format/feature limits\n");
@@ -414,16 +502,37 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
         if (dispatched) {
             ++g_lumaDispatchCount;
             if (g_lumaDispatchCount == 1 || (g_lumaDispatchCount % 300u) == 0)
-                snapframeLog("SnapFrame: luma dispatch accepted count=%llu groups=%ux%u\n",
+                snapframeLog("SnapFrame: luma dispatch accepted count=%llu groups=%ux%u\\n",
                     static_cast<unsigned long long>(g_lumaDispatchCount), groupsX, groupsY);
         } else {
             ++g_lumaFailureCount;
             if (g_lumaFailureCount == 1 || (g_lumaFailureCount % 60u) == 0)
-                snapframeLog("SnapFrame: luma dispatch failed count=%llu\n",
+                snapframeLog("SnapFrame: luma dispatch failed count=%llu\\n",
                     static_cast<unsigned long long>(g_lumaFailureCount));
         }
-    }
 
+        if (g_flowAvailable && g_frameIndex > 0) {
+            const unsigned previousSlot = slot ^ 1u;
+            const uint32_t flowWidth = (lumaWidth + 3u) / 4u;
+            const uint32_t flowHeight = (lumaHeight + 3u) / 4u;
+            const uint32_t flowGroupsX = (flowWidth + 7u) / 8u;
+            const uint32_t flowGroupsY = (flowHeight + 7u) / 8u;
+            const bool flowDispatched = context->dispatchSnapFrameFlow(
+                g_flowShader, g_lumaView[previousSlot], g_lumaView[slot],
+                g_lumaSampler, g_flowView, flowGroupsX, flowGroupsY);
+            if (flowDispatched) {
+                ++g_flowDispatchCount;
+                if (g_flowDispatchCount == 1 || (g_flowDispatchCount % 120u) == 0)
+                    snapframeLog("SnapFrame: flow dispatch accepted count=%llu groups=%ux%u\\n",
+                        static_cast<unsigned long long>(g_flowDispatchCount), flowGroupsX, flowGroupsY);
+            } else {
+                ++g_flowFailureCount;
+                if (g_flowFailureCount == 1 || (g_flowFailureCount % 30u) == 0)
+                    snapframeLog("SnapFrame: flow dispatch failed count=%llu\\n",
+                        static_cast<unsigned long long>(g_flowFailureCount));
+            }
+        }
+    }
     ++g_frameIndex;
     const uint64_t captured = g_capturedFrames.fetch_add(1, std::memory_order_relaxed) + 1;
     if (g_frameIndex >= 2 && !g_readyLogged) {
@@ -444,6 +553,8 @@ void snapframeDeviceDestroyed(void* devicePtr) {
         clearHistory();
         g_lumaShader = Rc<DxvkShader>();
         g_lumaShaderDevice = nullptr;
+        g_flowShader = Rc<DxvkShader>();
+        g_flowShaderDevice = nullptr;
         g_flowShader = Rc<DxvkShader>();
         g_flowShaderDevice = nullptr;
     }
