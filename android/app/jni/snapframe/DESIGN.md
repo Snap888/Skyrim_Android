@@ -245,7 +245,9 @@ disabling the luma dispatch; the dedicated runtime log reports this condition.
 - [x] Add CMake host-side GLSL-to-SPIR-V generation and validation (requires Python 3, glslangValidator and spirv-val on the build host).
 - [x] Implement R16F output allocation, sampler/descriptor setup and first checked DXVK dispatch.
 - [ ] Verify shader compilation, pipeline creation and successful luma dispatch on the target GPU.
-- [ ] Implement motion estimation and reconstruction.
+- [x] Add first coarse GPU block-matching motion-estimation pass (device validation pending).
+- [ ] Validate motion vectors/confidence numerically on device and measure GPU cost.
+- [ ] Implement flow refinement, consistency checks and reconstruction.
 - [ ] Add runtime selector and safe presentation integration.
 - [ ] Run device A/B tests and tune.
 
@@ -282,3 +284,10 @@ test can distinguish capture-path failures from compute-resource failures.
 
 This is host-side failure handling only. Successful command recording is not
 evidence that the GPU produced numerically correct luminance values.
+
+
+### Phase 2b — coarse temporal motion field
+
+A two-slot R16F luma history now feeds `shaders/block_match_flow.comp`. The flow field is stored at 1/16 source resolution in RGBA16F and contains displacement in half-resolution luma texels, a best/second-best SAD confidence estimate, and normalized matching cost. The 9x9 search over 3x3 patches is intentionally a first baseline, not production optical flow. Runtime checks gate the RGBA16F storage image; if unsupported, capture and luma preprocessing remain active.
+
+The DXVK flow dispatch binds previous luma, current luma and the output image in slots 0..2, preserving all three prior resource slots and compute state. The host only dispatches when both temporal luma slots are marked valid and the current luma dispatch was accepted. No generated frame is reconstructed or presented yet. The next device test must check for `flow dispatch accepted`; that still confirms command recording only, not numerical motion-field correctness. Add GPU readback or a controlled visual validation path before trusting vector values.
