@@ -2,7 +2,7 @@
 
 Experimental, independent frame-generation engine for Skyrim_Android.
 
-**Status: GPU capture, temporal luminance, bidirectional coarse motion estimation, forward/backward consistency, midpoint color-warp compute output, sampled flow readback and opt-in GPU timestamp diagnostics. The midpoint image is generated into an internal RGBA16F image but is not yet inserted as an additional WSI present; generated-frame presentation, visual validation and device performance remain pending.**
+**Status: GPU capture, temporal luminance, bidirectional coarse motion estimation, forward/backward consistency, midpoint color-warp compute output, sampled flow readback and opt-in GPU timestamp diagnostics. The midpoint image is generated into an internal RGBA16F image and routed through DXVK's additional WSI-present loop. The code path is wired but still requires a full native build and on-device validation; visual quality and device performance remain unverified.**
 This module is isolated from the existing `lsfg` implementation. It is now
 compiled as a separate host target and has an independent DXVK callback that
 copies the completed game image into a two-image GPU history ring. A first coarse bidirectional block-matching motion pair is estimated from a two-slot luma history; pyramid refinement and robust occlusion handling are not implemented. A first midpoint compute pass now writes an internal RGBA16F image, but that image is not yet presented.
@@ -42,7 +42,7 @@ This is the target algorithm. Capture, luma preprocessing, bidirectional block m
   ```ini
   enabled=1
   ```
-- This stage captures each real frame, downsamples to R16F luma in a two-slot history ring, and—after two valid frames—runs bidirectional coarse-to-fine block matching into a configurable RGBA16F motion grid, calculates forward/backward consistency, and dispatches a confidence-weighted midpoint warp into an internal RGBA16F output image. The matcher evaluates 9x9 coarse offsets at two-luma-texel spacing and a 3x3 full-resolution refinement over 3x3 luma patches. It stores displacement, best/second-best confidence and matching cost. It does not alter presentation or increase the WSI present cadence. The midpoint image is an internal compute result only. Enabling it adds two full-resolution history images, two half-resolution luma images, two low-resolution motion images, an RGBA16F midpoint image, a GPU copy and multiple compute dispatches per real frame. Treat it as a diagnostic test, not a performance mode.
+- This stage captures each real frame, downsamples to R16F luma in a two-slot history ring, and—after two valid frames—runs bidirectional coarse-to-fine block matching into a configurable RGBA16F motion grid, calculates forward/backward consistency, and dispatches a confidence-weighted midpoint warp into an internal RGBA16F output image. The matcher evaluates 9x9 coarse offsets at two-luma-texel spacing and a 3x3 full-resolution refinement over 3x3 luma patches. It stores displacement, best/second-best confidence and matching cost. The midpoint image is submitted as one additional WSI present after each real frame for which a valid warp was dispatched. The runtime falls back to the real image if the midpoint view is unavailable. Enabling it adds two full-resolution history images, two half-resolution luma images, two low-resolution motion images, an RGBA16F midpoint image, a GPU copy and multiple compute dispatches per real frame. Treat it as a diagnostic test, not a performance mode.
 
 When the game starts, SnapFrame creates separate diagnostic outputs under
 `<game-directory>/port/`: `snapframe.log`, `snapframe_gpu.csv`,
@@ -311,11 +311,16 @@ records `midpoint_resources_ready/unavailable` and
 written by an accepted GPU dispatch. It does not establish visual correctness,
 occlusion quality, or successful presentation.
 
-**Important limitation:** the runtime still presents only the game's normal
-real frame. The midpoint output is not yet consumed by the swapchain blitter
-and no second WSI image is acquired/presented between real frames. Do not treat
-`midpoint_warp_ok` or the public `generated_frames` statistic as proof of
-displayed frame generation; `generated_frames` intentionally remains zero
-until an additional present is implemented and confirmed. The next integration
-stage must add safe presenter scheduling, image/semaphore ownership, frame
-pacing, and HUD composition without changing the default LSFG path.
+**Presentation integration:** after the real frame is submitted, DXVK now
+acquires another WSI image, blits the SnapFrame midpoint into it, renders the
+HUD, and queues the additional present. LSFG retains priority: SnapFrame does
+not run a second generation loop while LSFG is actively generating. The
+midpoint image is one-shot per real frame and is rejected on device/extent/
+format mismatch. `generated_frames` increments only after the additional
+present has been queued; this is not a measurement of scan-out completion.
+
+The new path still needs a complete native APK build and device validation.
+Check `midpoint_present_requested`, `midpoint_present_queued` and
+`midpoint_present_failed` in `snapframe_events.csv`, plus the generated
+count in the performance log. Visual quality, pacing, semaphore behavior
+under stress, and GPU cost are not yet validated. LSFG remains unchanged.
