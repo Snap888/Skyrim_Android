@@ -37,4 +37,4 @@ The portable core exposes hot enable/config/quality setters. The adapter current
 
 The existing host's asynchronous GPU timestamp queries and CSV logs remain authoritative. `SnapFrameFrameOutput` timing fields are currently zero because legacy timing values arrive asynchronously; generated-frame output is also zero at dispatch time because WSI acceptance is reported later by DXVK. This avoids inventing timing or accepted-frame values.
 
-Portable API tests do not validate Vulkan dispatch. The concrete adapter still requires Android ARM64 compile validation, device execution, GPU timestamp checks, generated-frame acceptance counters and visual comparison against the unchanged pre-adapter path.
+Portable API tests do not validate Vulkan dispatch. The concrete adapter compiled for Android ARM64 in CI run #41738044737. It still requires device execution, GPU timestamp checks, generated-frame acceptance counters and visual comparison against the unchanged pre-adapter path.
