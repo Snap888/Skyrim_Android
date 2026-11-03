@@ -500,7 +500,7 @@ must be considered together.
 The block matcher now uses a two-stage search: 9x9 coarse candidates at
 2-luma-texel spacing over +/-8, followed by a 3x3 full-resolution refinement
 around the best coarse candidate. The effective search range is +/-9 luma
-texels, with 90 candidate positions rather than 81. This is intended to
+texels, with 89 candidate positions rather than 81. This is intended to
 reduce search-boundary saturation without the approximately 3.6x candidate
 count of a full 19x19 exhaustive search. The diagnostic boundary threshold
 was moved from +/-4 to +/-9 to match the new search range.
