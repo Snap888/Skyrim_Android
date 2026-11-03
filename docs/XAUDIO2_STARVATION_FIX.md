@@ -153,3 +153,29 @@ The audio path review found that all XAudio2 source voices are accumulated into 
 The master output now receives a fixed -6 dB headroom gain before the existing soft limiter. The pre-gain `mix peak` measurement is intentionally retained so logs remain comparable; the `soft_limited` counter now reflects samples that still exceed the limiter knee after headroom. SDL's obtained frequency, format, channel count and buffer size are also logged at device startup to verify the actual output path.
 
 This is a targeted A/B mitigation and diagnostic build, not a device-verified final fix. It reduces output level by approximately 6 dB; check whether crackling decreases without unacceptable volume loss. If artifacts remain with `soft_limited=0`, prioritize output queue/device scheduling and sample-boundary discontinuities instead of further reducing gain.
+
+
+## 2026-11-03 — SDL output queue prefill and underrun resilience
+
+The `log (7).txt` run differs from the previous device log: `output timing`
+reports `queue_low=7–10` and `min_queue=0B` repeatedly, even while
+`slow_mix=0` and `max_mix` is 0–2 ms. This points away from mixer CPU overload
+and toward the SDL output queue being empty/near-empty during playback. The
+obtained device format is correct (48 kHz, F32 stereo).
+
+The SDL device is now left paused immediately after opening. The engine queues
+120 ms of mixed audio before unpausing it, avoiding playback from an empty
+queue while the mixer thread is starting. The steady-state queue target is
+also raised from 80 ms to 120 ms to provide more margin against Android thread
+scheduling jitter. `SDL_QueueAudio` failures are now logged, and the once-per-
+second output timing summary includes the target queue size and enqueue-failure
+count.
+
+This is a targeted output-underrun mitigation based on repeated zero-depth
+queue measurements. It adds up to roughly 40 ms of output latency versus the
+previous target, plus the initial prefill delay. It has not yet been built into
+an APK or verified by device playback. On the next run, confirm that
+`SDL playback started after queue prefill` appears once, `queue_low` falls to
+zero (or near zero), and crackles improve. If `queue_low` remains high, the
+next step is to inspect SDL/Android device queue behavior rather than further
+increasing the buffer blindly.
