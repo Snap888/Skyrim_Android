@@ -1,0 +1,61 @@
+#version 450
+
+// Coarse block-matching motion field over half-resolution luma.
+// One output texel represents a 4x4 luma region (8x8 source pixels).
+// Motion is expressed in luma texels; confidence is the best/second-best
+// SAD separation and is deliberately conservative in ambiguous regions.
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform sampler2D previousLuma;
+layout(set = 0, binding = 1) uniform sampler2D currentLuma;
+layout(set = 0, binding = 2, rgba16f) writeonly uniform image2D motionOutput;
+
+float lumaAt(sampler2D image, ivec2 p, ivec2 extent) {
+    return texelFetch(image, clamp(p, ivec2(0), extent - ivec2(1)), 0).r;
+}
+
+void main() {
+    ivec2 outPos = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 outExtent = imageSize(motionOutput);
+    if (any(greaterThanEqual(outPos, outExtent)))
+        return;
+
+    ivec2 extent = textureSize(currentLuma, 0);
+    ivec2 center = outPos * 4 + ivec2(2);
+    const int searchRadius = 4;
+    const int patchRadius = 1;
+
+    float bestCost = 1.0e20;
+    float secondCost = 1.0e20;
+    ivec2 bestMotion = ivec2(0);
+
+    for (int dy = -searchRadius; dy <= searchRadius; ++dy) {
+        for (int dx = -searchRadius; dx <= searchRadius; ++dx) {
+            ivec2 motion = ivec2(dx, dy);
+            float cost = 0.0;
+
+            for (int py = -patchRadius; py <= patchRadius; ++py) {
+                for (int px = -patchRadius; px <= patchRadius; ++px) {
+                    ivec2 offset = ivec2(px, py);
+                    float a = lumaAt(currentLuma, center + offset, extent);
+                    float b = lumaAt(previousLuma, center + offset + motion, extent);
+                    cost += abs(a - b);
+                }
+            }
+
+            if (cost < bestCost) {
+                secondCost = bestCost;
+                bestCost = cost;
+                bestMotion = motion;
+            } else if (cost < secondCost) {
+                secondCost = cost;
+            }
+        }
+    }
+
+    float confidence = clamp(
+        (secondCost - bestCost) / max(secondCost, 1.0e-5), 0.0, 1.0);
+    imageStore(motionOutput, outPos,
+        vec4(vec2(bestMotion), confidence, bestCost / 9.0));
+}
