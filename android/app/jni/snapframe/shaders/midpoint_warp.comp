@@ -2,8 +2,10 @@
 
 // Midpoint reconstruction from two real color frames and bidirectional flow.
 // Flow vectors are measured in half-resolution luma texels, hence *2 converts
-// them to full-resolution color pixels. Low-confidence/occluded samples fall
-// back to a conservative temporal blend instead of extrapolating bad vectors.
+// them to full-resolution color pixels. The motion field is deliberately
+// upsampled with an edge-aware neighborhood filter: ordinary bilinear
+// filtering blends foreground/background vectors and creates rubber geometry
+// around thin moving objects such as foliage, particles and NPC silhouettes.
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 layout(set = 0, binding = 0) uniform sampler2D previousColor;
 layout(set = 0, binding = 1) uniform sampler2D currentColor;
@@ -12,16 +14,83 @@ layout(set = 0, binding = 3) uniform sampler2D previousToCurrent;
 layout(set = 0, binding = 4) uniform sampler2D consistencyMask;
 layout(set = 0, binding = 5, rgba16f) writeonly uniform image2D midpointOutput;
 
+// Return (motion.xy, confidence, normalized SAD cost). Only neighboring
+// cells that agree with the nearest cell's motion are allowed to contribute.
+// This preserves smoothness inside one moving surface without averaging
+// unrelated vectors across a motion boundary.
+vec4 sampleEdgeAwareFlow(sampler2D flowImage, vec2 uv) {
+    ivec2 flowExtent = textureSize(flowImage, 0);
+    ivec2 maskExtent = textureSize(consistencyMask, 0);
+    vec2 gridPosition = uv * vec2(flowExtent) - vec2(0.5);
+    ivec2 center = clamp(ivec2(floor(gridPosition + vec2(0.5))),
+                         ivec2(0), flowExtent - ivec2(1));
+    vec4 centerFlow = texelFetch(flowImage, center, 0);
+    float centerMask = texelFetch(consistencyMask,
+        clamp(center, ivec2(0), maskExtent - ivec2(1)), 0).r;
+
+    vec2 motionSum = vec2(0.0);
+    float confidenceSum = 0.0;
+    float costSum = 0.0;
+    float weightSum = 0.0;
+
+    for (int y = -1; y <= 1; ++y) {
+        for (int x = -1; x <= 1; ++x) {
+            ivec2 cell = center + ivec2(x, y);
+            if (any(lessThan(cell, ivec2(0))) ||
+                any(greaterThanEqual(cell, flowExtent)))
+                continue;
+
+            vec4 candidate = texelFetch(flowImage, cell, 0);
+            float mask = texelFetch(consistencyMask,
+                clamp(cell, ivec2(0), maskExtent - ivec2(1)), 0).r;
+
+            // A 1.5-texel disagreement is treated as a motion boundary.
+            // Never average the two sides of that boundary.
+            float vectorDelta = length(candidate.xy - centerFlow.xy);
+            if (vectorDelta > 1.5)
+                continue;
+
+            float spatialWeight = exp(-0.5 * float(x * x + y * y));
+            float weight = spatialWeight
+                * clamp(candidate.z, 0.0, 1.0)
+                * clamp(mask, 0.0, 1.0);
+            motionSum += candidate.xy * weight;
+            confidenceSum += candidate.z * weight;
+            costSum += candidate.w * weight;
+            weightSum += weight;
+        }
+    }
+
+    if (weightSum <= 1.0e-5)
+        return centerFlow;
+    return vec4(motionSum / weightSum,
+                confidenceSum / weightSum,
+                costSum / weightSum);
+}
+
 void main() {
     ivec2 p = ivec2(gl_GlobalInvocationID.xy);
     ivec2 extent = imageSize(midpointOutput);
     if (any(greaterThanEqual(p, extent))) return;
 
     vec2 uv = (vec2(p) + vec2(0.5)) / vec2(extent);
-    vec2 flowUv = uv;
-    vec4 fwd = texture(currentToPrevious, flowUv);
-    vec4 bwd = texture(previousToCurrent, flowUv);
-    float consistency = texture(consistencyMask, flowUv).r;
+    vec4 fwd = sampleEdgeAwareFlow(currentToPrevious, uv);
+    vec4 bwd = sampleEdgeAwareFlow(previousToCurrent, uv);
+
+    ivec2 maskExtent = textureSize(consistencyMask, 0);
+    ivec2 maskCoord = clamp(ivec2(uv * vec2(maskExtent)),
+                            ivec2(0), maskExtent - ivec2(1));
+    float consistency = texelFetch(consistencyMask, maskCoord, 0).r;
+
+    // Flow is not trusted merely because the best match is distinct. A large
+    // photometric residual often indicates animated/non-rigid content,
+    // occlusion, motion blur, or a false match on a repeated texture.
+    float meanMatchCost = 0.5 * (fwd.w + bwd.w);
+    float photometricConfidence =
+        1.0 - smoothstep(0.035, 0.10, meanMatchCost);
+
+    float confidence = clamp(min(fwd.z, bwd.z)
+        * consistency * photometricConfidence, 0.0, 1.0);
 
     // A half-frame lies halfway between the two source frames. The flow
     // vectors are full displacement between frames; use half displacement.
@@ -33,16 +102,13 @@ void main() {
 
     vec4 prev = texture(previousColor, previousUv);
     vec4 curr = texture(currentColor, currentUv);
-    float confidence = clamp(min(fwd.z, bwd.z) * consistency, 0.0, 1.0);
-    // Preserve both source samples where motion evidence is weak. The blend
-    // remains deterministic and avoids black/undefined pixels at occlusions.
-    float prevWeight = clamp(fwd.z * consistency, 0.0, 1.0);
-    float currWeight = clamp(bwd.z * consistency, 0.0, 1.0);
-    float weightSum = prevWeight + currWeight;
-    vec4 confidenceWeighted = weightSum > 1.0e-4
-        ? (prev * prevWeight + curr * currWeight) / weightSum
-        : (prev + curr) * 0.5;
-    float motionWeight = smoothstep(0.08, 0.65, confidence);
-    vec4 result = mix((prev + curr) * 0.5, confidenceWeighted, motionWeight);
+
+    // Do not allow weak motion evidence to bend geometry. At uncertain
+    // locations the stable temporal blend is preferable to a false warp.
+    float motionWeight = smoothstep(0.18, 0.70, confidence);
+    vec4 warped = (prev + curr) * 0.5;
+    vec4 temporalFallback = (texture(previousColor, uv)
+                           + texture(currentColor, uv)) * 0.5;
+    vec4 result = mix(temporalFallback, warped, motionWeight);
     imageStore(midpointOutput, p, result);
 }
