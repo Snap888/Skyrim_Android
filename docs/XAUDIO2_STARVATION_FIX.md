@@ -135,3 +135,65 @@ This is intended to reduce head-of-line blocking between independent voices;
 it does not make a single large WMA stream decode faster. Device testing is
 required to verify that parallel CPU use does not worsen frame pacing or
 audio scheduling.
+
+
+## 2026-11-03 — Smooth starvation transitions
+
+The latest device log and source review identified a harsh transition in `mix_source`: when `next_frame` cannot yet read a reserved xWMA buffer (or the source queue is empty), it supplies zero samples immediately. When decoded PCM becomes available, playback can jump abruptly from silence back to the signal. This is a plausible click/pop mechanism, although the log alone cannot prove that every audible artifact came from this path.
+
+The mixer now applies a short 5 ms linear gain ramp per source voice: it fades toward zero while source data is unavailable and fades back to unity after a valid source frame is read. This changes only rendered gain; it does not advance, rewind, reorder, or discard source frames, and it leaves buffer callbacks, play regions, loops, and xWMA decode scheduling unchanged. The ramp also applies to ordinary end-of-queue silence, avoiding an abrupt tail when a source stops.
+
+This is an audio-continuity mitigation, not a decoder throughput fix. Validate with a fresh APK and the same scene; compare audible clicks, `pending_decode`, worker latency, `empty_queue`, and output timing. No device playback test has been performed for this change.
+
+
+## 2026-11-03 — Master-bus headroom and device-format telemetry
+
+The audio path review found that all XAudio2 source voices are accumulated into the master bus before a nonlinear soft limiter. Earlier sampled diagnostics showed pre-limiter peaks as high as 1.86, so multi-voice sums can drive the limiter frequently. This is a plausible source of audible distortion across music, effects and dialogue, but it is not proof that the limiter is the only cause.
+
+The master output now receives a fixed -6 dB headroom gain before the existing soft limiter. The pre-gain `mix peak` measurement is intentionally retained so logs remain comparable; the `soft_limited` counter now reflects samples that still exceed the limiter knee after headroom. SDL's obtained frequency, format, channel count and buffer size are also logged at device startup to verify the actual output path.
+
+This is a targeted A/B mitigation and diagnostic build, not a device-verified final fix. It reduces output level by approximately 6 dB; check whether crackling decreases without unacceptable volume loss. If artifacts remain with `soft_limited=0`, prioritize output queue/device scheduling and sample-boundary discontinuities instead of further reducing gain.
+
+
+## 2026-11-03 — SDL output queue prefill and underrun resilience
+
+The `log (7).txt` run differs from the previous device log: `output timing`
+reports `queue_low=7–10` and `min_queue=0B` repeatedly, even while
+`slow_mix=0` and `max_mix` is 0–2 ms. This points away from mixer CPU overload
+and toward the SDL output queue being empty/near-empty during playback. The
+obtained device format is correct (48 kHz, F32 stereo).
+
+The SDL device is now left paused immediately after opening. The engine queues
+120 ms of mixed audio before unpausing it, avoiding playback from an empty
+queue while the mixer thread is starting. The steady-state queue target is
+also raised from 80 ms to 120 ms to provide more margin against Android thread
+scheduling jitter. `SDL_QueueAudio` failures are now logged, and the once-per-
+second output timing summary includes the target queue size and enqueue-failure
+count.
+
+This is a targeted output-underrun mitigation based on repeated zero-depth
+queue measurements. It adds up to roughly 40 ms of output latency versus the
+previous target, plus the initial prefill delay. It has not yet been built into
+an APK or verified by device playback. On the next run, confirm that
+`SDL playback started after queue prefill` appears once, `queue_low` falls to
+zero (or near zero), and crackles improve. If `queue_low` remains high, the
+next step is to inspect SDL/Android device queue behavior rather than further
+increasing the buffer blindly.
+
+
+The first `log (7).txt` peak values (0.912 / 0.950) were measured after the
+existing -6 dB gain because the counter was placed after the gain operation,
+despite the earlier comment saying it was pre-gain. Those values therefore
+correspond to approximate pre-gain peaks of 1.82 / 1.90. The counter has now
+been moved before the gain so the next log is comparable with pre-gain
+measurements; `soft_limited` continues to count samples that exceed the limiter
+knee after the -6 dB gain.
+
+
+## Audio playback validation — 2026-11-03
+
+The project owner reports that the latest Android test on `snap-patch-5` has clean, clear audio and that the crackling/distortion is no longer audible. This is the first positive end-to-end listening confirmation for the combined XAudio2/SDL output changes on the tested device.
+
+The tested result follows the accumulated changes documented above: XAudio2 callback/refill handling, asynchronous xWMA decoding and worker lifecycle, short per-voice gain ramps for starvation transitions, master-bus headroom, and SDL output queue prefill/target tuning. The report confirms the audible outcome of the combined build; it does not isolate which individual change contributed most.
+
+**Validation:** user-reported device playback success (audible quality: clean). No fresh diagnostic log or controlled A/B capture was supplied with this confirmation, so queue-depth, starvation counters, exact output latency, and long-session behaviour are not independently quantified here. Keep the current audio implementation unchanged unless a new reproducible defect appears; avoid further speculative mixer/decoder tuning.
