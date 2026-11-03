@@ -164,3 +164,8 @@ extern "C" int snapframe_engine_adapter_process_frame(
         return 1;
     return -1;
 }
+
+extern "C" int snapframe_engine_adapter_available(void) {
+    std::lock_guard<std::mutex> lock(g_adapter_mutex);
+    return g_engine != nullptr ? 1 : 0;
+}
