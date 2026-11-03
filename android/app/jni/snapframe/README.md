@@ -2,7 +2,7 @@
 
 Experimental, independent frame-generation engine for Skyrim_Android.
 
-**Status: first real GPU preprocessing test. No interpolated/generated frames are presented yet.**
+**Status: GPU capture, temporal luminance and coarse block-matching motion estimation prototype. No interpolated/generated frames are presented yet.**
 This module is isolated from the existing `lsfg` implementation. It is now
 compiled as a separate host target and has an independent DXVK callback that
 copies the completed game image into a two-image GPU history ring. Optical flow,
@@ -45,7 +45,7 @@ This is a proposed algorithm, not an implemented or measured result. See
   enabled=1
   ```
 - This stage captures each real frame and runs one half-resolution R16F luma
-  downsample compute pass. It does not interpolate or alter presentation.
+  downsample compute pass. It does not interpolate or alter presentation. The motion pass searches a 9x9 displacement window over 3x3 luma patches and stores motion, best/second-best confidence and matching cost.
   Enabling it adds two full-resolution history images, one half-resolution
   output image, a GPU copy and a compute dispatch per real frame. Treat it as a
   diagnostic test, not a performance mode.
@@ -128,3 +128,12 @@ once as a capture skip reason.
 These checks improve failure visibility; they do not replace an NDK build or
 a device run. A recorded dispatch still needs GPU-side validation before the
 luma values can be considered numerically verified.
+
+
+## First motion-estimation pass (experimental)
+
+The `shaders/block_match_flow.comp` kernel runs after the current frame's luma pass once both temporal luma slots are valid. Each motion texel represents a 16x16 source-image region. The kernel searches +/-4 half-resolution luma texels using a 3x3 absolute-difference patch and writes RGBA16F: X/Y displacement in luma texels, best/second-best separation confidence, and normalized matching cost.
+
+The motion field is diagnostic/preparatory data only. It is not yet consumed by a warp, occlusion resolver, interpolation pass, or presentation path. The search is intentionally conservative and may fail on repeated textures, disocclusion, thin geometry, particles, and HUD elements. Its GPU cost and numerical output have not yet been measured on device. The output format is queried at runtime; unsupported devices keep capture/luma active and skip motion estimation.
+
+The DXVK helper preserves resource slots 0..2 and the previous compute state around the three-binding motion dispatch. This does not constitute a full synchronization/presentation solution; subsequent stages must explicitly consume the flow image in the same command stream or add a lifetime-safe handoff.
