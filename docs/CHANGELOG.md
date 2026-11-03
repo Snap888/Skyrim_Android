@@ -10,4 +10,6 @@
 - Added integration status and architecture documentation.
 - Preserved the existing DXVK-coupled SnapFrame GPU host as the active implementation pending adapter parity.
 
-Not yet completed: concrete DXVK `SnapFrameBackendV1` adapter, live AI telemetry/control loop, JNI settings, in-game UI, full APK build and real-device validation.
+Added after the initial audit: JNI and in-game Frame Generation/Flow Scale controls for the existing DXVK host, with config persistence and render-callback-safe history reset.
+
+Not yet completed: concrete DXVK `SnapFrameBackendV1` adapter, live AI telemetry/control loop, Snap AI UI controls, full APK build and real-device validation.
