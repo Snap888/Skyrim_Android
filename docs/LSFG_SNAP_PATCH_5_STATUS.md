@@ -560,3 +560,12 @@ This metric measures CPU-side DXVK PresentImage work. It is not total game frame
 5. Retrieve a readable/split GPU CSV and the runtime `log.txt` before drawing conclusions about individual Gamma/Delta dispatches or audio.
 
 No code change, APK build, or visual/device quality certification is implied by this log review.
+
+
+## Audio status update — 2026-11-03
+
+The project owner has now tested the combined audio changes on the Android device and reports that playback is clean: the previously audible crackling is gone. This upgrades audio from source-level/pending playback validation to **user-confirmed audible success on the tested setup**.
+
+The confirmation covers the combined XAudio2 and SDL output path, not an isolated A/B attribution for each patch. No new log accompanied the report, so numeric underrun/starvation rates and output latency remain unverified. Preserve the current audio code; further changes should be driven by a newly reproduced issue and matching logs.
+
+This audio result does not change the separate LSFG/DXVK build and visual-validation status.
