@@ -98,5 +98,8 @@ The tool requires `glslangValidator` and `spirv-val` (or explicit
 consume the generated header and do not need the shader compiler. The shader
 is source/build infrastructure only at this stage: no compute pipeline,
 descriptor binding, dispatch, or runtime output is wired yet. The capture host now checks sampled-image support for the actual history
-format before allocating its two images. Runtime support for the source format
-and `R16_SFLOAT` storage images must still be checked before compute dispatch.
+format before allocating its two images. Before any compute dispatch, the host now logs whether `R16_SFLOAT` is usable
+for the planned storage+sampled output: format feature bits, concrete 2D image
+configuration, `shaderStorageImageExtendedFormats`, and half-resolution extent
+limits are checked. This is a capability diagnostic only; capture is not disabled
+when compute output is unsupported, and no shader dispatch is wired yet.
