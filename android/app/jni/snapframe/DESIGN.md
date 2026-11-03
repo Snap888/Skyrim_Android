@@ -195,9 +195,21 @@ can currently be enabled with `<game-directory>/port/snapframe.conf` containing
 Important limitation: the captured source is the WSI image after blitting the
 game backbuffer but before the HUD overlay. This avoids baking the DXVK HUD into
 motion estimation, but it does not yet separate the game's own HUD/UI from the
-3D scene. The hook is only called when the swapchain image supports
-`VK_IMAGE_USAGE_TRANSFER_SRC_BIT`. The two history images are sampled-capable;
-compute/storage format support still needs explicit physical-device validation.
+3D scene. The host checks the source image's `VK_IMAGE_USAGE_TRANSFER_SRC_BIT` before
+recording the copy. The DXVK present path now emits one-time diagnostics for
+first PresentImage entry, WSI image usage/format, callback dispatch, and host
+callback entry. These markers distinguish failure to reach PresentImage from
+an unsupported source usage or a history allocation/copy problem. The two
+history images are sampled-capable; compute/storage format support still needs
+explicit physical-device validation.
+
+The current Android CMake path does not compile standalone GLSL. The Android
+project generator copies generated shader headers from a desktop DXVK Meson
+build, while the runtime DXVK shader loader consumes SPIR-V code buffers.
+Before adding SnapFrame compute stages, implement and document an explicit
+GLSL-to-SPIR-V compile/validation/embed path that is reproducible in the
+existing Android build workflow; do not assume glslc or glslangValidator is
+available in the NDK build.
 
 ## 8. Current status
 
@@ -208,8 +220,10 @@ compute/storage format support still needs explicit physical-device validation.
 - [x] Add an independent SnapFrame copy callback before HUD composition.
 - [x] Allocate a two-image GPU-resident history ring and device-lifetime cleanup.
 - [x] Add opt-in configuration bootstrap; capture remains disabled by default.
-- [ ] Build APK and verify capture callback/logs on device.
+- [ ] Build APK and verify the new present-path/callback diagnostics on device.
+- [ ] Confirm two real frames are captured before adding compute work.
 - [ ] Validate supported compute/storage formats on the target GPU.
+- [ ] Establish reproducible GLSL-to-SPIR-V compilation and embedding.
 - [ ] Implement and compile first Vulkan preprocessing shader.
 - [ ] Implement motion estimation and reconstruction.
 - [ ] Add runtime selector and safe presentation integration.
