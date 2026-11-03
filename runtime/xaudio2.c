@@ -89,6 +89,9 @@ struct Voice {
     double frac;
     float prev[MAX_CH], cur[MAX_CH];
     int primed;
+    /* Smoothly conceal short source starvation without changing source time. */
+    float starvation_gain;
+    int starvation_target;
     /* mixing */
     float volume, chvol[MAX_CH];
     int nsends;
@@ -460,6 +463,7 @@ static int next_frame(Voice *v, float *out, CPU *c) {
         if (!b->ready) {
             if (wait_for_decode_locked()) continue;
             g_xa_starved_pending_frames++;
+            v->starvation_target = 0;
             for (int ch = 0; ch < v->in_ch; ch++) out[ch] = 0;
             return 0;
         }
@@ -469,6 +473,7 @@ static int next_frame(Voice *v, float *out, CPU *c) {
         }
         if (b->pos < b->end) {
             read_frame(v, b, b->pos++, out);
+            v->starvation_target = 1;
             v->played++;
             if (b->pos >= b->end && b->loops_left && b->loop_len) {
                 if (b->loops_left != 255) b->loops_left--;
@@ -499,6 +504,7 @@ static int next_frame(Voice *v, float *out, CPU *c) {
         }
     }
     g_xa_starved_empty_frames++;
+    v->starvation_target = 0;
     for (int c = 0; c < v->in_ch; c++) out[c] = 0;
     return 0;
 }
@@ -578,8 +584,21 @@ static void mix_source(Voice *v, int frames, float *tmp, CPU *c) {
         v->primed = 1;
         v->frac = 0;
     }
+    /* A 5 ms linear envelope prevents a discontinuity when a queued xWMA
+     * buffer is still decoding or a source queue temporarily runs dry.
+     * Source position and interpolation phase continue to follow the normal
+     * mixer path; only the rendered gain is ramped. */
+    const float gain_step = 1.0f / ((float)g_rate * 0.005f);
     for (int f = 0; f < frames; f++) {
-        for (int c = 0; c < ch; c++) tmp[f * ch + c] = v->prev[c] + (v->cur[c] - v->prev[c]) * (float)v->frac;
+        if (v->starvation_target) {
+            v->starvation_gain += gain_step;
+            if (v->starvation_gain > 1.0f) v->starvation_gain = 1.0f;
+        } else {
+            v->starvation_gain -= gain_step;
+            if (v->starvation_gain < 0.0f) v->starvation_gain = 0.0f;
+        }
+        for (int c = 0; c < ch; c++)
+            tmp[f * ch + c] = (v->prev[c] + (v->cur[c] - v->prev[c]) * (float)v->frac) * v->starvation_gain;
         v->frac += step;
         while (v->frac >= 1.0) {
             memcpy(v->prev, v->cur, sizeof v->prev);
@@ -884,6 +903,8 @@ static Voice *voice_new(int kind, int ch, int rate, uint32_t flags) {
     v->flags = flags;
     v->volume = 1.0f;
     v->ratio = 1.0f;
+    v->starvation_gain = 1.0f;
+    v->starvation_target = 1;
     for (int i = 0; i < MAX_CH; i++) v->chvol[i] = 1.0f;
     if (kind != V_SOURCE) v->acc = calloc((size_t)(v->in_ch * 48000 / 10 * 2), sizeof(float));
     pthread_mutex_lock(&g_lock);
@@ -1018,6 +1039,8 @@ SHIM(xs_Stop) {
     v->running = 0;
     v->primed = 0;   /* reset interpolator — avoids click on next Start */
     v->frac = 0.0;
+    v->starvation_gain = 1.0f;
+    v->starvation_target = 1;
     RET(0, 3);
 }
 SHIM(xs_SubmitSourceBuffer) {
