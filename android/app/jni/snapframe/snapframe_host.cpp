@@ -1004,6 +1004,9 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
         endGpuTimer(context, totalTimer);
     ++g_frameIndex;
     const uint64_t captured = g_capturedFrames.fetch_add(1, std::memory_order_relaxed) + 1;
+    if (g_diagnosticSuiteEnabled && !g_diagnosticSuiteComplete
+        && captured == uint64_t(g_diagnosticPhaseFrames) * 7u)
+        logDiagnosticPhase(captured + 1u);
     if (g_frameIndex >= 2 && !g_readyLogged) {
         g_readyLogged = true;
         snapframeLog( "SnapFrame: two real frames captured; history ring valid\n");
