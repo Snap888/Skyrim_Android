@@ -266,19 +266,19 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             g_lumaAvailable = false;
             g_lumaShader = Rc<DxvkShader>();
             g_lumaShaderDevice = nullptr;
-            snapframeLog("SnapFrame: exception while creating luma compute resources\\n");
+            snapframeLog("SnapFrame: exception while creating luma compute resources\n");
         }
         if (g_lumaAvailable) {
-            snapframeLog("SnapFrame: luma compute resources ready output=%ux%u format=R16_SFLOAT\\n",
+            snapframeLog("SnapFrame: luma compute resources ready output=%ux%u format=R16_SFLOAT\n",
                          width / 2u + width % 2u, height / 2u + height % 2u);
         } else {
-            snapframeLog("SnapFrame: luma resources image=%d view=%d sampler=%d shader=%d\\n",
+            snapframeLog("SnapFrame: luma resources image=%d view=%d sampler=%d shader=%d\n",
                          g_lumaImage != nullptr, g_lumaView != nullptr,
                          g_lumaSampler != nullptr, g_lumaShader != nullptr);
             g_lumaView = Rc<DxvkImageView>();
             g_lumaImage = Rc<DxvkImage>();
             g_lumaSampler = Rc<DxvkSampler>();
-            snapframeLog("SnapFrame: luma compute resource creation failed; capture remains active\\n");
+            snapframeLog("SnapFrame: luma compute resource creation failed; capture remains active\n");
         }
     } else {
         snapframeLog("SnapFrame: luma compute disabled by GPU format/feature limits\n");
@@ -324,7 +324,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
         g_skippedFrames.fetch_add(1, std::memory_order_relaxed);
         if (!g_skipReasonLogged) {
             g_skipReasonLogged = true;
-            snapframeLog("SnapFrame: capture skipped: invalid callback arguments context=%d source=%d device=%d extent=%ux%u\\n",
+            snapframeLog("SnapFrame: capture skipped: invalid callback arguments context=%d source=%d device=%d extent=%ux%u\n",
                          context != nullptr, sourceView != nullptr, device != nullptr,
                          width, height);
         }
