@@ -189,6 +189,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
 
 #if SNAPFRAME_HAS_LUMA_SHADER
     if (lumaFormatSupported) {
+        bool createdShader = false;
         try {
             const uint32_t lumaWidth = width / 2u + width % 2u;
             const uint32_t lumaHeight = height / 2u + height % 2u;
@@ -252,6 +253,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                 SpirvCodeBuffer shaderCode(snapframe::shaders::k_luma_downsample_word_count,
                                            snapframe::shaders::k_luma_downsample);
                 g_lumaShader = device->createShader(VK_SHADER_STAGE_COMPUTE_BIT, 2, slots, iface, shaderCode);
+                createdShader = true;
             }
 
             g_lumaAvailable = g_lumaImage != nullptr && g_lumaView != nullptr
@@ -264,8 +266,10 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                 g_lumaShader = Rc<DxvkShader>();
         } catch (...) {
             g_lumaAvailable = false;
-            g_lumaShader = Rc<DxvkShader>();
-            g_lumaShaderDevice = nullptr;
+            if (createdShader) {
+                g_lumaShader = Rc<DxvkShader>();
+                g_lumaShaderDevice = nullptr;
+            }
             snapframeLog("SnapFrame: exception while creating luma compute resources\n");
         }
         if (g_lumaAvailable) {
