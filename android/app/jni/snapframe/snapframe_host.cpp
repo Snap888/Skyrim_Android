@@ -136,6 +136,7 @@ const char* diagnosticPhaseName(uint32_t phase) {
 }
 
 void logDiagnosticPhaseResult(uint32_t phase, uint64_t frames) {
+    snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed), "test_phase_result", g_width, g_height, diagnosticPhaseName(phase));
     snapframeLog("SnapFrame: TEST_PHASE_RESULT phase=%s frames=%llu luma_ok=%llu flow_pairs_ok=%llu consistency_ok=%llu skipped=%llu luma_fail_total=%llu flow_fail_total=%llu consistency_fail_total=%llu\n",
         diagnosticPhaseName(phase),
         static_cast<unsigned long long>(frames),
@@ -165,6 +166,7 @@ void beginDiagnosticPhase(uint32_t phase, uint64_t captured) {
     g_phaseStartConsistency = g_consistencyDispatchCount;
     g_phaseStartSkipped = g_skippedFrames.load(std::memory_order_relaxed);
     g_phaseLastProgress = 0;
+    snapframeEvent(captured, "test_phase_begin", g_width, g_height, diagnosticPhaseName(phase));
     snapframeLog("SnapFrame: TEST_PHASE_BEGIN index=%u name=%s target_frames=%u\n",
         phase + 1u, diagnosticPhaseName(phase), g_diagnosticPhaseFrames);
     snapframeLog("SnapFrame: TEST_ACTION %s\n", actions[phase]);
@@ -365,6 +367,7 @@ void recordFlowReadback(
         if (!g_flowReadbackFailureLogged) {
             g_flowReadbackFailureLogged = true;
             snapframeLog("SnapFrame: flow readback buffer allocation failed (HOST_VISIBLE|HOST_COHERENT unavailable or allocation error)\n");
+            snapframeEvent(frame, "flow_readback_allocation_failed", flowWidth, flowHeight, "host_visible_coherent_buffer_allocation_failed");
         }
         return;
     }
@@ -372,6 +375,7 @@ void recordFlowReadback(
         if (!g_flowReadbackFailureLogged) {
             g_flowReadbackFailureLogged = true;
             snapframeLog("SnapFrame: flow readback buffer is not host mapped\n");
+            snapframeEvent(frame, "flow_readback_map_failed", flowWidth, flowHeight, "staging_buffer_map_ptr_null");
         }
         return;
     }
@@ -388,10 +392,12 @@ void recordFlowReadback(
         subresource, VkOffset3D{ 0, 0, 0 }, extent);
     context->copyImageToBuffer(readback, maskOffset, 0, 0, g_consistencyImage,
         subresource, VkOffset3D{ 0, 0, 0 }, extent);
+    snapframeEvent(frame, "flow_readback_recorded", flowWidth, flowHeight, "two_flow_images_and_consistency_mask_copied_to_staging");
 
     context->addCompletionCallback([readback, frame, flowWidth, flowHeight,
                                     pixels, flowBytes, maskOffset, dumpVectors](VkResult result) {
         if (result != VK_SUCCESS) {
+            snapframeEvent(frame, "flow_readback_completion_failed", flowWidth, flowHeight, "command_list_completion_error");
             if (dumpVectors)
                 snapframeLog("SnapFrame: flow vector readback completion failed frame=%llu result=%d\n",
                     static_cast<unsigned long long>(frame), int(result));
@@ -409,6 +415,7 @@ void recordFlowReadback(
         }
         const uint16_t* data = reinterpret_cast<const uint16_t*>(readback->mapPtr(0));
         if (!data) {
+            snapframeEvent(frame, "flow_readback_map_failed", flowWidth, flowHeight, "completion_callback_map_ptr_null");
             if (dumpVectors)
                 snapframeLog("SnapFrame: flow vector readback mapping failed frame=%llu\n",
                     static_cast<unsigned long long>(frame));
@@ -444,6 +451,8 @@ void recordFlowReadback(
             ? consistencySum / double(consistencyFinite) : 0.0;
         const double consistencyPercent = consistencyFinite
             ? 100.0 * double(consistencyValid) / double(consistencyFinite) : 0.0;
+        snapframeEvent(frame, "flow_readback_complete", flowWidth, flowHeight,
+            nonFinite ? "readback_ok_contains_nonfinite_values" : "readback_ok_all_samples_finite");
 
         {
             std::lock_guard<std::mutex> lock(g_flowLogMutex);
@@ -499,6 +508,7 @@ void recordFlowReadback(
                 }
                 fflush(g_vectorLogFile);
                 const bool writeFailed = ferror(g_vectorLogFile) != 0;
+                if (writeFailed) snapframeEvent(frame, "flow_vector_csv_write_failed", flowWidth, flowHeight, "ferror_after_vector_dump");
                 snapframeLog("SnapFrame: flow vector dump %s frame=%llu rows=%llu grid=%ux%u\n",
                     writeFailed ? "write-error" : "complete",
                     static_cast<unsigned long long>(frame),
