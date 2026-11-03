@@ -88,16 +88,23 @@ Rc<DxvkImage> g_flowImage[2];
 Rc<DxvkImageView> g_flowView[2];
 Rc<DxvkImage> g_consistencyImage;
 Rc<DxvkImageView> g_consistencyView;
+Rc<DxvkImage> g_midpointImage;
+Rc<DxvkImageView> g_midpointView;
 Rc<DxvkSampler> g_lumaSampler;
 Rc<DxvkShader> g_lumaShader;
 Rc<DxvkShader> g_flowShader;
 Rc<DxvkShader> g_consistencyShader;
+Rc<DxvkShader> g_midpointShader;
 DxvkDevice* g_lumaShaderDevice = nullptr;
 DxvkDevice* g_flowShaderDevice = nullptr;
 DxvkDevice* g_consistencyShaderDevice = nullptr;
+DxvkDevice* g_midpointShaderDevice = nullptr;
 bool g_lumaAvailable = false;
 bool g_flowAvailable = false;
 bool g_consistencyAvailable = false;
+bool g_midpointAvailable = false;
+uint64_t g_midpointDispatchCount = 0;
+uint64_t g_midpointFailureCount = 0;
 uint32_t g_flowScalePercent = 50;
 
 uint32_t flowBlockStride() {
@@ -536,6 +543,11 @@ void clearHistory() {
     g_flowImage[1] = Rc<DxvkImage>();
     g_consistencyView = Rc<DxvkImageView>();
     g_consistencyImage = Rc<DxvkImage>();
+    g_midpointView = Rc<DxvkImageView>();
+    g_midpointImage = Rc<DxvkImage>();
+    g_midpointAvailable = false;
+    g_midpointDispatchCount = 0;
+    g_midpointFailureCount = 0;
     g_lumaSampler = Rc<DxvkSampler>();
     g_lumaAvailable = false;
     g_flowAvailable = false;
@@ -849,7 +861,88 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                         snapframeLog("SnapFrame: forward/backward consistency resources ready format=R16_SFLOAT extent=%ux%u\n",
                             flowWidth, flowHeight);
                     if (!g_consistencyAvailable)
-                        snapframeLog("SnapFrame: forward/backward consistency resources unavailable; flow remains diagnostic-only\n");
+                        snapframeLog("SnapFrame: forward/backward consistency resources unavailable; midpoint reconstruction disabled\n");
+
+                    const VkFormat midpointFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+                    const VkFormatProperties midpointProperties =
+                        device->adapter()->formatProperties(midpointFormat);
+                    const VkFormatFeatureFlags midpointRequired =
+                        VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+                    VkImageFormatProperties midpointImageProperties{};
+                    const VkResult midpointImageResult = device->adapter()->imageFormatProperties(
+                        midpointFormat, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
+                        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                        0, midpointImageProperties);
+                    const bool midpointSupported =
+                        (midpointProperties.optimalTilingFeatures & midpointRequired) == midpointRequired
+                        && midpointImageResult == VK_SUCCESS
+                        && device->features().core.features.shaderStorageImageExtendedFormats
+                        && width <= midpointImageProperties.maxExtent.width
+                        && height <= midpointImageProperties.maxExtent.height;
+                    if (g_consistencyAvailable && midpointSupported) {
+                        DxvkImageCreateInfo midpointInfo{};
+                        midpointInfo.type = VK_IMAGE_TYPE_2D;
+                        midpointInfo.format = midpointFormat;
+                        midpointInfo.flags = 0;
+                        midpointInfo.sampleCount = VK_SAMPLE_COUNT_1_BIT;
+                        midpointInfo.extent = { width, height, 1 };
+                        midpointInfo.numLayers = 1;
+                        midpointInfo.mipLevels = 1;
+                        midpointInfo.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+                        midpointInfo.stages = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+                        midpointInfo.access = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
+                        midpointInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+                        midpointInfo.layout = VK_IMAGE_LAYOUT_GENERAL;
+                        midpointInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                        midpointInfo.shared = VK_FALSE;
+                        g_midpointImage = device->createImage(
+                            midpointInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                        DxvkImageViewCreateInfo midpointViewInfo{};
+                        midpointViewInfo.type = VK_IMAGE_VIEW_TYPE_2D;
+                        midpointViewInfo.format = midpointFormat;
+                        midpointViewInfo.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+                        midpointViewInfo.aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+                        midpointViewInfo.minLevel = 0;
+                        midpointViewInfo.numLevels = 1;
+                        midpointViewInfo.minLayer = 0;
+                        midpointViewInfo.numLayers = 1;
+                        if (g_midpointImage != nullptr)
+                            g_midpointView = device->createImageView(g_midpointImage, midpointViewInfo);
+
+                        const bool needMidpointRegistration =
+                            g_midpointShaderDevice != device || g_midpointShader == nullptr;
+                        if (needMidpointRegistration) {
+                            g_midpointShader = Rc<DxvkShader>();
+                            g_midpointShaderDevice = nullptr;
+                            const DxvkResourceSlot midpointSlots[] = {
+                                { 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
+                                { 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
+                                { 2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
+                                { 3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
+                                { 4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
+                                { 5, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_WRITE_BIT },
+                            };
+                            DxvkInterfaceSlots midpointIface{};
+                            SpirvCodeBuffer midpointCode(
+                                snapframe::shaders::k_midpoint_warp_word_count,
+                                snapframe::shaders::k_midpoint_warp);
+                            g_midpointShader = device->createShader(
+                                VK_SHADER_STAGE_COMPUTE_BIT, 6, midpointSlots,
+                                midpointIface, midpointCode);
+                        }
+                        g_midpointAvailable = g_midpointImage != nullptr
+                            && g_midpointView != nullptr && g_midpointShader != nullptr;
+                        if (g_midpointAvailable && needMidpointRegistration) {
+                            device->registerShader(g_midpointShader);
+                            g_midpointShaderDevice = device;
+                        }
+                    } else {
+                        g_midpointAvailable = false;
+                        snapframeLog("SnapFrame: midpoint output format unsupported or consistency unavailable result=%d features=0x%x; warp disabled\n",
+                            int(midpointImageResult), unsigned(midpointProperties.optimalTilingFeatures));
+                    }
+                    snapframeLog("SnapFrame: midpoint reconstruction resources %s output=RGBA16F extent=%ux%u\n",
+                        g_midpointAvailable ? "ready" : "unavailable", width, height);
                 }
             } else {
                 g_flowAvailable = false;
@@ -876,6 +969,11 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             g_consistencyAvailable = false;
             g_consistencyShader = Rc<DxvkShader>();
             g_consistencyShaderDevice = nullptr;
+            g_midpointView = Rc<DxvkImageView>();
+            g_midpointImage = Rc<DxvkImage>();
+            g_midpointShader = Rc<DxvkShader>();
+            g_midpointShaderDevice = nullptr;
+            g_midpointAvailable = false;
             snapframeLog("SnapFrame: exception while creating luma/flow compute resources\n");
         }
         if (g_motionAnalysisEnabled && g_lumaAvailable) {
@@ -1157,6 +1255,8 @@ void snapframeDeviceDestroyed(void* devicePtr) {
         g_flowShaderDevice = nullptr;
         g_consistencyShader = Rc<DxvkShader>();
         g_consistencyShaderDevice = nullptr;
+        g_midpointShader = Rc<DxvkShader>();
+        g_midpointShaderDevice = nullptr;
     }
 }
 
