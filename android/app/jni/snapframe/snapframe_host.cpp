@@ -62,12 +62,12 @@ void snapframeEvent(uint64_t frame, const char* event, uint32_t width,
                     uint32_t height, const char* detail) {
     std::lock_guard<std::mutex> lock(g_eventLogMutex);
     if (!g_eventLogFile) return;
-    fprintf(g_eventLogFile, "%llu,%s,%u,%u,\"%s\"\\n",
+    fprintf(g_eventLogFile, "%llu,%s,%u,%u,\"%s\"\n",
         static_cast<unsigned long long>(frame), event ? event : "unknown",
         width, height, detail ? detail : "");
     fflush(g_eventLogFile);
     if (ferror(g_eventLogFile))
-        snapframeLog("SnapFrame: event CSV write failed event=%s frame=%llu\\n",
+        snapframeLog("SnapFrame: event CSV write failed event=%s frame=%llu\n",
             event ? event : "unknown", static_cast<unsigned long long>(frame));
 }
 
@@ -1210,10 +1210,10 @@ extern "C" int snapframe_host_set_event_log_path(const char *path) {
     if (g_eventLogFile) fclose(g_eventLogFile);
     g_eventLogFile = fopen(path, "w");
     if (!g_eventLogFile) {
-        fprintf(stderr, "SnapFrame: cannot open event CSV: %s\\n", path);
+        fprintf(stderr, "SnapFrame: cannot open event CSV: %s\n", path);
         return 0;
     }
-    fprintf(g_eventLogFile, "frame,event,width,height,detail\\n");
+    fprintf(g_eventLogFile, "frame,event,width,height,detail\n");
     fflush(g_eventLogFile);
     return 1;
 }
