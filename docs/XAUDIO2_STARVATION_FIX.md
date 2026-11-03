@@ -179,3 +179,12 @@ an APK or verified by device playback. On the next run, confirm that
 zero (or near zero), and crackles improve. If `queue_low` remains high, the
 next step is to inspect SDL/Android device queue behavior rather than further
 increasing the buffer blindly.
+
+
+The first `log (7).txt` peak values (0.912 / 0.950) were measured after the
+existing -6 dB gain because the counter was placed after the gain operation,
+despite the earlier comment saying it was pre-gain. Those values therefore
+correspond to approximate pre-gain peaks of 1.82 / 1.90. The counter has now
+been moved before the gain so the next log is comparable with pre-gain
+measurements; `soft_limited` continues to count samples that exceed the limiter
+knee after the -6 dB gain.
