@@ -135,3 +135,12 @@ This is intended to reduce head-of-line blocking between independent voices;
 it does not make a single large WMA stream decode faster. Device testing is
 required to verify that parallel CPU use does not worsen frame pacing or
 audio scheduling.
+
+
+## 2026-11-03 — Smooth starvation transitions
+
+The latest device log and source review identified a harsh transition in `mix_source`: when `next_frame` cannot yet read a reserved xWMA buffer (or the source queue is empty), it supplies zero samples immediately. When decoded PCM becomes available, playback can jump abruptly from silence back to the signal. This is a plausible click/pop mechanism, although the log alone cannot prove that every audible artifact came from this path.
+
+The mixer now applies a short 5 ms linear gain ramp per source voice: it fades toward zero while source data is unavailable and fades back to unity after a valid source frame is read. This changes only rendered gain; it does not advance, rewind, reorder, or discard source frames, and it leaves buffer callbacks, play regions, loops, and xWMA decode scheduling unchanged. The ramp also applies to ordinary end-of-queue silence, avoiding an abrupt tail when a source stops.
+
+This is an audio-continuity mitigation, not a decoder throughput fix. Validate with a fresh APK and the same scene; compare audible clicks, `pending_decode`, worker latency, `empty_queue`, and output timing. No device playback test has been performed for this change.
