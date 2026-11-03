@@ -1504,6 +1504,42 @@ namespace dxvk {
     m_cmd->addStatCtr(DxvkStatCounter::CmdDispatchCalls, 1);
     return committed;
   }
+
+
+  bool DxvkContext::dispatchSnapFrame(
+    const Rc<DxvkShader>&       shader,
+    const Rc<DxvkImageView>&    sourceView,
+    const Rc<DxvkSampler>&      sourceSampler,
+    const Rc<DxvkImageView>&    outputView,
+          uint32_t              groupsX,
+          uint32_t              groupsY) {
+    if (shader == nullptr || sourceView == nullptr
+     || sourceSampler == nullptr || outputView == nullptr
+     || !groupsX || !groupsY)
+      return false;
+
+    // D3D9 graphics and compute stages share DXVK resource slots. Preserve
+    // slots 0/1 and the prior CS so this internal pass cannot poison later
+    // game draws whose state caches may not rebind unchanged resources.
+    const Rc<DxvkShader> previousComputeShader = m_state.cp.shaders.cs;
+    const DxvkShaderResourceSlot previousResource0 = m_rc[0];
+    const DxvkShaderResourceSlot previousResource1 = m_rc[1];
+
+    this->bindShader(VK_SHADER_STAGE_COMPUTE_BIT, shader);
+    this->bindResourceView(0, sourceView, nullptr);
+    this->bindResourceSampler(0, sourceSampler);
+    this->bindResourceView(1, outputView, nullptr);
+    const bool dispatched = this->dispatchChecked(groupsX, groupsY, 1);
+
+    m_rc[0] = previousResource0;
+    m_rc[1] = previousResource1;
+    m_rcTracked.clr(0);
+    m_rcTracked.clr(1);
+    m_flags.set(DxvkContextFlag::CpDirtyResources,
+                DxvkContextFlag::GpDirtyResources);
+    this->bindShader(VK_SHADER_STAGE_COMPUTE_BIT, previousComputeShader);
+    return dispatched;
+  }
   
   
   void DxvkContext::flushComputeBarriers() {
