@@ -1554,6 +1554,54 @@ namespace dxvk {
   }
   
   
+  bool DxvkContext::dispatchSnapFrameFlow(
+    const Rc<DxvkShader>&       shader,
+    const Rc<DxvkImageView>&    previousView,
+    const Rc<DxvkImageView>&    currentView,
+    const Rc<DxvkSampler>&      sourceSampler,
+    const Rc<DxvkImageView>&    flowOutputView,
+          uint32_t              groupsX,
+          uint32_t              groupsY) {
+    if (shader == nullptr || previousView == nullptr || currentView == nullptr
+     || sourceSampler == nullptr || flowOutputView == nullptr
+     || !groupsX || !groupsY)
+      return false;
+
+    const DxvkComputePipelineState previousComputeState = m_state.cp;
+    const DxvkContextFlags previousFlags = m_flags;
+    const VkPipeline previousComputePipeline = m_cpActivePipeline;
+    const VkDescriptorSet previousComputeSet = m_cpSet;
+    const DxvkShaderResourceSlot previousResources[3] = {
+      m_rc[0], m_rc[1], m_rc[2],
+    };
+    const bool previousTracked[3] = {
+      m_rcTracked.test(0), m_rcTracked.test(1), m_rcTracked.test(2),
+    };
+
+    this->bindShader(VK_SHADER_STAGE_COMPUTE_BIT, shader);
+    this->bindResourceView(0, previousView, Rc<DxvkBufferView>());
+    this->bindResourceSampler(0, sourceSampler);
+    this->bindResourceView(1, currentView, Rc<DxvkBufferView>());
+    this->bindResourceSampler(1, sourceSampler);
+    this->bindResourceView(2, flowOutputView, Rc<DxvkBufferView>());
+    const bool dispatched = this->dispatchChecked(groupsX, groupsY, 1);
+
+    for (uint32_t i = 0; i < 3; i++) {
+      m_rc[i] = previousResources[i];
+      if (previousTracked[i]) m_rcTracked.set(i); else m_rcTracked.clr(i);
+    }
+    m_state.cp = previousComputeState;
+    m_cpActivePipeline = previousComputePipeline;
+    m_cpSet = previousComputeSet;
+    m_flags = previousFlags;
+    m_flags.set(DxvkContextFlag::CpDirtyPipeline,
+                DxvkContextFlag::CpDirtyPipelineState,
+                DxvkContextFlag::CpDirtyResources,
+                DxvkContextFlag::CpDirtyDescriptorBinding);
+    return dispatched;
+  }
+
+
   void DxvkContext::flushComputeBarriers() {
     this->spillRenderPass(true);
     m_execBarriers.recordCommands(m_cmd);
