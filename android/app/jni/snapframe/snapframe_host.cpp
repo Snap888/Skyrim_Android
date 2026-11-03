@@ -1374,7 +1374,11 @@ extern "C" int snapframe_host_process_legacy_frame(
     uint32_t width, uint32_t height, uint32_t format) {
     const uint64_t skippedBefore = g_skippedFrames.load(std::memory_order_relaxed);
     snapframeCopyFrameImpl(context, source_view, device, width, height, format);
-    return g_skippedFrames.load(std::memory_order_relaxed) == skippedBefore ? 1 : 0;
+    if (g_skippedFrames.load(std::memory_order_relaxed) == skippedBefore)
+        return 1;
+    g_midpointFrameReady.store(0, std::memory_order_release);
+    g_resetHistoryRequested.store(1, std::memory_order_release);
+    return 0;
 }
 
 extern "C" int snapframe_host_set_log_path(const char *path) {
