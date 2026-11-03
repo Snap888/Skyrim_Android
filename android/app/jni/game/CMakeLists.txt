@@ -27,6 +27,16 @@ target_link_libraries(main PRIVATE SDL2 dxvk_d3d9 lsfg_host snapframe_host
     SnapAI::Engine SnapFrame::Engine
     m $<$<BOOL:${ANDROID}>:log> $<$<BOOL:${ANDROID}>:android>)
 
+# Compile the Android JNI settings bridge independently of generated game
+# code. This catches JNI/native API drift in CI without pretending to build an APK.
+add_library(snapframe_jni_compile_check OBJECT ${PORT}/runtime/main.c)
+target_include_directories(snapframe_jni_compile_check PRIVATE
+    ${PORT}/runtime ${PORT}/gen ../sdlinc ../lsfg ../snapframe)
+target_compile_definitions(snapframe_jni_compile_check PRIVATE DXVK_NATIVE GAME_SKYRIM)
+target_compile_options(snapframe_jni_compile_check PRIVATE
+    -O2 -fno-strict-aliasing -fwrapv -fsigned-char -Wno-everything
+    $<$<COMPILE_LANGUAGE:C>:-std=gnu11>)
+
 # ---- xWMA / FFmpeg (optional) ------------------------------------------------
 set(FFMPEG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../ffmpeg)
 set(_ffmpeg_avcodec "${FFMPEG_DIR}/lib/${ANDROID_ABI}/libavcodec.so")
