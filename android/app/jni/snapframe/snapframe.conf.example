@@ -14,10 +14,11 @@ diagnostic_phase_frames=1800
 #   port/snapframe_gpu.csv          GPU timestamps every 30 captured frames
 #   port/snapframe_flow.csv         aggregate flow/mask readback every 120 flow pairs during diagnostic suite
 #   port/snapframe_flow_vectors.csv spatial vectors every 600 flow pairs during diagnostic suite
+#   port/snapframe_events.csv      per-frame capture/compute/skip event timeline
 # Set profiling_enabled=0 to disable timestamp queries and all diagnostic readback.
 
 # motion_analysis=0 keeps SnapFrame in capture-only mode (no luma/flow/consistency compute).
 # Set motion_analysis=1 to enable bidirectional optical flow and forward/backward consistency.
 # diagnostic_suite=1 runs the seven-phase motion-analysis test and therefore requires motion_analysis=1.
 # profiling_enabled is independent: it controls GPU timestamps and diagnostic readback only.
-# NOTE: flow_scale_percent is currently accepted/clamped but does not yet change compute resolution.
+# flow_scale_percent changes the motion-grid density (lower values use a coarser grid).
