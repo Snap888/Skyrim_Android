@@ -2,7 +2,7 @@
 
 ## Existing telemetry
 
-The current SnapFrame host has a GPU timing CSV path based on DXVK timestamp queries and completion callbacks. It records stage-level timings without waiting for GPU completion in the normal frame path. The completed `total_chain` sample and CPU frame interval are also exposed as scalar values through `snapframe_host_get_last_telemetry`; GPU samples retain the existing 30-frame sampling cadence and arrive asynchronously.
+The current SnapFrame host has a GPU timing CSV path based on DXVK timestamp queries and completion callbacks. It records stage-level timings without waiting for GPU completion in the normal frame path. The completed `total_chain` sample and the CPU frame interval captured for that same sampled frame are exposed as scalar values through `snapframe_host_get_last_telemetry`. The getter returns valid only when the completed timestamp query succeeded. GPU samples retain the existing 30-frame sampling cadence and arrive asynchronously.
 
 The existing diagnostic flow/vector path can perform host-visible readback to inspect flow fields. That path is diagnostic-only and must not become the AI telemetry path.
 
