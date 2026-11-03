@@ -289,7 +289,8 @@ void recordFlowReadback(
     DxvkContext* context, DxvkDevice* device, uint64_t frame,
     uint32_t flowWidth, uint32_t flowHeight, bool dumpVectors) {
     if (!g_profilingEnabled || !g_diagnosticSuiteEnabled || g_diagnosticSuiteComplete
-        || !context || !device || !g_flowImage[0] || !g_flowImage[1] || !g_consistencyImage)
+        || !context || !device || g_flowImage[0] == nullptr
+        || g_flowImage[1] == nullptr || g_consistencyImage == nullptr)
         return;
 
     const VkDeviceSize pixels = VkDeviceSize(flowWidth) * flowHeight;
