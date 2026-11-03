@@ -138,3 +138,6 @@ The DXVK helper preserves resource slots 0..2 and the previous compute state aro
 ### Bidirectional coarse motion (current implementation)
 
 The host allocates two RGBA16F fields for each adjacent-frame pair. Output 0 is current-to-previous (the current-frame sample searches the previous frame); output 1 is previous-to-current (the inputs are reversed). A pair is counted as accepted only when both dispatches are recorded. Both fields are overwritten on the next real-frame pair and are not yet consumed by an interpolation stage. This is a directional pair, not yet a forward/backward consistency test.
+
+
+The block matcher rejects candidate patches that leave the previous-frame bounds instead of clamping samples to the edge. The current patch center is kept inside the valid image region. This avoids artificial edge matches; edge vectors can still be less constrained and remain unvalidated until the consistency/readback stage.
