@@ -114,6 +114,14 @@ void main() {
 
     float confidence = clamp(
         (secondCost - bestCost) / max(secondCost, 1.0e-5), 0.0, 1.0);
+
+    // A best match pinned to the search edge is not trustworthy: the true
+    // displacement may lie outside the search window. Suppress its influence
+    // on reconstruction instead of stretching geometry with a clipped vector.
+    bool searchBoundary = any(greaterThanEqual(abs(bestMotion), ivec2(8)));
+    if (searchBoundary)
+        confidence *= 0.05;
+
     imageStore(motionOutput, outPos,
         vec4(vec2(bestMotion), confidence, bestCost / 9.0));
 }
