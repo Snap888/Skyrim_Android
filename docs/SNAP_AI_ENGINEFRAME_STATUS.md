@@ -68,7 +68,7 @@ These changes establish the portable library build/link boundary. They do **not*
 - Portable Android build integration: committed, but not yet validated by an Android NDK build.
 - DXVK adapter parity: not implemented.
 - Snap AI telemetry/control loop: not implemented.
-- In-game Snap AI / Frame Generation settings: not implemented.
+- In-game Snap AI / Frame Generation section: added with working Frame Generation and Flow Scale controls for the legacy host; Snap AI adaptive control is explicitly marked unavailable until the telemetry adapter is connected.
 - APK and physical-device GPU validation: not run.
 
 Do not treat a successful portable/mock test as proof of GPU frame generation. Do not claim performance gains until same-device, same-scene GPU timings and output quality have been compared.
