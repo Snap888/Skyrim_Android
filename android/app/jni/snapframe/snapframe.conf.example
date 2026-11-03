@@ -1,8 +1,5 @@
-# SnapFrame capture / preprocessing test configuration
+# SnapFrame first GPU preprocessing test
 # Copy to <game-directory>/port/snapframe.conf
-# Capture is diagnostic only at this stage; no generated frames are presented.
+# This captures real frames and dispatches the half-resolution luma kernel.
+# It does not yet present interpolated/generated frames.
 enabled=1
-multiplier=2
-quality=1
-flow_scale_percent=50
-profiling_enabled=1
