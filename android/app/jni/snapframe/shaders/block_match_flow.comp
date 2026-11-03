@@ -38,6 +38,12 @@ void evaluateCandidate(
 
             cost += abs(lumaAt(currentLuma, samplePos) -
                         lumaAt(previousLuma, previousPos));
+            // SAD is monotonic: once this partial sum is already worse than
+            // the current second-best complete match, the candidate cannot
+            // affect either the best vector or the confidence margin. Abort
+            // the remaining patch reads without changing the exact ranking.
+            if (cost > secondCost)
+                return;
         }
     }
 
