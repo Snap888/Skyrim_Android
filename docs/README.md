@@ -734,3 +734,15 @@ query semantics, добавить controlled zero-motion/known-translation те�
 
 **Ограничения процесса:** APK не собирался, GitHub Actions не запускались.
 Сборку и тест на устройстве выполняет владелец проекта локально.
+
+
+### SnapFrame source milestone — variable motion-grid density
+
+На `frame_gen` реализовано применение `flow_scale_percent` к размерам
+motion grid, dispatch dimensions и координатам forward/backward consistency.
+При 50% ожидаемая сетка для 2448x1080 — 77x34 вместо 153x68 при 100%.
+Это уменьшает число flow cells примерно в четыре раза, но снижает
+пространственную детализацию. Реализация пока source-only: shader compilation,
+NDK build и проверка на Adreno не выполнялись. Перед warp/reconstruction
+необходимо проверить нулевое движение, известные смещения, направление
+векторов и поведение граничных блоков.
