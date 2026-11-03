@@ -270,3 +270,15 @@ shader so the internal pass does not poison later game draws. A successful
 `luma dispatch accepted` log means DXVK recorded the dispatch; it does not yet
 prove numerical output correctness. The shader is compiled and SPIR-V validated
 on the build host during CMake configure when the required tools are available.
+
+## Preprocessing resource failure path
+
+The luma compute shader is registered with the DXVK pipeline manager only
+after all required luma resources have been created. An incomplete setup or
+exception releases partial output-image, image-view, and sampler references;
+the capture history remains available. The dedicated diagnostic log reports
+the individual luma resource states and invalid callback arguments so a device
+test can distinguish capture-path failures from compute-resource failures.
+
+This is host-side failure handling only. Successful command recording is not
+evidence that the GPU produced numerically correct luminance values.
