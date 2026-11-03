@@ -851,6 +851,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
     const bool profileThisFrame = g_profilingEnabled && (nextCapturedFrame % 30u) == 0u;
     const SnapFrameGpuTimer totalTimer = beginGpuTimer(
         context, device, "total_chain", nextCapturedFrame, width, height, profileThisFrame);
+    bool totalTimerEnded = false;
     const SnapFrameGpuTimer captureTimer = beginGpuTimer(
         context, device, "capture_copy", nextCapturedFrame, width, height, profileThisFrame);
     VkImageSubresourceLayers subresource{};
@@ -901,13 +902,16 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
                 g_flowShader, g_lumaView[previousSlot], g_lumaView[slot],
                 g_lumaSampler, g_flowView[0], flowGroupsX, flowGroupsY);
             endGpuTimer(context, forwardTimer);
-            const SnapFrameGpuTimer backwardTimer = beginGpuTimer(
-                context, device, "flow_backward", nextCapturedFrame, width, height, profileThisFrame);
-            const bool previousToCurrent = currentToPrevious
-                && context->dispatchSnapFrameFlow(
+            SnapFrameGpuTimer backwardTimer;
+            bool previousToCurrent = false;
+            if (currentToPrevious) {
+                backwardTimer = beginGpuTimer(
+                    context, device, "flow_backward", nextCapturedFrame, width, height, profileThisFrame);
+                previousToCurrent = context->dispatchSnapFrameFlow(
                     g_flowShader, g_lumaView[slot], g_lumaView[previousSlot],
                     g_lumaSampler, g_flowView[1], flowGroupsX, flowGroupsY);
-            endGpuTimer(context, backwardTimer);
+                endGpuTimer(context, backwardTimer);
+            }
             if (currentToPrevious && previousToCurrent) {
                 ++g_flowDispatchCount;
                 if (g_flowDispatchCount == 1 || (g_flowDispatchCount % 120u) == 0)
@@ -924,8 +928,11 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
                     endGpuTimer(context, consistencyTimer);
                     if (consistencyDispatched) {
                         ++g_consistencyDispatchCount;
-                        if (g_profilingEnabled && (g_flowDispatchCount % 120u) == 0u)
+                        if (g_profilingEnabled && (g_flowDispatchCount % 120u) == 0u) {
+                            endGpuTimer(context, totalTimer);
+                            totalTimerEnded = true;
                             recordFlowReadback(context, device, nextCapturedFrame, flowWidth, flowHeight);
+                        }
                         if (g_consistencyDispatchCount == 1
                          || (g_consistencyDispatchCount % 120u) == 0)
                             snapframeLog("SnapFrame: forward/backward consistency accepted count=%llu\n",
@@ -947,7 +954,8 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
             }
         }
     }
-    endGpuTimer(context, totalTimer);
+    if (!totalTimerEnded)
+        endGpuTimer(context, totalTimer);
     ++g_frameIndex;
     const uint64_t captured = g_capturedFrames.fetch_add(1, std::memory_order_relaxed) + 1;
     logDiagnosticPhase(captured);
