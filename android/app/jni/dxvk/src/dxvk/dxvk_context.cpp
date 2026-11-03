@@ -1521,7 +1521,10 @@ namespace dxvk {
     // D3D9 graphics and compute stages share DXVK resource slots. Preserve
     // slots 0/1 and the prior CS so this internal pass cannot poison later
     // game draws whose state caches may not rebind unchanged resources.
-    const Rc<DxvkShader> previousComputeShader = m_state.cp.shaders.cs;
+    const DxvkComputePipelineState previousComputeState = m_state.cp;
+    const DxvkContextFlags previousFlags = m_flags;
+    const VkPipeline previousComputePipeline = m_cpActivePipeline;
+    const VkDescriptorSet previousComputeSet = m_cpSet;
     const DxvkShaderResourceSlot previousResource0 = m_rc[0];
     const DxvkShaderResourceSlot previousResource1 = m_rc[1];
     const bool previousResource0Tracked = m_rcTracked.test(0);
@@ -1537,9 +1540,16 @@ namespace dxvk {
     m_rc[1] = previousResource1;
     if (previousResource0Tracked) m_rcTracked.set(0); else m_rcTracked.clr(0);
     if (previousResource1Tracked) m_rcTracked.set(1); else m_rcTracked.clr(1);
-    m_flags.set(DxvkContextFlag::CpDirtyResources,
-                DxvkContextFlag::GpDirtyResources);
-    this->bindShader(VK_SHADER_STAGE_COMPUTE_BIT, previousComputeShader);
+    m_state.cp = previousComputeState;
+    m_cpActivePipeline = previousComputePipeline;
+    m_cpSet = previousComputeSet;
+    m_flags = previousFlags;
+    // The command buffer now has SnapFrame's compute pipeline/descriptors
+    // bound. Force DXVK to restore the prior compute state on its next use.
+    m_flags.set(DxvkContextFlag::CpDirtyPipeline,
+                DxvkContextFlag::CpDirtyPipelineState,
+                DxvkContextFlag::CpDirtyResources,
+                DxvkContextFlag::CpDirtyDescriptorBinding);
     return dispatched;
   }
   
