@@ -929,7 +929,7 @@ namespace dxvk {
     const uint64_t presentEntryCount =
       g_snapFramePresentEntryCount.fetch_add(1, std::memory_order_relaxed) + 1;
     if (presentEntryCount == 1)
-      fprintf(stderr, "SnapFrame: entered D3D9SwapChainEx::PresentImage\\n");
+      fprintf(stderr, "SnapFrame: entered D3D9SwapChainEx::PresentImage\n");
     const auto perfStart = std::chrono::steady_clock::now();
     uint32_t perfGenerated = 0;
     uint32_t perfRequested = 0;
@@ -985,7 +985,7 @@ namespace dxvk {
           g_snapFramePresentPathCount.fetch_add(1, std::memory_order_relaxed) + 1;
         if (presentPathCount == 1) {
           fprintf(stderr,
-            "SnapFrame: DXVK present path reached extent=%ux%u format=0x%x usage=0x%x copy_hook=%d\\n",
+            "SnapFrame: DXVK present path reached extent=%ux%u format=0x%x usage=0x%x copy_hook=%d\n",
             info.imageExtent.width, info.imageExtent.height,
             static_cast<unsigned>(info.format.format),
             static_cast<unsigned>(info.imageUsage),
@@ -995,7 +995,7 @@ namespace dxvk {
           const uint64_t dispatchCount =
             g_snapFrameCallbackDispatchCount.fetch_add(1, std::memory_order_relaxed) + 1;
           if (dispatchCount == 1)
-            fprintf(stderr, "SnapFrame: dispatching first DXVK copy callback\\n");
+            fprintf(stderr, "SnapFrame: dispatching first DXVK copy callback\n");
           copyHook(
             m_context.ptr(),
             m_imageViews.at(imageIndex).ptr(),
