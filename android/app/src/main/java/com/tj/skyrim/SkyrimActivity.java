@@ -19,6 +19,7 @@ import android.view.SurfaceView;
 import android.view.WindowManager;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.Spinner;
@@ -66,6 +67,8 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
     // ---- In-game LSFG controls ------------------------------------------------
     private static native int[] nativeGetLsfgSettings();
     private static native boolean nativeSetLsfgSettings(int multiplier, int flowPercent, int performance, int gameFpsLimit);
+    private static native int[] nativeGetSnapFrameSettings();
+    private static native boolean nativeSetSnapFrameSettings(int enabled, int flowPercent);
 
     private int dp(float value) {
         return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
@@ -168,17 +171,18 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
     }
 
     private void showOverlayMenu() {
-        String[] items = { "LSFG settings", "Android keyboard", "Gamepad overlay: " + (gamepadOverlayEnabled ? "ON" : "OFF"), "Gamepad editor", "Legacy touch controls editor" };
+        String[] items = { "LSFG settings", "Snap AI / Frame Generation", "Android keyboard", "Gamepad overlay: " + (gamepadOverlayEnabled ? "ON" : "OFF"), "Gamepad editor", "Legacy touch controls editor" };
         new AlertDialog.Builder(this)
                 .setTitle("Skyrim overlay")
                 .setItems(items, (dialog, which) -> {
                     if (which == 0) showLsfgSettings();
-                    else if (which == 1) {
+                    else if (which == 1) showSnapFrameSettings();
+                    else if (which == 2) {
                         // SDLActivity routes this request to Android's InputMethodManager.
                         showTextInput(0, 0, 1, 1);
-                    } else if (which == 2) {
-                        setGamepadOverlayEnabled(!gamepadOverlayEnabled);
                     } else if (which == 3) {
+                        setGamepadOverlayEnabled(!gamepadOverlayEnabled);
+                    } else if (which == 4) {
                         showGamepadControlsEditor();
                     } else {
                         touchEditorEnabled = !touchEditorEnabled;
@@ -484,6 +488,74 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
         for (String control : gamepadOverlay.controlNames())
             gamepadOverlay.configureControl(control, !gamepadDisabledControls.contains(control),
                     gamepadToggleControls.contains(control));
+    }
+
+    private void showSnapFrameSettings() {
+        int[] current = nativeGetSnapFrameSettings();
+        if (current == null || current.length < 3 || current[0] == 0) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Snap AI / Frame Generation")
+                    .setMessage("SnapFrame backend is not active. Check port/snapframe.conf and the SnapFrame initialization log.")
+                    .setPositiveButton("OK", null)
+                    .show();
+            return;
+        }
+
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(20), dp(8), dp(20), dp(4));
+
+        TextView status = new TextView(this);
+        status.setText("Frame Generation changes apply at the next safe render callback. Flow Scale changes reset temporal history before rebuilding its GPU resources.");
+        status.setTextSize(13);
+        panel.addView(status);
+
+        CheckBox frameGeneration = new CheckBox(this);
+        frameGeneration.setText("Frame Generation");
+        frameGeneration.setChecked(current[1] != 0);
+        frameGeneration.setPadding(0, dp(12), 0, dp(4));
+        panel.addView(frameGeneration);
+
+        TextView flowLabel = new TextView(this);
+        flowLabel.setPadding(0, dp(16), 0, dp(4));
+        panel.addView(flowLabel);
+
+        SeekBar flowScale = new SeekBar(this);
+        flowScale.setMax(75);
+        flowScale.setProgress(Math.max(0, Math.min(75, current[2] - 25)));
+        panel.addView(flowScale);
+        Runnable updateFlowLabel = () -> flowLabel.setText("Flow Scale: " + (flowScale.getProgress() + 25) + "%");
+        updateFlowLabel.run();
+        flowScale.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar bar, int value, boolean fromUser) {
+                updateFlowLabel.run();
+            }
+            @Override public void onStartTrackingTouch(SeekBar bar) {}
+            @Override public void onStopTrackingTouch(SeekBar bar) {}
+        });
+
+        TextView aiStatus = new TextView(this);
+        aiStatus.setText("Snap AI Engine: adaptive GPU control is not available yet. It will be enabled after the DXVK telemetry adapter is connected.");
+        aiStatus.setTextSize(12);
+        aiStatus.setPadding(0, dp(16), 0, dp(4));
+        panel.addView(aiStatus);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Snap AI / Frame Generation")
+                .setView(panel)
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Apply", (dialog, which) -> {
+                    int enabled = frameGeneration.isChecked() ? 1 : 0;
+                    int scale = flowScale.getProgress() + 25;
+                    if (!nativeSetSnapFrameSettings(enabled, scale)) {
+                        android.widget.Toast.makeText(this, "Could not apply SnapFrame settings",
+                                android.widget.Toast.LENGTH_SHORT).show();
+                    } else {
+                        android.widget.Toast.makeText(this, "SnapFrame settings queued for the next frame",
+                                android.widget.Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .show();
     }
 
     private void showLsfgSettings() {
