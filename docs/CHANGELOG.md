@@ -16,3 +16,7 @@
 Added after the initial audit: JNI and in-game Frame Generation/Flow Scale controls for the existing DXVK host, with config persistence and render-callback-safe history reset.
 
 Not yet completed: concrete DXVK `SnapFrameBackendV1` adapter, live AI telemetry/control loop, Snap AI UI controls, full APK build and real-device validation.
+
+- Added a concrete `SnapFrameBackendV1` DXVK adapter that routes the portable SnapFrame core into the existing GPU pipeline without replacing its shaders or present hooks.
+- Added a compile-only Android ARM64 CI target for the JNI settings bridge and real DXVK host.
+- Explicitly load `snap_frame_engine` and `snap_ai_engine` shared libraries before the game runtime.
