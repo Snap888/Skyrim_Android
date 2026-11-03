@@ -86,9 +86,11 @@ Planned ownership under `android/app/jni/snapframe/`:
 The host API and DXVK capture backend exist. The first GLSL preprocessing
 kernel now has an R16F output allocation, sampler, DXVK compute shader/pipeline
 registration, and a state-preserving dispatch helper on the active command
-list. This validates the first GPU preprocessing stage only; the profiler,
-motion estimation, interpolation, and generated-frame presentation remain
-unimplemented.
+list. This validates GPU preprocessing, bidirectional coarse motion, consistency,
+and an initial internal midpoint color-warp compute stage. The profiler and
+sparse diagnostics are present. The midpoint output is not yet presented as an
+additional WSI frame; robust pyramid refinement, occlusion handling and
+frame-pacing integration remain pending.
 
 ## 4. Integration plan
 
