@@ -114,3 +114,17 @@ python3 tools/compile_snapframe_shaders.py
 ```
 
 The tool validates Vulkan 1.1 SPIR-V before generating the C++ word array.
+
+## Runtime diagnostics and failure handling
+
+The luma setup now registers the compute shader with DXVK's pipeline manager
+only after the output image, image view, sampler, and shader object are all
+available. If setup is incomplete or throws, partially created luma image,
+view, and sampler references are released and frame capture remains enabled.
+The dedicated log reports the individual luma resource states before falling
+back to capture-only operation. Invalid callback arguments are also reported
+once as a capture skip reason.
+
+These checks improve failure visibility; they do not replace an NDK build or
+a device run. A recorded dispatch still needs GPU-side validation before the
+luma values can be considered numerically verified.
