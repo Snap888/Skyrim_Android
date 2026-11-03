@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <mutex>
@@ -117,6 +118,10 @@ bool g_midpointAvailable = false;
 uint64_t g_midpointDispatchCount = 0;
 uint64_t g_midpointFailureCount = 0;
 std::atomic<uint32_t> g_flowScalePercent{50};
+std::atomic<uint64_t> g_lastGpuTimingFrame{0};
+std::atomic<float> g_lastGpuTimingMs{0.0f};
+std::atomic<float> g_lastFrameIntervalMs{0.0f};
+std::atomic<uint64_t> g_lastFrameTimestampNs{0};
 
 uint32_t flowScalePercent() {
     return g_flowScalePercent.load(std::memory_order_acquire);
@@ -288,10 +293,18 @@ void endGpuTimer(DxvkContext* context, const SnapFrameGpuTimer& timer) {
         if (valid) {
             const double gpuMs = double(endData.timestamp.time - beginData.timestamp.time)
                 * timer.periodNs / 1000000.0;
+            if (timer.stage == "total") {
+                g_lastGpuTimingFrame.store(timer.frame, std::memory_order_release);
+                g_lastGpuTimingMs.store(static_cast<float>(gpuMs), std::memory_order_release);
+            }
             fprintf(g_gpuLogFile, "%llu,%s,%.6f,%u,%u,ok\n",
                 static_cast<unsigned long long>(timer.frame), timer.stage.c_str(),
                 gpuMs, timer.width, timer.height);
         } else {
+            if (timer.stage == "total") {
+                g_lastGpuTimingFrame.store(timer.frame, std::memory_order_release);
+                g_lastGpuTimingMs.store(0.0f, std::memory_order_release);
+            }
             fprintf(g_gpuLogFile, "%llu,%s,0,%u,%u,unavailable:%d:%d:%d\n",
                 static_cast<unsigned long long>(timer.frame), timer.stage.c_str(),
                 timer.width, timer.height, int(result), int(beginStatus), int(endStatus));
@@ -1311,6 +1324,14 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
     if (!g_initialized.load(std::memory_order_acquire))
         return;
 
+    const uint64_t nowNs = static_cast<uint64_t>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()).count());
+    const uint64_t previousNs = g_lastFrameTimestampNs.exchange(nowNs, std::memory_order_acq_rel);
+    if (previousNs && nowNs > previousNs)
+        g_lastFrameIntervalMs.store(static_cast<float>(nowNs - previousNs) / 1000000.0f,
+            std::memory_order_release);
+
     /* UI changes only set this flag. Resource release happens on this serialized
      * DXVK callback, before either the portable core or legacy fallback runs. */
     if (g_resetHistoryRequested.exchange(0, std::memory_order_acq_rel)) {
@@ -1524,6 +1545,10 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
     g_midpointFrameReady.store(0, std::memory_order_relaxed);
     g_skippedFrames.store(0, std::memory_order_relaxed);
     g_copyCallbackCalls.store(0, std::memory_order_relaxed);
+    g_lastGpuTimingFrame.store(0, std::memory_order_relaxed);
+    g_lastGpuTimingMs.store(0.0f, std::memory_order_relaxed);
+    g_lastFrameIntervalMs.store(0.0f, std::memory_order_relaxed);
+    g_lastFrameTimestampNs.store(0, std::memory_order_relaxed);
     g_resetHistoryRequested.store(1, std::memory_order_release);
     g_initialized.store(1, std::memory_order_release);
 
@@ -1575,6 +1600,15 @@ extern "C" int snapframe_host_get_settings(int *enabled, int *flow_scale_percent
     if (enabled) *enabled = g_enabled.load(std::memory_order_acquire);
     if (flow_scale_percent) *flow_scale_percent = static_cast<int>(flowScalePercent());
     return 1;
+}
+
+extern "C" int snapframe_host_get_last_telemetry(
+    uint64_t *frame, float *gpu_time_ms, float *frame_time_ms) {
+    const uint64_t completedFrame = g_lastGpuTimingFrame.load(std::memory_order_acquire);
+    if (frame) *frame = completedFrame;
+    if (gpu_time_ms) *gpu_time_ms = g_lastGpuTimingMs.load(std::memory_order_acquire);
+    if (frame_time_ms) *frame_time_ms = g_lastFrameIntervalMs.load(std::memory_order_acquire);
+    return completedFrame != 0 ? 1 : 0;
 }
 
 extern "C" int snapframe_host_update_settings(int enabled, int flow_scale_percent) {
