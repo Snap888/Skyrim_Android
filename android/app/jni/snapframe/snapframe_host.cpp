@@ -322,6 +322,26 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
         sourceImage, subresource, VkOffset3D{ 0, 0, 0 },
         VkExtent3D{ width, height, 1 });
 
+    if (g_lumaAvailable) {
+        const uint32_t lumaWidth = width / 2u + width % 2u;
+        const uint32_t lumaHeight = height / 2u + height % 2u;
+        const uint32_t groupsX = (lumaWidth + 7u) / 8u;
+        const uint32_t groupsY = (lumaHeight + 7u) / 8u;
+        const bool dispatched = context->dispatchSnapFrame(
+            g_lumaShader, g_historyViews[slot], g_lumaSampler, g_lumaView, groupsX, groupsY);
+        if (dispatched) {
+            ++g_lumaDispatchCount;
+            if (g_lumaDispatchCount == 1 || (g_lumaDispatchCount % 300u) == 0)
+                snapframeLog("SnapFrame: luma dispatch accepted count=%llu groups=%ux%u\n",
+                    static_cast<unsigned long long>(g_lumaDispatchCount), groupsX, groupsY);
+        } else {
+            ++g_lumaFailureCount;
+            if (g_lumaFailureCount == 1 || (g_lumaFailureCount % 60u) == 0)
+                snapframeLog("SnapFrame: luma dispatch failed count=%llu\n",
+                    static_cast<unsigned long long>(g_lumaFailureCount));
+        }
+    }
+
     ++g_frameIndex;
     const uint64_t captured = g_capturedFrames.fetch_add(1, std::memory_order_relaxed) + 1;
     if (g_frameIndex >= 2 && !g_readyLogged) {
