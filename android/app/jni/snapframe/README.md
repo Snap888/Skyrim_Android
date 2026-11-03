@@ -339,7 +339,7 @@ These changes are source-level only. They require shader CI, native C++/APK buil
 
 The GPU CSV contains total_chain samples mostly around 7–9 ms in the available later portion, with some 12–13.5 ms samples. These values represent the instrumented SnapFrame compute/capture chain, not the game's complete frame time and not measured FPS uplift. The present/HUD currently does not expose a reliable SnapFrame generated-FPS counter. A queued additional present must be counted separately from a completed scan-out; the next instrumentation step is to show game FPS, SnapFrame queued/generated FPS, and output FPS as separate values, without conflating them.
 
-The uploaded snapframe_events.csv and snapframe_flow_vectors.csv were returned as empty by the GitHub file reader in this retrieval, despite the text log reporting vector dumps. Their contents therefore could not be independently audited in this pass. Re-upload these as ordinary text CSVs if they are still empty in the repository.
+The GitHub directory listing confirms snapframe_events.csv (2,594,518 bytes) and snapframe_flow_vectors.csv (1,533,725 bytes) are non-empty. The content endpoint rejects these large CSVs in this retrieval, so their rows could not be independently audited; this is a reader-size limitation, not evidence that the files are empty.
 
 
 ### Generated-FPS HUD counter
