@@ -351,7 +351,7 @@ consistency chain. Results are written asynchronously from command-list
 completion callbacks to `port/snapframe_gpu.csv`; SnapFrame does not submit a
 separate queue or synchronously wait for the GPU.
 
-Every 120th accepted bidirectional flow pair, both RGBA16F motion fields and
+While the seven-phase diagnostic suite is active, every 120th accepted bidirectional flow pair, both RGBA16F motion fields and
 the R16F consistency mask are copied into a host-visible, host-coherent
 staging buffer on the same command list. CPU inspection happens only after its
 completion callback. `port/snapframe_flow.csv` records grid dimensions, mean
@@ -370,7 +370,7 @@ Profiling and readback use the existing `profiling_enabled` setting.
 
 
 A second sparse spatial dump is written to `port/snapframe_flow_vectors.csv`
-every 600th accepted flow pair (every fifth aggregate readback). Each row
+every 600th accepted flow pair during the active suite (every fifth aggregate readback). Each row
 contains the grid coordinate, forward and backward displacement/confidence/
 matching-cost values, and the consistency mask value. This preserves the
 spatial field for external vector visualization while limiting file growth.
