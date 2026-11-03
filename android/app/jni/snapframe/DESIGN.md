@@ -192,7 +192,11 @@ A device-destroy callback releases the two history images after device idle and
 before the DXVK device allocator is destroyed. History is reset on size/format/
 device changes and when capture is toggled. Capture is disabled by default and
 can currently be enabled with `<game-directory>/port/snapframe.conf` containing
-`enabled=1`.
+`enabled=1`. Bootstrap opens `<game-directory>/port/snapframe.log` as a separate
+per-launch diagnostic log. DXVK present-path markers are forwarded through an
+atomic callback into this file, alongside host-side capability, allocation,
+skip and capture counters. The file is truncated at game startup and mirrored
+to stderr for compatibility with existing log collection.
 
 Important limitation: the captured source is the WSI image after blitting the
 game backbuffer but before the HUD overlay. This avoids baking the DXVK HUD into
@@ -230,6 +234,7 @@ available in the NDK build.
 - [ ] Confirm two real frames are captured before adding compute work.
 - [x] Check sampled-image support before allocating the WSI-format history images.
 - [x] Add host-side `R16_SFLOAT` storage/sampled-image capability and extent checks (device runtime result still pending).
+- [x] Add a dedicated `port/snapframe.log` and route DXVK present/callback diagnostics into it.
 - [x] Add first luminance downsample GLSL source and a host-side GLSL-to-SPIR-V header generator.
 - [ ] Run glslangValidator + spirv-val and commit the generated SPIR-V header.
 - [ ] Implement compute pipeline/descriptor setup and first checked dispatch; verify the capability diagnostic on the target GPU.
