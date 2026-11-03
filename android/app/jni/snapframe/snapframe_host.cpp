@@ -943,8 +943,8 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                     }
                     snapframeLog("SnapFrame: midpoint reconstruction resources %s output=RGBA16F extent=%ux%u\n",
                         g_midpointAvailable ? "ready" : "unavailable", width, height);
-                    snapframeEvent(0, g_midpointAvailable
-                        ? "midpoint_resources_ready" : "midpoint_resources_unavailable",
+                    snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed) + 1u,
+                        g_midpointAvailable ? "midpoint_resources_ready" : "midpoint_resources_unavailable",
                         width, height, g_midpointAvailable
                             ? "rgba16f_output_and_compute_pipeline_ready"
                             : "format_or_consistency_requirement_not_met");
