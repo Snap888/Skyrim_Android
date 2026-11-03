@@ -15,6 +15,7 @@ std::atomic<int> g_initialized{0};
 std::atomic<int> g_enabled{0};
 std::atomic<uint64_t> g_capturedFrames{0};
 std::atomic<uint64_t> g_skippedFrames{0};
+std::atomic<uint64_t> g_copyCallbackCalls{0};
 std::atomic<int> g_resetHistoryRequested{0};
 
 DxvkDevice* g_device = nullptr;
@@ -95,6 +96,10 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
     if (!g_initialized.load(std::memory_order_acquire)
         || !g_enabled.load(std::memory_order_acquire))
         return;
+    const uint64_t callbackCall =
+        g_copyCallbackCalls.fetch_add(1, std::memory_order_relaxed) + 1;
+    if (callbackCall == 1)
+        fprintf(stderr, "SnapFrame: host copy callback entered\\n");
     if (g_resetHistoryRequested.exchange(0, std::memory_order_acq_rel))
         clearHistory();
 
@@ -200,6 +205,7 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
     g_enabled.store(validated.enabled ? 1 : 0, std::memory_order_release);
     g_capturedFrames.store(0, std::memory_order_relaxed);
     g_skippedFrames.store(0, std::memory_order_relaxed);
+    g_copyCallbackCalls.store(0, std::memory_order_relaxed);
     g_resetHistoryRequested.store(1, std::memory_order_release);
     g_initialized.store(1, std::memory_order_release);
 
