@@ -167,3 +167,19 @@ Switches: create an empty file with one of these names in `port/save/`:
 
 ## Legal
 The Elder Scrolls, Skyrim, Bethesda and all related names and assets belong to their respective owners. This project is not affiliated with or endorsed by them. Do not redistribute anything produced from the game or game files. Third-party code keeps its own licenses: SDL2 (zlib) in `android/app/jni/SDL2`, dxvk-native (zlib) in `android/app/jni/dxvk`.
+
+
+## Snap AI EngineFrame integration
+
+The `Snap-AI-EngineFrame` branch is the isolated integration workstream for the portable Snap AI Engine and SnapFrame APIs. The current legacy DXVK GPU path is preserved while the new `SnapFrameBackendV1` adapter and AI telemetry loop are developed.
+
+- [Integration status and audit](docs/SNAP_AI_ENGINEFRAME_STATUS.md)
+- [SnapFrame integration](docs/SNAPFRAME_INTEGRATION.md)
+- [Snap AI integration](docs/SNAP_AI_INTEGRATION.md)
+- [Android settings](docs/ANDROID_SETTINGS.md)
+- [AI adaptive control](docs/AI_ADAPTIVE_CONTROL.md)
+- [GPU telemetry](docs/GPU_TELEMETRY.md)
+- [Android build](docs/BUILD_ANDROID.md)
+- [Testing plan](docs/TESTING.md)
+
+The portable libraries being linked is an integration milestone, not a claim that AI-controlled frame generation or the new DXVK backend is already complete. See the status document for verified and pending work.
