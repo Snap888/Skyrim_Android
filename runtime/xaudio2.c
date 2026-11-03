@@ -718,13 +718,16 @@ static void engine_pass(CPU *c, int frames, float *out) {
                  * reducing the bus by 6 dB prevents ordinary multi-voice sums
                  * from driving the limiter continuously. Keep the pre-gain
                  * peak counter above so A/B logs remain comparable. */
-                float x = sample[c] * 0.50118723f; /* -6 dB */
-                if (!isfinite(x)) {
-                    x = 0.0f;
+                float raw = sample[c];
+                if (!isfinite(raw)) {
+                    raw = 0.0f;
                     g_xa_mix_invalid++;
                 }
+                /* Keep the peak counter pre-gain for comparison with older logs. */
+                float peak = fabsf(raw);
+                if (peak > g_xa_mix_peak) g_xa_mix_peak = peak;
+                float x = raw * 0.50118723f; /* -6 dB headroom */
                 float ax = fabsf(x);
-                if (ax > g_xa_mix_peak) g_xa_mix_peak = ax;
                 if (ax > 0.90f) {
                     g_xa_mix_clipped++;
                     float over = (ax - 0.90f) / 0.10f;
