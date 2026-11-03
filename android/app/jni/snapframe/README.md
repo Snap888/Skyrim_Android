@@ -49,8 +49,27 @@ This is a proposed algorithm, not an implemented or measured result. See
   lifetime; it is not a performance mode and should remain disabled during
   normal gameplay until interpolation exists.
 
-When enabled, expected stderr/logcat messages include `host initialized`,
-`allocated two-frame history`, and `two real frames captured`.
+When enabled, the diagnostic sequence is:
+
+1. `host initialized` — runtime config was loaded.
+2. `DXVK present path reached` — the game reached the DXVK present path; the
+   line also reports WSI extent, format, usage flags, and whether the callback
+   is registered.
+3. `dispatching first DXVK copy callback` and `host copy callback entered` —
+   the host callback actually ran.
+4. `allocated two-frame history` — the private history images were allocated.
+5. `two real frames captured` — at least two copies were recorded.
+
+If the log contains only `host initialized` and no `DXVK present path reached`,
+the current evidence does not show that the game reached its first DXVK
+present. A final `VirtualAlloc(...)` line alone is not proof of a SnapFrame
+failure; collect the complete log through the point where the app exits or
+stops progressing. If the present-path marker appears, the following
+`capture skipped` or allocation diagnostics identify the next failure point.
 
 The module is added to the JNI CMake build as a separate static target. No
-compute shaders or runtime selector have been added yet.
+compute shaders or runtime selector have been added yet. The Android native
+CMake project currently consumes generated DXVK shader headers; it does not
+compile standalone GLSL sources itself. A dedicated, reproducible
+GLSL-to-SPIR-V packaging step must be established before adding the first
+SnapFrame compute shader.
