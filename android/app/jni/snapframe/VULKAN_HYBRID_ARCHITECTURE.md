@@ -40,7 +40,8 @@ The current host already performs runtime checks for history-image usage, R16F l
 
 ## Quality and performance roadmap
 
-- Replace single-resolution +/-9 block matching with a true multi-level luma pyramid. Search large displacement at a coarse level, upscale the vector and refine locally at finer levels. This expands motion coverage without a full-resolution exhaustive search.
+- The current matcher has been changed to a 5x5 coarse lattice plus a 5x5 local refinement (49 candidate positions maximum instead of 89). This is an unbenchmarked performance experiment; verify visual quality and GPU timestamps on device before keeping it.
+- Next, replace single-resolution +/-10 block matching with a true multi-level luma pyramid. Search large displacement at a coarse level, upscale the vector and refine locally at finer levels. This expands motion coverage without a full-resolution exhaustive search.
 - Improve the 3x3 SAD matcher with subpixel refinement and a texture/ambiguity metric; confidence must include match uniqueness, photometric residual, forward/backward closure and boundary status.
 - Reconstruct from each direction at its own projected endpoint, not by sampling both directional fields at the same output UV. Add occlusion/disocclusion selection and edge-aware confidence.
 - Keep uncertain regions sharp: use a nearest real-frame fallback rather than averaging two unwarped views. This can reduce local temporal smoothness, but avoids obvious double-image blur.
