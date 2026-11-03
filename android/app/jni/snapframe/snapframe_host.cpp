@@ -1353,6 +1353,30 @@ void snapframeForwardDxvkLog(const char* message) {
 }
 }
 
+extern "C" int snapframe_host_apply_backend_config(int enabled, int flow_scale_percent) {
+    if (flow_scale_percent < 25 || flow_scale_percent > 100)
+        return 0;
+    const uint32_t scale = static_cast<uint32_t>(flow_scale_percent);
+    const uint32_t previousScale = g_flowScalePercent.exchange(scale, std::memory_order_acq_rel);
+    const int nextEnabled = enabled ? 1 : 0;
+    const int previousEnabled = g_enabled.exchange(nextEnabled, std::memory_order_acq_rel);
+    if (previousScale != scale || previousEnabled != nextEnabled)
+        g_resetHistoryRequested.store(1, std::memory_order_release);
+    return 1;
+}
+
+extern "C" void snapframe_host_backend_reset_history(void) {
+    g_resetHistoryRequested.store(1, std::memory_order_release);
+}
+
+extern "C" int snapframe_host_process_legacy_frame(
+    void* context, void* source_view, void* device,
+    uint32_t width, uint32_t height, uint32_t format) {
+    const uint64_t skippedBefore = g_skippedFrames.load(std::memory_order_relaxed);
+    snapframeCopyFrameImpl(context, source_view, device, width, height, format);
+    return g_skippedFrames.load(std::memory_order_relaxed) == skippedBefore ? 1 : 0;
+}
+
 extern "C" int snapframe_host_set_log_path(const char *path) {
     if (!path || !*path) return 0;
     std::lock_guard<std::mutex> lock(g_logMutex);
@@ -1488,6 +1512,7 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
     g_flowReadbackFailureLogged = false;
 
     g_enabled.store(validated.enabled ? 1 : 0, std::memory_order_release);
+    const int portableReady = snapframe_engine_adapter_init(&validated);
     g_capturedFrames.store(0, std::memory_order_relaxed);
     g_generatedFrames.store(0, std::memory_order_relaxed);
     g_midpointFrameReady.store(0, std::memory_order_relaxed);
@@ -1511,6 +1536,8 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
             validated.enabled, validated.quality, validated.flow_scale_percent,
             g_motionAnalysisEnabled ? 1 : 0,
             g_motionAnalysisEnabled ? "capture+luma+bidirectional-flow+fb-consistency+midpoint-warp" : "capture-only");
+    snapframeLog("SnapFrame: portable SnapFrameBackendV1 %s\\n",
+        portableReady ? "active (DXVK GPU pipeline adapter)" : "unavailable; legacy fallback active");
     return 1;
 }
 
@@ -1520,6 +1547,7 @@ extern "C" void snapframe_host_shutdown(void) {
     g_resetHistoryRequested.store(1, std::memory_order_release);
     snapframe_dxvk_set_copy_hook(nullptr);
     snapframe_dxvk_set_generation_hooks(nullptr, nullptr, nullptr);
+    snapframe_engine_adapter_shutdown();
     g_midpointFrameReady.store(0, std::memory_order_release);
     /* Keep the device-destroy hook registered so owned images are released
      * before DXVK tears down the device allocator. */
@@ -1531,10 +1559,8 @@ extern "C" int snapframe_host_active(void) {
 }
 
 extern "C" int snapframe_host_set_enabled(int enabled) {
-    if (!g_initialized.load(std::memory_order_acquire)) return 0;
-    g_enabled.store(enabled ? 1 : 0, std::memory_order_release);
-    g_resetHistoryRequested.store(1, std::memory_order_release);
-    return 1;
+    return snapframe_host_update_settings(enabled ? 1 : 0,
+        static_cast<int>(flowScalePercent()));
 }
 
 
@@ -1550,22 +1576,25 @@ extern "C" int snapframe_host_update_settings(int enabled, int flow_scale_percen
         || flow_scale_percent < 25 || flow_scale_percent > 100)
         return 0;
 
+    if (snapframe_engine_adapter_available()) {
+        if (!snapframe_engine_adapter_update_settings(enabled ? 1 : 0, flow_scale_percent))
+            return 0;
+        snapframeLog("SnapFrame: portable config update queued enabled=%d flow_scale=%d%%\\n",
+            enabled ? 1 : 0, flow_scale_percent);
+        return 1;
+    }
+
+    /* Adapter creation fallback: retain the legacy host's live controls. */
     const uint32_t requestedScale = static_cast<uint32_t>(flow_scale_percent);
     const uint32_t previousScale = g_flowScalePercent.exchange(
         requestedScale, std::memory_order_acq_rel);
     const int requestedEnabled = enabled ? 1 : 0;
     const int previousEnabled = g_enabled.exchange(
         requestedEnabled, std::memory_order_acq_rel);
-
     if (previousScale != requestedScale || previousEnabled != requestedEnabled) {
-        /* The DXVK copy callback consumes this flag on its serialized render
-         * path, releases temporal resources, and recreates them using the
-         * new scale before dispatch. UI thread never touches Vulkan objects. */
         g_resetHistoryRequested.store(1, std::memory_order_release);
-        snapframeLog("SnapFrame: live settings queued enabled=%d flow_scale=%u%% (previous=%u%%)\n",
-            requestedEnabled, requestedScale, previousScale);
-        snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed),
-            "settings_queued", 0, 0, "enable_or_flow_scale_changed");
+        snapframeLog("SnapFrame: legacy live settings queued enabled=%d flow_scale=%u%%\\n",
+            requestedEnabled, requestedScale);
     }
     return 1;
 }
