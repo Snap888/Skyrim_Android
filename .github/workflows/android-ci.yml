@@ -90,6 +90,32 @@ jobs:
       - name: Build portable Android libraries
         run: cmake --build "$RUNNER_TEMP/snap-ai-engine-build" --parallel 2
 
+  portable-api-tests:
+    name: Snap AI and SnapFrame portable API tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout pinned Snap AI Engine source
+        run: |
+          git clone https://github.com/Snap888/Snap_AI_Engine.git "$RUNNER_TEMP/snap-ai-tests"
+          git -C "$RUNNER_TEMP/snap-ai-tests" checkout f60acfcb7b09722d5927215957c46045b11f7897
+
+      - name: Configure portable unit tests
+        run: |
+          cmake -S "$RUNNER_TEMP/snap-ai-tests" -B "$RUNNER_TEMP/snap-ai-tests-build" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DSNAP_AI_BUILD_TESTS=ON \
+            -DSNAP_AI_BUILD_EXAMPLE=OFF \
+            -DSNAP_FRAME_BUILD_TESTS=ON \
+            -DSNAP_FRAME_BUILD_EXAMPLE=OFF \
+            -DSNAP_FRAME_BUILD_DXVK_LEGACY=OFF
+
+      - name: Build and run portable unit tests
+        run: |
+          cmake --build "$RUNNER_TEMP/snap-ai-tests-build" --parallel 2
+          ctest --test-dir "$RUNNER_TEMP/snap-ai-tests-build" --output-on-failure
+
   snapframe-dxvk-host-arm64:
     name: Skyrim DXVK SnapFrame host ARM64 compile
     runs-on: ubuntu-latest
