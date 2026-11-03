@@ -7,6 +7,9 @@
 - Pinned Snap AI Engine / SnapFrame portable core in Android CMake.
 - Linked `SnapAI::Engine` and `SnapFrame::Engine` into the Android game runtime.
 - Enabled Android CI push/PR filtering for the working branch.
+- Added a successful Android NDK ARM64 build job for both portable shared libraries.
+- Added an in-game Snap AI / Frame Generation section with live Frame Generation and Flow Scale controls, native validation and config persistence.
+- Added a render-callback-safe flow-scale update path that resets temporal history before resource recreation.
 - Added integration status and architecture documentation.
 - Preserved the existing DXVK-coupled SnapFrame GPU host as the active implementation pending adapter parity.
 
