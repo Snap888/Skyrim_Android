@@ -22,6 +22,10 @@ void snapframe_host_shutdown(void);
 int  snapframe_host_active(void);
 int  snapframe_host_set_enabled(int enabled);
 void snapframe_host_get_stats(SnapFrameStats *stats);
+/* Runtime-safe settings supported by the current DXVK host. Flow-scale
+ * changes are applied at the next serialized frame callback after history reset. */
+int  snapframe_host_get_settings(int *enabled, int *flow_scale_percent);
+int  snapframe_host_update_settings(int enabled, int flow_scale_percent);
 
 #ifdef __cplusplus
 }
