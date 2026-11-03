@@ -102,20 +102,14 @@ The first SnapFrame compute source is
 `ceil(sourceWidth / 2)` by `ceil(sourceHeight / 2)`; edge texels are clamped
 for odd source dimensions.
 
-Generate the C++ SPIR-V header on the host before integrating the shader:
+To build the compute test manually, make sure the build host has Python 3,
+`glslangValidator`, and `spirv-val`. CMake invokes
+`tools/compile_snapframe_shaders.py` automatically during configure and emits
+`generated/snapframe_shaders.h`; the NDK build then consumes this header and
+does not need the shader tools. The standalone command is also available:
 
 ```sh
 python3 tools/compile_snapframe_shaders.py
 ```
 
-The tool requires `glslangValidator` and `spirv-val` (or explicit
-`--glslang` / `--spirv-val` paths). It validates Vulkan 1.1 SPIR-V and writes
-`android/app/jni/snapframe/generated/snapframe_shaders.h`. Android NDK builds
-consume the generated header and do not need the shader compiler. The shader
-is source/build infrastructure only at this stage: no compute pipeline,
-descriptor binding, dispatch, or runtime output is wired yet. The capture host now checks sampled-image support for the actual history
-format before allocating its two images. Before any compute dispatch, the host now logs whether `R16_SFLOAT` is usable
-for the planned storage+sampled output: format feature bits, concrete 2D image
-configuration, `shaderStorageImageExtendedFormats`, and half-resolution extent
-limits are checked. This is a capability diagnostic only; capture is not disabled
-when compute output is unsupported, and no shader dispatch is wired yet.
+The tool validates Vulkan 1.1 SPIR-V before generating the C++ word array.
