@@ -412,29 +412,14 @@ diagnostic observations only and must not drive performance tuning. The `snapfra
   reflect ambiguity, not just the best/second-best numerical gap.
 - Re-run the same validation set before using flow in a reconstruction pass.
 
-### Reconstruction milestones (not yet implemented)
+### Original reconstruction plan (partially superseded by implementation)
 
-After the numerical gate passes, implement a separate GPU warp/reconstruction
-prototype for a single midpoint (t=0.5): warp A forward and B backward, sample
-the confidence/validity mask, choose the more reliable source near invalid
-projections, and blend only mutually supported samples. Add a debug output
-that can be read back for offline comparison, but keep normal rendering and
-presentation untouched.
-
-Only after the midpoint output is visually and numerically checked should
-SnapFrame acquire a generated-frame target and integrate presentation. The
-presentation design must explicitly account for WSI image lifetime, queue
-ownership, acquire/present semaphores, frame pacing, resize and device loss.
+A first GPU midpoint-warp shader and additional WSI-present path have since been implemented and exercised on the target device. This original plan remains the quality target: implement true two-sided warping, use the confidence/validity mask to select reliable source samples near occlusions, and validate output against deterministic translations. The existing present integration is still subject to WSI lifetime, queue ownership, semaphore, pacing, resize and device-loss validation.
 The engine selector must remain separate from LSFG, with a safe real-frame
 fallback. LSFG sources and runtime behavior are out of scope for this branch's
 SnapFrame work.
 
-**Current state:** capture, luma preprocessing, bidirectional coarse flow,
-forward/backward consistency and sparse diagnostics are implemented at source
-level. Motion accuracy, shader runtime behavior, reliable per-stage GPU
-timings, midpoint reconstruction and generated-frame presentation remain
-unverified or unimplemented. No APK build or device test was performed for
-this milestone.
+**Current state:** capture, luma preprocessing, bidirectional coarse flow, forward/backward consistency, midpoint reconstruction and the additional WSI-present path have been exercised on device. The user reports no black frames and approximately 2× HUD output FPS, but visible geometry distortion remains during fast motion and animated foliage. Current source-only quality changes require a new shader validation, native build and device test.
 
 
 ### Flow-grid scale implementation — 2026-11-03
@@ -590,7 +575,7 @@ dispatch proves command recording only, not correct pixels or scan-out.
    behavior. LSFG remains isolated and unchanged.
 
 
-## 15. Latest device run — distortion diagnosis and conservative flow gating (2026-11-03)
+## 15. Previous device run — distortion diagnosis and conservative flow gating (historical snapshot, 2026-11-03)
 
 The latest frame_gen/Logs files report a 2448x1080 input, 50% flow scale (77x34 cells), motion_analysis=1, and diagnostic_suite=1. The static phase completed with 1,800 luma dispatches and 1,799 accepted bidirectional flow, consistency and midpoint dispatches. The visible log excerpt contains no dispatch failures or black-frame indication. This proves stage execution, not pixel correctness or successful scan-out.
 
@@ -618,3 +603,94 @@ Current assessment: no black-frame symptom is reported; midpoint dispatch is act
 ### Generated FPS HUD instrumentation follow-up
 
 The existing DXVK FG generated-frame counter is now incremented for every successfully queued generated output, including SnapFrame (LSFG and SnapFrame generation paths are mutually exclusive in the present loop). This routes SnapFrame into the existing generated-FPS HUD field without adding a second overlapping counter. The field is available only when the DXVK FPS HUD is enabled. It reports generated presents queued by the renderer, not confirmed display scan-outs. Verify on device that the HUD field updates during SnapFrame and remains correct with LSFG disabled/enabled.
+
+
+## 16. Latest user test — motion-boundary artifacts and quality update (2026-11-03)
+
+The latest uploaded branch head is `c316bdde516a4b8b0fbf58afffae0a9530104bf7`.
+The run uses 2448x1080, `flow_scale_percent=50` (77x34 motion cells),
+`motion_analysis=1`, profiling and the seven-phase diagnostic suite. The
+log confirms completion of `static_scene` and `slow_camera_pan`; it reaches
+900/1,800 frames of `fast_camera_rotation` and then ends. The remaining
+moving-NPC, foliage/particles/water, HUD and long-run phases are not present
+in this upload.
+
+The user's visual observations are: no black frames, approximately 2× output
+FPS on the HUD, but severe geometry distortion on fast camera movement and
+localized distortion around moving objects such as wind-blown grass while
+nearby static objects remain sharp. This is consistent with unreliable local
+motion vectors, not a global color/present corruption.
+
+The new aggregate `snapframe_flow.csv` has 33 columns and rows from frame
+121 through the visible rotation samples. In moving intervals, mean flow
+confidence often sits around 0.05–0.18 and the fraction of consistency values
+above 0.5 can fall below 1–13%. Some rotation samples have only about 0.19%
+of cells above that consistency threshold. The matcher still has a +/-9
+half-resolution-luma-texel search range; vectors pinned to that boundary are
+clipped estimates, not trustworthy motion. Static intervals recover high
+confidence and consistency. Dispatch success therefore cannot be used as a
+proxy for vector accuracy.
+
+The GPU timing CSV is mostly around 8–10 ms total chain in the earlier
+samples, but later rows rise to approximately 14.5–15.2 ms. Both flow
+directions and luma also become slower in those rows. This is an observed
+timing increase, not proof of thermal throttling; GPU load and clock state
+must be controlled in an A/B test. The user's 2× HUD rate is a generated
+present rate, not confirmed physical scan-out.
+
+### Changes committed after this upload
+
+- `midpoint_warp.comp` now samples motion fields by nearest flow cell instead
+  of linearly filtering neighboring vectors. This avoids blending foreground
+  and background motion across silhouettes, which can bend static geometry
+  next to moving foliage or objects.
+- The normalized SAD matching cost stored in flow alpha now attenuates
+  reconstruction confidence. High-residual matches are less likely to drive
+  a warp.
+- The confidence transition was raised from the previous permissive setting.
+  Weak/ambiguous motion favors the unwarped temporal blend.
+- The default flow-grid density was raised to 75%. At 2448x1080 the expected
+  grid changes from 77x34 at 50% to approximately 112x50 at 75%; 100% would
+  be 153x68 and is deferred because it may impose a substantial GPU cost.
+
+The active game-side `port/snapframe.conf` takes precedence over compiled
+defaults. Set `flow_scale_percent=75` there to actually exercise the denser
+grid; the uploaded log's 50% setting will otherwise remain in effect.
+
+These are conservative source-level changes. They have not yet been compiled
+to SPIR-V, built into an APK, or validated on the device. Nearest-cell sampling
+can reveal block boundaries; the 75% grid is intended to reduce their spatial
+size. The next algorithmic milestone, if artifacts remain, is a genuine
+multi-level image pyramid with subpixel refinement and occlusion-aware
+two-sided warping, rather than merely increasing the search radius.
+
+### Vulkan-layer architecture assessment (analysis only; no code change)
+
+A Vulkan layer sits between the Vulkan loader and the driver and can intercept
+selected Vulkan API calls. It could provide a reusable place for generic
+instrumentation, image-copy hooks, overlays or driver-independent policy.
+However, it does not automatically gain a clean "game frame" boundary or
+motion vectors: it sees Vulkan commands/resources and would still need to
+identify the correct swapchain images, their layouts, synchronization,
+presentation timing and the game's 3D/UI composition.
+
+For this project, DXVK is already the translation layer that owns the D3D9
+rendering context and the current present hook. Moving the entire SnapFrame
+pipeline into a Vulkan layer would add a second interception boundary and
+duplicate substantial state/lifetime logic, while making it harder to know
+which Vulkan work corresponds to a completed Skyrim frame. It is not an
+obvious fix for the current optical-flow artifacts.
+
+A hybrid architecture is more promising if later needed: keep frame identity,
+capture timing and game-specific policy in DXVK; optionally move only a
+driver-agnostic Vulkan compute/presentation backend behind a small interface.
+That backend could select device-specific shader variants/capabilities without
+replacing the DXVK hook.
+
+Android imposes a further deployment constraint: production, non-debuggable
+apps cannot load arbitrary external layer code. A layer can be packaged inside
+the app, but a separately installed system-wide layer is not a generally
+available production solution on a stock non-rooted device. Android's loader
+documentation describes app-packaged layers and restricts external code
+injection into non-debuggable processes. See the Vulkan layer and Android
+loader references in the project discussion.
