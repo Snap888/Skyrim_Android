@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - snap-patch-3
+      - Snap-AI-EngineFrame
   pull_request:
     branches:
       - snap-patch-3
+      - Snap-AI-EngineFrame
   workflow_dispatch:
     inputs:
       gen_url:
@@ -47,10 +49,6 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
-
-      - name: Install Android platform
-        run: |
-          sdkmanager --install "platforms;android-34" "build-tools;34.0.0"
 
       - name: Compile launcher Java
         working-directory: android
