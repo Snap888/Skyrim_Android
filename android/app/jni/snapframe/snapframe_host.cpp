@@ -239,7 +239,9 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             samplerInfo.usePixelCoord = VK_FALSE;
             g_lumaSampler = device->createSampler(samplerInfo);
 
-            if (g_lumaShaderDevice != device || g_lumaShader == nullptr) {
+            const bool needShaderRegistration =
+                g_lumaShaderDevice != device || g_lumaShader == nullptr;
+            if (needShaderRegistration) {
                 g_lumaShader = Rc<DxvkShader>();
                 g_lumaShaderDevice = nullptr;
                 const DxvkResourceSlot slots[] = {
@@ -250,23 +252,33 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                 SpirvCodeBuffer shaderCode(snapframe::shaders::k_luma_downsample_word_count,
                                            snapframe::shaders::k_luma_downsample);
                 g_lumaShader = device->createShader(VK_SHADER_STAGE_COMPUTE_BIT, 2, slots, iface, shaderCode);
-                if (g_lumaShader != nullptr) {
-                    device->registerShader(g_lumaShader);
-                    g_lumaShaderDevice = device;
-                }
             }
 
             g_lumaAvailable = g_lumaImage != nullptr && g_lumaView != nullptr
                            && g_lumaSampler != nullptr && g_lumaShader != nullptr;
+            if (g_lumaAvailable && needShaderRegistration) {
+                device->registerShader(g_lumaShader);
+                g_lumaShaderDevice = device;
+            }
+            if (!g_lumaAvailable && needShaderRegistration)
+                g_lumaShader = Rc<DxvkShader>();
         } catch (...) {
             g_lumaAvailable = false;
-            snapframeLog("SnapFrame: exception while creating luma compute resources\n");
+            g_lumaShader = Rc<DxvkShader>();
+            g_lumaShaderDevice = nullptr;
+            snapframeLog("SnapFrame: exception while creating luma compute resources\\n");
         }
         if (g_lumaAvailable) {
-            snapframeLog("SnapFrame: luma compute resources ready output=%ux%u format=R16_SFLOAT\n",
+            snapframeLog("SnapFrame: luma compute resources ready output=%ux%u format=R16_SFLOAT\\n",
                          width / 2u + width % 2u, height / 2u + height % 2u);
         } else {
-            snapframeLog("SnapFrame: luma compute resource creation failed; capture remains active\n");
+            snapframeLog("SnapFrame: luma resources image=%d view=%d sampler=%d shader=%d\\n",
+                         g_lumaImage != nullptr, g_lumaView != nullptr,
+                         g_lumaSampler != nullptr, g_lumaShader != nullptr);
+            g_lumaView = Rc<DxvkImageView>();
+            g_lumaImage = Rc<DxvkImage>();
+            g_lumaSampler = Rc<DxvkSampler>();
+            snapframeLog("SnapFrame: luma compute resource creation failed; capture remains active\\n");
         }
     } else {
         snapframeLog("SnapFrame: luma compute disabled by GPU format/feature limits\n");
@@ -310,6 +322,12 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
     auto* device = reinterpret_cast<DxvkDevice*>(devicePtr);
     if (!context || !sourceView || !device || !width || !height) {
         g_skippedFrames.fetch_add(1, std::memory_order_relaxed);
+        if (!g_skipReasonLogged) {
+            g_skipReasonLogged = true;
+            snapframeLog("SnapFrame: capture skipped: invalid callback arguments context=%d source=%d device=%d extent=%ux%u\\n",
+                         context != nullptr, sourceView != nullptr, device != nullptr,
+                         width, height);
+        }
         return;
     }
 
