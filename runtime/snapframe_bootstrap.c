@@ -39,6 +39,10 @@ void snapframe_bootstrap(void) {
                 config.flow_scale_percent = atoi(eq);
             else if (!strcmp(key, "profiling_enabled"))
                 config.profiling_enabled = atoi(eq) != 0;
+            else if (!strcmp(key, "diagnostic_suite"))
+                config.diagnostic_suite = atoi(eq) != 0;
+            else if (!strcmp(key, "diagnostic_phase_frames"))
+                config.diagnostic_phase_frames = atoi(eq);
         }
         fclose(file);
     }

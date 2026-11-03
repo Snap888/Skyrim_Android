@@ -164,3 +164,28 @@ The host allocates the mask only when the luma and bidirectional flow stages
 are available. It is generated on the same active DXVK command list after
 both flow dispatches. The DXVK helper preserves compute state and resource
 slots 0..2. The shader compiler/validator list includes this third kernel.
+
+
+## One-build multi-scene diagnostic campaign
+
+Set `diagnostic_suite=1` and `diagnostic_phase_frames=1800` in
+`<game-directory>/port/snapframe.conf`. The host marks seven sequential
+phases in the dedicated log, each lasting the configured number of captured
+frames:
+1. `static_scene`: hold the camera and scene still.
+2. `slow_camera_pan`: slowly pan horizontally and vertically.
+3. `fast_camera_rotation`: rotate quickly in multiple directions.
+4. `moving_npc_combat`: observe moving NPCs/combat with limited camera motion.
+5. `foliage_particles_water`: capture foliage, water, fire, smoke and particles.
+6. `hud_inventory_map`: open HUD, inventory and map; move cursor/selection.
+7. `long_run_stress`: continue normal gameplay for sustained stability.
+
+The log emits `TEST_PHASE_BEGIN`, a manual action prompt, and
+`TEST_PHASE_RESULT` with per-phase dispatch counts and skips. Phase labels
+do not detect scene content; follow the action prompt manually. Duration is
+based on successfully captured frames, not wall time.
+
+All currently implemented GPU stages remain active in every phase. This is
+not a numerical shader self-test: dispatch acceptance does not prove vector
+accuracy. GPU readback, visualization and timestamp-based GPU cost measurement
+remain separate validation gates. No rebuild is needed between phases.

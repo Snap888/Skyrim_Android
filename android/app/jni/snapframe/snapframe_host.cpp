@@ -82,6 +82,57 @@ VkFormat g_format = VK_FORMAT_UNDEFINED;
 uint64_t g_frameIndex = 0;
 bool g_readyLogged = false;
 bool g_skipReasonLogged = false;
+bool g_diagnosticSuiteEnabled = false;
+uint32_t g_diagnosticPhaseFrames = 1800;
+uint32_t g_diagnosticPhase = UINT32_MAX;
+uint64_t g_phaseStartCaptured = 0, g_phaseStartLuma = 0, g_phaseStartFlow = 0;
+uint64_t g_phaseStartConsistency = 0, g_phaseStartSkipped = 0;
+
+const char* diagnosticPhaseName(uint32_t phase) {
+    static const char* names[] = { "static_scene", "slow_camera_pan", "fast_camera_rotation",
+        "moving_npc_combat", "foliage_particles_water", "hud_inventory_map", "long_run_stress" };
+    return phase < 7 ? names[phase] : "complete";
+}
+
+void logDiagnosticPhase(uint64_t captured) {
+    if (!g_diagnosticSuiteEnabled) return;
+    const uint32_t phase = static_cast<uint32_t>((captured - 1u) / g_diagnosticPhaseFrames);
+    if (phase == g_diagnosticPhase) return;
+    if (g_diagnosticPhase != UINT32_MAX) {
+        snapframeLog("SnapFrame: TEST_PHASE_RESULT phase=%s frames=%llu luma_ok=%llu flow_pairs_ok=%llu consistency_ok=%llu skipped=%llu luma_fail_total=%llu flow_fail_total=%llu consistency_fail_total=%llu\\n",
+            diagnosticPhaseName(g_diagnosticPhase),
+            static_cast<unsigned long long>(captured - 1u - g_phaseStartCaptured),
+            static_cast<unsigned long long>(g_lumaDispatchCount - g_phaseStartLuma),
+            static_cast<unsigned long long>(g_flowDispatchCount - g_phaseStartFlow),
+            static_cast<unsigned long long>(g_consistencyDispatchCount - g_phaseStartConsistency),
+            static_cast<unsigned long long>(g_skippedFrames.load(std::memory_order_relaxed) - g_phaseStartSkipped),
+            static_cast<unsigned long long>(g_lumaFailureCount),
+            static_cast<unsigned long long>(g_flowFailureCount),
+            static_cast<unsigned long long>(g_consistencyFailureCount));
+    }
+    g_diagnosticPhase = phase;
+    g_phaseStartCaptured = captured - 1u;
+    g_phaseStartLuma = g_lumaDispatchCount;
+    g_phaseStartFlow = g_flowDispatchCount;
+    g_phaseStartConsistency = g_consistencyDispatchCount;
+    g_phaseStartSkipped = g_skippedFrames.load(std::memory_order_relaxed);
+    if (phase >= 7) {
+        snapframeLog("SnapFrame: TEST_SUITE_COMPLETE total_frames=%llu\\n", static_cast<unsigned long long>(captured - 1u));
+        return;
+    }
+    static const char* actions[] = {
+        "remain still; do not move the camera",
+        "slowly pan the camera horizontally and vertically",
+        "rotate the camera quickly in several directions",
+        "observe moving NPCs/combat without rapid camera movement",
+        "capture foliage, water, particles, smoke or fire",
+        "open HUD, inventory and map; move selection/cursor",
+        "continue normal gameplay for a sustained stability run"
+    };
+    snapframeLog("SnapFrame: TEST_PHASE_BEGIN index=%u name=%s target_frames=%u\\n",
+        phase + 1u, diagnosticPhaseName(phase), g_diagnosticPhaseFrames);
+    snapframeLog("SnapFrame: TEST_ACTION %s\\n", actions[phase]);
+}
 
 void clearHistory() {
     g_historyViews[0] = Rc<DxvkImageView>();
@@ -115,6 +166,9 @@ void clearHistory() {
     g_frameIndex = 0;
     g_readyLogged = false;
     g_skipReasonLogged = false;
+    g_diagnosticPhase = UINT32_MAX;
+    g_phaseStartCaptured = g_phaseStartLuma = g_phaseStartFlow = 0;
+    g_phaseStartConsistency = g_phaseStartSkipped = 0;
 }
 
 bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat format) {
@@ -632,6 +686,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
     }
     ++g_frameIndex;
     const uint64_t captured = g_capturedFrames.fetch_add(1, std::memory_order_relaxed) + 1;
+    logDiagnosticPhase(captured);
     if (g_frameIndex >= 2 && !g_readyLogged) {
         g_readyLogged = true;
         snapframeLog( "SnapFrame: two real frames captured; history ring valid\n");
@@ -698,6 +753,8 @@ extern "C" void snapframe_config_defaults(SnapFrameConfig *config) {
     config->quality = SNAPFRAME_QUALITY_BALANCED;
     config->flow_scale_percent = 50;
     config->profiling_enabled = 1;
+    config->diagnostic_suite = 0;
+    config->diagnostic_phase_frames = 1800;
 }
 
 extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
@@ -713,6 +770,11 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
         validated.flow_scale_percent = 25;
     if (validated.flow_scale_percent > 100)
         validated.flow_scale_percent = 100;
+    if (validated.diagnostic_phase_frames < 300) validated.diagnostic_phase_frames = 300;
+    if (validated.diagnostic_phase_frames > 36000) validated.diagnostic_phase_frames = 36000;
+    g_diagnosticSuiteEnabled = validated.diagnostic_suite != 0;
+    g_diagnosticPhaseFrames = static_cast<uint32_t>(validated.diagnostic_phase_frames);
+    g_diagnosticPhase = UINT32_MAX;
 
     g_enabled.store(validated.enabled ? 1 : 0, std::memory_order_release);
     g_capturedFrames.store(0, std::memory_order_relaxed);
@@ -724,6 +786,7 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
     snapframe_dxvk_set_copy_hook(snapframeCopyFrame);
     snapframe_dxvk_set_device_destroy_hook(snapframeDeviceDestroyed);
     snapframe_dxvk_set_log_hook(snapframeForwardDxvkLog);
+    snapframeLog("SnapFrame: diagnostic_suite=%d phase_frames=%u phases=7\\n", g_diagnosticSuiteEnabled ? 1 : 0, g_diagnosticPhaseFrames);
     snapframeLog( "SnapFrame: host initialized enabled=%d quality=%d flow_scale=%d%% mode=capture+luma+bidirectional-flow+fb-consistency-test\n",
             validated.enabled, validated.quality, validated.flow_scale_percent);
     return 1;

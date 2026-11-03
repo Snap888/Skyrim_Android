@@ -18,6 +18,8 @@ typedef struct SnapFrameConfig {
     int quality;          /* SnapFrameQuality */
     int flow_scale_percent;
     int profiling_enabled;
+    int diagnostic_suite;
+    int diagnostic_phase_frames;
 } SnapFrameConfig;
 
 typedef struct SnapFrameFrameInfo {

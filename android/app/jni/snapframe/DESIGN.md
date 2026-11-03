@@ -318,3 +318,16 @@ Next validation gate:
 4. Add a debug visualization/readback path to inspect the R16F mask and both
    motion directions on controlled static, pan, and moving-object scenes.
 5. Only after numeric validation, use the mask in a two-sided warp prototype.
+
+
+## 9. Single-build diagnostic campaign
+
+The runtime config supports `diagnostic_suite=1` and
+`diagnostic_phase_frames`. It labels seven gameplay phases: static scene,
+slow pan, fast rotation, moving NPC/combat, foliage/particles/water,
+HUD/inventory/map, and sustained stress. Each phase logs a manual action
+prompt and counts captured frames, luma dispatches, bidirectional flow pairs,
+consistency dispatches and skips. Phase labels are based on captured-frame
+count, not scene recognition. The suite runs only the current capture/luma/
+flow/consistency chain; it does not validate numerical shader output or
+present generated frames.

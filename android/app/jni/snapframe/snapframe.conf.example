@@ -1,5 +1,10 @@
-# SnapFrame first GPU preprocessing test
+# SnapFrame multi-scene GPU diagnostic campaign
 # Copy to <game-directory>/port/snapframe.conf
-# This captures real frames and dispatches the half-resolution luma kernel.
-# It does not yet present interpolated/generated frames.
 enabled=1
+multiplier=2
+quality=1
+flow_scale_percent=50
+profiling_enabled=1
+diagnostic_suite=1
+# 1800 frames ~= 30s at 60 FPS or 60s at 30 FPS
+diagnostic_phase_frames=1800
