@@ -138,14 +138,14 @@ luma values can be considered numerically verified.
 
 The `shaders/block_match_flow.comp` kernel runs after the current frame's luma pass once both temporal luma slots are valid. Each motion texel represents a configurable region: at 50% flow scale it is approximately 32x32 source pixels. The matcher searches a +/-8 coarse lattice with two-luma-texel spacing, then refines +/-1 around the coarse winner (effective +/-9 range), using a 3x3 absolute-difference patch. It writes RGBA16F: X/Y displacement in luma texels, best/second-best separation confidence, and normalized matching cost.
 
-The motion field is diagnostic/preparatory data only. It is not yet consumed by a warp, occlusion resolver, interpolation pass, or presentation path. The search is intentionally conservative and may fail on repeated textures, disocclusion, thin geometry, particles, and HUD elements. Its GPU cost and numerical output have not yet been measured on device. The output format is queried at runtime; unsupported devices keep capture/luma active and skip motion estimation.
+The motion field now feeds forward/backward consistency and the midpoint color-warp pass, whose output is sent to the additional WSI-present path. The search is intentionally conservative and may fail on repeated textures, disocclusion, thin geometry, particles, and HUD elements. Its GPU cost and numerical output have not yet been measured on device. The output format is queried at runtime; unsupported devices keep capture/luma active and skip motion estimation.
 
 The DXVK helper preserves resource slots 0..2 and the previous compute state around the three-binding motion dispatch. This does not constitute a full synchronization/presentation solution; subsequent stages must explicitly consume the flow image in the same command stream or add a lifetime-safe handoff.
 
 
 ### Bidirectional coarse motion (current implementation)
 
-The host allocates two RGBA16F fields for each adjacent-frame pair. Output 0 is current-to-previous (the current-frame sample searches the previous frame); output 1 is previous-to-current (the inputs are reversed). A pair is counted as accepted only when both dispatches are recorded. Both fields are overwritten on the next real-frame pair and are not yet consumed by an interpolation stage. This is a directional pair, not yet a forward/backward consistency test.
+The host allocates two RGBA16F fields for each adjacent-frame pair. Output 0 is current-to-previous (the current-frame sample searches the previous frame); output 1 is previous-to-current (the inputs are reversed). A pair is counted as accepted only when both dispatches are recorded. The consistency and midpoint-warp passes consume both fields in the same active command list before the fields are overwritten for the next real-frame pair. This is a directional pair that is checked by the forward/backward consistency pass.
 
 
 The block matcher rejects candidate patches that leave the previous-frame bounds instead of clamping samples to the edge. The current patch center is kept inside the valid image region. This avoids artificial edge matches; edge vectors can still be less constrained and remain unvalidated until the consistency/readback stage.
