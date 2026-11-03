@@ -14,6 +14,7 @@
 
 extern "C" void lsfg_register_vk_context(void*, void*, void*, unsigned);
 extern "C" void lsfg_step3g_set_game_fps_limit_hook(int (*hook)(void));
+extern "C" void lsfg_step3g_request_temporal_reset(void);
 extern "C" void lsfg_set_vk_context_hook(void (*)(void*, void*, void*, unsigned));
 extern "C" void lsfg_step3e_install(void);
 extern "C" int lsfg_gpu_profiler_begin_session(int);
@@ -225,7 +226,11 @@ bool lsfg_host_update_settings(int multiplier, int flow_percent, int performance
 
     // The UI thread updates atomics only. Vulkan resources are rebuilt lazily
     // by the DXVK render thread after it observes a changed effective scale.
-    g_runtime_enabled.store(multiplier > 1 ? 1 : 0, std::memory_order_release);
+    const int wasActive = g_runtime_enabled.load(std::memory_order_acquire);
+    const int willBeActive = multiplier > 1 ? 1 : 0;
+    if (wasActive != willBeActive)
+        lsfg_step3g_request_temporal_reset();
+    g_runtime_enabled.store(willBeActive, std::memory_order_release);
     g_multiplier.store(multiplier, std::memory_order_release);
     g_flow_percent.store(flow_percent, std::memory_order_release);
     g_performance.store(performance, std::memory_order_release);
