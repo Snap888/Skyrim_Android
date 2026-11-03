@@ -463,3 +463,67 @@ luma texels. The shader changes and four-binding consistency pipeline have
 not yet been compiled or exercised on the Adreno device. Verify dimensions,
 zero-motion behavior, known translations, borders and consistency projections
 before using the scaled field for reconstruction.
+ 
+
+## 12. Latest device run and coarse-to-fine matcher — 2026-11-03
+
+The newest upload uses `flow_scale_percent=50`, producing a 77x34 motion
+grid (2,618 cells) at 2448x1080. The diagnostic run completed
+`static_scene` and `slow_camera_pan`, then reached approximately 1,500 of
+1,800 frames in `fast_camera_rotation`. The log ends with orderly
+`ExitProcess(0)` and no `TEST_SUITE_COMPLETE`; this is an incomplete run,
+not a demonstrated crash. Phases 4–7 were not exercised.
+
+The eight spatial dumps (frames 601, 1201, 1801, 2401, 3001, 3601, 4201,
+4801) contain 2,618 rows each. Their means show why the previous matcher
+cannot yet feed reconstruction:
+
+| Dump frame | Mean vector magnitude | Mean confidence | Mean consistency |
+|---:|---:|---:|---:|
+| 601 | 0.432 | 0.130 | 0.101 |
+| 1201 | 0.034 | 0.032 | 0.034 |
+| 1801 | 3.652 | 0.127 | 0.044 |
+| 2401 | 4.439 | 0.076 | 0.017 |
+| 3001 | 4.204 | 0.090 | 0.016 |
+| 3601 | 2.624 | 0.229 | 0.215 |
+| 4201 | 3.848 | 0.106 | 0.019 |
+| 4801 | 0.016 | 0.987 | 0.988 |
+
+The pan/rotation dumps show many vectors near the old +/-4 search edge,
+low confidence and poor forward/backward closure. The 4801 dump is a useful
+near-static positive control. The static-scene dumps also show that a low
+mean vector alone is not proof of a valid field: confidence and consistency
+must be considered together.
+
+### Matcher update
+
+The block matcher now uses a two-stage search: 9x9 coarse candidates at
+2-luma-texel spacing over +/-8, followed by a 3x3 full-resolution refinement
+around the best coarse candidate. The effective search range is +/-9 luma
+texels, with 90 candidate positions rather than 81. This is intended to
+reduce search-boundary saturation without the approximately 3.6x candidate
+count of a full 19x19 exhaustive search. The diagnostic boundary threshold
+was moved from +/-4 to +/-9 to match the new search range.
+
+This is a source-level algorithm change only. GLSL/SPIR-V compilation was
+not available in the current environment, no APK was built, and no device
+run has tested this matcher. The next run must compare the same scripted pan
+and rotation at 50% scale, checking whether boundary saturation falls and
+whether confidence/consistency improve. A known-translation synthetic test
+is still required before reconstruction.
+
+### GPU timing and audio observations
+
+The new GPU timing sample has 179 entries per stage. Approximate medians are:
+capture copy 0.488 ms, luma 0.0042 ms, forward flow 0.393 ms, backward flow
+2.560 ms, consistency 2.232 ms, total chain 5.729 ms. The large directional
+asymmetry remains despite identical shader workload, so stage attribution is
+still provisional and must be audited before performance tuning.
+
+The Android log also reports source-level audio starvation counters
+(`pending_decode=0`, nonzero `empty_queue`) while SDL output queue low-water
+and enqueue-failure counters remain zero and the observed queue minimum is
+about 30 KB against a 46 KB target. This does not prove an audible dropout:
+it indicates gaps at the voice/source mixer stage while the device queue
+remains populated. Keep this separate from SnapFrame work unless listening
+tests confirm crackles on this build.
