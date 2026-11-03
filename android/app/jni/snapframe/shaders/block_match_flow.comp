@@ -12,8 +12,8 @@ layout(set = 0, binding = 0) uniform sampler2D previousLuma;
 layout(set = 0, binding = 1) uniform sampler2D currentLuma;
 layout(set = 0, binding = 2, rgba16f) writeonly uniform image2D motionOutput;
 
-float lumaAt(sampler2D image, ivec2 p, ivec2 extent) {
-    return texelFetch(image, clamp(p, ivec2(0), extent - ivec2(1)), 0).r;
+float lumaAt(sampler2D image, ivec2 p) {
+    return texelFetch(image, p, 0).r;
 }
 
 void main() {
@@ -23,7 +23,13 @@ void main() {
         return;
 
     ivec2 extent = textureSize(currentLuma, 0);
-    ivec2 center = outPos * 8 + ivec2(4);
+    // Keep the current 3x3 patch fully inside the image. Candidate patches
+    // outside the previous frame are rejected instead of edge-clamped.
+    if (any(lessThan(extent, ivec2(3)))) {
+        imageStore(motionOutput, outPos, vec4(0.0, 0.0, 0.0, 1.0));
+        return;
+    }
+    ivec2 center = min(outPos * 8 + ivec2(4), extent - ivec2(2));
     const int searchRadius = 4;
     const int patchRadius = 1;
 
@@ -35,15 +41,27 @@ void main() {
         for (int dx = -searchRadius; dx <= searchRadius; ++dx) {
             ivec2 motion = ivec2(dx, dy);
             float cost = 0.0;
+            bool valid = true;
 
             for (int py = -patchRadius; py <= patchRadius; ++py) {
                 for (int px = -patchRadius; px <= patchRadius; ++px) {
-                    ivec2 offset = ivec2(px, py);
-                    float a = lumaAt(currentLuma, center + offset, extent);
-                    float b = lumaAt(previousLuma, center + offset + motion, extent);
+                    ivec2 samplePos = center + ivec2(px, py);
+                    ivec2 previousPos = samplePos + motion;
+                    if (any(lessThan(previousPos, ivec2(0)))
+                     || any(greaterThanEqual(previousPos, extent))) {
+                        valid = false;
+                        break;
+                    }
+                    float a = lumaAt(currentLuma, samplePos);
+                    float b = lumaAt(previousLuma, previousPos);
                     cost += abs(a - b);
                 }
+                if (!valid)
+                    break;
             }
+
+            if (!valid)
+                continue;
 
             if (cost < bestCost) {
                 secondCost = bestCost;
@@ -53,6 +71,11 @@ void main() {
                 secondCost = cost;
             }
         }
+    }
+
+    if (bestCost >= 1.0e19) {
+        imageStore(motionOutput, outPos, vec4(0.0, 0.0, 0.0, 1.0));
+        return;
     }
 
     float confidence = clamp(
