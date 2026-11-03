@@ -527,3 +527,20 @@ about 30 KB against a 46 KB target. This does not prove an audible dropout:
 it indicates gaps at the voice/source mixer stage while the device queue
 remains populated. Keep this separate from SnapFrame work unless listening
 tests confirm crackles on this build.
+
+## 13. Per-frame event timeline — 2026-11-03
+
+The runtime now opens `port/snapframe_events.csv` alongside the existing text,
+GPU timing, aggregate flow and spatial-vector logs. Each row is a compact event
+with captured-frame index, event name, source extent and a quoted detail field.
+Events include host initialization, capture-copy command recording, luma
+dispatch acceptance/rejection, bidirectional flow-pair status, consistency
+dispatch status, completed-frame markers, and early callback/source/history
+skips. This file is intended to identify the last successfully reached stage
+when a run terminates or one of the compute stages stops progressing.
+
+The event timeline reports command recording/dispatch acceptance, not GPU
+completion or numerical correctness. Existing timestamp and sparse readback
+logs remain necessary for GPU timing and motion-field validation. The branch
+still has no midpoint reconstruction or generated-frame presentation; this
+diagnostic change does not make frame generation active.
