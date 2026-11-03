@@ -1084,10 +1084,10 @@ extern "C" int snapframe_host_set_flow_vectors_log_path(const char *path) {
     if (g_vectorLogFile) fclose(g_vectorLogFile);
     g_vectorLogFile = fopen(path, "w");
     if (!g_vectorLogFile) {
-        fprintf(stderr, "SnapFrame: cannot open flow vector CSV: %s\\n", path);
+        fprintf(stderr, "SnapFrame: cannot open flow vector CSV: %s\n", path);
         return 0;
     }
-    fprintf(g_vectorLogFile, "frame,x,y,forward_dx,forward_dy,forward_confidence,forward_cost,backward_dx,backward_dy,backward_confidence,backward_cost,consistency\\n");
+    fprintf(g_vectorLogFile, "frame,x,y,forward_dx,forward_dy,forward_confidence,forward_cost,backward_dx,backward_dy,backward_confidence,backward_cost,consistency\n");
     fflush(g_vectorLogFile);
     return 1;
 }
