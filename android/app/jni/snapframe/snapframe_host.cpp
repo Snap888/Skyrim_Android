@@ -148,27 +148,27 @@ void logDiagnosticPhase(uint64_t captured) {
         return;
 
     const uint64_t totalFrames = uint64_t(g_diagnosticPhaseFrames) * 7u;
+    if (captured > totalFrames) {
+        if (g_diagnosticPhase == 6u) {
+            logDiagnosticPhaseResult(6u, totalFrames - g_phaseStartCaptured);
+            snapframeLog("SnapFrame: TEST_SUITE_COMPLETE total_frames=%llu\n",
+                static_cast<unsigned long long>(totalFrames));
+            g_diagnosticSuiteComplete = true;
+        }
+        return;
+    }
+
     const uint32_t phase = static_cast<uint32_t>(
         std::min<uint64_t>((captured - 1u) / g_diagnosticPhaseFrames, 6u));
+    if (phase == g_diagnosticPhase)
+        return;
 
-    if (g_diagnosticPhase == UINT32_MAX) {
-        beginDiagnosticPhase(phase, captured);
-    } else if (phase != g_diagnosticPhase) {
+    if (g_diagnosticPhase != UINT32_MAX) {
         logDiagnosticPhaseResult(g_diagnosticPhase,
             captured - 1u - g_phaseStartCaptured);
-        beginDiagnosticPhase(phase, captured);
     }
-
-    // Close the seventh phase on its actual final captured frame. Subsequent
-    // gameplay keeps running, but cannot create an eighth phase or re-complete.
-    if (captured >= totalFrames && g_diagnosticPhase == 6u) {
-        logDiagnosticPhaseResult(6u, captured - g_phaseStartCaptured);
-        snapframeLog("SnapFrame: TEST_SUITE_COMPLETE total_frames=%llu\n",
-            static_cast<unsigned long long>(totalFrames));
-        g_diagnosticSuiteComplete = true;
-    }
+    beginDiagnosticPhase(phase, captured);
 }
-
 
 struct SnapFrameGpuTimer {
     Rc<DxvkGpuQuery> begin;
@@ -890,6 +890,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
 
     const unsigned slot = static_cast<unsigned>(g_frameIndex & 1u);
     const uint64_t nextCapturedFrame = g_capturedFrames.load(std::memory_order_relaxed) + 1u;
+    logDiagnosticPhase(nextCapturedFrame);
     const bool profileThisFrame = g_profilingEnabled && (nextCapturedFrame % 30u) == 0u;
     const SnapFrameGpuTimer totalTimer = beginGpuTimer(
         context, device, "total_chain", nextCapturedFrame, width, height, profileThisFrame);
@@ -1001,7 +1002,6 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
         endGpuTimer(context, totalTimer);
     ++g_frameIndex;
     const uint64_t captured = g_capturedFrames.fetch_add(1, std::memory_order_relaxed) + 1;
-    logDiagnosticPhase(captured);
     if (g_frameIndex >= 2 && !g_readyLogged) {
         g_readyLogged = true;
         snapframeLog( "SnapFrame: two real frames captured; history ring valid\n");
