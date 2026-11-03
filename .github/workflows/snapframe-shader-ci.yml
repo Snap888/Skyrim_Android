@@ -1,0 +1,32 @@
+name: SnapFrame Shader Validation
+
+on:
+  push:
+    branches:
+      - frame_gen
+  pull_request:
+    branches:
+      - frame_gen
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compile-shaders:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Vulkan shader tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 glslang-tools spirv-tools
+
+      - name: Compile and validate SnapFrame SPIR-V
+        run: |
+          python3 tools/compile_snapframe_shaders.py
+          test -s android/app/jni/snapframe/generated/snapframe_shaders.h
+          grep -q 'k_midpoint_warp' android/app/jni/snapframe/generated/snapframe_shaders.h
