@@ -7,8 +7,8 @@ extern "C" {
 #endif
 
 /* Captures real DXVK frames, estimates bidirectional motion and writes a
- * GPU midpoint reconstruction image. The reconstructed image is not yet
- * scheduled as an additional WSI present; generated_frames remains zero. */
+ * GPU midpoint reconstruction image and can schedule one additional WSI
+ * present per real frame when the midpoint output is valid. */
 void snapframe_config_defaults(SnapFrameConfig *config);
 /* Opens a dedicated per-game diagnostic log, separate from stderr/game logs. */
 int  snapframe_host_set_log_path(const char *path);
