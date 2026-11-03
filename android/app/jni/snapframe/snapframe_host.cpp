@@ -165,6 +165,88 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             return false;
     }
 
+#if SNAPFRAME_HAS_LUMA_SHADER
+    if (lumaFormatSupported) {
+        try {
+            const uint32_t lumaWidth = width / 2u + width % 2u;
+            const uint32_t lumaHeight = height / 2u + height % 2u;
+            DxvkImageCreateInfo lumaInfo{};
+            lumaInfo.type = VK_IMAGE_TYPE_2D;
+            lumaInfo.format = VK_FORMAT_R16_SFLOAT;
+            lumaInfo.flags = 0;
+            lumaInfo.sampleCount = VK_SAMPLE_COUNT_1_BIT;
+            lumaInfo.extent = { lumaWidth, lumaHeight, 1 };
+            lumaInfo.numLayers = 1;
+            lumaInfo.mipLevels = 1;
+            lumaInfo.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+            lumaInfo.stages = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+            lumaInfo.access = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
+            lumaInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+            lumaInfo.layout = VK_IMAGE_LAYOUT_GENERAL;
+            lumaInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            lumaInfo.shared = VK_FALSE;
+            g_lumaImage = device->createImage(lumaInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+            if (g_lumaImage != nullptr) {
+                DxvkImageViewCreateInfo lumaViewInfo{};
+                lumaViewInfo.type = VK_IMAGE_VIEW_TYPE_2D;
+                lumaViewInfo.format = VK_FORMAT_R16_SFLOAT;
+                lumaViewInfo.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+                lumaViewInfo.aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+                lumaViewInfo.minLevel = 0;
+                lumaViewInfo.numLevels = 1;
+                lumaViewInfo.minLayer = 0;
+                lumaViewInfo.numLayers = 1;
+                g_lumaView = device->createImageView(g_lumaImage, lumaViewInfo);
+            }
+
+            DxvkSamplerCreateInfo samplerInfo{};
+            samplerInfo.magFilter = VK_FILTER_NEAREST;
+            samplerInfo.minFilter = VK_FILTER_NEAREST;
+            samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+            samplerInfo.mipmapLodBias = 0.0f;
+            samplerInfo.mipmapLodMin = 0.0f;
+            samplerInfo.mipmapLodMax = 0.0f;
+            samplerInfo.useAnisotropy = VK_FALSE;
+            samplerInfo.maxAnisotropy = 1.0f;
+            samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            samplerInfo.compareToDepth = VK_FALSE;
+            samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+            samplerInfo.borderColor = VkClearColorValue{ { 0.0f, 0.0f, 0.0f, 0.0f } };
+            samplerInfo.usePixelCoord = VK_FALSE;
+            g_lumaSampler = device->createSampler(samplerInfo);
+
+            const DxvkResourceSlot slots[] = {
+                { 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
+                { 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_WRITE_BIT },
+            };
+            DxvkInterfaceSlots iface{};
+            SpirvCodeBuffer shaderCode(snapframe::shaders::k_luma_downsample_word_count,
+                                       snapframe::shaders::k_luma_downsample);
+            g_lumaShader = device->createShader(VK_SHADER_STAGE_COMPUTE_BIT, 2, slots, iface, shaderCode);
+            if (g_lumaShader != nullptr)
+                device->registerShader(g_lumaShader);
+
+            g_lumaAvailable = g_lumaImage != nullptr && g_lumaView != nullptr
+                           && g_lumaSampler != nullptr && g_lumaShader != nullptr;
+        } catch (...) {
+            g_lumaAvailable = false;
+            snapframeLog("SnapFrame: exception while creating luma compute resources\n");
+        }
+        if (g_lumaAvailable) {
+            snapframeLog("SnapFrame: luma compute resources ready output=%ux%u format=R16_SFLOAT\n",
+                         width / 2u + width % 2u, height / 2u + height % 2u);
+        } else {
+            snapframeLog("SnapFrame: luma compute resource creation failed; capture remains active\n");
+        }
+    } else {
+        snapframeLog("SnapFrame: luma compute disabled by GPU format/feature limits\n");
+    }
+#else
+    snapframeLog("SnapFrame: luma SPIR-V header missing; run tools/compile_snapframe_shaders.py before APK build\n");
+#endif
+
     g_device = device;
     g_width = width;
     g_height = height;
