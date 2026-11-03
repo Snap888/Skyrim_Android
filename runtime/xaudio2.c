@@ -126,6 +126,8 @@ static pthread_t g_engine_thread;
 static int g_engine_thread_started;
 static volatile int g_engine_shutdown;
 static SDL_AudioDeviceID g_dev;
+/* SDL starts paused; the engine pre-fills the queue before playback begins. */
+static int g_dev_paused = 1;
 /* diagnostics */
 static unsigned g_xa_src_voices, g_xa_xwma_voices, g_xa_xwma_submits, g_xa_pcm_submits, g_xa_adpcm_submits;
 static uint64_t g_xa_mix_passes, g_xa_mix_clipped, g_xa_mix_invalid;
@@ -792,15 +794,17 @@ static void *engine_main(void *arg) {
     uint64_t next = now_us();
     uint64_t diag_passes = 0, queue_low = 0, slow_passes = 0, max_pass_us = 0;
     Uint32 min_queue_bytes = UINT32_MAX;
+    uint64_t enqueue_failures = 0;
+    const Uint32 queue_target_bytes = (Uint32)((uint64_t)g_rate * 120u / 1000u * 2u * sizeof(float));
     for (;;) {
         if (__atomic_load_n(&g_engine_shutdown, __ATOMIC_ACQUIRE)) break;
         if (g_dev) {
-            /* Keep 80 ms queued to absorb Android scheduling jitter and short decode
-             * bursts; a device that stops draining for 200 ms is dropped and
-             * mixing continues on the timer. */
+            /* Keep 120 ms queued to absorb Android scheduling jitter and short
+             * decode bursts. Start SDL paused and prefill before first playback;
+             * otherwise the device can consume silence while this thread starts. */
             Uint32 q0 = SDL_GetQueuedAudioSize(g_dev), q;
             uint64_t t0 = now_us();
-            while ((q = SDL_GetQueuedAudioSize(g_dev)) > (Uint32)(8 * frames * 2 * sizeof(float))) {
+            while ((q = SDL_GetQueuedAudioSize(g_dev)) > queue_target_bytes) {
                 if (__atomic_load_n(&g_engine_shutdown, __ATOMIC_ACQUIRE)) break;
                 if (q < q0) { q0 = q; t0 = now_us(); }
                 else if (now_us() - t0 > 200000) {
@@ -830,14 +834,26 @@ static void *engine_main(void *arg) {
         uint64_t mix_us = now_us() - mix_start;
         if (mix_us > max_pass_us) max_pass_us = mix_us;
         if (mix_us > (uint64_t)PASS_FRAMES_MS * 1000) slow_passes++;
-        if (g_dev) SDL_QueueAudio(g_dev, out, (Uint32)(sizeof(float) * 2 * (size_t)frames));
+        if (g_dev) {
+            int qerr = SDL_QueueAudio(g_dev, out, (Uint32)(sizeof(float) * 2 * (size_t)frames));
+            if (qerr < 0) {
+                enqueue_failures++;
+                XA_LOG("xaudio2: SDL_QueueAudio failed: %s", SDL_GetError());
+            } else if (g_dev_paused && SDL_GetQueuedAudioSize(g_dev) >= queue_target_bytes) {
+                SDL_PauseAudioDevice(g_dev, 0);
+                g_dev_paused = 0;
+                XA_LOG("xaudio2: SDL playback started after queue prefill (%uB, target=%uB)",
+                       SDL_GetQueuedAudioSize(g_dev), queue_target_bytes);
+            }
+        }
         if (++diag_passes >= 100) {
-            if (queue_low || slow_passes)
-                XA_LOG("xaudio2: output timing queue_low=%llu min_queue=%uB slow_mix=%llu max_mix=%llums (last 1s)",
-                       (unsigned long long)queue_low, min_queue_bytes,
+            if (queue_low || slow_passes || enqueue_failures)
+                XA_LOG("xaudio2: output timing queue_low=%llu min_queue=%uB target=%uB slow_mix=%llu max_mix=%llums enqueue_fail=%llu (last 1s)",
+                       (unsigned long long)queue_low, min_queue_bytes, queue_target_bytes,
                        (unsigned long long)slow_passes,
-                       (unsigned long long)(max_pass_us / 1000));
-            diag_passes = queue_low = slow_passes = max_pass_us = 0;
+                       (unsigned long long)(max_pass_us / 1000),
+                       (unsigned long long)enqueue_failures);
+            diag_passes = queue_low = slow_passes = max_pass_us = enqueue_failures = 0;
             min_queue_bytes = UINT32_MAX;
         }
     }
@@ -868,9 +884,9 @@ static void engine_start_thread(void) {
     rt_host_affinity_end();
     if (!g_dev) LOG("xaudio2: SDL_OpenAudioDevice failed: %s (mixing silently)", SDL_GetError());
     else {
-        XA_LOG("xaudio2: SDL device obtained freq=%d format=0x%04x channels=%u samples=%u (requested %dHz F32 stereo)",
+        XA_LOG("xaudio2: SDL device obtained freq=%d format=0x%04x channels=%u samples=%u (requested %dHz F32 stereo; queue prefill=120ms)",
                have.freq, have.format, have.channels, have.samples, g_rate);
-        SDL_PauseAudioDevice(g_dev, 0);
+        g_dev_paused = 1;
     }
     if (pthread_create(&g_engine_thread, NULL, engine_main, NULL) == 0) {
         g_engine_thread_started = 1;
