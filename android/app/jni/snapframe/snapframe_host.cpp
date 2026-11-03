@@ -415,7 +415,7 @@ void recordFlowReadback(
                 fflush(g_vectorLogFile);
             }
         }
-    });;
+    });
 }
 
 void clearHistory() {
