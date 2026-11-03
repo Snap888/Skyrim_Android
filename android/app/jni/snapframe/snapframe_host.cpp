@@ -537,6 +537,7 @@ void recordFlowReadback(
 }
 
 void clearHistory() {
+    g_midpointFrameReady.store(0, std::memory_order_release);
     g_historyViews[0] = Rc<DxvkImageView>();
     g_historyViews[1] = Rc<DxvkImageView>();
     g_history[0] = Rc<DxvkImage>();
