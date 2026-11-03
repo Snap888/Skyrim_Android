@@ -435,18 +435,31 @@ unverified or unimplemented. No APK build or device test was performed for
 this milestone.
 
 
-### Flow-grid scale limitation
+### Flow-grid scale implementation — 2026-11-03
 
-The current `flow_scale_percent` setting is parsed, clamped and reported, but
-it is not yet applied to flow-image dimensions or shader sampling geometry.
-The current matcher remains fixed at one output texel per 8x8 half-resolution
-luma region (16x16 source pixels). A logged value of 50% must therefore not be
-interpreted as a half-density flow grid or a measured 50% workload reduction.
+`flow_scale_percent` is now applied to the coarse motion-grid allocation and
+dispatch geometry. The base stride is 8 half-resolution luma texels at 100%;
+the configured percentage increases that stride and reduces the number of
+flow cells. The block matcher derives its luma-space cell stride from the
+actual input/output extents. The consistency shader receives the current luma
+view and uses the same stride and clamped block centers when projecting into
+the reverse field. Allocation, dispatch, consistency output and sparse
+readback therefore share one flow-grid extent.
 
-The scale control will be implemented together with a consistent mapping in
-both the block matcher and forward/backward consistency shader. That change
-must update allocation extents, dispatch dimensions, readback sizes, boundary
-handling and the luma-to-flow coordinate transform as one unit. Do not change
-only the output image extent: the current shader has a hard-coded 8-texel
-stride, and doing so would produce incorrect vector locations and consistency
-projections.
+For the target 2448x1080 image (half-resolution luma 1224x540), expected
+grid dimensions are approximately:
+
+| flow scale | luma stride | flow grid |
+|---|---:|---:|
+| 100% | 8 | 153x68 |
+| 75% | 11 | 112x50 |
+| 50% | 16 | 77x34 |
+| 25% | 32 | 39x17 |
+
+These are source-derived geometry expectations, not measured performance
+results. The larger stride reduces spatial density and may miss small or
+thin moving objects; displacement values remain expressed in half-resolution
+luma texels. The shader changes and four-binding consistency pipeline have
+not yet been compiled or exercised on the Adreno device. Verify dimensions,
+zero-motion behavior, known translations, borders and consistency projections
+before using the scaled field for reconstruction.
