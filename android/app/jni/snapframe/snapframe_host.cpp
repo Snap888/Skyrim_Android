@@ -52,14 +52,21 @@ std::atomic<int> g_resetHistoryRequested{0};
 DxvkDevice* g_device = nullptr;
 Rc<DxvkImage> g_history[2];
 Rc<DxvkImageView> g_historyViews[2];
-Rc<DxvkImage> g_lumaImage;
-Rc<DxvkImageView> g_lumaView;
+Rc<DxvkImage> g_lumaImage[2];
+Rc<DxvkImageView> g_lumaView[2];
+Rc<DxvkImage> g_flowImage;
+Rc<DxvkImageView> g_flowView;
 Rc<DxvkSampler> g_lumaSampler;
 Rc<DxvkShader> g_lumaShader;
+Rc<DxvkShader> g_flowShader;
 DxvkDevice* g_lumaShaderDevice = nullptr;
+DxvkDevice* g_flowShaderDevice = nullptr;
 bool g_lumaAvailable = false;
+bool g_flowAvailable = false;
 uint64_t g_lumaDispatchCount = 0;
 uint64_t g_lumaFailureCount = 0;
+uint64_t g_flowDispatchCount = 0;
+uint64_t g_flowFailureCount = 0;
 uint32_t g_width = 0;
 uint32_t g_height = 0;
 VkFormat g_format = VK_FORMAT_UNDEFINED;
@@ -72,12 +79,19 @@ void clearHistory() {
     g_historyViews[1] = Rc<DxvkImageView>();
     g_history[0] = Rc<DxvkImage>();
     g_history[1] = Rc<DxvkImage>();
-    g_lumaView = Rc<DxvkImageView>();
-    g_lumaImage = Rc<DxvkImage>();
+    g_lumaView[0] = Rc<DxvkImageView>();
+    g_lumaView[1] = Rc<DxvkImageView>();
+    g_lumaImage[0] = Rc<DxvkImage>();
+    g_lumaImage[1] = Rc<DxvkImage>();
+    g_flowView = Rc<DxvkImageView>();
+    g_flowImage = Rc<DxvkImage>();
     g_lumaSampler = Rc<DxvkSampler>();
     g_lumaAvailable = false;
+    g_flowAvailable = false;
     g_lumaDispatchCount = 0;
     g_lumaFailureCount = 0;
+    g_flowDispatchCount = 0;
+    g_flowFailureCount = 0;
     g_device = nullptr;
     g_width = g_height = 0;
     g_format = VK_FORMAT_UNDEFINED;
@@ -208,18 +222,19 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             lumaInfo.layout = VK_IMAGE_LAYOUT_GENERAL;
             lumaInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             lumaInfo.shared = VK_FALSE;
-            g_lumaImage = device->createImage(lumaInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-            if (g_lumaImage != nullptr) {
-                DxvkImageViewCreateInfo lumaViewInfo{};
-                lumaViewInfo.type = VK_IMAGE_VIEW_TYPE_2D;
-                lumaViewInfo.format = VK_FORMAT_R16_SFLOAT;
-                lumaViewInfo.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-                lumaViewInfo.aspect = VK_IMAGE_ASPECT_COLOR_BIT;
-                lumaViewInfo.minLevel = 0;
-                lumaViewInfo.numLevels = 1;
-                lumaViewInfo.minLayer = 0;
-                lumaViewInfo.numLayers = 1;
-                g_lumaView = device->createImageView(g_lumaImage, lumaViewInfo);
+            DxvkImageViewCreateInfo lumaViewInfo{};
+            lumaViewInfo.type = VK_IMAGE_VIEW_TYPE_2D;
+            lumaViewInfo.format = VK_FORMAT_R16_SFLOAT;
+            lumaViewInfo.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+            lumaViewInfo.aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+            lumaViewInfo.minLevel = 0;
+            lumaViewInfo.numLevels = 1;
+            lumaViewInfo.minLayer = 0;
+            lumaViewInfo.numLayers = 1;
+            for (unsigned i = 0; i < 2; ++i) {
+                g_lumaImage[i] = device->createImage(lumaInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                if (g_lumaImage[i] != nullptr)
+                    g_lumaView[i] = device->createImageView(g_lumaImage[i], lumaViewInfo);
             }
 
             DxvkSamplerCreateInfo samplerInfo{};
@@ -256,7 +271,8 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                 createdShader = true;
             }
 
-            g_lumaAvailable = g_lumaImage != nullptr && g_lumaView != nullptr
+            g_lumaAvailable = g_lumaImage[0] != nullptr && g_lumaImage[1] != nullptr
+                           && g_lumaView[0] != nullptr && g_lumaView[1] != nullptr
                            && g_lumaSampler != nullptr && g_lumaShader != nullptr;
             if (g_lumaAvailable && needShaderRegistration) {
                 device->registerShader(g_lumaShader);
@@ -273,14 +289,17 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             snapframeLog("SnapFrame: exception while creating luma compute resources\n");
         }
         if (g_lumaAvailable) {
-            snapframeLog("SnapFrame: luma compute resources ready output=%ux%u format=R16_SFLOAT\n",
+            snapframeLog("SnapFrame: luma compute resources ready outputs=2 extent=%ux%u format=R16_SFLOAT\n",
                          width / 2u + width % 2u, height / 2u + height % 2u);
         } else {
             snapframeLog("SnapFrame: luma resources image=%d view=%d sampler=%d shader=%d\n",
-                         g_lumaImage != nullptr, g_lumaView != nullptr,
+                         g_lumaImage[0] != nullptr && g_lumaImage[1] != nullptr,
+                         g_lumaView[0] != nullptr && g_lumaView[1] != nullptr,
                          g_lumaSampler != nullptr, g_lumaShader != nullptr);
-            g_lumaView = Rc<DxvkImageView>();
-            g_lumaImage = Rc<DxvkImage>();
+            g_lumaView[0] = Rc<DxvkImageView>();
+            g_lumaView[1] = Rc<DxvkImageView>();
+            g_lumaImage[0] = Rc<DxvkImage>();
+            g_lumaImage[1] = Rc<DxvkImage>();
             g_lumaSampler = Rc<DxvkSampler>();
             snapframeLog("SnapFrame: luma compute resource creation failed; capture remains active\n");
         }
@@ -391,7 +410,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
         const uint32_t groupsX = (lumaWidth + 7u) / 8u;
         const uint32_t groupsY = (lumaHeight + 7u) / 8u;
         const bool dispatched = context->dispatchSnapFrame(
-            g_lumaShader, g_historyViews[slot], g_lumaSampler, g_lumaView, groupsX, groupsY);
+            g_lumaShader, g_historyViews[slot], g_lumaSampler, g_lumaView[slot], groupsX, groupsY);
         if (dispatched) {
             ++g_lumaDispatchCount;
             if (g_lumaDispatchCount == 1 || (g_lumaDispatchCount % 300u) == 0)
@@ -425,6 +444,8 @@ void snapframeDeviceDestroyed(void* devicePtr) {
         clearHistory();
         g_lumaShader = Rc<DxvkShader>();
         g_lumaShaderDevice = nullptr;
+        g_flowShader = Rc<DxvkShader>();
+        g_flowShaderDevice = nullptr;
     }
 }
 
