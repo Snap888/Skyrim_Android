@@ -18,7 +18,6 @@ void main() {
     if (any(greaterThanEqual(p, extent))) return;
 
     vec2 uv = (vec2(p) + vec2(0.5)) / vec2(extent);
-    ivec2 flowExtent = textureSize(currentToPrevious, 0);
     vec2 flowUv = uv;
     vec4 fwd = texture(currentToPrevious, flowUv);
     vec4 bwd = texture(previousToCurrent, flowUv);
