@@ -6,9 +6,9 @@
 extern "C" {
 #endif
 
-/* Captures two real DXVK frames into a private GPU-resident history ring.
- * Optical flow, interpolation and generated-frame presentation are not yet
- * implemented. */
+/* Captures real DXVK frames, builds temporal luma history and estimates a
+ * coarse GPU block-matching motion field. Interpolation and generated-frame
+ * presentation are not yet implemented. */
 void snapframe_config_defaults(SnapFrameConfig *config);
 /* Opens a dedicated per-game diagnostic log, separate from stderr/game logs. */
 int  snapframe_host_set_log_path(const char *path);
