@@ -15,6 +15,7 @@ int  snapframe_host_set_log_path(const char *path);
 int  snapframe_host_set_gpu_log_path(const char *path);
 int  snapframe_host_set_flow_log_path(const char *path);
 int  snapframe_host_set_flow_vectors_log_path(const char *path);
+int  snapframe_host_set_event_log_path(const char *path);
 void snapframe_host_log(const char *message);
 int  snapframe_host_init(const SnapFrameConfig *config);
 void snapframe_host_shutdown(void);
