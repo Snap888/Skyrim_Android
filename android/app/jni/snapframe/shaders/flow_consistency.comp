@@ -21,7 +21,11 @@ void main() {
     ivec2 blockStride = max(ivec2(1), ivec2(ceil(vec2(lumaExtent) / vec2(extent))));
     ivec2 blockCenter = min(p * blockStride + blockStride / 2, lumaExtent - ivec2(2));
     vec2 lumaPosition = vec2(blockCenter) + forwardFlow.xy;
-    ivec2 reverseCoord = ivec2(floor(lumaPosition / vec2(blockStride)));
+    // Flow cells represent block centers (p * stride + stride/2), not
+    // block corners. Project to the nearest reverse cell center; floor(pos/stride)
+    // biases the lookup by roughly half a cell and can invalidate good matches.
+    vec2 reverseCell = (lumaPosition - 0.5 * vec2(blockStride)) / vec2(blockStride);
+    ivec2 reverseCoord = ivec2(round(reverseCell));
     ivec2 reverseExtent = textureSize(flowPreviousToCurrent, 0);
 
     if (any(lessThan(reverseCoord, ivec2(0))) ||
