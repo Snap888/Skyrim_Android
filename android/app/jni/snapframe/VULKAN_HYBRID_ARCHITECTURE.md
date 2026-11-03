@@ -84,3 +84,14 @@ GPU timings (329 valid samples per stage) are: capture median 0.503 ms, luma 0.4
 High-motion snapshots still hit the +/-10 boundary: up to 2,034/5,600 cells (36.3%) at frame 8,521, with forward confidence 0.0407 and only 0.018% cells above 0.5 consistency. Near-static snapshots reach approximately 0.99 confidence/consistency. Keep the boundary suppression and current-frame fallback. Do not expand the single-level radius; a multi-level pyramid remains the correct direction for large displacement.
 
 A follow-up exact-work optimization now evaluates the 3x3 SAD patch center first, then axial neighbors and corners, retaining strict partial-SAD > second-best early termination. All nine samples still contribute for candidates that can affect ranking, so this changes evaluation order rather than match semantics. Commit `0a118fd93428a1bdf534f3f8763d59a1489be85d`; device benefit remains unmeasured.
+
+
+### Extended device log upload — 2026-11-04
+
+The new upload confirms the 49-candidate +/-10 matcher, 2448x1080 capture, 75% flow scale, 1224x540 R16F luma and 112x50 flow grid. Five diagnostic phases complete 1,800 frames each with zero reported skips or dispatch failures. Phase 6 reaches approximately 1,560/1,800 frames (log ends at captured frame 10,560); phase 6 result, phase 7 and suite completion are absent.
+
+The 355-sample GPU CSV reports median/P90 ms: capture 0.523/0.640, luma 0.400/0.540, forward flow 4.284/4.857, backward flow 4.297/4.799, consistency 0.012/0.014, midpoint 1.554/2.108, total chain 11.106/12.606. Flow remains the dominant cost (~8.58 ms combined median). This is slower than the preceding upload's 9.487 ms total median and 3.496/3.484 ms flow medians, but the runs are not controlled for scene, thermal state or workload. The first 12 samples are notably slower than the remaining 343, suggesting a changing GPU/runtime state; do not attribute this delta to a shader change.
+
+The 88 flow snapshots show continued large-motion clipping: peak forward boundary saturation is 2,418/5,600 cells (43.2%) at frame 5,881, with confidence 0.0432 and 0.143% consistency >0.5. Frame 9,121 reaches 2,250/5,600 boundary cells (40.2%). Near-static snapshots still reach near-perfect confidence/consistency. Keep the current boundary suppression and real-frame fallback; do not increase the single-level radius.
+
+The implementation currently has one half-resolution luma image per history slot. `luma_downsample.comp` is the initial 2x reduction, not a multi-level pyramid. The next algorithmic stage requires per-slot level resources, downsample dispatches and explicit barriers, coarse-to-fine vector propagation with scale conversion, and matching forward/backward consistency units. Preserve the existing single-level path as fallback until deterministic identical-frame and known-translation tests validate every level. The latest upload does not establish a controlled device benefit for center-first SAD evaluation order.
