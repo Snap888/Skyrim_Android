@@ -1,0 +1,168 @@
+name: SnapFrameBackendV1 DXVK validation
+
+on:
+  push:
+    branches: [snapframe-backend-v1]
+    paths:
+      - "android/app/jni/**"
+      - ".github/workflows/snapframe-backend-v1.yml"
+  pull_request:
+    branches: [snapframe-backend-v1]
+    paths:
+      - "android/app/jni/**"
+      - ".github/workflows/snapframe-backend-v1.yml"
+  workflow_dispatch:
+    inputs:
+      build_apk:
+        description: "Also build the complete Skyrim APK (requires generated gen/ sources)"
+        required: true
+        type: boolean
+        default: false
+      gen_url:
+        description: "Optional URL to a gen/ archive (tar.xz, tar.gz or zip)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  JAVA_VERSION: "17"
+  NDK_VERSION: "29.0.14206865"
+  CMAKE_VERSION: "3.22.1"
+
+jobs:
+  dxvk-adapter:
+    name: Compile SnapFrameBackendV1 against Skyrim DXVK
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools"
+
+      - name: Install Android platform, NDK and CMake
+        run: |
+          sdkmanager --install \
+            "platforms;android-34" \
+            "build-tools;34.0.0" \
+            "cmake;${{ env.CMAKE_VERSION }}" \
+            "ndk;${{ env.NDK_VERSION }}"
+
+      - name: Install Vulkan shader tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y glslang-tools spirv-tools
+
+      - name: Configure native DXVK adapter validation
+        run: |
+          cmake -S android/app/jni -B build-dxvk-adapter \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_HOME/ndk/${{ env.NDK_VERSION }}/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-28 \
+            -DANDROID_STL=c++_shared \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DSNAPFRAME_VALIDATION_ONLY=ON
+
+      - name: Build DXVK and SnapFrameBackendV1
+        run: cmake --build build-dxvk-adapter --target snap_frame_dxvk_legacy --parallel 2
+
+      - name: Upload native adapter artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapframe-backend-v1-skyrim-dxvk
+          path: |
+            build-dxvk-adapter/**/libsnap_frame_dxvk_legacy.a
+            build-dxvk-adapter/**/libsnap_frame_engine.so
+            build-dxvk-adapter/**/libdxvk_d3d9.so
+            build-dxvk-adapter/CMakeFiles/CMakeError.log
+            build-dxvk-adapter/CMakeFiles/CMakeOutput.log
+          if-no-files-found: warn
+          retention-days: 14
+
+  apk:
+    name: Build Skyrim APK
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_apk }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Restore generated game sources
+        env:
+          GEN_URL: ${{ inputs.gen_url }}
+        run: |
+          set -euo pipefail
+          if [ -d android/app/jni/gen ] && [ -n "$(find android/app/jni/gen -type f -name '*.c' -print -quit)" ]; then
+            echo "Using generated C sources from checkout."
+          elif [ -n "$GEN_URL" ]; then
+            mkdir -p /tmp/gen/unpacked
+            curl --fail --location --retry 3 "$GEN_URL" -o /tmp/gen/archive
+            if file /tmp/gen/archive | grep -qi zip; then
+              unzip -q /tmp/gen/archive -d /tmp/gen/unpacked
+            elif file /tmp/gen/archive | grep -qi gzip; then
+              tar -xzf /tmp/gen/archive -C /tmp/gen/unpacked
+            else
+              tar -xJf /tmp/gen/archive -C /tmp/gen/unpacked
+            fi
+            if [ -d /tmp/gen/unpacked/gen ]; then
+              cp -a /tmp/gen/unpacked/gen android/app/jni/gen
+            else
+              echo "::error::Archive must contain a gen/ directory."
+              exit 1
+            fi
+          else
+            echo "::error::Full APK build needs generated android/app/jni/gen sources or gen_url."
+            exit 1
+          fi
+          test -n "$(find android/app/jni/gen -type f -name '*.c' -print -quit)"
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
+
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools"
+
+      - name: Install Android SDK and NDK
+        run: |
+          sdkmanager --install \
+            "platforms;android-34" \
+            "build-tools;34.0.0" \
+            "cmake;${{ env.CMAKE_VERSION }}" \
+            "ndk;${{ env.NDK_VERSION }}"
+
+      - name: Install Vulkan shader tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y glslang-tools spirv-tools
+
+      - name: Build debug APK
+        working-directory: android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --stacktrace assembleDebug -PndkVersion=${{ env.NDK_VERSION }}
+
+      - name: Upload APK
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Skyrim-SnapFrameBackendV1-APK
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn
+          retention-days: 14
