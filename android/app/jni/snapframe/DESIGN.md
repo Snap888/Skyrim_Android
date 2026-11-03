@@ -595,7 +595,7 @@ The available GPU timing rows show total_chain generally around 7–9 ms in the 
 
 The DXVK present path increments perfGenerated after the additional present is queued, while SnapFrame's host generated counter is also a queued-present counter. Neither proves physical scan-out. The current HUD does not show a SnapFrame generated-FPS value, so the next instrumentation milestone is to display three independent rates: game FPS, SnapFrame generated/queued FPS, and output present FPS. Keep a separate count for present failures and do not label queued presents as completed scan-outs.
 
-The GitHub file reader returned empty content for the uploaded snapframe_events.csv and snapframe_flow_vectors.csv in this retrieval, although the text log reports completed vector dumps. Their rows could not be independently checked here. Confirm that these files are non-empty in the repository or upload them again as plain-text CSV.
+The GitHub directory listing reports snapframe_events.csv at 2,594,518 bytes and snapframe_flow_vectors.csv at 1,533,725 bytes, so both files are present and non-empty. The content endpoint rejects these large blobs in this retrieval; their rows could not be independently inspected. This is a retrieval-size limitation, not an empty-file finding.
 
 Current assessment: no black-frame symptom is reported; midpoint dispatch is active; visible geometry distortion is consistent with unreliable, search-boundary motion vectors and a biased reverse-grid projection. The two conservative shader corrections are committed, but their runtime effect, FPS uplift, and full native build remain unverified.
 
