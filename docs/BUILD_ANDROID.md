@@ -23,7 +23,7 @@ The APK output is `android/app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Snap AI / SnapFrame native dependencies
 
-The JNI CMake project fetches `Snap888/Snap_AI_Engine` at pinned commit `f60acfcb7b09722d5927215957c46045b11f7897`. Upstream tests/examples and its optional legacy DXVK target are disabled in the app build. The game runtime links `SnapAI::Engine` and `SnapFrame::Engine`.
+The JNI CMake project fetches `Snap888/Snap_AI_Engine` at pinned commit `f60acfcb7b09722d5927215957c46045b11f7897`. Upstream tests/examples and its optional legacy DXVK target are disabled in the app build. The game runtime links `SnapAI::Engine` and `SnapFrame::Engine` as separate shared libraries (`BUILD_SHARED_LIBS=ON`). A dedicated CI job cross-compiles both libraries for Android `arm64-v8a`.
 
 This currently requires Git/network access during CMake configure unless the FetchContent source is already cached. The portable libraries do not depend on DXVK. The current legacy SnapFrame GPU host still does.
 
