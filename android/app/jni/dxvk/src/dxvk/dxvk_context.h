@@ -578,6 +578,7 @@ namespace dxvk {
       const Rc<DxvkShader>&       shader,
       const Rc<DxvkImageView>&    currentToPreviousView,
       const Rc<DxvkImageView>&    previousToCurrentView,
+      const Rc<DxvkImageView>&    referenceLumaView,
       const Rc<DxvkSampler>&      sourceSampler,
       const Rc<DxvkImageView>&    consistencyOutputView,
             uint32_t              groupsX,
