@@ -544,3 +544,42 @@ completion or numerical correctness. Existing timestamp and sparse readback
 logs remain necessary for GPU timing and motion-field validation. The branch
 still has no midpoint reconstruction or generated-frame presentation; this
 diagnostic change does not make frame generation active.
+
+## 14. Midpoint color-warp compute stage — 2026-11-03
+
+A first midpoint reconstruction pass is now part of the SnapFrame DXVK host.
+The build-host shader compiler includes `shaders/midpoint_warp.comp` in the
+generated SPIR-V header. The host creates an RGBA16F storage/sampled output
+image only when the adapter reports the required format features and the
+consistency pass is available.
+
+The pass binds previous/current retained color images, both directional
+RGBA16F motion fields, the R16F consistency mask, and an RGBA16F storage
+output. It samples each source at a half-displacement offset, uses local
+motion confidence for a weighted blend, and falls back to a 50/50 blend when
+confidence is low. Dispatch is isolated in `DxvkContext::dispatchSnapFrameWarp`,
+which preserves the six touched resource slots and prior compute state.
+A GPU timestamp stage named `midpoint_warp` and event records for resource
+availability and dispatch result were added.
+
+This is a GPU image reconstruction prototype, not yet a usable frame
+generation presentation path. The result is not read back for visual
+inspection, is not fed to the swapchain blitter, and does not cause a second
+WSI acquire/present. The `generated_frames` public statistic therefore stays
+zero. An accepted dispatch proves command recording only, not correct pixels.
+
+### Required next work before a real gameplay test
+
+1. Add an output-view handoff from SnapFrame to the DXVK presentation path with
+   explicit lifetime and resize/device-loss handling.
+2. Design additional WSI presentation between real frames. The extra present
+   must use correct acquire/present semaphore ownership and must not reuse an
+   image before its presentation fence/queue completion.
+3. Preserve the game's real frame as the fallback when no valid midpoint is
+   available, and reset the interpolation history on stalls, scene cuts,
+   resize, format changes, and device loss.
+4. Compose HUD/UI at the correct stage. The current capture point is before
+   the HUD overlay, so the generated world image must not duplicate or smear
+   HUD elements.
+5. Validate pixel output and timing on device before enabling any default
+   behavior. LSFG remains isolated and unchanged.
