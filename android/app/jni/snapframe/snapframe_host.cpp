@@ -34,6 +34,8 @@ std::mutex g_gpuLogMutex;
 FILE* g_gpuLogFile = nullptr;
 std::mutex g_flowLogMutex;
 FILE* g_flowLogFile = nullptr;
+std::mutex g_vectorLogMutex;
+FILE* g_vectorLogFile = nullptr;
 bool g_profilingEnabled = false;
 bool g_flowReadbackFailureLogged = false;
 
@@ -285,7 +287,7 @@ SnapFrameFlowStats summarizeFlow(const uint16_t* values, uint64_t count) {
 
 void recordFlowReadback(
     DxvkContext* context, DxvkDevice* device, uint64_t frame,
-    uint32_t flowWidth, uint32_t flowHeight) {
+    uint32_t flowWidth, uint32_t flowHeight, bool dumpVectors) {
     if (!g_profilingEnabled || !context || !device
         || !g_flowImage[0] || !g_flowImage[1] || !g_consistencyImage)
         return;
@@ -333,7 +335,7 @@ void recordFlowReadback(
         subresource, VkOffset3D{ 0, 0, 0 }, extent);
 
     context->addCompletionCallback([readback, frame, flowWidth, flowHeight,
-                                    pixels, flowBytes, maskOffset](VkResult result) {
+                                    pixels, flowBytes, maskOffset, dumpVectors](VkResult result) {
         if (result != VK_SUCCESS) {
             std::lock_guard<std::mutex> lock(g_flowLogMutex);
             if (g_flowLogFile) {
@@ -376,15 +378,43 @@ void recordFlowReadback(
         const double consistencyPercent = consistencyFinite
             ? 100.0 * double(consistencyValid) / double(consistencyFinite) : 0.0;
 
-        std::lock_guard<std::mutex> lock(g_flowLogMutex);
-        if (!g_flowLogFile) return;
-        fprintf(g_flowLogFile,
-            "%llu,%u,%u,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.3f,%llu,ok\n",
-            static_cast<unsigned long long>(frame), flowWidth, flowHeight,
-            forward.dx, forward.dy, forward.magnitude, forward.confidence, forward.cost,
-            backward.dx, backward.dy, backward.magnitude, backward.confidence, backward.cost,
-            consistencyMean, consistencyPercent, static_cast<unsigned long long>(nonFinite));
-        fflush(g_flowLogFile);
+        {
+            std::lock_guard<std::mutex> lock(g_flowLogMutex);
+            if (g_flowLogFile) {
+                fprintf(g_flowLogFile,
+                    "%llu,%u,%u,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.3f,%llu,ok\n",
+                    static_cast<unsigned long long>(frame), flowWidth, flowHeight,
+                    forward.dx, forward.dy, forward.magnitude, forward.confidence, forward.cost,
+                    backward.dx, backward.dy, backward.magnitude, backward.confidence, backward.cost,
+                    consistencyMean, consistencyPercent, static_cast<unsigned long long>(nonFinite));
+                fflush(g_flowLogFile);
+            }
+        }
+
+        if (dumpVectors) {
+            const uint16_t* forwardData = data;
+            const uint16_t* backwardData = reinterpret_cast<const uint16_t*>(
+                reinterpret_cast<const uint8_t*>(data) + flowBytes);
+            std::lock_guard<std::mutex> vectorLock(g_vectorLogMutex);
+            if (g_vectorLogFile) {
+                for (uint32_t y = 0; y < flowHeight; ++y) {
+                    for (uint32_t x = 0; x < flowWidth; ++x) {
+                        const uint64_t index = uint64_t(y) * flowWidth + x;
+                        const uint16_t* fwd = forwardData + index * 4u;
+                        const uint16_t* bwd = backwardData + index * 4u;
+                        fprintf(g_vectorLogFile,
+                            "%llu,%u,%u,%.5f,%.5f,%.5f,%.5f,%.5f,%.5f,%.5f,%.5f,%.5f\n",
+                            static_cast<unsigned long long>(frame), x, y,
+                            snapFrameHalfToFloat(fwd[0]), snapFrameHalfToFloat(fwd[1]),
+                            snapFrameHalfToFloat(fwd[2]), snapFrameHalfToFloat(fwd[3]),
+                            snapFrameHalfToFloat(bwd[0]), snapFrameHalfToFloat(bwd[1]),
+                            snapFrameHalfToFloat(bwd[2]), snapFrameHalfToFloat(bwd[3]),
+                            snapFrameHalfToFloat(mask[index]));
+                    }
+                }
+                fflush(g_vectorLogFile);
+            }
+        }
     });;
 }
 
@@ -943,7 +973,8 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
                         if (g_profilingEnabled && (g_flowDispatchCount % 120u) == 0u) {
                             endGpuTimer(context, totalTimer);
                             totalTimerEnded = true;
-                            recordFlowReadback(context, device, nextCapturedFrame, flowWidth, flowHeight);
+                            recordFlowReadback(context, device, nextCapturedFrame, flowWidth, flowHeight,
+                                (g_flowDispatchCount % 600u) == 0u);
                         }
                         if (g_consistencyDispatchCount == 1
                          || (g_consistencyDispatchCount % 120u) == 0)
@@ -1044,6 +1075,20 @@ extern "C" int snapframe_host_set_flow_log_path(const char *path) {
     }
     fprintf(g_flowLogFile, "frame,grid_width,grid_height,forward_mean_dx,forward_mean_dy,forward_mean_magnitude,forward_mean_confidence,forward_mean_cost,backward_mean_dx,backward_mean_dy,backward_mean_magnitude,backward_mean_confidence,backward_mean_cost,consistency_mean,consistency_gt_0_5_pct,nonfinite_values,status\n");
     fflush(g_flowLogFile);
+    return 1;
+}
+
+extern "C" int snapframe_host_set_flow_vectors_log_path(const char *path) {
+    if (!path || !*path) return 0;
+    std::lock_guard<std::mutex> lock(g_vectorLogMutex);
+    if (g_vectorLogFile) fclose(g_vectorLogFile);
+    g_vectorLogFile = fopen(path, "w");
+    if (!g_vectorLogFile) {
+        fprintf(stderr, "SnapFrame: cannot open flow vector CSV: %s\\n", path);
+        return 0;
+    }
+    fprintf(g_vectorLogFile, "frame,x,y,forward_dx,forward_dy,forward_confidence,forward_cost,backward_dx,backward_dy,backward_confidence,backward_cost,consistency\\n");
+    fflush(g_vectorLogFile);
     return 1;
 }
 

@@ -364,3 +364,10 @@ translations and visual vector inspection remain required before the fields
 can be trusted for interpolation. Unavailable timestamp samples are marked
 with an explicit status instead of being reported as zero-time passes.
 Profiling and readback use the existing `profiling_enabled` setting.
+
+
+A second sparse spatial dump is written to `port/snapframe_flow_vectors.csv`
+every 600th accepted flow pair (every fifth aggregate readback). Each row
+contains the grid coordinate, forward and backward displacement/confidence/
+matching-cost values, and the consistency mask value. This preserves the
+spatial field for external vector visualization while limiting file growth.

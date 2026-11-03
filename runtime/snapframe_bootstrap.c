@@ -13,13 +13,16 @@ void snapframe_bootstrap(void) {
     char logPath[1200];
     char gpuLogPath[1200];
     char flowLogPath[1200];
+    char flowVectorsLogPath[1200];
     snprintf(path, sizeof(path), "%s/port/snapframe.conf", g_game_dir);
     snprintf(logPath, sizeof(logPath), "%s/port/snapframe.log", g_game_dir);
     snprintf(gpuLogPath, sizeof(gpuLogPath), "%s/port/snapframe_gpu.csv", g_game_dir);
     snprintf(flowLogPath, sizeof(flowLogPath), "%s/port/snapframe_flow.csv", g_game_dir);
+    snprintf(flowVectorsLogPath, sizeof(flowVectorsLogPath), "%s/port/snapframe_flow_vectors.csv", g_game_dir);
     snapframe_host_set_log_path(logPath);
     snapframe_host_set_gpu_log_path(gpuLogPath);
     snapframe_host_set_flow_log_path(flowLogPath);
+    snapframe_host_set_flow_vectors_log_path(flowVectorsLogPath);
     FILE *file = fopen(path, "r");
     if (file) {
         char line[512];
