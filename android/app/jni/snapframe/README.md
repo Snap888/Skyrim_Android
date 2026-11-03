@@ -52,17 +52,18 @@ This is a proposed algorithm, not an implemented or measured result. See
 When enabled, the diagnostic sequence is:
 
 1. `host initialized` — runtime config was loaded.
-2. `DXVK present path reached` — the game reached the DXVK present path; the
-   line also reports WSI extent, format, usage flags, and whether the callback
-   is registered.
-3. `dispatching first DXVK copy callback` and `host copy callback entered` —
+2. `entered D3D9SwapChainEx::PresentImage` — the D3D9 present method was entered.
+3. `DXVK present path reached` — the WSI image is available after the game-image
+   blit; the line reports extent, format, usage flags, and callback registration.
+4. `dispatching first DXVK copy callback` and `host copy callback entered` —
    the host callback actually ran.
-4. `allocated two-frame history` — the private history images were allocated.
-5. `two real frames captured` — at least two copies were recorded.
+5. `allocated two-frame history` — the private history images were allocated.
+6. `two real frames captured` — at least two copies were recorded.
 
-If the log contains only `host initialized` and no `DXVK present path reached`,
-the current evidence does not show that the game reached its first DXVK
-present. A final `VirtualAlloc(...)` line alone is not proof of a SnapFrame
+If the log contains only `host initialized` and no `entered D3D9SwapChainEx::PresentImage`,
+the current evidence does not show that the game reached its first D3D9 present.
+If the entry marker appears but `DXVK present path reached` does not, the stop
+is later in PresentImage, before or during WSI acquisition/blitting. A final `VirtualAlloc(...)` line alone is not proof of a SnapFrame
 failure; collect the complete log through the point where the app exits or
 stops progressing. If the present-path marker appears, the following
 `capture skipped` or allocation diagnostics identify the next failure point.
