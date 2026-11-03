@@ -224,8 +224,26 @@ available in the NDK build.
 - [ ] Build APK and verify the new present-path/callback diagnostics on device.
 - [ ] Confirm two real frames are captured before adding compute work.
 - [ ] Validate supported compute/storage formats on the target GPU.
-- [ ] Establish reproducible GLSL-to-SPIR-V compilation and embedding.
-- [ ] Implement and compile first Vulkan preprocessing shader.
+- [x] Add first luminance downsample GLSL source and a host-side GLSL-to-SPIR-V header generator.
+- [ ] Run glslangValidator + spirv-val and commit the generated SPIR-V header.
+- [ ] Implement format-capability checks, compute pipeline/descriptor setup, and first dispatch.
 - [ ] Implement motion estimation and reconstruction.
 - [ ] Add runtime selector and safe presentation integration.
 - [ ] Run device A/B tests and tune.
+
+
+### Phase 2a — first preprocessing kernel
+
+The first source kernel is `shaders/luma_downsample.comp`. It computes
+Rec.709 luminance from a sampled source frame and reduces 2x2 texel blocks
+into a half-resolution `R16_SFLOAT` output. The host-side
+`tools/compile_snapframe_shaders.py` compiles it for Vulkan 1.1, validates the
+SPIR-V with `spirv-val`, and emits a C++ word-array header. This keeps shader
+compilation out of the Android NDK build.
+
+The kernel is not dispatched yet. Before runtime integration, the backend must
+check sampled-image support for the actual swapchain format and storage-image
+support for `VK_FORMAT_R16_SFLOAT`, create the output image with storage usage,
+build a compute pipeline and descriptor set, and dispatch on the active DXVK
+command list with correct barriers. The output allocation must use ceil-half
+dimensions and the dispatch must cover odd extents safely.
