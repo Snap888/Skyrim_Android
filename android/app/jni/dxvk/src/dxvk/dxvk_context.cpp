@@ -1531,9 +1531,9 @@ namespace dxvk {
     const bool previousResource1Tracked = m_rcTracked.test(1);
 
     this->bindShader(VK_SHADER_STAGE_COMPUTE_BIT, shader);
-    this->bindResourceView(0, sourceView, nullptr);
+    this->bindResourceView(0, sourceView, Rc<DxvkBufferView>());
     this->bindResourceSampler(0, sourceSampler);
-    this->bindResourceView(1, outputView, nullptr);
+    this->bindResourceView(1, outputView, Rc<DxvkBufferView>());
     const bool dispatched = this->dispatchChecked(groupsX, groupsY, 1);
 
     m_rc[0] = previousResource0;
