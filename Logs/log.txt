@@ -72,17 +72,17 @@ VirtualAlloc(74040000, 8388608, 1000) = 74040000
 CreateThread start=00a5b000 param=01b8b1d0
 thread slot 1 taken (tid 264)
 CreateThread start=00a5b000 param=01b8b1d0
-CreateThread start=00a5b000 param=01b8b1d0
 thread slot 2 taken (tid 268)
 CreateThread start=00a5b000 param=01b8b1d0
 CreateThread start=00a5b000 param=01b8b1d0
 thread slot 3 taken (tid 272)
 CreateThread start=00a5b000 param=01b8b1d0
 thread slot 4 taken (tid 280)
-CreateThread start=00a5ac30 param=01b8b1d0
 thread slot 5 taken (tid 276)
-thread slot 6 taken (tid 288)
-thread slot 7 taken (tid 284)
+CreateThread start=00a5b000 param=01b8b1d0
+thread slot 6 taken (tid 284)
+CreateThread start=00a5ac30 param=01b8b1d0
+thread slot 7 taken (tid 288)
 VirtualAlloc(00000000, 5242880, 2000) = 84040000
 VirtualAlloc(84040000, 5242880, 1000) = 84040000
 GetFileAttributesExA failed: C:\Skyrim\DATA\NullStream (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/NullStream): No such file or directory
@@ -92,17 +92,17 @@ GetFileAttributesExA failed: C:\Skyrim\NullStream (/storage/emulated/0/Download/
 VirtualAlloc(6031e9b0, 4194320, 1000) = 6031e9b0
 SteamAPI_Init: offline stub
 CreateFileA failed: C:\Users\Player\Documents\Skyrim\.\Plugins.txt (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/Skyrim/./Plugins.txt)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Misc.bsa -> fd 132
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Misc.bsa -> fd 161
 VirtualAlloc(00000000, 16777216, 2000) = 84540000
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Shaders.bsa -> fd 144
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Textures.bsa -> fd 145
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Interface.bsa -> fd 146
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Animations.bsa -> fd 147
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Meshes.bsa -> fd 148
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Sounds.bsa -> fd 149
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Voices.bsa -> fd 152
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - VoicesExtra.bsa -> fd 174
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.bsa -> fd 178
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Shaders.bsa -> fd 165
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Textures.bsa -> fd 173
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Interface.bsa -> fd 174
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Animations.bsa -> fd 177
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Meshes.bsa -> fd 178
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Sounds.bsa -> fd 180
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Voices.bsa -> fd 181
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - VoicesExtra.bsa -> fd 182
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.bsa -> fd 183
 CreateFileA failed: C:\Users\Player\Documents\Skyrim\.\Plugins.txt (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/Skyrim/./Plugins.txt)
 FindFirstFileA C:\Skyrim\DATA\TEXTURES\\* -> /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/TEXTURES//*
 FindFirstFileA C:\Skyrim\DATA\TEXTURES\architecture\\* -> /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/TEXTURES/architecture//*
@@ -4653,20 +4653,20 @@ GetFileAttributesExA failed: C:\Skyrim\Interface\Controls\PC\Keyboard_RUSSIAN.tx
 GetFileAttributesExA failed: C:\Skyrim\Interface\Controls\PC\Keyboard_RUSSIAN.txt (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/Interface/Controls/PC/Keyboard_RUSSIAN.txt): No such file or directory
 DirectInput: created keyboard
 DirectInput: created mouse
-CreateThread start=00a4b4a0 param=744ca540
+CreateThread start=00a4b4a0 param=744ca5c0
 thread slot 9 taken (tid 296)
 xaudio2: created IXAudio2 200093a0
 xaudio2: build: xWMA path=yes decoder=FFmpeg WMAV2 log=port/log.txt + logcat
 xaudio2: mastering voice 6 ch at 48000 Hz
 CoCreateInstance -> E_NOINTERFACE
 thread slot 10 taken (tid 300)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/RendererInfo.txt (write, disposition 2) -> fd 181
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/RendererInfo.txt (write, disposition 2) -> fd 186
 Direct3DCreate9(32)
 info:  Game: app_process64
 info:  DXVK: v1.9.2
 info:  Found config file: dxvk.conf
 info:  Effective configuration:
-info:    dxvk.hud = fps,scale=1.0,align=left,vertical=top,game=1,fg=1,output=1
+info:    dxvk.hud = fps,scale=1.25,align=center,vertical=top,game=1,fg=1,output=1,devinfo
 info:    d3d9.maxFrameRate = 0
 info:  Built-in extension providers:
 info:    SDL2 WSI
@@ -4699,7 +4699,7 @@ info:  Game: app_process64
 info:  DXVK: v1.9.2
 info:  Found config file: dxvk.conf
 info:  Effective configuration:
-info:    dxvk.hud = fps,scale=1.0,align=left,vertical=top,game=1,fg=1,output=1
+info:    dxvk.hud = fps,scale=1.25,align=center,vertical=top,game=1,fg=1,output=1,devinfo
 info:    d3d9.maxFrameRate = 0
 info:  Built-in extension providers:
 info:    SDL2 WSI
@@ -4836,7 +4836,7 @@ info:    Exclusive FS: 0
 CreateDevice -> 00000000
 BC texture emulation off
 CreateTexture 2x1 levels 1 usage 0 fmt 17 pool 1 -> 00000000
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/RendererInfo.txt (write, disposition 4) -> fd 186
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/RendererInfo.txt (write, disposition 4) -> fd 191
 CreateTexture 16x16 levels 1 usage 0 fmt 16 pool 1 -> 00000000
 CreateTexture 16x16 levels 1 usage 0 fmt 15 pool 1 -> 00000000
 CreateTexture 64x64 levels 7 usage 0 fmt 31545844 pool 1 -> 00000000
@@ -4850,9 +4850,10 @@ GetFileAttributesExA failed: C:\Skyrim\DATA\shadersfx\Lighting\059\PC00003.fxp (
 GetFileAttributesExA failed: C:\Skyrim\shadersfx\Lighting\059\PC00003.fxp (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/shadersfx/Lighting/059/PC00003.fxp): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\shadersfx\Lighting\059\PC00003.fxp (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/shadersfx/Lighting/059/PC00003.fxp): No such file or directory
 CreateTexture 1x1 levels 1 usage 0 fmt 1c pool 0 -> 00000000
-CreateThread start=00a4b4a0 param=740cc100
+xaudio2: output timing queue_low=1 min_queue=0B slow_mix=0 max_mix=0ms (last 1s)
+CreateThread start=00a4b4a0 param=740cbf00
+CreateThread start=00a4b4a0 param=740cbe80
 thread slot 11 taken (tid 304)
-CreateThread start=00a4b4a0 param=740cc080
 thread slot 12 taken (tid 308)
 CreateTexture 256x512 levels 10 usage 0 fmt 35545844 pool 1 -> 00000000
 VirtualAlloc(00000000, 16777216, 2000) = 88540000
@@ -4891,64 +4892,64 @@ SnapFrame: forward/backward consistency accepted count=1
 SnapFrame: two real frames captured; history ring valid
 FindFirstFileA Data\Video\BGS_LOGO.BIK -> Data/Video/BGS_LOGO.BIK
 CreateTexture 256x256 levels 1 usage 200 fmt 16 pool 0 -> 00000000
-xaudio2: output timing queue_low=1 min_queue=0B slow_mix=0 max_mix=0ms (last 1s)
+SnapFrame: captured=60 skipped=0 extent=2448x1080
 thread slot 8 released
 CreateThread start=00a4b4a0 param=103ffdc8
 thread slot 8 taken (tid 316)
-CreateThread start=00a4b4a0 param=74b11100
+CreateThread start=00a4b4a0 param=74bc0000
 thread slot 14 taken (tid 320)
-CreateThread start=00a4b4a0 param=74cfc408
+CreateThread start=00a4b4a0 param=74cfd0f8
 thread slot 15 taken (tid 324)
 FindFirstFileA DATA\*.esm -> DATA/*.esm
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Dawnguard.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Dawnguard.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Dawnguard.esm)
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Dawnguard.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Dawnguard.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Dawnguard.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Dawnguard.esm -> fd 243
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Dawnguard.esm -> fd 243
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Dawnguard.esm -> fd 236
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Dawnguard.esm -> fd 236
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Dragonborn.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Dragonborn.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Dragonborn.esm)
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Dragonborn.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Dragonborn.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Dragonborn.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Dragonborn.esm -> fd 244
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Dragonborn.esm -> fd 244
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Dragonborn.esm -> fd 253
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Dragonborn.esm -> fd 253
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HearthFires.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\HearthFires.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HearthFires.esm)
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HearthFires.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\HearthFires.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HearthFires.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HearthFires.esm -> fd 247
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HearthFires.esm -> fd 247
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HearthFires.esm -> fd 254
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HearthFires.esm -> fd 254
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 249
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 249
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 255
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 255
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Update.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm)
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Update.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.esm -> fd 253
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.esm -> fd 253
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.esm -> fd 258
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.esm -> fd 258
 FindFirstFileA DATA\*.esp -> DATA/*.esp
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack01.esp -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\HighResTexturePack01.esp (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack01.esp)
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack01.esp -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\HighResTexturePack01.esp (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack01.esp)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack01.esp -> fd 254
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack01.esp -> fd 254
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack01.esp -> fd 261
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack01.esp -> fd 261
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack02.esp -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\HighResTexturePack02.esp (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack02.esp)
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack02.esp -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\HighResTexturePack02.esp (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack02.esp)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack02.esp -> fd 255
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack02.esp -> fd 255
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack02.esp -> fd 262
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack02.esp -> fd 262
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack03.esp -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\HighResTexturePack03.esp (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack03.esp)
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack03.esp -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\HighResTexturePack03.esp (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack03.esp)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack03.esp -> fd 256
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack03.esp -> fd 256
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack03.esp -> fd 263
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack03.esp -> fd 263
 FindFirstFileA DATA\Update.esm -> DATA/Update.esm
 FindFirstFileA DATA\Skyrim.esm -> DATA/Skyrim.esm
 FindFirstFileA DATA\HearthFires.esm -> DATA/HearthFires.esm
@@ -4958,76 +4959,78 @@ FindFirstFileA DATA\HighResTexturePack03.esp -> DATA/HighResTexturePack03.esp
 FindFirstFileA DATA\HighResTexturePack02.esp -> DATA/HighResTexturePack02.esp
 FindFirstFileA DATA\HighResTexturePack01.esp -> DATA/HighResTexturePack01.esp
 VirtualAlloc(00000000, 16777216, 2000) = 89540000
-SnapFrame: captured=60 skipped=0 extent=2448x1080
 SnapFrame: bidirectional flow pair accepted count=120 groups=20x9
 SnapFrame: forward/backward consistency accepted count=120
 thread slot 13 released
-ExitThread(0)
-thread slot 6 released
-CreateFileA failed: C:\Users\Player\Documents\Skyrim\.\Plugins.txt (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/Skyrim/./Plugins.txt)
 info:  D3D9: vertex decltype 2 usage 0 -> VK_FORMAT_R32G32B32_SFLOAT
+ExitThread(0)
+thread slot 7 released
+CreateFileA failed: C:\Users\Player\Documents\Skyrim\.\Plugins.txt (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/Skyrim/./Plugins.txt)
 SnapFrame: bidirectional flow pair accepted count=240 groups=20x9
 SnapFrame: forward/backward consistency accepted count=240
+SnapFrame: TEST_PHASE_PROGRESS phase=static_scene elapsed_frames=300 target_frames=1800
+SnapFrame: luma dispatch accepted count=300 groups=153x68
+frame 300
 VirtualAlloc(00000000, 16777216, 2000) = 8a540000
 VirtualAlloc(00000000, 16777216, 2000) = 8b540000
 CreateTexture 64x64 levels 7 usage 0 fmt 33545844 pool 1 -> 00000000
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\WindhelmWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/WindhelmWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\WindhelmWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/WindhelmWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\WindhelmWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/WindhelmWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\WindhelmWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/WindhelmWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\RiftenWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/RiftenWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\RiftenWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/RiftenWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\RiftenWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/RiftenWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\RiftenWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/RiftenWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\WhiterunWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/WhiterunWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\WhiterunWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/WhiterunWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\WhiterunWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/WhiterunWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\WhiterunWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/WhiterunWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\CWTestHold.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/CWTestHold.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\CWTestHold.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/CWTestHold.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\CWTestHold.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/CWTestHold.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\CWTestHold.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/CWTestHold.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\LabyrinthianWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/LabyrinthianWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\LabyrinthianWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/LabyrinthianWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\LabyrinthianWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/LabyrinthianWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\LabyrinthianWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/LabyrinthianWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\LabyrinthianWorld03.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/LabyrinthianWorld03.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\LabyrinthianWorld03.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/LabyrinthianWorld03.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\LabyrinthianWorld03.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/LabyrinthianWorld03.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\LabyrinthianWorld03.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/LabyrinthianWorld03.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\MossMotherCavernWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/MossMotherCavernWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\MossMotherCavernWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/MossMotherCavernWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\MossMotherCavernWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/MossMotherCavernWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\MossMotherCavernWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/MossMotherCavernWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\BloatedMansGrottoWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/BloatedMansGrottoWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\BloatedMansGrottoWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/BloatedMansGrottoWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\BloatedMansGrottoWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/BloatedMansGrottoWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\BloatedMansGrottoWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/BloatedMansGrottoWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\FallowstoneCaveWorldEnd.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/FallowstoneCaveWorldEnd.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\FallowstoneCaveWorldEnd.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/FallowstoneCaveWorldEnd.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\FallowstoneCaveWorldEnd.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/FallowstoneCaveWorldEnd.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\FallowstoneCaveWorldEnd.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/FallowstoneCaveWorldEnd.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\SouthfringeWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/SouthfringeWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\SouthfringeWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/SouthfringeWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\SouthfringeWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/SouthfringeWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\SouthfringeWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/SouthfringeWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\BlindCliffCaveWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/BlindCliffCaveWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\BlindCliffCaveWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/BlindCliffCaveWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\BlindCliffCaveWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/BlindCliffCaveWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\BlindCliffCaveWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/BlindCliffCaveWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\LabyrinthianWorld04.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/LabyrinthianWorld04.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\LabyrinthianWorld04.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/LabyrinthianWorld04.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\LabyrinthianWorld04.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/LabyrinthianWorld04.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\LabyrinthianWorld04.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/LabyrinthianWorld04.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\FallowstoneCaveWorldStart.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/FallowstoneCaveWorldStart.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\FallowstoneCaveWorldStart.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/FallowstoneCaveWorldStart.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\FallowstoneCaveWorldStart.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/FallowstoneCaveWorldStart.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\FallowstoneCaveWorldStart.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/FallowstoneCaveWorldStart.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\ShadowgreenCavernWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/ShadowgreenCavernWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\ShadowgreenCavernWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/ShadowgreenCavernWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\ShadowgreenCavernWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/ShadowgreenCavernWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\ShadowgreenCavernWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/ShadowgreenCavernWorld.LOD): No such file or directory
 info:  D3D9: vertex decltype 0 usage 5 -> VK_FORMAT_R32_SFLOAT
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\WindhelmWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/WindhelmWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\WindhelmWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/WindhelmWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\WindhelmWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/WindhelmWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\WindhelmWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/WindhelmWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\RiftenWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/RiftenWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\RiftenWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/RiftenWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\RiftenWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/RiftenWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\RiftenWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/RiftenWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\WhiterunWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/WhiterunWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\WhiterunWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/WhiterunWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\WhiterunWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/WhiterunWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\WhiterunWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/WhiterunWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\CWTestHold.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/CWTestHold.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\CWTestHold.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/CWTestHold.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\CWTestHold.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/CWTestHold.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\CWTestHold.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/CWTestHold.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\LabyrinthianWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/LabyrinthianWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\LabyrinthianWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/LabyrinthianWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\LabyrinthianWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/LabyrinthianWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\LabyrinthianWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/LabyrinthianWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\LabyrinthianWorld03.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/LabyrinthianWorld03.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\LabyrinthianWorld03.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/LabyrinthianWorld03.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\LabyrinthianWorld03.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/LabyrinthianWorld03.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\LabyrinthianWorld03.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/LabyrinthianWorld03.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\MossMotherCavernWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/MossMotherCavernWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\MossMotherCavernWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/MossMotherCavernWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\MossMotherCavernWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/MossMotherCavernWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\MossMotherCavernWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/MossMotherCavernWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\BloatedMansGrottoWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/BloatedMansGrottoWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\BloatedMansGrottoWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/BloatedMansGrottoWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\BloatedMansGrottoWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/BloatedMansGrottoWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\BloatedMansGrottoWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/BloatedMansGrottoWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\FallowstoneCaveWorldEnd.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/FallowstoneCaveWorldEnd.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\FallowstoneCaveWorldEnd.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/FallowstoneCaveWorldEnd.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\FallowstoneCaveWorldEnd.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/FallowstoneCaveWorldEnd.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\FallowstoneCaveWorldEnd.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/FallowstoneCaveWorldEnd.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\SouthfringeWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/SouthfringeWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\SouthfringeWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/SouthfringeWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\SouthfringeWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/SouthfringeWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\SouthfringeWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/SouthfringeWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\BlindCliffCaveWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/BlindCliffCaveWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\BlindCliffCaveWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/BlindCliffCaveWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\BlindCliffCaveWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/BlindCliffCaveWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\BlindCliffCaveWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/BlindCliffCaveWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\LabyrinthianWorld04.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/LabyrinthianWorld04.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\LabyrinthianWorld04.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/LabyrinthianWorld04.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\LabyrinthianWorld04.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/LabyrinthianWorld04.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\LabyrinthianWorld04.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/LabyrinthianWorld04.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\FallowstoneCaveWorldStart.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/FallowstoneCaveWorldStart.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\FallowstoneCaveWorldStart.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/FallowstoneCaveWorldStart.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\FallowstoneCaveWorldStart.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/FallowstoneCaveWorldStart.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\FallowstoneCaveWorldStart.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/FallowstoneCaveWorldStart.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\ShadowgreenCavernWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/ShadowgreenCavernWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\ShadowgreenCavernWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/ShadowgreenCavernWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\ShadowgreenCavernWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/ShadowgreenCavernWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\ShadowgreenCavernWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/ShadowgreenCavernWorld.LOD): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\RedEagleRedoubtWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/RedEagleRedoubtWorld.LOD): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\RedEagleRedoubtWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/RedEagleRedoubtWorld.LOD): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\LODSettings\RedEagleRedoubtWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/RedEagleRedoubtWorld.LOD): No such file or directory
@@ -5092,6 +5095,8 @@ GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\LabyrinthianMazeWorld.LO
 GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\LabyrinthianMazeWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/LabyrinthianMazeWorld.LOD): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\LODSettings\LabyrinthianMazeWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/LabyrinthianMazeWorld.LOD): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\LODSettings\LabyrinthianMazeWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/LabyrinthianMazeWorld.LOD): No such file or directory
+SnapFrame: bidirectional flow pair accepted count=360 groups=20x9
+SnapFrame: forward/backward consistency accepted count=360
 ExitThread(0)
 thread slot 8 released
 FindFirstFileA C:\Users\Player\Documents\My Games\Skyrim\Saves\*.ess -> /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/Saves/*.ess
@@ -5099,16 +5104,20 @@ CreateTexture 512x512 levels 1 usage 0 fmt 1c pool 2 -> 00000000
 VirtualAlloc(00000000, 16777216, 2000) = 8c540000
 xaudio2: source format xWMA tag=0161 2 ch 48000 Hz avg_bps=6000 block_align=1008 extra=0 (voice #1, decoder FFmpeg)
 xaudio2: Start xWMA voice fmt=6 ch=2 rate=48000 queued=1 (#1)
-[wmav2 @ 0x72c7ed2440] Could not update timestamps for skipped samples.
-SnapFrame: TEST_PHASE_PROGRESS phase=static_scene elapsed_frames=300 target_frames=1800
-SnapFrame: luma dispatch accepted count=300 groups=153x68
-frame 300
+[wmav2 @ 0x72c7ea9910] Could not update timestamps for skipped samples.
 xwma_ffmpeg: packets=1842 block_align=1008 pcm_frames=11311104 pcm=235.648s dpds=235.648s tag=0161 ba=1008 extra=6 flags=31 bitrate=48kbps
 xaudio2: xWMA decoded tag=0161 2 ch 48000 Hz bytes=1856736 -> 11311104 frames submit #1
-xaudio2: xWMA worker latency=223ms submit #1
-xaudio2: source starvation frames pending_decode=10081 empty_queue=0 (last 1s)
-SnapFrame: bidirectional flow pair accepted count=360 groups=20x9
-SnapFrame: forward/backward consistency accepted count=360
+xaudio2: xWMA worker latency=345ms submit #1
+xaudio2: source starvation frames pending_decode=16321 empty_queue=0 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=480 groups=20x9
+SnapFrame: forward/backward consistency accepted count=480
+SnapFrame: TEST_PHASE_PROGRESS phase=static_scene elapsed_frames=600 target_frames=1800
+SnapFrame: luma dispatch accepted count=600 groups=153x68
+frame 600
+SnapFrame: bidirectional flow pair accepted count=600 groups=20x9
+SnapFrame: forward/backward consistency accepted count=600
+SnapFrame: bidirectional flow pair accepted count=720 groups=20x9
+SnapFrame: forward/backward consistency accepted count=720
 xaudio2: source format tag=0001 fmt=0 2 ch 44100 Hz bits=16
 xaudio2: source format tag=0001 fmt=0 2 ch 44100 Hz bits=16
 FindFirstFileA XBoxSaves\*.exs -> XBoxSaves/*.exs (no such folder)
@@ -5119,23 +5128,78 @@ FindFirstFileA C:\Users\Player\Documents\My Games\Skyrim\Saves\autosave2.ess -> 
 FindFirstFileA C:\Users\Player\Documents\My Games\Skyrim\Saves\autosave3.ess -> /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/Saves/autosave3.ess
 FindFirstFileA C:\Users\Player\Documents\My Games\Skyrim\Saves\quicksave.ess -> /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/Saves/quicksave.ess
 CreateTexture 256x1 levels 1 usage 0 fmt 15 pool 0 -> 00000000
+xaudio2: source starvation frames pending_decode=0 empty_queue=1924 (last 1s)
 VirtualAlloc(00000000, 16777216, 2000) = 8d540000
+watchdog 30s: frames 823
+SnapFrame: bidirectional flow pair accepted count=840 groups=20x9
+SnapFrame: forward/backward consistency accepted count=840
 xaudio2: source format xWMA tag=0161 2 ch 44100 Hz avg_bps=6000 block_align=2230 extra=0 (voice #2, decoder FFmpeg)
 xaudio2: Start xWMA voice fmt=6 ch=2 rate=44100 queued=1 (#2)
-[wmav2 @ 0x72c8065c10] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=816 block_align=2230 pcm_frames=13363200 pcm=303.020s dpds=303.020s tag=0161 ba=2230 extra=6 flags=31 bitrate=48kbps
-xaudio2: xWMA decoded tag=0161 2 ch 44100 Hz bytes=1819680 -> 13363200 frames submit #2
-xaudio2: xWMA worker latency=303ms submit #2
-xaudio2: source starvation frames pending_decode=14112 empty_queue=0 (last 1s)
-xaudio2: output timing queue_low=0 min_queue=10752B slow_mix=1 max_mix=27ms (last 1s)
-SnapFrame: bidirectional flow pair accepted count=480 groups=20x9
-SnapFrame: forward/backward consistency accepted count=480
-VirtualAlloc(639d0170, 5592624, 1000) = 639d0170
-VirtualAlloc(63f2d7b0, 5592576, 1000) = 63f2d7b0
+[wmav2 @ 0x72c806d920] Could not update timestamps for skipped samples.
+xaudio2: source starvation frames pending_decode=26019 empty_queue=0 (last 1s)
+xaudio2: output timing queue_low=0 min_queue=14592B slow_mix=2 max_mix=15ms (last 1s)
+xwma_ffmpeg: packets=579 block_align=2230 pcm_frames=9482240 pcm=215.017s dpds=215.017s tag=0161 ba=2230 extra=6 flags=31 bitrate=48kbps
+xaudio2: xWMA decoded tag=0161 2 ch 44100 Hz bytes=1291170 -> 9482240 frames submit #2
+xaudio2: xWMA worker latency=669ms submit #2
+profile: 7918 samples (1 ms CPU each)
+   30.2%  sched_yield
+    2.8%  fstatat
+    2.7%  rt_call
+    1.9%  __emutls_get_address
+    1.4%  f_A51C20
+    1.3%  libmain.so+0x6460900
+    1.2%  libmain.so+0x6463900
+    1.2%  libmain.so+0x64b4900
+    1.1%  libmain.so+0x6463a00
+    1.1%  f_A50A30
+    1.0%  libc.so+0xc1500
+    1.0%  libmain.so+0x64b4a00
+    1.0%  libc.so+0xc2500
+    0.9%  f_F52E30
+    0.8%  f_691410
+    0.8%  nanosleep
+    0.8%  rt_call_ic
+    0.7%  libc.so+0x56c00
+    0.7%  pthread_getspecific
+    0.7%  f_F537F0
+    0.7%  syscall
+    0.7%  f_A3B600
+    0.7%  libc.so+0x56700
+    0.6%  read
+    0.6%  f_9008000
+    0.6%  f_91D870
+    0.6%  libmain.so+0x645d600
+    0.5%  f_A3CDD0
+    0.5%  f_F51B50
+    0.5%  f_901A530
+  thread 0 (tid 32047, guest 260): last KERNEL32!InterlockedCompareExchange from 00401739, 56854515 calls; esi 012e32d4 [00000104 00000001]
+  thread 1 (tid 32069, guest 288): last KERNEL32!ExitThread from 00a5ac7a, 9 calls (idle); esi 00000006 [00000000 00000000]
+  thread 2 (tid 32164, guest 292): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 30297586 calls (idle); esi 01b4ae14 [00000000 00000000]
+  thread 3 (tid 32170, guest 296): last KERNEL32!Sleep from 00b9ef30, 89511 calls; esi 744ca5c0 [01124a4c 00000000]
+  thread 4 (tid 32195, guest 304): last KERNEL32!Sleep from 006f40cf, 436927 calls; esi 0000001b [00000000 00000000]
+  thread 5 (tid 32196, guest 308): last KERNEL32!WaitForSingleObject from 00a4e30f, 32 calls; esi 740cbe80 [010d0cdc 00000000]
+  thread 6 (tid 32198, guest 312): last KERNEL32!InterlockedCompareExchange from 0068c6ea, 83040 calls (idle); esi 74921ee0 [010cd524 00000000]
+  thread 7 (tid 32229, guest 316): last KERNEL32!ExitThread from 00a4b4fb, 13757933 calls (idle); esi 103ffdc8 [0110d640 00000000]
+  thread 8 (tid 32230, guest 320): last KERNEL32!WaitForSingleObject from 00af8a1a, 382348 calls; esi 74bc0000 [0111d7ac 00000000]
+  thread 9 (tid 32231, guest 324): last KERNEL32!WaitForSingleObject from 0042e6f5, 786 calls; esi 74cfd0f8 [0107a45c 00000000]
+  thread 10 (tid 32068, guest 284): last KERNEL32!WaitForSingleObject from 00a5aeac, 88930 calls (idle); esi 01b8b1d0 [0110dd1c 00000101]
+  thread 11 (tid 32067, guest 280): last KERNEL32!WaitForSingleObject from 00a5aeac, 95407 calls (idle); esi 01b8b1d0 [0110dd1c 00000101]
+  thread 12 (tid 32063, guest 264): last KERNEL32!WaitForSingleObject from 00a5aeac, 108771 calls (idle); esi 01b8b1d0 [0110dd1c 00000101]
+  thread 13 (tid 32065, guest 272): last KERNEL32!WaitForSingleObject from 00a5aeac, 102707 calls (idle); esi 01b8b1d0 [0110dd1c 00000101]
+  thread 14 (tid 32064, guest 268): last KERNEL32!WaitForSingleObject from 00a5aeac, 96317 calls (idle); esi 01b8b1d0 [0110dd1c 00000101]
+  thread 15 (tid 32066, guest 276): last KERNEL32!WaitForSingleObject from 00a5aeac, 109331 calls (idle); esi 01b8b1d0 [0110dd1c 00000101]
+xaudio2: source starvation frames pending_decode=3087 empty_queue=0 (last 1s)
+SnapFrame: TEST_PHASE_PROGRESS phase=static_scene elapsed_frames=900 target_frames=1800
+SnapFrame: luma dispatch accepted count=900 groups=153x68
+frame 900
+VirtualAlloc(639fea70, 5592624, 1000) = 639fea70
+VirtualAlloc(63f540a0, 5592576, 1000) = 63f540a0
 GetFileAttributesExA failed: C:\Skyrim\DATA\Textures\Actors\Character\FaceGenData\FaceTint\Skyrim.esm\00000007.dds (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Textures/Actors/Character/FaceGenData/FaceTint/Skyrim.esm/00000007.dds): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\DATA\Textures\Actors\Character\FaceGenData\FaceTint\Skyrim.esm\00000007.dds (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Textures/Actors/Character/FaceGenData/FaceTint/Skyrim.esm/00000007.dds): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\Textures\Actors\Character\FaceGenData\FaceTint\Skyrim.esm\00000007.dds (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/Textures/Actors/Character/FaceGenData/FaceTint/Skyrim.esm/00000007.dds): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\Textures\Actors\Character\FaceGenData\FaceTint\Skyrim.esm\00000007.dds (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/Textures/Actors/Character/FaceGenData/FaceTint/Skyrim.esm/00000007.dds): No such file or directory
+SnapFrame: bidirectional flow pair accepted count=960 groups=20x9
+SnapFrame: forward/backward consistency accepted count=960
 GetFileAttributesExA failed: C:\Skyrim\DATA\meshes\Actors\Character\Character Assets\Hair\4HairlineFemale.tri (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/meshes/Actors/Character/Character Assets/Hair/4HairlineFemale.tri): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\DATA\meshes\Actors\Character\Character Assets\Hair\4HairlineFemale.tri (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/meshes/Actors/Character/Character Assets/Hair/4HairlineFemale.tri): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\meshes\Actors\Character\Character Assets\Hair\4HairlineFemale.tri (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/meshes/Actors/Character/Character Assets/Hair/4HairlineFemale.tri): No such file or directory
@@ -5150,370 +5214,716 @@ GetFileAttributesExA failed: C:\Skyrim\DATA\meshes\Actors\Character\Character As
 GetFileAttributesExA failed: C:\Skyrim\DATA\meshes\Actors\Character\Character Assets\Hair\4HairlineFemale.tri (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/meshes/Actors/Character/Character Assets/Hair/4HairlineFemale.tri): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\meshes\Actors\Character\Character Assets\Hair\4HairlineFemale.tri (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/meshes/Actors/Character/Character Assets/Hair/4HairlineFemale.tri): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\meshes\Actors\Character\Character Assets\Hair\4HairlineFemale.tri (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/meshes/Actors/Character/Character Assets/Hair/4HairlineFemale.tri): No such file or directory
-SnapFrame: TEST_PHASE_PROGRESS phase=static_scene elapsed_frames=600 target_frames=1800
-SnapFrame: luma dispatch accepted count=600 groups=153x68
-frame 600
-SnapFrame: bidirectional flow pair accepted count=600 groups=20x9
-SnapFrame: forward/backward consistency accepted count=600
-VirtualAlloc(00000000, 16777216, 2000) = 8e540000VirtualAlloc(00000000, 16777216, 2000) = 90540000
+SnapFrame: bidirectional flow pair accepted count=1080 groups=20x9
+SnapFrame: forward/backward consistency accepted count=1080
+VirtualAlloc(00000000, 16777216, 2000) = 8e540000
 VirtualAlloc(00000000, 16777216, 2000) = 8f540000
+VirtualAlloc(00000000, 16777216, 2000) = 90540000
 VirtualAlloc(00000000, 16777216, 2000) = 91540000
 VirtualAlloc(00000000, 16777216, 2000) = 92540000
-
 VirtualAlloc(00000000, 16777216, 2000) = 93540000
 VirtualAlloc(00000000, 16777216, 2000) = 94540000
 VirtualAlloc(00000000, 16777216, 2000) = 95540000
 VirtualAlloc(00000000, 16777216, 2000) = 96540000
 info:  D3D9: vertex decltype 16 usage 0 -> VK_FORMAT_R16G16B16A16_SFLOAT
 info:  D3D9: vertex decltype 15 usage 5 -> VK_FORMAT_R16G16_SFLOAT
-watchdog 30s: frames 689
-xaudio2: source starvation frames pending_decode=0 empty_queue=1099 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=187 (last 1s)
 VirtualAlloc(00000000, 16777216, 2000) = 97540000
-profile: 8330 samples (1 ms CPU each)
-   26.4%  sched_yield
-    4.8%  f_91D870
-    2.3%  fstatat
-    2.2%  rt_call
-    2.0%  libmain.so+0x6463700
-    1.6%  libmain.so+0x6460600
-    1.3%  libc.so+0xc1500
-    1.2%  __emutls_get_address
-    1.1%  libmain.so+0x64b4600
-    0.9%  nanosleep
-    0.9%  libmain.so+0x64b4700
-    0.8%  libc.so+0x56700
-    0.8%  f_F52E30
-    0.7%  f_A50A30
-    0.7%  f_A51C20
-    0.7%  libmain.so+0x645d300
-    0.7%  pthread_getspecific
-    0.6%  f_A50B30
-    0.6%  syscall
-    0.5%  libc.so+0x56c00
-    0.5%  f_691410
-    0.5%  _ZN4dxvk12D3D9DeviceEx15WaitForResourceERKNS_2RcINS_12DxvkResourceEEEj
-    0.5%  pread64
-    0.5%  libc.so+0xcfb00
-    0.5%  f_A3B600
-    0.5%  libc.so+0xcfd00
-    0.4%  f_9008000
-    0.4%  f_A4EAC0
-    0.4%  ?
-    0.4%  f_AF7810
-  thread 0 (tid 11001, guest 260): last IDirect3DDevice9#17 from 00ce7e03, 74476472 calls; esi 746f8520 [01159d38 00000002]
-  thread 1 (tid 11019, guest 288): last KERNEL32!ExitThread from 00a5ac7a, 9 calls (idle); esi 00000006 [00000000 00000000]
-  thread 2 (tid 11091, guest 292): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 30296713 calls (idle); esi 01b4ae14 [00000000 00000000]
-  thread 3 (tid 11098, guest 296): last KERNEL32!Sleep from 00b9ef30, 263019 calls; esi 744ca540 [01124a4c 00000000]
-  thread 4 (tid 11123, guest 308): last KERNEL32!WaitForSingleObject from 00a59095, 720231 calls; esi ff00022c [00000000 00000000]
-  thread 5 (tid 11122, guest 304): last KERNEL32!WaitForSingleObject from 00a59095, 1554207 calls; esi ff00022c [00000000 00000000]
-  thread 6 (tid 11124, guest 312): last KERNEL32!InterlockedCompareExchange from 0068c6ea, 87208 calls (idle); esi 749222f0 [010cd524 00000000]
-  thread 7 (tid 11157, guest 316): last KERNEL32!ExitThread from 00a4b4fb, 13757703 calls (idle); esi 103ffdc8 [0110d640 00000000]
-  thread 8 (tid 11158, guest 320): last KERNEL32!WaitForSingleObject from 00af89b0, 7806894 calls; esi 74b11100 [0111d7ac 00000000]
-  thread 9 (tid 11159, guest 324): last KERNEL32!WaitForSingleObject from 00af863c, 1486401 calls; esi 74cfc408 [0107a45c 00000000]
-  thread 10 (tid 11014, guest 268): last KERNEL32!WaitForSingleObject from 00a5aeac, 176034 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 11 (tid 11017, guest 280): last KERNEL32!WaitForSingleObject from 00a5aeac, 166870 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 12 (tid 11013, guest 264): last KERNEL32!WaitForSingleObject from 00a5aeac, 190260 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 13 (tid 11016, guest 276): last KERNEL32!WaitForSingleObject from 00a5aeac, 155172 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 14 (tid 11015, guest 272): last KERNEL32!WaitForSingleObject from 00a5aeac, 148096 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 15 (tid 11018, guest 284): last KERNEL32!WaitForSingleObject from 00a5aeac, 151234 calls; esi 01b8b1d0 [0110dd1c 00000101]
-SnapFrame: bidirectional flow pair accepted count=720 groups=20x9
-SnapFrame: forward/backward consistency accepted count=720
-xaudio2: source starvation frames pending_decode=0 empty_queue=2073 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=2095 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=1799 (last 1s)
-SnapFrame: bidirectional flow pair accepted count=840 groups=20x9
-SnapFrame: forward/backward consistency accepted count=840
-xaudio2: source starvation frames pending_decode=0 empty_queue=839 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=1819 (last 1s)
-SnapFrame: TEST_PHASE_PROGRESS phase=static_scene elapsed_frames=900 target_frames=1800
-SnapFrame: luma dispatch accepted count=900 groups=153x68
-frame 900
-SnapFrame: bidirectional flow pair accepted count=960 groups=20x9
-SnapFrame: forward/backward consistency accepted count=960
-xaudio2: source starvation frames pending_decode=0 empty_queue=971 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=401 (last 1s)
-SnapFrame: bidirectional flow pair accepted count=1080 groups=20x9
-SnapFrame: forward/backward consistency accepted count=1080
-xaudio2: source starvation frames pending_decode=0 empty_queue=919 (last 1s)
 VirtualAlloc(00000000, 16777216, 2000) = 98540000
+VirtualAlloc(00000000, 16777216, 2000) = 99540000
 SnapFrame: TEST_PHASE_PROGRESS phase=static_scene elapsed_frames=1200 target_frames=1800
 SnapFrame: luma dispatch accepted count=1200 groups=153x68
 frame 1200
-xaudio2: source starvation frames pending_decode=0 empty_queue=169 (last 1s)
 SnapFrame: bidirectional flow pair accepted count=1200 groups=20x9
 SnapFrame: forward/backward consistency accepted count=1200
-xaudio2: source starvation frames pending_decode=0 empty_queue=716 (last 1s)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
-CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
-CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 168
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 168
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm -> fd -1
-CreateFileA failed: C:\Skyrim\DATA\DATA\Update.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm -> fd -1
-CreateFileA failed: C:\Skyrim\DATA\DATA\Update.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.esm -> fd 222
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.esm -> fd 222
+xaudio2: source starvation frames pending_decode=0 empty_queue=573 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=523 (last 1s)
 SnapFrame: bidirectional flow pair accepted count=1320 groups=20x9
 SnapFrame: forward/backward consistency accepted count=1320
-xaudio2: source starvation frames pending_decode=0 empty_queue=1649 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=3279 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=6175 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=5455 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=719 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=110 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=1902 (last 1s)
 SnapFrame: bidirectional flow pair accepted count=1440 groups=20x9
 SnapFrame: forward/backward consistency accepted count=1440
-xaudio2: source starvation frames pending_decode=0 empty_queue=5060 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=3861 (last 1s)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
-CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
-CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 219
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 219
+xaudio2: source starvation frames pending_decode=0 empty_queue=1829 (last 1s)
 SnapFrame: TEST_PHASE_PROGRESS phase=static_scene elapsed_frames=1500 target_frames=1800
 SnapFrame: luma dispatch accepted count=1500 groups=153x68
 frame 1500
-xaudio2: source starvation frames pending_decode=0 empty_queue=3558 (last 1s)
-xaudio2: source format tag=0001 fmt=0 1 ch 16000 Hz bits=16
-VirtualAlloc(00000000, 16777216, 2000) = 99540000
-VirtualAlloc(00000000, 16777216, 2000) = 9a540000
-xaudio2: source starvation frames pending_decode=0 empty_queue=1712 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=4971 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=1177 (last 1s)
 SnapFrame: bidirectional flow pair accepted count=1560 groups=20x9
 SnapFrame: forward/backward consistency accepted count=1560
-xaudio2: source starvation frames pending_decode=0 empty_queue=4005 (last 1s)
-watchdog 60s: frames 1607
-xaudio2: source starvation frames pending_decode=0 empty_queue=147 (last 1s)
-profile: 6044 samples (1 ms CPU each)
-    5.1%  ?
-    3.9%  libdxvk_d3d9.so+0x221c00
-    3.8%  syscall
-    2.0%  libc.so+0x56c00
-    1.8%  libmain.so+0x64b4700
-    1.6%  f_472580
-    1.5%  rt_call
-    1.1%  sched_yield
-    0.9%  vulkan.adreno.so+0x13df00
-    0.9%  libc.so+0xc1500
-    0.8%  nanosleep
-    0.8%  f_447ED0
-    0.8%  _Z8com_hostj
-    0.8%  libmain.so+0x6457600
-    0.7%  _ZN11qglinternal20vkCmdBindIndexBufferEP17VkCommandBuffer_TP10VkBuffer_Tm11VkIndexType
-    0.7%  libc.so+0x4c400
-    0.7%  madvise
-    0.6%  libmain.so+0x6460600
-    0.6%  f_474CD0
-    0.6%  f_4EC9C0
-    0.6%  libc.so+0x56700
-    0.6%  libc.so+0xcfc00
-    0.6%  __emutls_get_address
-    0.6%  f_AFBF80
-    0.6%  f_ACE100
-    0.6%  libc.so+0xcfb00
-    0.5%  libc.so+0xc2600
-    0.5%  libc.so+0xc1300
-    0.5%  pthread_getspecific
-    0.4%  f_694FD0
-cpu: 152% of one core in total; SDLActivity/10589:4%@1 RenderThread/10608:4%@6 SDLThread/11001:50%@3 Thread-3/11104:4%@4 SDLThread/11112:5%@4 SDLThread/11113:23%@3 Thread-5/11122:24%@5 SDLThread/11123:24%@4
-  thread 0 (tid 11001, guest 260): last IDirect3DDevice9#17 from 00ce7e03, 96903357 calls; esi 746f8520 [01159d38 00000002]
-  thread 1 (tid 11019, guest 288): last KERNEL32!ExitThread from 00a5ac7a, 9 calls (idle); esi 00000006 [00000000 00000000]
-  thread 2 (tid 11091, guest 292): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 30296713 calls (idle); esi 01b4ae14 [00000000 00000000]
-  thread 3 (tid 11098, guest 296): last KERNEL32!Sleep from 00b9ef30, 406704 calls; esi 744ca540 [01124a4c 00000000]
-  thread 4 (tid 11123, guest 308): last KERNEL32!WaitForSingleObject from 00a59095, 11448884 calls; esi ff00022c [00000000 00000000]
-  thread 5 (tid 11122, guest 304): last KERNEL32!WaitForSingleObject from 00a59095, 12477655 calls; esi ff00022c [00000000 00000000]
-  thread 6 (tid 11124, guest 312): last KERNEL32!InterlockedCompareExchange from 0068c6ea, 87208 calls (idle); esi 749222f0 [010cd524 00000000]
-  thread 7 (tid 11157, guest 316): last KERNEL32!ExitThread from 00a4b4fb, 13757703 calls (idle); esi 103ffdc8 [0110d640 00000000]
-  thread 8 (tid 11158, guest 320): last KERNEL32!LeaveCriticalSection from 00d0c81d, 8880184 calls; esi 740ef6dc [00000000 00000000]
-  thread 9 (tid 11159, guest 324): last KERNEL32!WaitForSingleObject from 00af863c, 1561785 calls; esi 74cfc408 [0107a45c 00000000]
-  thread 10 (tid 11014, guest 268): last KERNEL32!WaitForSingleObject from 00a5aeac, 502657 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 11 (tid 11017, guest 280): last KERNEL32!WaitForSingleObject from 00a5aeac, 748700 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 12 (tid 11013, guest 264): last KERNEL32!WaitForSingleObject from 00a5aeac, 513499 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 13 (tid 11016, guest 276): last KERNEL32!WaitForSingleObject from 00a5aeac, 603233 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 14 (tid 11015, guest 272): last KERNEL32!WaitForSingleObject from 00a5aeac, 679616 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 15 (tid 11018, guest 284): last KERNEL32!WaitForSingleObject from 00a5aeac, 617056 calls; esi 01b8b1d0 [0110dd1c 00000101]
-xaudio2: source starvation frames pending_decode=0 empty_queue=7206 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=3019 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=3158 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=758 (last 1s)
 SnapFrame: bidirectional flow pair accepted count=1680 groups=20x9
 SnapFrame: forward/backward consistency accepted count=1680
-xaudio2: source starvation frames pending_decode=0 empty_queue=3654 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=5999 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=3903 (last 1s)
+watchdog 60s: frames 1692
+profile: 8769 samples (1 ms CPU each)
+    6.0%  f_91D870
+    3.8%  ?
+    2.3%  libdxvk_d3d9.so+0x221c00
+    2.0%  syscall
+    1.5%  libmain.so+0x64b4a00
+    1.5%  f_472580
+    1.4%  rt_call
+    1.4%  nanosleep
+    1.2%  libc.so+0xc1500
+    1.2%  libc.so+0x56c00
+    1.1%  sched_yield
+    0.9%  libmain.so+0x6460900
+    0.9%  pread64
+    0.8%  libc.so+0xc2500
+    0.8%  libmain.so+0x6475100
+    0.8%  f_447ED0
+    0.7%  libc.so+0x56700
+    0.7%  __emutls_get_address
+    0.6%  madvise
+    0.6%  f_AF7810
+    0.6%  f_AFBF80
+    0.5%  libc.so+0xcfd00
+    0.5%  f_DDD230
+    0.5%  f_D4C450
+    0.5%  f_91E220
+    0.5%  libc.so+0x4c400
+    0.5%  f_E5FFF0
+    0.5%  libmain.so+0x6457900
+    0.5%  _Z8com_hostj
+    0.4%  libdxvk_d3d9.so+0x221800
+cpu: 183% of one core in total; SDLActivity/31347:8%@2 RenderThread/31434:5%@1 SDLThread/32047:53%@6 SDLThread/32048:5%@7 Thread-3/32174:4%@4 SDLThread/32182:5%@4 SDLThread/32183:32%@4 Thread-5/32195:23%@5 SDLThread/32196:19%@3 SDLThread/32230:16%@4
+  thread 0 (tid 32047, guest 260): last KERNEL32!InterlockedIncrement from 007bb3ba, 83012630 calls; esi 741bf854 [63e4c5b0 00000800]
+  thread 1 (tid 32069, guest 288): last KERNEL32!ExitThread from 00a5ac7a, 9 calls (idle); esi 00000006 [00000000 00000000]
+  thread 2 (tid 32164, guest 292): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 30297586 calls (idle); esi 01b4ae14 [00000000 00000000]
+  thread 3 (tid 32170, guest 296): last KERNEL32!Sleep from 00b9ef30, 433717 calls; esi 744ca5c0 [01124a4c 00000000]
+  thread 4 (tid 32195, guest 304): last KERNEL32!TlsGetValue from 00d8ad01, 7872288 calls; esi 782d6500 [0117f8e0 000100d0]
+  thread 5 (tid 32196, guest 308): last KERNEL32!InterlockedDecrement from 00644b1d, 6800435 calls; esi 7498da40 [00000001 00000000]
+  thread 6 (tid 32198, guest 312): last KERNEL32!InterlockedCompareExchange from 0068c6ea, 83040 calls (idle); esi 74921ee0 [010cd524 00000000]
+  thread 7 (tid 32229, guest 316): last KERNEL32!ExitThread from 00a4b4fb, 13757933 calls (idle); esi 103ffdc8 [0110d640 00000000]
+  thread 8 (tid 32230, guest 320): last KERNEL32!WaitForSingleObject from 00af89b0, 7918676 calls; esi 74bc0000 [0111d7ac 00000000]
+  thread 9 (tid 32231, guest 324): last KERNEL32!WaitForSingleObject from 00af863c, 1511124 calls; esi 74cfd0f8 [0107a45c 00000000]
+  thread 10 (tid 32068, guest 284): last KERNEL32!WaitForSingleObject from 00a5aeac, 234752 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 11 (tid 32067, guest 280): last KERNEL32!WaitForSingleObject from 00a5aeac, 211577 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 12 (tid 32063, guest 264): last KERNEL32!WaitForSingleObject from 00a5aeac, 229944 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 13 (tid 32065, guest 272): last KERNEL32!WaitForSingleObject from 00a5aeac, 223959 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 14 (tid 32064, guest 268): last KERNEL32!WaitForSingleObject from 00a5aeac, 214988 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 15 (tid 32066, guest 276): last KERNEL32!WaitForSingleObject from 00a5aeac, 228797 calls; esi 01b8b1d0 [0110dd1c 00000101]
 SnapFrame: TEST_PHASE_PROGRESS phase=static_scene elapsed_frames=1800 target_frames=1800
 SnapFrame: luma dispatch accepted count=1800 groups=153x68
 SnapFrame: captured=1800 skipped=0 extent=2448x1080
 frame 1800
-xaudio2: source starvation frames pending_decode=0 empty_queue=3430 (last 1s)
 SnapFrame: TEST_PHASE_RESULT phase=static_scene frames=1800 luma_ok=1800 flow_pairs_ok=1799 consistency_ok=1799 skipped=0 luma_fail_total=0 flow_fail_total=0 consistency_fail_total=0
 SnapFrame: TEST_PHASE_BEGIN index=2 name=slow_camera_pan target_frames=1800
 SnapFrame: TEST_ACTION slowly pan the camera horizontally and vertically
 SnapFrame: TEST_PHASE_PROGRESS phase=slow_camera_pan elapsed_frames=0 target_frames=1800
 SnapFrame: bidirectional flow pair accepted count=1800 groups=20x9
 SnapFrame: forward/backward consistency accepted count=1800
-xaudio2: source starvation frames pending_decode=0 empty_queue=2682 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=5934 (last 1s)
-xaudio2: refill gap voice=23d7ee40 gap=1113ms eos=0 queue_before=1 totals=1/>5ms:1/>10ms:1
-xaudio2: source starvation frames pending_decode=0 empty_queue=3967 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=398 (last 1s)
 SnapFrame: bidirectional flow pair accepted count=1920 groups=20x9
 SnapFrame: forward/backward consistency accepted count=1920
-xaudio2: refill gap voice=23d7ee40 gap=4787ms eos=0 queue_before=1 totals=2/>5ms:2/>10ms:2
+xaudio2: source starvation frames pending_decode=0 empty_queue=885 (last 1s)
 SnapFrame: bidirectional flow pair accepted count=2040 groups=20x9
 SnapFrame: forward/backward consistency accepted count=2040
-xaudio2: source starvation frames pending_decode=0 empty_queue=2001 (last 1s)
-xaudio2: refill gap voice=23d7ee40 gap=933ms eos=0 queue_before=1 totals=3/>5ms:3/>10ms:3
+xaudio2: source starvation frames pending_decode=0 empty_queue=939 (last 1s)
 SnapFrame: TEST_PHASE_PROGRESS phase=slow_camera_pan elapsed_frames=300 target_frames=1800
 SnapFrame: luma dispatch accepted count=2100 groups=153x68
 frame 2100
-xaudio2: source starvation frames pending_decode=0 empty_queue=3103 (last 1s)
 SnapFrame: bidirectional flow pair accepted count=2160 groups=20x9
 SnapFrame: forward/backward consistency accepted count=2160
-xaudio2: source starvation frames pending_decode=0 empty_queue=893 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=1638 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=991 (last 1s)
 SnapFrame: bidirectional flow pair accepted count=2280 groups=20x9
 SnapFrame: forward/backward consistency accepted count=2280
-xaudio2: source starvation frames pending_decode=0 empty_queue=4479 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=1121 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=229 (last 1s)
-xaudio2: refill gap voice=23d7ee40 gap=10615ms eos=0 queue_before=1 totals=4/>5ms:4/>10ms:4
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #3, decoder FFmpeg)
-xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#3)
-[wmav2 @ 0x72c930a9d0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=6 block_align=1487 pcm_frames=69632 pcm=1.579s dpds=1.579s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=8922 -> 69632 frames submit #3
-xaudio2: xWMA worker latency=1ms submit #3
+xaudio2: source starvation frames pending_decode=0 empty_queue=832 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=1835 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=4575 (last 1s)
 SnapFrame: TEST_PHASE_PROGRESS phase=slow_camera_pan elapsed_frames=600 target_frames=1800
 SnapFrame: luma dispatch accepted count=2400 groups=153x68
 frame 2400
+xaudio2: source starvation frames pending_decode=0 empty_queue=1895 (last 1s)
 SnapFrame: bidirectional flow pair accepted count=2400 groups=20x9
 SnapFrame: forward/backward consistency accepted count=2400
-xaudio2: source starvation frames pending_decode=0 empty_queue=11654 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=4958 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=6966 (last 1s)
+xaudio2: source format tag=0001 fmt=0 2 ch 32000 Hz bits=16
+xaudio2: source starvation frames pending_decode=0 empty_queue=6080 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=3469 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=3414 (last 1s)
 SnapFrame: bidirectional flow pair accepted count=2520 groups=20x9
 SnapFrame: forward/backward consistency accepted count=2520
-watchdog 90s: frames 2521
-xaudio2: source starvation frames pending_decode=0 empty_queue=3681 (last 1s)
-profile: 6111 samples (1 ms CPU each)
-    4.3%  libdxvk_d3d9.so+0x221c00
-    4.1%  syscall
-    4.0%  ?
-    1.7%  sched_yield
-    1.6%  libc.so+0x56c00
-    1.6%  libmain.so+0x64b4700
-    1.6%  f_472580
-    1.2%  rt_call
-    1.1%  libmain.so+0x6457600
-    0.9%  _ZN11qglinternal20vkCmdBindIndexBufferEP17VkCommandBuffer_TP10VkBuffer_Tm11VkIndexType
-    0.9%  libc.so+0xc1500
-    0.9%  vulkan.adreno.so+0x13df00
-    0.9%  libc.so+0xcfc00
-    0.8%  libmain.so+0x6460600
-    0.8%  madvise
-    0.8%  libc.so+0xc1300
-    0.8%  libmain.so+0x6474e00
-    0.7%  _ZN4dxvk4sync17RecursiveSpinlock4lockEv
-    0.7%  libc.so+0x56700
-    0.7%  f_91D870
-    0.6%  nanosleep
-    0.6%  libc.so+0xcfb00
-    0.6%  f_474CD0
-    0.6%  _Z8com_hostj
-    0.6%  libc.so+0x4c400
-    0.6%  libc.so+0xcfe00
-    0.6%  __emutls_get_address
-    0.6%  f_447ED0
-    0.5%  libc.so+0xcfd00
-    0.5%  f_CD7C20
-cpu: 156% of one core in total; SDLActivity/10589:4%@4 RenderThread/10608:3%@5 SDLThread/11001:52%@5 Thread-3/11104:4%@4 SDLThread/11112:5%@4 SDLThread/11113:24%@4 Thread-5/11122:25%@4 SDLThread/11123:25%@6 SDLThread/11158:5%@6
-  thread 0 (tid 11001, guest 260): last IDirect3DDevice9#82 from 00cd39fa, 121038621 calls; esi 77833390 [01118c0c 00000014]
-  thread 1 (tid 11019, guest 288): last KERNEL32!ExitThread from 00a5ac7a, 9 calls (idle); esi 00000006 [00000000 00000000]
-  thread 2 (tid 11091, guest 292): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 30296713 calls (idle); esi 01b4ae14 [00000000 00000000]
-  thread 3 (tid 11098, guest 296): last KERNEL32!Sleep from 00b9ef30, 570998 calls; esi 744ca540 [01124a4c 00000000]
-  thread 4 (tid 11123, guest 308): last KERNEL32!TlsGetValue from 00e295a7, 22577784 calls; esi 78897290 [00000a04 000800db]
-  thread 5 (tid 11122, guest 304): last KERNEL32!WaitForSingleObject from 00a59095, 23899149 calls; esi ff00022c [00000000 00000000]
-  thread 6 (tid 11124, guest 312): last KERNEL32!InterlockedCompareExchange from 0068c6ea, 87208 calls (idle); esi 749222f0 [010cd524 00000000]
-  thread 7 (tid 11157, guest 316): last KERNEL32!ExitThread from 00a4b4fb, 13757703 calls (idle); esi 103ffdc8 [0110d640 00000000]
-  thread 8 (tid 11158, guest 320): last KERNEL32!WaitForSingleObject from 00af89b0, 13557049 calls; esi 74b11100 [0111d7ac 00000000]
-  thread 9 (tid 11159, guest 324): last KERNEL32!WaitForSingleObject from 00af863c, 2576338 calls; esi 74cfc408 [0107a45c 00000000]
-  thread 10 (tid 11014, guest 268): last KERNEL32!WaitForSingleObject from 00a5aeac, 572389 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 11 (tid 11017, guest 280): last KERNEL32!WaitForSingleObject from 00a5aeac, 822624 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 12 (tid 11013, guest 264): last KERNEL32!WaitForSingleObject from 00a5aeac, 597325 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 13 (tid 11016, guest 276): last KERNEL32!WaitForSingleObject from 00a5aeac, 682007 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 14 (tid 11015, guest 272): last KERNEL32!WaitForSingleObject from 00a5aeac, 749064 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 15 (tid 11018, guest 284): last KERNEL32!WaitForSingleObject from 00a5aeac, 704653 calls; esi 01b8b1d0 [0110dd1c 00000101]
-xaudio2: source starvation frames pending_decode=0 empty_queue=3795 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=643 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=26192 (last 1s)
-xaudio2: refill gap voice=23de2930 gap=155ms eos=0 queue_before=1 totals=1/>5ms:1/>10ms:1
+xaudio2: source starvation frames pending_decode=0 empty_queue=1520 (last 1s)
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
+CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
+CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 227
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 227
+xaudio2: source starvation frames pending_decode=0 empty_queue=2343 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=1020 (last 1s)
 SnapFrame: bidirectional flow pair accepted count=2640 groups=20x9
 SnapFrame: forward/backward consistency accepted count=2640
-xaudio2: source starvation frames pending_decode=0 empty_queue=32158 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=33572 (last 1s)
+watchdog 90s: frames 2668
+xaudio2: source starvation frames pending_decode=0 empty_queue=931 (last 1s)
 SnapFrame: TEST_PHASE_PROGRESS phase=slow_camera_pan elapsed_frames=900 target_frames=1800
 SnapFrame: luma dispatch accepted count=2700 groups=153x68
 frame 2700
-xaudio2: source starvation frames pending_decode=0 empty_queue=40061 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=32889 (last 1s)
+profile: 8245 samples (1 ms CPU each)
+    6.2%  ?
+    3.6%  libdxvk_d3d9.so+0x221c00
+    3.5%  syscall
+    2.2%  f_472580
+    1.9%  libc.so+0x56c00
+    1.8%  libmain.so+0x64b4a00
+    1.7%  libmain.so+0x6475100
+    1.3%  libc.so+0xc1500
+    1.2%  rt_call
+    1.0%  f_447ED0
+    0.9%  f_AFBF80
+    0.9%  f_474CD0
+    0.8%  nanosleep
+    0.8%  f_4EC9C0
+    0.8%  libmain.so+0x6460900
+    0.8%  libmain.so+0x6457900
+    0.8%  _Z8com_hostj
+    0.7%  madvise
+    0.7%  libc.so+0xcfb00
+    0.7%  libc.so+0x56700
+    0.7%  f_ACE100
+    0.7%  __emutls_get_address
+    0.6%  libc.so+0xc2500
+    0.6%  vulkan.adreno.so+0x13df00
+    0.6%  libc.so+0x4c400
+    0.6%  f_CD7C20
+    0.6%  libc.so+0xcfc00
+    0.5%  libc.so+0xcfd00
+    0.5%  libc.so+0xcfe00
+    0.5%  _ZN11qglinternal20vkCmdBindIndexBufferEP17VkCommandBuffer_TP10VkBuffer_Tm11VkIndexType
+cpu: 197% of one core in total; SDLActivity/31347:8%@6 RenderThread/31434:8%@6 SDLThread/32047:63%@5 SDLThread/32048:5%@7 Thread-3/32174:5%@6 SDLThread/32182:6%@4 SDLThread/32183:30%@5 Thread-5/32195:32%@3 SDLThread/32196:32%@4
+  thread 0 (tid 32047, guest 260): last IDirect3DDevice9#37 from 00ce7ee8, 106144422 calls; esi 2000a2b0 [200097f0 0000004b]
+  thread 1 (tid 32069, guest 288): last KERNEL32!ExitThread from 00a5ac7a, 9 calls (idle); esi 00000006 [00000000 00000000]
+  thread 2 (tid 32164, guest 292): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 30297586 calls (idle); esi 01b4ae14 [00000000 00000000]
+  thread 3 (tid 32170, guest 296): last KERNEL32!Sleep from 00b9ef30, 575725 calls; esi 744ca5c0 [01124a4c 00000000]
+  thread 4 (tid 32195, guest 304): last KERNEL32!InterlockedDecrement from 006c6af1, 19516350 calls; esi 62359820 [010d201c 00000000]
+  thread 5 (tid 32196, guest 308): last KERNEL32!InterlockedDecrement from 00b928b9, 18194630 calls; esi 945400c8 [3f800000 80000000]
+  thread 6 (tid 32198, guest 312): last KERNEL32!InterlockedCompareExchange from 0068c6ea, 83040 calls (idle); esi 74921ee0 [010cd524 00000000]
+  thread 7 (tid 32229, guest 316): last KERNEL32!ExitThread from 00a4b4fb, 13757933 calls (idle); esi 103ffdc8 [0110d640 00000000]
+  thread 8 (tid 32230, guest 320): last KERNEL32!WaitForSingleObject from 00af89b0, 7975685 calls; esi 74bc0000 [0111d7ac 00000000]
+  thread 9 (tid 32231, guest 324): last KERNEL32!WaitForSingleObject from 00af863c, 1512036 calls; esi 74cfd0f8 [0107a45c 00000000]
+  thread 10 (tid 32068, guest 284): last KERNEL32!WaitForSingleObject from 00a5aeac, 288424 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 11 (tid 32067, guest 280): last KERNEL32!WaitForSingleObject from 00a5aeac, 275307 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 12 (tid 32063, guest 264): last KERNEL32!WaitForSingleObject from 00a5aeac, 294916 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 13 (tid 32065, guest 272): last KERNEL32!WaitForSingleObject from 00a5aeac, 282120 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 14 (tid 32064, guest 268): last KERNEL32!WaitForSingleObject from 00a5aeac, 283027 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 15 (tid 32066, guest 276): last KERNEL32!WaitForSingleObject from 00a5aeac, 302616 calls; esi 01b8b1d0 [0110dd1c 00000101]
+xaudio2: source starvation frames pending_decode=0 empty_queue=1156 (last 1s)
 SnapFrame: bidirectional flow pair accepted count=2760 groups=20x9
 SnapFrame: forward/backward consistency accepted count=2760
-xaudio2: source starvation frames pending_decode=0 empty_queue=32158 (last 1s)
-xaudio2: source format tag=0001 fmt=0 1 ch 44100 Hz bits=16
-xaudio2: refill gap voice=23de2930 gap=5301ms eos=0 queue_before=1 totals=2/>5ms:2/>10ms:2
-xaudio2: source starvation frames pending_decode=0 empty_queue=32157 (last 1s)
-xaudio2: refill gap voice=23de2930 gap=797ms eos=0 queue_before=1 totals=3/>5ms:3/>10ms:3
-xaudio2: source starvation frames pending_decode=0 empty_queue=32157 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=32157 (last 1s)
-xaudio2: refill gap voice=23de2930 gap=1742ms eos=0 queue_before=1 totals=4/>5ms:4/>10ms:4
+xaudio2: source starvation frames pending_decode=0 empty_queue=17 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=1513 (last 1s)
 SnapFrame: bidirectional flow pair accepted count=2880 groups=20x9
 SnapFrame: forward/backward consistency accepted count=2880
-xaudio2: source starvation frames pending_decode=0 empty_queue=32158 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=36040 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=38739 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=36928 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=35756 (last 1s)
 SnapFrame: TEST_PHASE_PROGRESS phase=slow_camera_pan elapsed_frames=1200 target_frames=1800
 SnapFrame: luma dispatch accepted count=3000 groups=153x68
 frame 3000
 SnapFrame: bidirectional flow pair accepted count=3000 groups=20x9
 SnapFrame: forward/backward consistency accepted count=3000
-xaudio2: source starvation frames pending_decode=0 empty_queue=34295 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=39701 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=42007 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=42328 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=39594 (last 1s)
-quit requested
-xaudio2: engine thread stopped cleanly
-FORTIFY: pthread_mutex_lock called on a destroyed mutex (0x739a602968)
-FORTIFY: pthread_mutex_lock called on a destroyed mutex (0x739a602968)
-CRASH: signal 6 code -1 at address 0x2b4e0000295d (thread 10635)
-  sp 704073f3c0
-  x0  0000000000000000 000000000000298b 0000000000000006 000000704073f3e0
-  x4  6b6b60621f6a626e 6b6b60621f6a626e 6b6b60621f6a626e 7f7f7f7f7f7f7f7f
-  x8  00000000000000f0 00000073886b2438 ffffff80fffffb9f 0000000000000001
-  x12 00000073aa0df020 000000007fffffff 00000000074c327a 000004479ff98ee6
-  x16 0000007388764fe0 000000738874fd40 0000006fb8898000 000000000000295d
-  x20 000000000000298b 00000000ffffffff 0000000000000001 000000704073fa80
-  x24 000000739a6041e0 000000739a6029d0 0000000000000030 000000704073f640
-  x28 0000007040647000 000000704073f460 00000073886ebb20 00000073886ebb20
-  guest mem base 0x6e96289000
-  (not a guest thread)
-backtrace:
-  #-1 libc.so+0x5cb50 (abort+0xac)
-CRASH: signal 6 code -1 at address 0x2b4e0000295d (thread 10634)
-  sp 7040a453c0
-  x0  0000000000000000 000000000000298a 0000000000000006 0000007040a453e0
-  x4  6b6b60621f6a626e 6b6b60621f6a626e 6b6b60621f6a626e 7f7f7f7f7f7f7f7f
-  x8  00000000000000f0 00000073886b2438 ffffff80fffffb9f 0000000000000001
-  x12 00000073aa0df020 000000007fffffff 00000000074c327a 000004479ff9c36b
-  x16 0000007388764fe0 000000738874fd40 0000006fb9de8000 000000000000295d
-  x20 000000000000298a 00000000ffffffff 0000000000000001 0000007040a45a80
-  x24 000000739a6041e0 000000739a6029d0 0000000000000030 0000007040a45640
-  x28 000000704094d000 0000007040a45460 00000073886ebb20 00000073886ebb20
-  guest mem base 0x6e96289000
-  #-2 libc.so+0x5cb20 (abort+0x7c)
-  (not a guest thread)
-backtrace:
-  #-1 libc.so+0x5cb50 (abort+0xac)
-  #-2 libc.so+0x5cb20 (abort+0x7c)
-  #00 libmain.so+0x6466a94
+xaudio2: source starvation frames pending_decode=0 empty_queue=3288 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=1581 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=5184 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #3, decoder FFmpeg)
+xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#3)
+[wmav2 @ 0x72c8994560] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=4461 -> 30720 frames submit #3
+xaudio2: xWMA worker latency=1ms submit #3
+xaudio2: source starvation frames pending_decode=0 empty_queue=3304 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #4, decoder FFmpeg)
+xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#4)
+[wmav2 @ 0x72c8994560] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=4461 -> 28672 frames submit #4
+xaudio2: xWMA worker latency=1ms submit #4
+xaudio2: source starvation frames pending_decode=0 empty_queue=10010 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #5, decoder FFmpeg)
+xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#5)
+[wmav2 @ 0x72c904a990] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=4461 -> 30720 frames submit #5
+xaudio2: xWMA worker latency=2ms submit #5
+SnapFrame: bidirectional flow pair accepted count=3120 groups=20x9
+SnapFrame: forward/backward consistency accepted count=3120
+xaudio2: source starvation frames pending_decode=0 empty_queue=5419 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=4475 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=7699 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=7793 (last 1s)
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
+CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
+CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 207
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 281
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm -> fd -1
+CreateFileA failed: C:\Skyrim\DATA\DATA\Update.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm)
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm -> fd -1
+CreateFileA failed: C:\Skyrim\DATA\DATA\Update.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm)
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.esm -> fd 230
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.esm -> fd 169
+VirtualAlloc(00000000, 16777216, 2000) = 9a540000
+VirtualAlloc(00000000, 16777216, 2000) = 9b540000
+xaudio2: source starvation frames pending_decode=0 empty_queue=4376 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=3240 groups=20x9
+SnapFrame: forward/backward consistency accepted count=3240
+xaudio2: source starvation frames pending_decode=0 empty_queue=4244 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=4314 (last 1s)
+SnapFrame: TEST_PHASE_PROGRESS phase=slow_camera_pan elapsed_frames=1500 target_frames=1800
+SnapFrame: luma dispatch accepted count=3300 groups=153x68
+frame 3300
+xaudio2: source starvation frames pending_decode=0 empty_queue=1673 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=2056 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #6, decoder FFmpeg)
+xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#6)
+[wmav2 @ 0x72c931dc00] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=4461 -> 30720 frames submit #6
+xaudio2: xWMA worker latency=1ms submit #6
+SnapFrame: bidirectional flow pair accepted count=3360 groups=20x9
+SnapFrame: forward/backward consistency accepted count=3360
+xaudio2: source starvation frames pending_decode=0 empty_queue=6571 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #7, decoder FFmpeg)
+xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#7)
+[wmav2 @ 0x72c9048710] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=4461 -> 30720 frames submit #7
+xaudio2: xWMA worker latency=2ms submit #7
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #8, decoder FFmpeg)
+xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#8)
+[wmav2 @ 0x72c82eb030] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=4461 -> 30720 frames submit #8
+xaudio2: xWMA worker latency=1ms submit #8
+xaudio2: source starvation frames pending_decode=0 empty_queue=7681 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #9, decoder FFmpeg)
+xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#9)
+[wmav2 @ 0x72c868df90] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=4461 -> 30720 frames submit #9
+xaudio2: xWMA worker latency=2ms submit #9
+xaudio2: source starvation frames pending_decode=0 empty_queue=3109 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=10085 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=3480 groups=20x9
+SnapFrame: forward/backward consistency accepted count=3480
+xaudio2: source starvation frames pending_decode=0 empty_queue=498 (last 1s)
+watchdog 120s: frames 3535
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #10, decoder FFmpeg)
+xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#10)
+[wmav2 @ 0x72c9218d80] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=4461 -> 28672 frames submit #10
+xaudio2: xWMA worker latency=2ms submit #10
+xaudio2: source format tag=0001 fmt=0 1 ch 16000 Hz bits=16
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #11, decoder FFmpeg)
+[wmav2 @ 0x72c868df90] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=4647 (last 1s)
+profile: 9059 samples (1 ms CPU each)
+    5.6%  ?
+    4.5%  libdxvk_d3d9.so+0x221c00
+    3.3%  syscall
+    2.3%  f_472580
+    1.8%  libmain.so+0x64b4a00
+    1.5%  libc.so+0x56c00
+    1.4%  libmain.so+0x6475100
+    1.4%  rt_call
+    1.0%  f_447ED0
+    1.0%  f_474CD0
+    1.0%  libc.so+0x56700
+    0.9%  _Z8com_hostj
+    0.9%  libc.so+0xcfd00
+    0.9%  libc.so+0xc1500
+    0.9%  libc.so+0xcfb00
+    0.8%  f_ACE100
+    0.8%  f_AFBF80
+    0.8%  nanosleep
+    0.8%  f_4EC9C0
+    0.8%  libmain.so+0x6460900
+    0.7%  vulkan.adreno.so+0x13df00
+    0.7%  libmain.so+0x6457900
+    0.7%  libdxvk_d3d9.so+0x221800
+    0.6%  madvise
+    0.6%  f_694FD0
+    0.6%  f_CAFD70
+    0.6%  libc.so+0xc2500
+    0.6%  libc.so+0x4c400
+    0.6%  f_C8EB60
+    0.6%  f_CD7C20
+cpu: 207% of one core in total; SDLActivity/31347:7%@1 RenderThread/31434:7%@1 SDLThread/32047:70%@5 SDLThread/32048:6%@7 Thread-3/32174:5%@6 SDLThread/32182:6%@3 SDLThread/32183:36%@4 Thread-5/32195:30%@3 SDLThread/32196:29%@6
+  thread 0 (tid 32047, guest 260): last IDirect3DDevice9#65 from 00ca0f45, 133794878 calls; esi 20009574 [ff0009d8 ff0009dc]
+  thread 1 (tid 32069, guest 288): last KERNEL32!ExitThread from 00a5ac7a, 9 calls (idle); esi 00000006 [00000000 00000000]
+  thread 2 (tid 32164, guest 292): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 30297586 calls (idle); esi 01b4ae14 [00000000 00000000]
+  thread 3 (tid 32170, guest 296): last KERNEL32!Sleep from 00b9ef30, 723210 calls; esi 744ca5c0 [01124a4c 00000000]
+  thread 4 (tid 32195, guest 304): last KERNEL32!WaitForSingleObject from 00a59095, 30388494 calls; esi ff00022c [00000000 00000000]
+  thread 5 (tid 32196, guest 308): last KERNEL32!WaitForSingleObject from 00a59095, 28795419 calls; esi ff00022c [00000000 00000000]
+  thread 6 (tid 32198, guest 312): last KERNEL32!InterlockedCompareExchange from 0068c6ea, 83040 calls (idle); esi 74921ee0 [010cd524 00000000]
+  thread 7 (tid 32229, guest 316): last KERNEL32!ExitThread from 00a4b4fb, 13757933 calls (idle); esi 103ffdc8 [0110d640 00000000]
+  thread 8 (tid 32230, guest 320): last KERNEL32!WaitForSingleObject from 00af89b0, 8371635 calls; esi 74bc0000 [0111d7ac 00000000]
+  thread 9 (tid 32231, guest 324): last KERNEL32!WaitForSingleObject from 00af863c, 1612369 calls (idle); esi 74cfd0f8 [0107a45c 00000000]
+  thread 10 (tid 32068, guest 284): last KERNEL32!WaitForSingleObject from 00a5aeac, 542093 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 11 (tid 32067, guest 280): last KERNEL32!WaitForSingleObject from 00a5aeac, 471720 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 12 (tid 32063, guest 264): last KERNEL32!WaitForSingleObject from 00a5aeac, 365989 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 13 (tid 32065, guest 272): last KERNEL32!WaitForSingleObject from 00a5aeac, 511774 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 14 (tid 32064, guest 268): last KERNEL32!WaitForSingleObject from 00a5aeac, 348194 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 15 (tid 32066, guest 276): last KERNEL32!WaitForSingleObject from 00a5aeac, 571034 calls; esi 01b8b1d0 [0110dd1c 00000101]
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #12, decoder FFmpeg)
+[wmav2 @ 0x72c8fe87d0] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=7764 (last 1s)
+SnapFrame: TEST_PHASE_PROGRESS phase=slow_camera_pan elapsed_frames=1800 target_frames=1800
+SnapFrame: luma dispatch accepted count=3600 groups=153x68
+SnapFrame: captured=3600 skipped=0 extent=2448x1080
+frame 3600
+SnapFrame: TEST_PHASE_RESULT phase=slow_camera_pan frames=1800 luma_ok=1800 flow_pairs_ok=1800 consistency_ok=1800 skipped=0 luma_fail_total=0 flow_fail_total=0 consistency_fail_total=0
+SnapFrame: TEST_PHASE_BEGIN index=3 name=fast_camera_rotation target_frames=1800
+SnapFrame: TEST_ACTION rotate the camera quickly in several directions
+SnapFrame: TEST_PHASE_PROGRESS phase=fast_camera_rotation elapsed_frames=0 target_frames=1800
+SnapFrame: bidirectional flow pair accepted count=3600 groups=20x9
+SnapFrame: forward/backward consistency accepted count=3600
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #13, decoder FFmpeg)
+[wmav2 @ 0x72c868df90] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=6275 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #14, decoder FFmpeg)
+[wmav2 @ 0x72c9046490] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #15, decoder FFmpeg)
+[wmav2 @ 0x72c868df90] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=28672 pcm=0.650s dpds=0.650s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=6362 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #16, decoder FFmpeg)
+[wmav2 @ 0x72c8a45f50] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=9569 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #17, decoder FFmpeg)
+[wmav2 @ 0x72c869f390] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=8046 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=3720 groups=20x9
+SnapFrame: forward/backward consistency accepted count=3720
+xaudio2: source starvation frames pending_decode=0 empty_queue=5679 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=1422 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=2746 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=7044 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=3840 groups=20x9
+SnapFrame: forward/backward consistency accepted count=3840
+xaudio2: source starvation frames pending_decode=0 empty_queue=2694 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=4128 (last 1s)
+SnapFrame: TEST_PHASE_PROGRESS phase=fast_camera_rotation elapsed_frames=300 target_frames=1800
+SnapFrame: luma dispatch accepted count=3900 groups=153x68
+frame 3900
+xaudio2: source starvation frames pending_decode=0 empty_queue=3577 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=3577 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=5278 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=3960 groups=20x9
+SnapFrame: forward/backward consistency accepted count=3960
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
+CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
+CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 240
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 240
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #18, decoder FFmpeg)
+xaudio2: source starvation frames pending_decode=0 empty_queue=3245 (last 1s)
+[wmav2 @ 0x72c9332810] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=12 block_align=1487 pcm_frames=151552 pcm=3.437s dpds=3.437s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=1890 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=4080 groups=20x9
+SnapFrame: forward/backward consistency accepted count=4080
+xaudio2: source starvation frames pending_decode=0 empty_queue=3236 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=586 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #19, decoder FFmpeg)
+[wmav2 @ 0x72c9321860] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=12 block_align=1487 pcm_frames=155648 pcm=3.529s dpds=3.529s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=3384 (last 1s)
+SnapFrame: TEST_PHASE_PROGRESS phase=fast_camera_rotation elapsed_frames=600 target_frames=1800
+SnapFrame: luma dispatch accepted count=4200 groups=153x68
+frame 4200
+SnapFrame: bidirectional flow pair accepted count=4200 groups=20x9
+SnapFrame: forward/backward consistency accepted count=4200
+xaudio2: source starvation frames pending_decode=0 empty_queue=1147 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=466 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=2497 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=1699 (last 1s)
+xaudio2: source format tag=0001 fmt=0 2 ch 32000 Hz bits=16
+xaudio2: source starvation frames pending_decode=0 empty_queue=12787 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=4320 groups=20x9
+SnapFrame: forward/backward consistency accepted count=4320
+xaudio2: source starvation frames pending_decode=0 empty_queue=3468 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=572 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #20, decoder FFmpeg)
+watchdog 150s: frames 4371
+[wmav2 @ 0x72c92b45d0] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=10 block_align=1487 pcm_frames=120832 pcm=2.740s dpds=2.740s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=490 (last 1s)
+profile: 9619 samples (1 ms CPU each)
+    5.8%  ?
+    5.2%  libdxvk_d3d9.so+0x221c00
+    2.8%  f_472580
+    2.6%  syscall
+    2.1%  libmain.so+0x64b4a00
+    1.2%  rt_call
+    1.2%  libc.so+0x56c00
+    1.2%  _Z8com_hostj
+    1.1%  f_CAFD70
+    1.1%  libc.so+0xcfd00
+    1.1%  libmain.so+0x6475100
+    1.0%  f_447ED0
+    1.0%  f_474CD0
+    1.0%  f_C8EB60
+    0.9%  libmain.so+0x6460900
+    0.9%  libc.so+0xcfb00
+    0.9%  libc.so+0x56700
+    0.8%  libdxvk_d3d9.so+0x221800
+    0.8%  f_ACE100
+    0.8%  sched_yield
+    0.8%  f_4EC9C0
+    0.8%  libc.so+0xc1500
+    0.7%  f_AFBF80
+    0.7%  f_CB0090
+    0.7%  libmain.so+0x6457900
+    0.7%  __emutls_get_address
+    0.7%  f_CD7C20
+    0.7%  libc.so+0x6f000
+    0.6%  nanosleep
+    0.6%  vulkan.adreno.so+0x13df00
+cpu: 215% of one core in total; SDLActivity/31347:7%@3 RenderThread/31434:6%@4 SDLThread/32047:74%@4 SDLThread/32048:6%@7 Thread-3/32174:6%@3 SDLThread/32182:7%@3 SDLThread/32183:41%@5 Thread-5/32195:29%@6 SDLThread/32196:28%@5
+  thread 0 (tid 32047, guest 260): last KERNEL32!InterlockedDecrement from 00b07c51, 164740628 calls; esi 7473f780 [01153bb8 00000001]
+  thread 1 (tid 32069, guest 288): last KERNEL32!ExitThread from 00a5ac7a, 9 calls (idle); esi 00000006 [00000000 00000000]
+  thread 2 (tid 32164, guest 292): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 30297586 calls (idle); esi 01b4ae14 [00000000 00000000]
+  thread 3 (tid 32170, guest 296): last KERNEL32!Sleep from 00b9ef30, 904835 calls; esi 744ca5c0 [01124a4c 00000000]
+  thread 4 (tid 32195, guest 304): last KERNEL32!TlsGetValue from 00d8ee95, 40872210 calls; esi 12fffb98 [68e94fa0 62a38110]
+  thread 5 (tid 32196, guest 308): last KERNEL32!TlsGetValue from 00bc6b5d, 39221101 calls; esi 783bbc80 [7829b0a0 00000008]
+  thread 6 (tid 32198, guest 312): last KERNEL32!InterlockedCompareExchange from 0068c6ea, 83040 calls (idle); esi 74921ee0 [010cd524 00000000]
+  thread 7 (tid 32229, guest 316): last KERNEL32!ExitThread from 00a4b4fb, 13757933 calls (idle); esi 103ffdc8 [0110d640 00000000]
+  thread 8 (tid 32230, guest 320): last KERNEL32!WaitForSingleObject from 00af89b0, 9168468 calls; esi 74bc0000 [0111d7ac 00000000]
+  thread 9 (tid 32231, guest 324): last KERNEL32!WaitForSingleObject from 00af863c, 1641019 calls (idle); esi 74cfd0f8 [0107a45c 00000000]
+  thread 10 (tid 32068, guest 284): last KERNEL32!WaitForSingleObject from 00a5aeac, 613017 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 11 (tid 32067, guest 280): last KERNEL32!WaitForSingleObject from 00a5aeac, 531665 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 12 (tid 32063, guest 264): last KERNEL32!WaitForSingleObject from 00a5aeac, 434690 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 13 (tid 32065, guest 272): last KERNEL32!WaitForSingleObject from 00a5aeac, 583304 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 14 (tid 32064, guest 268): last KERNEL32!WaitForSingleObject from 00a5aeac, 426543 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 15 (tid 32066, guest 276): last KERNEL32!WaitForSingleObject from 00a5aeac, 624285 calls; esi 01b8b1d0 [0110dd1c 00000101]
+xaudio2: source starvation frames pending_decode=0 empty_queue=1001 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=4440 groups=20x9
+SnapFrame: forward/backward consistency accepted count=4440
+xaudio2: source starvation frames pending_decode=0 empty_queue=9506 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=3527 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=197 (last 1s)
+SnapFrame: TEST_PHASE_PROGRESS phase=fast_camera_rotation elapsed_frames=900 target_frames=1800
+SnapFrame: luma dispatch accepted count=4500 groups=153x68
+frame 4500
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #21, decoder FFmpeg)
+[wmav2 @ 0x72c9321860] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=3 block_align=1487 pcm_frames=38912 pcm=0.882s dpds=0.882s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #22, decoder FFmpeg)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #23, decoder FFmpeg)
+xaudio2: source starvation frames pending_decode=0 empty_queue=3665 (last 1s)
+[wmav2 @ 0x72c93e6d20] Could not update timestamps for skipped samples.
+[wmav2 @ 0x72c93e6d20] nb_frames is 0 bits left 11888
+xwma_ffmpeg: packets=15 block_align=1487 pcm_frames=188416 pcm=4.272s dpds=4.272s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=3579 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=1367 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=4560 groups=20x9
+SnapFrame: forward/backward consistency accepted count=4560
+info:  D3D9: vertex decltype 5 usage 5 -> VK_FORMAT_R8G8B8A8_UNORM
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #24, decoder FFmpeg)
+[wmav2 @ 0x72c941e130] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=2 block_align=1487 pcm_frames=18432 pcm=0.418s dpds=0.418s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=4461 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=12049 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=13804 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #25, decoder FFmpeg)
+[wmav2 @ 0x72c93e6d20] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=2 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: mix peak=0.933 soft_limited=5 invalid=0 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=4806 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #26, decoder FFmpeg)
+[wmav2 @ 0x72c939b150] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=2 block_align=1487 pcm_frames=12288 pcm=0.279s dpds=0.279s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=26888 (last 1s)
+xaudio2: refill gap voice=22063030 gap=3533ms eos=0 queue_before=1 totals=1/>5ms:1/>10ms:1
+xaudio2: refill gap voice=22063030 gap=279ms eos=0 queue_before=1 totals=2/>5ms:2/>10ms:2
+xaudio2: source starvation frames pending_decode=0 empty_queue=17945 (last 1s)
+xaudio2: source format tag=0001 fmt=0 1 ch 32000 Hz bits=16
+xaudio2: source starvation frames pending_decode=0 empty_queue=10833 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=4680 groups=20x9
+SnapFrame: forward/backward consistency accepted count=4680
+xaudio2: source starvation frames pending_decode=0 empty_queue=38190 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=46244 (last 1s)
+xaudio2: refill gap voice=23fd9c30 gap=1890ms eos=1 queue_before=0 totals=1/>5ms:1/>10ms:1
+xaudio2: refill gap voice=23fdc410 gap=27ms eos=1 queue_before=0 totals=1/>5ms:1/>10ms:1
+xaudio2: refill gap voice=22258b10 gap=18ms eos=1 queue_before=0 totals=1/>5ms:1/>10ms:1
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #27, decoder FFmpeg)
+[wmav2 @ 0x72c93e6d20] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=2 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=27877 (last 1s)
+xaudio2: refill gap voice=2225b6d0 gap=36ms eos=1 queue_before=0 totals=1/>5ms:1/>10ms:1
+xaudio2: source starvation frames pending_decode=0 empty_queue=21976 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #28, decoder FFmpeg)
+[wmav2 @ 0x72c9364190] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=2 block_align=1487 pcm_frames=30720 pcm=0.697s dpds=0.697s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=20021 (last 1s)
+xaudio2: refill gap voice=23fd9c30 gap=1679ms eos=0 queue_before=1 totals=2/>5ms:2/>10ms:2
+SnapFrame: TEST_PHASE_PROGRESS phase=fast_camera_rotation elapsed_frames=1200 target_frames=1800
+SnapFrame: luma dispatch accepted count=4800 groups=153x68
+frame 4800
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #29, decoder FFmpeg)
+SnapFrame: bidirectional flow pair accepted count=4800 groups=20x9
+SnapFrame: forward/backward consistency accepted count=4800
+[wmav2 @ 0x72c9369380] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=2 block_align=1487 pcm_frames=12288 pcm=0.279s dpds=0.279s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source format tag=0001 fmt=0 1 ch 22050 Hz bits=16
+xaudio2: source starvation frames pending_decode=0 empty_queue=14667 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #30, decoder FFmpeg)
+[wmav2 @ 0x72c92c3ba0] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=2 block_align=1487 pcm_frames=18432 pcm=0.418s dpds=0.418s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=9772 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #31, decoder FFmpeg)
+[wmav2 @ 0x72c9488cf0] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=2 block_align=1487 pcm_frames=18432 pcm=0.418s dpds=0.418s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source format xWMA tag=0161 2 ch 44100 Hz avg_bps=6000 block_align=2230 extra=0 (voice #32, decoder FFmpeg)
+[wmav2 @ 0x72c94923e0] Could not update timestamps for skipped samples.
+xaudio2: source starvation frames pending_decode=882 empty_queue=12849 (last 1s)
+xwma_ffmpeg: packets=266 block_align=2230 pcm_frames=4349952 pcm=98.638s dpds=98.638s tag=0161 ba=2230 extra=6 flags=31 bitrate=48kbps
+xaudio2: xWMA worker latency=141ms submit #31
+xaudio2: source starvation frames pending_decode=4851 empty_queue=20859 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=7775 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=4920 groups=20x9
+SnapFrame: forward/backward consistency accepted count=4920
+xaudio2: source starvation frames pending_decode=0 empty_queue=2968 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=7404 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #33, decoder FFmpeg)
+[wmav2 @ 0x72c93d4390] Could not update timestamps for skipped samples.
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #34, decoder FFmpeg)
+xwma_ffmpeg: packets=2 block_align=1487 pcm_frames=18432 pcm=0.418s dpds=0.418s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #35, decoder FFmpeg)
+xaudio2: refill gap voice=23fd9c30 gap=7059ms eos=0 queue_before=1 totals=3/>5ms:3/>10ms:3
+[wmav2 @ 0x72c941dce0] Could not update timestamps for skipped samples.
+[wmav2 @ 0x72c941dce0] nb_frames is 0 bits left 11888
+xwma_ffmpeg: packets=7 block_align=1487 pcm_frames=59392 pcm=1.347s dpds=1.347s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source starvation frames pending_decode=0 empty_queue=14121 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #36, decoder FFmpeg)
+[wmav2 @ 0x72c93d4390] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=5 block_align=1487 pcm_frames=49152 pcm=1.115s dpds=1.115s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
+xaudio2: source format xWMA tag=0161 2 ch 44100 Hz avg_bps=6000 block_align=2230 extra=0 (voice #37, decoder FFmpeg)
+[wmav2 @ 0x72c941dce0] Could not update timestamps for skipped samples.
+xwma_ffmpeg: packets=16 block_align=2230 pcm_frames=237568 pcm=5.387s dpds=5.387s tag=0161 ba=2230 extra=6 flags=31 bitrate=48kbps
+xaudio2: refill gap voice=220437c0 gap=14574ms eos=0 queue_before=1 totals=1/>5ms:1/>10ms:1
+xaudio2: refill gap voice=22063030 gap=14575ms eos=0 queue_before=1 totals=3/>5ms:3/>10ms:3
+xaudio2: source starvation frames pending_decode=0 empty_queue=12424 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=52908 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=5040 groups=20x9
+SnapFrame: forward/backward consistency accepted count=5040
+xaudio2: source starvation frames pending_decode=0 empty_queue=97684 (last 1s)
+watchdog 180s: frames 5063
+xaudio2: source starvation frames pending_decode=0 empty_queue=97582 (last 1s)
+SnapFrame: TEST_PHASE_PROGRESS phase=fast_camera_rotation elapsed_frames=1500 target_frames=1800
+SnapFrame: luma dispatch accepted count=5100 groups=153x68
+frame 5100
+xaudio2: source starvation frames pending_decode=0 empty_queue=97677 (last 1s)
+profile: 10100 samples (1 ms CPU each)
+    5.6%  ?
+    4.4%  libdxvk_d3d9.so+0x221c00
+    2.3%  syscall
+    1.9%  f_472580
+    1.8%  libmain.so+0x64b4a00
+    1.7%  libmain.so+0x6475100
+    1.6%  f_CAFD70
+    1.3%  sched_yield
+    1.2%  libc.so+0x56c00
+    1.2%  rt_call
+    1.1%  libc.so+0x56700
+    1.1%  _Z8com_hostj
+    1.0%  f_474CD0
+    1.0%  libc.so+0xcfd00
+    0.9%  libc.so+0xcfb00
+    0.8%  f_447ED0
+    0.8%  f_C8EB60
+    0.8%  libc.so+0xc1500
+    0.8%  f_CD7C20
+    0.7%  libdxvk_d3d9.so+0x221800
+    0.7%  f_ACE100
+    0.7%  f_694FD0
+    0.6%  f_4EC9C0
+    0.6%  f_CDA170
+    0.6%  _ZN11qglinternal20vkCmdBindIndexBufferEP17VkCommandBuffer_TP10VkBuffer_Tm11VkIndexType
+    0.6%  f_AFBF80
+    0.6%  vulkan.adreno.so+0x13df00
+    0.6%  f_CB0090
+    0.6%  f_C93840
+    0.6%  f_C8B090
+cpu: 216% of one core in total; SDLActivity/31347:7%@5 RenderThread/31434:4%@5 SDLThread/32047:73%@6 SDLThread/32048:6%@7 Thread-3/32174:8%@5 SDLThread/32182:6%@3 SDLThread/32183:49%@4 Thread-5/32195:26%@3 SDLThread/32196:26%@5
+  thread 0 (tid 32047, guest 260): last IDirect3DDevice9#82 from 00cd39fa, 194619698 calls; esi 778321b0 [01118c0c 0000007d]
+  thread 1 (tid 32069, guest 288): last KERNEL32!ExitThread from 00a5ac7a, 9 calls (idle); esi 00000006 [00000000 00000000]
+  thread 2 (tid 32164, guest 292): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 30297586 calls (idle); esi 01b4ae14 [00000000 00000000]
+  thread 3 (tid 32170, guest 296): last KERNEL32!Sleep from 00b9ef30, 1491614 calls; esi 744ca5c0 [01124a4c 00000000]
+  thread 4 (tid 32195, guest 304): last KERNEL32!WaitForSingleObject from 00a59095, 49881511 calls; esi ff00022c [00000000 00000000]
+  thread 5 (tid 32196, guest 308): last KERNEL32!WaitForSingleObject from 00a59095, 48161268 calls; esi ff00022c [00000000 00000000]
+  thread 6 (tid 32198, guest 312): last KERNEL32!InterlockedCompareExchange from 0068c6ea, 83040 calls (idle); esi 74921ee0 [010cd524 00000000]
+  thread 7 (tid 32229, guest 316): last KERNEL32!ExitThread from 00a4b4fb, 13757933 calls (idle); esi 103ffdc8 [0110d640 00000000]
+  thread 8 (tid 32230, guest 320): last KERNEL32!WaitForSingleObject from 00af89b0, 10225389 calls; esi 74bc0000 [0111d7ac 00000000]
+  thread 9 (tid 32231, guest 324): last KERNEL32!WaitForSingleObject from 00af863c, 1720127 calls; esi 74cfd0f8 [0107a45c 00000000]
+  thread 10 (tid 32068, guest 284): last KERNEL32!WaitForSingleObject from 00a5aeac, 658107 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 11 (tid 32067, guest 280): last KERNEL32!WaitForSingleObject from 00a5aeac, 582427 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 12 (tid 32063, guest 264): last KERNEL32!WaitForSingleObject from 00a5aeac, 482590 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 13 (tid 32065, guest 272): last KERNEL32!WaitForSingleObject from 00a5aeac, 627547 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 14 (tid 32064, guest 268): last KERNEL32!WaitForSingleObject from 00a5aeac, 475813 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 15 (tid 32066, guest 276): last KERNEL32!WaitForSingleObject from 00a5aeac, 675775 calls; esi 01b8b1d0 [0110dd1c 00000101]
+xaudio2: source format xWMA tag=0161 2 ch 44100 Hz avg_bps=6000 block_align=2230 extra=0 (voice #38, decoder FFmpeg)
+[wmav2 @ 0x72c882fbf0] Could not update timestamps for skipped samples.
+xaudio2: source starvation frames pending_decode=6174 empty_queue=98598 (last 1s)
+xwma_ffmpeg: packets=480 block_align=2230 pcm_frames=7831552 pcm=177.586s dpds=177.586s tag=0161 ba=2230 extra=6 flags=31 bitrate=48kbps
+xaudio2: xWMA worker latency=262ms submit #36
+CreateTexture 32x32 levels 1 usage 0 fmt 33545844 pool 0 -> 00000000
+SnapFrame: bidirectional flow pair accepted count=5160 groups=20x9
+SnapFrame: forward/backward consistency accepted count=5160
+xaudio2: source starvation frames pending_decode=4851 empty_queue=98277 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=99238 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=96839 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=5280 groups=20x9
+SnapFrame: forward/backward consistency accepted count=5280
+xaudio2: source starvation frames pending_decode=0 empty_queue=96000 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=96000 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=96000 (last 1s)
+SnapFrame: TEST_PHASE_PROGRESS phase=fast_camera_rotation elapsed_frames=1800 target_frames=1800
+SnapFrame: luma dispatch accepted count=5400 groups=153x68
+SnapFrame: captured=5400 skipped=0 extent=2448x1080
+frame 5400
+SnapFrame: TEST_PHASE_RESULT phase=fast_camera_rotation frames=1800 luma_ok=1800 flow_pairs_ok=1800 consistency_ok=1800 skipped=0 luma_fail_total=0 flow_fail_total=0 consistency_fail_total=0
+SnapFrame: TEST_PHASE_BEGIN index=4 name=moving_npc_combat target_frames=1800
+SnapFrame: TEST_ACTION observe moving NPCs/combat without rapid camera movement
+SnapFrame: TEST_PHASE_PROGRESS phase=moving_npc_combat elapsed_frames=0 target_frames=1800
+SnapFrame: bidirectional flow pair accepted count=5400 groups=20x9
+SnapFrame: forward/backward consistency accepted count=5400
+xaudio2: source starvation frames pending_decode=0 empty_queue=96000 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=98332 (last 1s)
+xaudio2: source format tag=0001 fmt=0 1 ch 32000 Hz bits=16
+SnapFrame: bidirectional flow pair accepted count=5520 groups=20x9
+SnapFrame: forward/backward consistency accepted count=5520
+xaudio2: source starvation frames pending_decode=0 empty_queue=98652 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=101418 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=96000 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=5640 groups=20x9
+SnapFrame: forward/backward consistency accepted count=5640
+xaudio2: source starvation frames pending_decode=0 empty_queue=97924 (last 1s)
+thread slot 11 released
+thread slot 12 released
+xaudio2: refill gap voice=22063030 gap=16750ms eos=1 queue_before=0 totals=4/>5ms:4/>10ms:4
+xaudio2: refill gap voice=23fd9c30 gap=16865ms eos=1 queue_before=0 totals=4/>5ms:4/>10ms:4
+xaudio2: refill gap voice=220437c0 gap=16668ms eos=1 queue_before=0 totals=2/>5ms:2/>10ms:2
+thread slot 9 released
+ExitThread(0)
+thread slot 4 released
+ExitThread(0)
+thread slot 6 released
+ExitThread(0)
+thread slot 5 released
+ExitThread(0)
+thread slot 1 released
+ExitThread(0)
+thread slot 2 released
+ExitThread(0)
+thread slot 3 released
+ExitProcess(0)
