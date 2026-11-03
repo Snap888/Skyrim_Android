@@ -188,3 +188,12 @@ correspond to approximate pre-gain peaks of 1.82 / 1.90. The counter has now
 been moved before the gain so the next log is comparable with pre-gain
 measurements; `soft_limited` continues to count samples that exceed the limiter
 knee after the -6 dB gain.
+
+
+## Audio playback validation — 2026-11-03
+
+The project owner reports that the latest Android test has clean, clear audio and that the crackling/distortion is no longer audible. This is the first positive end-to-end listening confirmation for the combined XAudio2/SDL output changes on the tested device.
+
+The tested result follows the accumulated changes documented above: XAudio2 callback/refill handling, asynchronous xWMA decoding and worker lifecycle, short per-voice gain ramps for starvation transitions, master-bus headroom, and SDL output queue prefill/target tuning. The report confirms the audible outcome of the combined build; it does not isolate which individual change contributed most.
+
+**Validation:** user-reported device playback success (audible quality: clean). No fresh diagnostic log or controlled A/B capture was supplied with this confirmation, so queue-depth, starvation counters, exact output latency, and long-session behaviour are not independently quantified here. Keep the current audio implementation unchanged unless a new reproducible defect appears; avoid further speculative mixer/decoder tuning.
