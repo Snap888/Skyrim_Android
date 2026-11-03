@@ -1,13 +1,18 @@
 #include "snapframe_host.h"
 
+#include <algorithm>
 #include <atomic>
+#include <cmath>
+#include <cstdint>
 #include <mutex>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <string>
 
 #include "dxvk_context.h"
 #include "dxvk_device.h"
+#include "dxvk_gpu_query.h"
 #include "dxvk_image.h"
 #include "dxvk_sampler.h"
 #include "dxvk_shader.h"
@@ -25,6 +30,12 @@ using namespace dxvk;
 namespace {
 std::mutex g_logMutex;
 FILE* g_logFile = nullptr;
+std::mutex g_gpuLogMutex;
+FILE* g_gpuLogFile = nullptr;
+std::mutex g_flowLogMutex;
+FILE* g_flowLogFile = nullptr;
+bool g_profilingEnabled = false;
+bool g_flowReadbackFailureLogged = false;
 
 void snapframeLog(const char* format, ...) {
     std::lock_guard<std::mutex> lock(g_logMutex);
@@ -83,6 +94,7 @@ uint64_t g_frameIndex = 0;
 bool g_readyLogged = false;
 bool g_skipReasonLogged = false;
 bool g_diagnosticSuiteEnabled = false;
+bool g_diagnosticSuiteComplete = false;
 uint32_t g_diagnosticPhaseFrames = 1800;
 uint32_t g_diagnosticPhase = UINT32_MAX;
 uint64_t g_phaseStartCaptured = 0, g_phaseStartLuma = 0, g_phaseStartFlow = 0;
@@ -91,35 +103,23 @@ uint64_t g_phaseStartConsistency = 0, g_phaseStartSkipped = 0;
 const char* diagnosticPhaseName(uint32_t phase) {
     static const char* names[] = { "static_scene", "slow_camera_pan", "fast_camera_rotation",
         "moving_npc_combat", "foliage_particles_water", "hud_inventory_map", "long_run_stress" };
-    return phase < 7 ? names[phase] : "complete";
+    return phase < 7 ? names[phase] : "invalid";
 }
 
-void logDiagnosticPhase(uint64_t captured) {
-    if (!g_diagnosticSuiteEnabled) return;
-    const uint32_t phase = static_cast<uint32_t>((captured - 1u) / g_diagnosticPhaseFrames);
-    if (phase == g_diagnosticPhase) return;
-    if (g_diagnosticPhase != UINT32_MAX) {
-        snapframeLog("SnapFrame: TEST_PHASE_RESULT phase=%s frames=%llu luma_ok=%llu flow_pairs_ok=%llu consistency_ok=%llu skipped=%llu luma_fail_total=%llu flow_fail_total=%llu consistency_fail_total=%llu\n",
-            diagnosticPhaseName(g_diagnosticPhase),
-            static_cast<unsigned long long>(captured - 1u - g_phaseStartCaptured),
-            static_cast<unsigned long long>(g_lumaDispatchCount - g_phaseStartLuma),
-            static_cast<unsigned long long>(g_flowDispatchCount - g_phaseStartFlow),
-            static_cast<unsigned long long>(g_consistencyDispatchCount - g_phaseStartConsistency),
-            static_cast<unsigned long long>(g_skippedFrames.load(std::memory_order_relaxed) - g_phaseStartSkipped),
-            static_cast<unsigned long long>(g_lumaFailureCount),
-            static_cast<unsigned long long>(g_flowFailureCount),
-            static_cast<unsigned long long>(g_consistencyFailureCount));
-    }
-    g_diagnosticPhase = phase;
-    g_phaseStartCaptured = captured - 1u;
-    g_phaseStartLuma = g_lumaDispatchCount;
-    g_phaseStartFlow = g_flowDispatchCount;
-    g_phaseStartConsistency = g_consistencyDispatchCount;
-    g_phaseStartSkipped = g_skippedFrames.load(std::memory_order_relaxed);
-    if (phase >= 7) {
-        snapframeLog("SnapFrame: TEST_SUITE_COMPLETE total_frames=%llu\n", static_cast<unsigned long long>(captured - 1u));
-        return;
-    }
+void logDiagnosticPhaseResult(uint32_t phase, uint64_t frames) {
+    snapframeLog("SnapFrame: TEST_PHASE_RESULT phase=%s frames=%llu luma_ok=%llu flow_pairs_ok=%llu consistency_ok=%llu skipped=%llu luma_fail_total=%llu flow_fail_total=%llu consistency_fail_total=%llu\n",
+        diagnosticPhaseName(phase),
+        static_cast<unsigned long long>(frames),
+        static_cast<unsigned long long>(g_lumaDispatchCount - g_phaseStartLuma),
+        static_cast<unsigned long long>(g_flowDispatchCount - g_phaseStartFlow),
+        static_cast<unsigned long long>(g_consistencyDispatchCount - g_phaseStartConsistency),
+        static_cast<unsigned long long>(g_skippedFrames.load(std::memory_order_relaxed) - g_phaseStartSkipped),
+        static_cast<unsigned long long>(g_lumaFailureCount),
+        static_cast<unsigned long long>(g_flowFailureCount),
+        static_cast<unsigned long long>(g_consistencyFailureCount));
+}
+
+void beginDiagnosticPhase(uint32_t phase, uint64_t captured) {
     static const char* actions[] = {
         "remain still; do not move the camera",
         "slowly pan the camera horizontally and vertically",
@@ -129,9 +129,251 @@ void logDiagnosticPhase(uint64_t captured) {
         "open HUD, inventory and map; move selection/cursor",
         "continue normal gameplay for a sustained stability run"
     };
+    g_diagnosticPhase = phase;
+    g_phaseStartCaptured = captured - 1u;
+    g_phaseStartLuma = g_lumaDispatchCount;
+    g_phaseStartFlow = g_flowDispatchCount;
+    g_phaseStartConsistency = g_consistencyDispatchCount;
+    g_phaseStartSkipped = g_skippedFrames.load(std::memory_order_relaxed);
     snapframeLog("SnapFrame: TEST_PHASE_BEGIN index=%u name=%s target_frames=%u\n",
         phase + 1u, diagnosticPhaseName(phase), g_diagnosticPhaseFrames);
     snapframeLog("SnapFrame: TEST_ACTION %s\n", actions[phase]);
+}
+
+void logDiagnosticPhase(uint64_t captured) {
+    if (!g_diagnosticSuiteEnabled || g_diagnosticSuiteComplete
+        || !g_diagnosticPhaseFrames || !captured)
+        return;
+
+    const uint64_t totalFrames = uint64_t(g_diagnosticPhaseFrames) * 7u;
+    const uint32_t phase = static_cast<uint32_t>(
+        std::min<uint64_t>((captured - 1u) / g_diagnosticPhaseFrames, 6u));
+
+    if (g_diagnosticPhase == UINT32_MAX) {
+        beginDiagnosticPhase(phase, captured);
+    } else if (phase != g_diagnosticPhase) {
+        logDiagnosticPhaseResult(g_diagnosticPhase,
+            captured - 1u - g_phaseStartCaptured);
+        beginDiagnosticPhase(phase, captured);
+    }
+
+    // Close the seventh phase on its actual final captured frame. Subsequent
+    // gameplay keeps running, but cannot create an eighth phase or re-complete.
+    if (captured >= totalFrames && g_diagnosticPhase == 6u) {
+        logDiagnosticPhaseResult(6u, captured - g_phaseStartCaptured);
+        snapframeLog("SnapFrame: TEST_SUITE_COMPLETE total_frames=%llu\n",
+            static_cast<unsigned long long>(totalFrames));
+        g_diagnosticSuiteComplete = true;
+    }
+}
+
+
+struct SnapFrameGpuTimer {
+    Rc<DxvkGpuQuery> begin;
+    Rc<DxvkGpuQuery> end;
+    double periodNs = 0.0;
+    uint64_t frame = 0;
+    uint32_t width = 0;
+    uint32_t height = 0;
+    std::string stage;
+};
+
+SnapFrameGpuTimer beginGpuTimer(
+    DxvkContext* context, DxvkDevice* device, const char* stage,
+    uint64_t frame, uint32_t width, uint32_t height, bool sample) {
+    SnapFrameGpuTimer timer;
+    if (!g_profilingEnabled || !sample || !context || !device || !stage)
+        return timer;
+    timer.begin = device->createGpuQuery(VK_QUERY_TYPE_TIMESTAMP, 0, 0);
+    timer.end = device->createGpuQuery(VK_QUERY_TYPE_TIMESTAMP, 0, 0);
+    timer.periodNs = device->adapter()->deviceProperties().limits.timestampPeriod;
+    timer.frame = frame;
+    timer.width = width;
+    timer.height = height;
+    timer.stage = stage;
+    if (timer.begin == nullptr || timer.end == nullptr || timer.periodNs <= 0.0) {
+        timer.begin = Rc<DxvkGpuQuery>();
+        timer.end = Rc<DxvkGpuQuery>();
+        return timer;
+    }
+    context->writeTimestamp(timer.begin);
+    return timer;
+}
+
+void endGpuTimer(DxvkContext* context, const SnapFrameGpuTimer& timer) {
+    if (!context || timer.begin == nullptr || timer.end == nullptr)
+        return;
+    context->writeTimestamp(timer.end);
+    context->addCompletionCallback([timer](VkResult result) {
+        DxvkQueryData beginData{}, endData{};
+        const DxvkGpuQueryStatus beginStatus = timer.begin->getData(beginData);
+        const DxvkGpuQueryStatus endStatus = timer.end->getData(endData);
+        const bool valid = result == VK_SUCCESS
+            && beginStatus == DxvkGpuQueryStatus::Available
+            && endStatus == DxvkGpuQueryStatus::Available
+            && endData.timestamp.time >= beginData.timestamp.time
+            && timer.periodNs > 0.0;
+        std::lock_guard<std::mutex> lock(g_gpuLogMutex);
+        if (!g_gpuLogFile) return;
+        if (valid) {
+            const double gpuMs = double(endData.timestamp.time - beginData.timestamp.time)
+                * timer.periodNs / 1000000.0;
+            fprintf(g_gpuLogFile, "%llu,%s,%.6f,%u,%u,ok\n",
+                static_cast<unsigned long long>(timer.frame), timer.stage.c_str(),
+                gpuMs, timer.width, timer.height);
+        } else {
+            fprintf(g_gpuLogFile, "%llu,%s,0,%u,%u,unavailable:%d:%d:%d\n",
+                static_cast<unsigned long long>(timer.frame), timer.stage.c_str(),
+                timer.width, timer.height, int(result), int(beginStatus), int(endStatus));
+        }
+        fflush(g_gpuLogFile);
+    });
+}
+
+float snapFrameHalfToFloat(uint16_t value) {
+    const uint32_t sign = uint32_t(value & 0x8000u) << 16;
+    uint32_t exponent = (value >> 10) & 0x1fu;
+    uint32_t mantissa = value & 0x03ffu;
+    uint32_t bits = 0;
+    if (exponent == 0) {
+        if (mantissa == 0) bits = sign;
+        else {
+            int e = -14;
+            while ((mantissa & 0x0400u) == 0) { mantissa <<= 1; --e; }
+            mantissa &= 0x03ffu;
+            bits = sign | (uint32_t(e + 127) << 23) | (mantissa << 13);
+        }
+    } else if (exponent == 0x1fu) {
+        bits = sign | 0x7f800000u | (mantissa << 13);
+    } else {
+        bits = sign | ((exponent - 15u + 127u) << 23) | (mantissa << 13);
+    }
+    float result = 0.0f;
+    memcpy(&result, &bits, sizeof(result));
+    return result;
+}
+
+struct SnapFrameFlowStats {
+    double dx = 0.0, dy = 0.0, magnitude = 0.0, confidence = 0.0, cost = 0.0;
+    uint64_t finite = 0, nonFinite = 0;
+};
+
+SnapFrameFlowStats summarizeFlow(const uint16_t* values, uint64_t count) {
+    SnapFrameFlowStats stats;
+    for (uint64_t i = 0; i < count; ++i) {
+        const float dx = snapFrameHalfToFloat(values[i * 4u + 0u]);
+        const float dy = snapFrameHalfToFloat(values[i * 4u + 1u]);
+        const float confidence = snapFrameHalfToFloat(values[i * 4u + 2u]);
+        const float cost = snapFrameHalfToFloat(values[i * 4u + 3u]);
+        if (!std::isfinite(dx) || !std::isfinite(dy)
+            || !std::isfinite(confidence) || !std::isfinite(cost)) {
+            ++stats.nonFinite;
+            continue;
+        }
+        stats.dx += dx; stats.dy += dy;
+        stats.magnitude += std::sqrt(double(dx) * dx + double(dy) * dy);
+        stats.confidence += confidence; stats.cost += cost;
+        ++stats.finite;
+    }
+    if (stats.finite) {
+        const double inv = 1.0 / double(stats.finite);
+        stats.dx *= inv; stats.dy *= inv; stats.magnitude *= inv;
+        stats.confidence *= inv; stats.cost *= inv;
+    }
+    return stats;
+}
+
+void recordFlowReadback(
+    DxvkContext* context, DxvkDevice* device, uint64_t frame,
+    uint32_t flowWidth, uint32_t flowHeight) {
+    if (!g_profilingEnabled || !context || !device
+        || !g_flowImage[0] || !g_flowImage[1] || !g_consistencyImage)
+        return;
+
+    const VkDeviceSize pixels = VkDeviceSize(flowWidth) * flowHeight;
+    const VkDeviceSize flowBytes = pixels * 8u; // RGBA16F
+    const VkDeviceSize maskOffset = flowBytes * 2u;
+    const VkDeviceSize totalBytes = maskOffset + pixels * 2u; // R16F mask
+    DxvkBufferCreateInfo bufferInfo{};
+    bufferInfo.size = totalBytes;
+    bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    bufferInfo.stages = VK_PIPELINE_STAGE_HOST_BIT;
+    bufferInfo.access = VK_ACCESS_HOST_READ_BIT;
+
+    Rc<DxvkBuffer> readback;
+    try {
+        readback = device->createBuffer(bufferInfo,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    } catch (...) {
+        if (!g_flowReadbackFailureLogged) {
+            g_flowReadbackFailureLogged = true;
+            snapframeLog("SnapFrame: flow readback buffer allocation failed (HOST_VISIBLE|HOST_COHERENT unavailable or allocation error)\n");
+        }
+        return;
+    }
+    if (readback == nullptr || readback->mapPtr(0) == nullptr) {
+        if (!g_flowReadbackFailureLogged) {
+            g_flowReadbackFailureLogged = true;
+            snapframeLog("SnapFrame: flow readback buffer is not host mapped\n");
+        }
+        return;
+    }
+
+    VkImageSubresourceLayers subresource{};
+    subresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    subresource.mipLevel = 0;
+    subresource.baseArrayLayer = 0;
+    subresource.layerCount = 1;
+    const VkExtent3D extent{ flowWidth, flowHeight, 1 };
+    context->copyImageToBuffer(readback, 0, 0, 0, g_flowImage[0],
+        subresource, VkOffset3D{ 0, 0, 0 }, extent);
+    context->copyImageToBuffer(readback, flowBytes, 0, 0, g_flowImage[1],
+        subresource, VkOffset3D{ 0, 0, 0 }, extent);
+    context->copyImageToBuffer(readback, maskOffset, 0, 0, g_consistencyImage,
+        subresource, VkOffset3D{ 0, 0, 0 }, extent);
+
+    context->addCompletionCallback([readback, frame, flowWidth, flowHeight,
+                                    pixels, flowBytes, maskOffset](VkResult result) {
+        const uint16_t* data = reinterpret_cast<const uint16_t*>(readback->mapPtr(0));
+        if (!data) return;
+        const SnapFrameFlowStats forward = summarizeFlow(data, pixels);
+        const SnapFrameFlowStats backward = summarizeFlow(
+            reinterpret_cast<const uint16_t*>(reinterpret_cast<const uint8_t*>(data) + flowBytes),
+            pixels);
+        const uint16_t* mask = reinterpret_cast<const uint16_t*>(
+            reinterpret_cast<const uint8_t*>(data) + maskOffset);
+        double consistencySum = 0.0;
+        uint64_t consistencyFinite = 0, consistencyValid = 0;
+        uint64_t nonFinite = forward.nonFinite + backward.nonFinite;
+        for (uint64_t i = 0; i < pixels; ++i) {
+            const float value = snapFrameHalfToFloat(mask[i]);
+            if (!std::isfinite(value)) { ++nonFinite; continue; }
+            consistencySum += value;
+            ++consistencyFinite;
+            if (value > 0.5f) ++consistencyValid;
+        }
+        const double consistencyMean = consistencyFinite
+            ? consistencySum / double(consistencyFinite) : 0.0;
+        const double consistencyPercent = consistencyFinite
+            ? 100.0 * double(consistencyValid) / double(consistencyFinite) : 0.0;
+
+        std::lock_guard<std::mutex> lock(g_flowLogMutex);
+        if (!g_flowLogFile) return;
+        if (result == VK_SUCCESS) {
+            fprintf(g_flowLogFile,
+                "%llu,%u,%u,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.3f,%llu,ok\n",
+                static_cast<unsigned long long>(frame), flowWidth, flowHeight,
+                forward.dx, forward.dy, forward.magnitude, forward.confidence, forward.cost,
+                backward.dx, backward.dy, backward.magnitude, backward.confidence, backward.cost,
+                consistencyMean, consistencyPercent, static_cast<unsigned long long>(nonFinite));
+        } else {
+            fprintf(g_flowLogFile,
+                "%llu,%u,%u,0,0,0,0,0,0,0,0,0,0,0,0,%llu,completion_error:%d\n",
+                static_cast<unsigned long long>(frame), flowWidth, flowHeight,
+                static_cast<unsigned long long>(nonFinite), int(result));
+        }
+        fflush(g_flowLogFile);
+    });
 }
 
 void clearHistory() {
@@ -605,6 +847,12 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
     }
 
     const unsigned slot = static_cast<unsigned>(g_frameIndex & 1u);
+    const uint64_t nextCapturedFrame = g_capturedFrames.load(std::memory_order_relaxed) + 1u;
+    const bool profileThisFrame = g_profilingEnabled && (nextCapturedFrame % 30u) == 0u;
+    const SnapFrameGpuTimer totalTimer = beginGpuTimer(
+        context, device, "total_chain", nextCapturedFrame, width, height, profileThisFrame);
+    const SnapFrameGpuTimer captureTimer = beginGpuTimer(
+        context, device, "capture_copy", nextCapturedFrame, width, height, profileThisFrame);
     VkImageSubresourceLayers subresource{};
     subresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     subresource.mipLevel = 0;
@@ -615,14 +863,18 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
         g_history[slot], subresource, VkOffset3D{ 0, 0, 0 },
         sourceImage, subresource, VkOffset3D{ 0, 0, 0 },
         VkExtent3D{ width, height, 1 });
+    endGpuTimer(context, captureTimer);
 
     if (g_lumaAvailable) {
         const uint32_t lumaWidth = width / 2u + width % 2u;
         const uint32_t lumaHeight = height / 2u + height % 2u;
         const uint32_t groupsX = (lumaWidth + 7u) / 8u;
         const uint32_t groupsY = (lumaHeight + 7u) / 8u;
+        const SnapFrameGpuTimer lumaTimer = beginGpuTimer(
+            context, device, "luma", nextCapturedFrame, width, height, profileThisFrame);
         const bool dispatched = context->dispatchSnapFrame(
             g_lumaShader, g_historyViews[slot], g_lumaSampler, g_lumaView[slot], groupsX, groupsY);
+        endGpuTimer(context, lumaTimer);
         if (dispatched) {
             ++g_lumaDispatchCount;
             if (g_lumaDispatchCount == 1 || (g_lumaDispatchCount % 300u) == 0)
@@ -643,26 +895,37 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
             const uint32_t flowGroupsX = (flowWidth + 7u) / 8u;
             const uint32_t flowGroupsY = (flowHeight + 7u) / 8u;
             // Slot 0 stores current->previous; slot 1 stores previous->current.
+            const SnapFrameGpuTimer forwardTimer = beginGpuTimer(
+                context, device, "flow_forward", nextCapturedFrame, width, height, profileThisFrame);
             const bool currentToPrevious = context->dispatchSnapFrameFlow(
                 g_flowShader, g_lumaView[previousSlot], g_lumaView[slot],
                 g_lumaSampler, g_flowView[0], flowGroupsX, flowGroupsY);
+            endGpuTimer(context, forwardTimer);
+            const SnapFrameGpuTimer backwardTimer = beginGpuTimer(
+                context, device, "flow_backward", nextCapturedFrame, width, height, profileThisFrame);
             const bool previousToCurrent = currentToPrevious
                 && context->dispatchSnapFrameFlow(
                     g_flowShader, g_lumaView[slot], g_lumaView[previousSlot],
                     g_lumaSampler, g_flowView[1], flowGroupsX, flowGroupsY);
+            endGpuTimer(context, backwardTimer);
             if (currentToPrevious && previousToCurrent) {
                 ++g_flowDispatchCount;
                 if (g_flowDispatchCount == 1 || (g_flowDispatchCount % 120u) == 0)
                     snapframeLog("SnapFrame: bidirectional flow pair accepted count=%llu groups=%ux%u\n",
                         static_cast<unsigned long long>(g_flowDispatchCount), flowGroupsX, flowGroupsY);
                 if (g_consistencyAvailable) {
+                    const SnapFrameGpuTimer consistencyTimer = beginGpuTimer(
+                        context, device, "consistency", nextCapturedFrame, width, height, profileThisFrame);
                     const bool consistencyDispatched =
                         context->dispatchSnapFrameConsistency(
                             g_consistencyShader, g_flowView[0], g_flowView[1],
                             g_lumaSampler, g_consistencyView,
                             (flowWidth + 7u) / 8u, (flowHeight + 7u) / 8u);
+                    endGpuTimer(context, consistencyTimer);
                     if (consistencyDispatched) {
                         ++g_consistencyDispatchCount;
+                        if (g_profilingEnabled && (g_flowDispatchCount % 120u) == 0u)
+                            recordFlowReadback(context, device, nextCapturedFrame, flowWidth, flowHeight);
                         if (g_consistencyDispatchCount == 1
                          || (g_consistencyDispatchCount % 120u) == 0)
                             snapframeLog("SnapFrame: forward/backward consistency accepted count=%llu\n",
@@ -684,6 +947,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
             }
         }
     }
+    endGpuTimer(context, totalTimer);
     ++g_frameIndex;
     const uint64_t captured = g_capturedFrames.fetch_add(1, std::memory_order_relaxed) + 1;
     logDiagnosticPhase(captured);
@@ -735,6 +999,34 @@ extern "C" int snapframe_host_set_log_path(const char *path) {
     return 1;
 }
 
+extern "C" int snapframe_host_set_gpu_log_path(const char *path) {
+    if (!path || !*path) return 0;
+    std::lock_guard<std::mutex> lock(g_gpuLogMutex);
+    if (g_gpuLogFile) fclose(g_gpuLogFile);
+    g_gpuLogFile = fopen(path, "w");
+    if (!g_gpuLogFile) {
+        fprintf(stderr, "SnapFrame: cannot open GPU timing CSV: %s\n", path);
+        return 0;
+    }
+    fprintf(g_gpuLogFile, "frame,stage,gpu_ms,width,height,status\n");
+    fflush(g_gpuLogFile);
+    return 1;
+}
+
+extern "C" int snapframe_host_set_flow_log_path(const char *path) {
+    if (!path || !*path) return 0;
+    std::lock_guard<std::mutex> lock(g_flowLogMutex);
+    if (g_flowLogFile) fclose(g_flowLogFile);
+    g_flowLogFile = fopen(path, "w");
+    if (!g_flowLogFile) {
+        fprintf(stderr, "SnapFrame: cannot open flow readback CSV: %s\n", path);
+        return 0;
+    }
+    fprintf(g_flowLogFile, "frame,grid_width,grid_height,forward_mean_dx,forward_mean_dy,forward_mean_magnitude,forward_mean_confidence,forward_mean_cost,backward_mean_dx,backward_mean_dy,backward_mean_magnitude,backward_mean_confidence,backward_mean_cost,consistency_mean,consistency_gt_0_5_pct,nonfinite_values,status\n");
+    fflush(g_flowLogFile);
+    return 1;
+}
+
 extern "C" void snapframe_host_log(const char *message) {
     if (message && *message)
         snapframeLog("SnapFrame: %s\n", message);
@@ -773,8 +1065,11 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
     if (validated.diagnostic_phase_frames < 300) validated.diagnostic_phase_frames = 300;
     if (validated.diagnostic_phase_frames > 36000) validated.diagnostic_phase_frames = 36000;
     g_diagnosticSuiteEnabled = validated.diagnostic_suite != 0;
+    g_diagnosticSuiteComplete = false;
     g_diagnosticPhaseFrames = static_cast<uint32_t>(validated.diagnostic_phase_frames);
     g_diagnosticPhase = UINT32_MAX;
+    g_profilingEnabled = validated.profiling_enabled != 0;
+    g_flowReadbackFailureLogged = false;
 
     g_enabled.store(validated.enabled ? 1 : 0, std::memory_order_release);
     g_capturedFrames.store(0, std::memory_order_relaxed);
@@ -786,7 +1081,8 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
     snapframe_dxvk_set_copy_hook(snapframeCopyFrame);
     snapframe_dxvk_set_device_destroy_hook(snapframeDeviceDestroyed);
     snapframe_dxvk_set_log_hook(snapframeForwardDxvkLog);
-    snapframeLog("SnapFrame: diagnostic_suite=%d phase_frames=%u phases=7\n", g_diagnosticSuiteEnabled ? 1 : 0, g_diagnosticPhaseFrames);
+    snapframeLog("SnapFrame: diagnostic_suite=%d phase_frames=%u phases=7 profiling=%d timestamp_interval=30 flow_readback_interval=120\n",
+        g_diagnosticSuiteEnabled ? 1 : 0, g_diagnosticPhaseFrames, g_profilingEnabled ? 1 : 0);
     snapframeLog( "SnapFrame: host initialized enabled=%d quality=%d flow_scale=%d%% mode=capture+luma+bidirectional-flow+fb-consistency-test\n",
             validated.enabled, validated.quality, validated.flow_scale_percent);
     return 1;

@@ -331,3 +331,36 @@ consistency dispatches and skips. Phase labels are based on captured-frame
 count, not scene recognition. The suite runs only the current capture/luma/
 flow/consistency chain; it does not validate numerical shader output or
 present generated frames.
+
+
+## 10. Diagnostic completion, GPU timing and flow readback
+
+The seven-phase campaign now closes the seventh phase on its actual final
+captured frame (12,600 frames with the default 1,800 frames per phase).
+Completion is latched, so subsequent gameplay continues through capture and
+compute without an eighth phase, a synthetic `complete` phase result, or
+repeated suite-completion markers.
+
+When `profiling_enabled=1`, timestamp queries are recorded in the active DXVK
+command list every 30th captured frame. Timing rows cover capture copy, luma,
+forward flow, backward flow, consistency and the complete capture-to-
+consistency chain. Results are written asynchronously from command-list
+completion callbacks to `port/snapframe_gpu.csv`; SnapFrame does not submit a
+separate queue or synchronously wait for the GPU.
+
+Every 120th accepted bidirectional flow pair, both RGBA16F motion fields and
+the R16F consistency mask are copied into a host-visible, host-coherent
+staging buffer on the same command list. CPU inspection happens only after its
+completion callback. `port/snapframe_flow.csv` records grid dimensions, mean
+displacement, mean vector magnitude, mean local confidence, mean matching
+cost, mean consistency, percentage of mask values above 0.5, non-finite
+sample count and completion status. This sampled readback is diagnostic only
+and is not used by the normal rendering path.
+
+Mean statistics can expose zero/invalid output, non-finite values, broad
+directional bias and confidence-mask behavior, but cannot establish
+ground-truth optical-flow accuracy by themselves. Controlled synthetic
+translations and visual vector inspection remain required before the fields
+can be trusted for interpolation. Unavailable timestamp samples are marked
+with an explicit status instead of being reported as zero-time passes.
+Profiling and readback use the existing `profiling_enabled` setting.
