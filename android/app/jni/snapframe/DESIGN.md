@@ -198,8 +198,9 @@ motion estimation, but it does not yet separate the game's own HUD/UI from the
 3D scene. The host checks the source image's `VK_IMAGE_USAGE_TRANSFER_SRC_BIT` before
 recording the copy. The DXVK present path now emits one-time diagnostics for
 first PresentImage entry, WSI image usage/format, callback dispatch, and host
-callback entry. These markers distinguish failure to reach PresentImage from
-an unsupported source usage or a history allocation/copy problem. The two
+callback entry. The copy-hook pointer is atomically published/read to avoid a
+setter-versus-present data race. These markers distinguish failure to reach
+PresentImage from an unsupported source usage or a history allocation/copy problem. The two
 history images are sampled-capable; compute/storage format support still needs
 explicit physical-device validation.
 
