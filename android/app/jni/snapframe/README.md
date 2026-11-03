@@ -264,3 +264,29 @@ reduces spatial detail. These are calculated dimensions, not measured GPU
 performance. The shader pipeline and four-binding dispatch have not yet been
 compiled or validated on device; verify them with zero-motion and known-offset
 tests before using the resulting flow for reconstruction.
+
+
+### Latest diagnostic findings and matcher revision — 2026-11-03
+
+The latest `frame_gen/Logs` upload was captured with 50% flow scale
+(77x34 grid). Two phases completed; fast camera rotation reached about
+1,500/1,800 frames before the process exited normally. There is no
+`TEST_SUITE_COMPLETE` marker and phases 4–7 were not run.
+
+Spatial dumps are now available and contain eight complete 77x34 fields.
+During pan and rotation, many vectors reached the former +/-4 search limit
+and forward/backward consistency was poor. A near-static dump at frame 4801
+showed mean confidence 0.987 and mean consistency 0.988. These results
+confirm that the old fixed-radius search is not yet reliable enough for
+reconstruction.
+
+The matcher has been revised to a coarse-to-fine search: 9x9 candidates
+spaced two luma texels apart over +/-8, then 3x3 refinement around the best
+coarse match. This gives a +/-9 effective range using 90 candidate positions.
+The host boundary-saturation diagnostic now uses the matching +/-9 threshold.
+
+This change has not been GLSL-compiled, built into an APK, or tested on the
+device. Do not enable reconstruction/presentation based on this source change.
+Next device run should repeat static, pan and rotation tests at 50% scale and
+compare boundary counts, confidence and consistency against this upload.
+A deterministic known-offset validation remains mandatory.
