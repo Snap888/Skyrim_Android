@@ -28,23 +28,33 @@ void evaluateCandidate(
     const int patchRadius = 1;
     float cost = 0.0;
 
-    for (int py = -patchRadius; py <= patchRadius; ++py) {
-        for (int px = -patchRadius; px <= patchRadius; ++px) {
-            ivec2 samplePos = center + ivec2(px, py);
-            ivec2 previousPos = samplePos + motion;
-            if (any(lessThan(previousPos, ivec2(0))) ||
-                any(greaterThanEqual(previousPos, extent)))
-                return;
+    // Test the patch center first, followed by the axial and corner
+    // neighbors. The center often rejects a poor candidate immediately,
+    // allowing the exact SAD early-out to avoid most remaining texture reads.
+    // This changes evaluation order only: all nine samples still contribute
+    // whenever a candidate can affect the best/second-best ranking.
+    const ivec2 patchOffsets[9] = ivec2[9](
+        ivec2(0, 0),
+        ivec2(-1, 0), ivec2(1, 0),
+        ivec2(0, -1), ivec2(0, 1),
+        ivec2(-1, -1), ivec2(1, -1),
+        ivec2(-1, 1), ivec2(1, 1));
 
-            cost += abs(lumaAt(currentLuma, samplePos) -
-                        lumaAt(previousLuma, previousPos));
-            // SAD is monotonic: once this partial sum is already worse than
-            // the current second-best complete match, the candidate cannot
-            // affect either the best vector or the confidence margin. Abort
-            // the remaining patch reads without changing the exact ranking.
-            if (cost > secondCost)
-                return;
-        }
+    for (int sampleIndex = 0; sampleIndex < 9; ++sampleIndex) {
+        ivec2 samplePos = center + patchOffsets[sampleIndex];
+        ivec2 previousPos = samplePos + motion;
+        if (any(lessThan(previousPos, ivec2(0))) ||
+            any(greaterThanEqual(previousPos, extent)))
+            return;
+
+        cost += abs(lumaAt(currentLuma, samplePos) -
+                    lumaAt(previousLuma, previousPos));
+        // SAD is monotonic: once this partial sum is already worse than
+        // the current second-best complete match, the candidate cannot
+        // affect either the best vector or the confidence margin. Abort
+        // the remaining patch reads without changing the exact ranking.
+        if (cost > secondCost)
+            return;
     }
 
     int distanceSquared = motion.x * motion.x + motion.y * motion.y;
