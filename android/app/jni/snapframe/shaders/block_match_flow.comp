@@ -1,7 +1,8 @@
 #version 450
 
 // Coarse block-matching motion field over half-resolution luma.
-// One output texel represents an 8x8 luma region (16x16 source pixels).
+// One output texel represents a configurable luma region. At 100% flow scale
+// it is 8x8 luma texels; lower scales increase the stride and reduce the grid.
 // Motion is expressed in half-resolution luma texels. The host runs this
 // kernel twice with reversed inputs: current->previous, then previous->current.
 // Confidence is local best/second-best SAD separation, not FB consistency.
