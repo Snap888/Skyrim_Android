@@ -238,3 +238,91 @@ SnapFrame: bidirectional flow pair accepted count=6960 groups=14x7
 SnapFrame: forward/backward consistency accepted count=6960
 SnapFrame: bidirectional flow pair accepted count=7080 groups=14x7
 SnapFrame: forward/backward consistency accepted count=7080
+SnapFrame: TEST_PHASE_PROGRESS phase=moving_npc_combat elapsed_frames=1800 target_frames=1800
+SnapFrame: luma dispatch accepted count=7200 groups=153x68
+SnapFrame: captured=7200 skipped=0 extent=2448x1080
+SnapFrame: TEST_PHASE_RESULT phase=moving_npc_combat frames=1800 luma_ok=1800 flow_pairs_ok=1800 consistency_ok=1800 midpoint_warp_ok=1800 skipped=0 luma_fail_total=0 flow_fail_total=0 consistency_fail_total=0 midpoint_warp_fail_total=0
+SnapFrame: TEST_PHASE_BEGIN index=5 name=foliage_particles_water target_frames=1800
+SnapFrame: TEST_ACTION capture foliage, water, particles, smoke or fire
+SnapFrame: TEST_PHASE_PROGRESS phase=foliage_particles_water elapsed_frames=0 target_frames=1800
+SnapFrame: bidirectional flow pair accepted count=7200 groups=14x7
+SnapFrame: midpoint warp accepted count=7200 extent=2448x1080 output=RGBA16F
+SnapFrame: forward/backward consistency accepted count=7200
+SnapFrame: flow vector dump complete frame=7201 rows=5600 grid=112x50
+SnapFrame: bidirectional flow pair accepted count=7320 groups=14x7
+SnapFrame: forward/backward consistency accepted count=7320
+SnapFrame: bidirectional flow pair accepted count=7440 groups=14x7
+SnapFrame: forward/backward consistency accepted count=7440
+SnapFrame: TEST_PHASE_PROGRESS phase=foliage_particles_water elapsed_frames=300 target_frames=1800
+SnapFrame: luma dispatch accepted count=7500 groups=153x68
+SnapFrame: midpoint warp accepted count=7500 extent=2448x1080 output=RGBA16F
+SnapFrame: bidirectional flow pair accepted count=7560 groups=14x7
+SnapFrame: forward/backward consistency accepted count=7560
+SnapFrame: bidirectional flow pair accepted count=7680 groups=14x7
+SnapFrame: forward/backward consistency accepted count=7680
+SnapFrame: TEST_PHASE_PROGRESS phase=foliage_particles_water elapsed_frames=600 target_frames=1800
+SnapFrame: luma dispatch accepted count=7800 groups=153x68
+SnapFrame: bidirectional flow pair accepted count=7800 groups=14x7
+SnapFrame: midpoint warp accepted count=7800 extent=2448x1080 output=RGBA16F
+SnapFrame: forward/backward consistency accepted count=7800
+SnapFrame: flow vector dump complete frame=7801 rows=5600 grid=112x50
+SnapFrame: bidirectional flow pair accepted count=7920 groups=14x7
+SnapFrame: forward/backward consistency accepted count=7920
+SnapFrame: bidirectional flow pair accepted count=8040 groups=14x7
+SnapFrame: forward/backward consistency accepted count=8040
+SnapFrame: TEST_PHASE_PROGRESS phase=foliage_particles_water elapsed_frames=900 target_frames=1800
+SnapFrame: luma dispatch accepted count=8100 groups=153x68
+SnapFrame: midpoint warp accepted count=8100 extent=2448x1080 output=RGBA16F
+SnapFrame: bidirectional flow pair accepted count=8160 groups=14x7
+SnapFrame: forward/backward consistency accepted count=8160
+SnapFrame: bidirectional flow pair accepted count=8280 groups=14x7
+SnapFrame: forward/backward consistency accepted count=8280
+SnapFrame: TEST_PHASE_PROGRESS phase=foliage_particles_water elapsed_frames=1200 target_frames=1800
+SnapFrame: luma dispatch accepted count=8400 groups=153x68
+SnapFrame: bidirectional flow pair accepted count=8400 groups=14x7
+SnapFrame: midpoint warp accepted count=8400 extent=2448x1080 output=RGBA16F
+SnapFrame: forward/backward consistency accepted count=8400
+SnapFrame: flow vector dump complete frame=8401 rows=5600 grid=112x50
+SnapFrame: bidirectional flow pair accepted count=8520 groups=14x7
+SnapFrame: forward/backward consistency accepted count=8520
+SnapFrame: bidirectional flow pair accepted count=8640 groups=14x7
+SnapFrame: forward/backward consistency accepted count=8640
+SnapFrame: TEST_PHASE_PROGRESS phase=foliage_particles_water elapsed_frames=1500 target_frames=1800
+SnapFrame: luma dispatch accepted count=8700 groups=153x68
+SnapFrame: midpoint warp accepted count=8700 extent=2448x1080 output=RGBA16F
+SnapFrame: bidirectional flow pair accepted count=8760 groups=14x7
+SnapFrame: forward/backward consistency accepted count=8760
+SnapFrame: bidirectional flow pair accepted count=8880 groups=14x7
+SnapFrame: forward/backward consistency accepted count=8880
+SnapFrame: TEST_PHASE_PROGRESS phase=foliage_particles_water elapsed_frames=1800 target_frames=1800
+SnapFrame: luma dispatch accepted count=9000 groups=153x68
+SnapFrame: captured=9000 skipped=0 extent=2448x1080
+SnapFrame: TEST_PHASE_RESULT phase=foliage_particles_water frames=1800 luma_ok=1800 flow_pairs_ok=1800 consistency_ok=1800 midpoint_warp_ok=1800 skipped=0 luma_fail_total=0 flow_fail_total=0 consistency_fail_total=0 midpoint_warp_fail_total=0
+SnapFrame: TEST_PHASE_BEGIN index=6 name=hud_inventory_map target_frames=1800
+SnapFrame: TEST_ACTION open HUD, inventory and map; move selection/cursor
+SnapFrame: TEST_PHASE_PROGRESS phase=hud_inventory_map elapsed_frames=0 target_frames=1800
+SnapFrame: bidirectional flow pair accepted count=9000 groups=14x7
+SnapFrame: midpoint warp accepted count=9000 extent=2448x1080 output=RGBA16F
+SnapFrame: forward/backward consistency accepted count=9000
+SnapFrame: flow vector dump complete frame=9001 rows=5600 grid=112x50
+SnapFrame: bidirectional flow pair accepted count=9120 groups=14x7
+SnapFrame: forward/backward consistency accepted count=9120
+SnapFrame: bidirectional flow pair accepted count=9240 groups=14x7
+SnapFrame: forward/backward consistency accepted count=9240
+SnapFrame: TEST_PHASE_PROGRESS phase=hud_inventory_map elapsed_frames=300 target_frames=1800
+SnapFrame: luma dispatch accepted count=9300 groups=153x68
+SnapFrame: midpoint warp accepted count=9300 extent=2448x1080 output=RGBA16F
+SnapFrame: bidirectional flow pair accepted count=9360 groups=14x7
+SnapFrame: forward/backward consistency accepted count=9360
+SnapFrame: bidirectional flow pair accepted count=9480 groups=14x7
+SnapFrame: forward/backward consistency accepted count=9480
+SnapFrame: TEST_PHASE_PROGRESS phase=hud_inventory_map elapsed_frames=600 target_frames=1800
+SnapFrame: luma dispatch accepted count=9600 groups=153x68
+SnapFrame: bidirectional flow pair accepted count=9600 groups=14x7
+SnapFrame: midpoint warp accepted count=9600 extent=2448x1080 output=RGBA16F
+SnapFrame: forward/backward consistency accepted count=9600
+SnapFrame: flow vector dump complete frame=9601 rows=5600 grid=112x50
+SnapFrame: bidirectional flow pair accepted count=9720 groups=14x7
+SnapFrame: forward/backward consistency accepted count=9720
+SnapFrame: bidirectional flow pair accepted count=9840 groups=14x7
+SnapFrame: forward/backward consistency accepted count=9840
