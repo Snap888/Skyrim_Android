@@ -83,10 +83,12 @@ Planned ownership under `android/app/jni/snapframe/`:
 - `snapframe_profiler.*`: per-stage GPU timestamps and CSV output.
 - `DESIGN.md`: algorithm decisions, measured limits, and integration status.
 
-The host API and DXVK capture backend exist, and the first GLSL preprocessing
-source plus SPIR-V packaging script have been added. The compute pipeline,
-dispatch backend, profiler, and real frame-generation implementation do not
-exist yet.
+The host API and DXVK capture backend exist. The first GLSL preprocessing
+kernel now has an R16F output allocation, sampler, DXVK compute shader/pipeline
+registration, and a state-preserving dispatch helper on the active command
+list. This validates the first GPU preprocessing stage only; the profiler,
+motion estimation, interpolation, and generated-frame presentation remain
+unimplemented.
 
 ## 4. Integration plan
 
@@ -236,8 +238,9 @@ available in the NDK build.
 - [x] Add host-side `R16_SFLOAT` storage/sampled-image capability and extent checks (device runtime result still pending).
 - [x] Add a dedicated `port/snapframe.log` and route DXVK present/callback diagnostics into it.
 - [x] Add first luminance downsample GLSL source and a host-side GLSL-to-SPIR-V header generator.
-- [ ] Run glslangValidator + spirv-val and commit the generated SPIR-V header.
-- [ ] Implement compute pipeline/descriptor setup and first checked dispatch; verify the capability diagnostic on the target GPU.
+- [x] Add CMake host-side GLSL-to-SPIR-V generation and validation (requires Python 3, glslangValidator and spirv-val on the build host).
+- [x] Implement R16F output allocation, sampler/descriptor setup and first checked DXVK dispatch.
+- [ ] Verify shader compilation, pipeline creation and successful luma dispatch on the target GPU.
 - [ ] Implement motion estimation and reconstruction.
 - [ ] Add runtime selector and safe presentation integration.
 - [ ] Run device A/B tests and tune.
@@ -252,9 +255,14 @@ into a half-resolution `R16_SFLOAT` output. The host-side
 SPIR-V with `spirv-val`, and emits a C++ word-array header. This keeps shader
 compilation out of the Android NDK build.
 
-The kernel is not dispatched yet. Before runtime integration, the backend must
-check sampled-image support for the actual swapchain format and storage-image
-support for `VK_FORMAT_R16_SFLOAT`, create the output image with storage usage,
-build a compute pipeline and descriptor set, and dispatch on the active DXVK
-command list with correct barriers. The output allocation must use ceil-half
-dimensions and the dispatch must cover odd extents safely.
+The kernel is dispatched after each captured frame on the same active DXVK
+command list. The host checks sampled-image support for the WSI history format
+and storage+sampled support for `VK_FORMAT_R16_SFLOAT`, including the concrete
+2D image configuration, `shaderStorageImageExtendedFormats`, and ceil-half
+extent limits. It creates the R16F output, sampled source sampler, compute
+shader and descriptors, then uses `dispatchChecked()` through a state-preserving
+DXVK helper. The helper restores shared resource slots and the previous compute
+shader so the internal pass does not poison later game draws. A successful
+`luma dispatch accepted` log means DXVK recorded the dispatch; it does not yet
+prove numerical output correctness. The shader is compiled and SPIR-V validated
+on the build host during CMake configure when the required tools are available.
