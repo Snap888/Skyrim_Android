@@ -28,11 +28,21 @@ extern "C" void lsfg_step3g_set_copy_hook(LsfgCopyHook hook) {
 /* SnapFrame captures the source image independently of LSFG. */
 using SnapFrameCopyHook = void (*)(void*, void*, void*, uint32_t, uint32_t, uint32_t);
 static std::atomic<SnapFrameCopyHook> g_snapFrameCopyHook{nullptr};
+using SnapFrameLogHook = void (*)(const char*);
+static std::atomic<SnapFrameLogHook> g_snapFrameLogHook{nullptr};
+static void snapframeEmitLog(const char* message) {
+  SnapFrameLogHook hook = g_snapFrameLogHook.load(std::memory_order_acquire);
+  if (hook) hook(message);
+  else fprintf(stderr, "%s\n", message);
+}
 static std::atomic<uint64_t> g_snapFramePresentEntryCount{0};
 static std::atomic<uint64_t> g_snapFramePresentPathCount{0};
 static std::atomic<uint64_t> g_snapFrameCallbackDispatchCount{0};
 extern "C" void snapframe_dxvk_set_copy_hook(SnapFrameCopyHook hook) {
   g_snapFrameCopyHook.store(hook, std::memory_order_release);
+}
+extern "C" void snapframe_dxvk_set_log_hook(SnapFrameLogHook hook) {
+  g_snapFrameLogHook.store(hook, std::memory_order_release);
 }
 
 using LsfgGenerationCountHook = unsigned (*)(void);
@@ -929,7 +939,7 @@ namespace dxvk {
     const uint64_t presentEntryCount =
       g_snapFramePresentEntryCount.fetch_add(1, std::memory_order_relaxed) + 1;
     if (presentEntryCount == 1)
-      fprintf(stderr, "SnapFrame: entered D3D9SwapChainEx::PresentImage\n");
+      snapframeEmitLog("SnapFrame: entered D3D9SwapChainEx::PresentImage");
     const auto perfStart = std::chrono::steady_clock::now();
     uint32_t perfGenerated = 0;
     uint32_t perfRequested = 0;
@@ -984,18 +994,20 @@ namespace dxvk {
         const uint64_t presentPathCount =
           g_snapFramePresentPathCount.fetch_add(1, std::memory_order_relaxed) + 1;
         if (presentPathCount == 1) {
-          fprintf(stderr,
-            "SnapFrame: DXVK present path reached extent=%ux%u format=0x%x usage=0x%x copy_hook=%d\n",
+          char snapframeMessage[256];
+          snprintf(snapframeMessage, sizeof(snapframeMessage),
+            "SnapFrame: DXVK present path reached extent=%ux%u format=0x%x usage=0x%x copy_hook=%d",
             info.imageExtent.width, info.imageExtent.height,
             static_cast<unsigned>(info.format.format),
             static_cast<unsigned>(info.imageUsage),
             copyHook != nullptr);
+          snapframeEmitLog(snapframeMessage);
         }
         if (copyHook) {
           const uint64_t dispatchCount =
             g_snapFrameCallbackDispatchCount.fetch_add(1, std::memory_order_relaxed) + 1;
           if (dispatchCount == 1)
-            fprintf(stderr, "SnapFrame: dispatching first DXVK copy callback\n");
+            snapframeEmitLog("SnapFrame: dispatching first DXVK copy callback");
           copyHook(
             m_context.ptr(),
             m_imageViews.at(imageIndex).ptr(),
