@@ -46,8 +46,12 @@ This is the target algorithm. Capture, luma preprocessing, bidirectional block m
 
 When the game starts, SnapFrame creates separate diagnostic outputs under
 `<game-directory>/port/`: `snapframe.log`, `snapframe_gpu.csv`,
-`snapframe_flow.csv`, and `snapframe_flow_vectors.csv` (each truncated for a
-new launch). The text log records
+`snapframe_flow.csv`, `snapframe_flow_vectors.csv`, and `snapframe_events.csv`
+(each truncated for a new launch). The event CSV records capture-copy
+submission, luma dispatch success/failure, both flow directions, consistency
+dispatch status, completed frames, and early skips (invalid callback arguments,
+source validation, or history allocation). It is intended to make it clear
+which stage stopped progressing even when the text log is incomplete. The text log records
 bootstrap/configuration, DXVK PresentImage entry, WSI image details, callback
 entry, format capability checks, history allocation, capture skips and frame
 counters. History allocation validates the exact `TRANSFER_DST | SAMPLED`
