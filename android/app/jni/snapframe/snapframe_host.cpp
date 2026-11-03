@@ -307,10 +307,16 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
     const VkFormat format = sourceImage->info().format;
     if (g_device != device || g_width != width || g_height != height || g_format != format) {
         clearHistory();
-        if (!createHistory(device, width, height, format)) {
+        bool historyCreated = false;
+        try {
+            historyCreated = createHistory(device, width, height, format);
+        } catch (...) {
+            snapframeLog("SnapFrame: exception while allocating frame history\n");
+        }
+        if (!historyCreated) {
             clearHistory();
             g_skippedFrames.fetch_add(1, std::memory_order_relaxed);
-            snapframeLog( "SnapFrame: history allocation failed for %ux%u format=0x%x\n",
+            snapframeLog("SnapFrame: history allocation failed for %ux%u format=0x%x\n",
                     width, height, static_cast<unsigned>(format));
             return;
         }
