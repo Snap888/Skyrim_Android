@@ -565,10 +565,13 @@ A GPU timestamp stage named `midpoint_warp` and event records for resource
 availability and dispatch result were added.
 
 This is a GPU image reconstruction prototype, not yet a usable frame
-generation presentation path. The result is not read back for visual
-inspection, is not fed to the swapchain blitter, and does not cause a second
-WSI acquire/present. The `generated_frames` public statistic therefore stays
-zero. An accepted dispatch proves command recording only, not correct pixels.
+generation presentation path. The result is not read back for visual inspection. It is now handed to the existing
+DXVK generated-present loop through independent SnapFrame callbacks. After the
+real present, DXVK acquires a second WSI image, blits the midpoint image, renders
+the HUD, and queues one additional present. LSFG has priority and its generation
+loop is not run concurrently with SnapFrame. The public `generated_frames`
+statistic increments after the extra present is queued. An accepted compute
+dispatch proves command recording only, not correct pixels or scan-out.
 
 ### Required next work before a real gameplay test
 
