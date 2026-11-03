@@ -11,7 +11,7 @@
 #include "dxvk_image.h"
 #include "dxvk_sampler.h"
 #include "dxvk_shader.h"
-#include "../spirv/spirv_code_buffer.h"
+#include "spirv_code_buffer.h"
 
 #if __has_include("generated/snapframe_shaders.h")
   #include "generated/snapframe_shaders.h"
