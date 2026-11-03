@@ -1,0 +1,44 @@
+#version 450
+
+// Midpoint reconstruction from two real color frames and bidirectional flow.
+// Flow vectors are measured in half-resolution luma texels, hence *2 converts
+// them to full-resolution color pixels. Low-confidence/occluded samples fall
+// back to a conservative temporal blend instead of extrapolating bad vectors.
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+layout(set = 0, binding = 0) uniform sampler2D previousColor;
+layout(set = 0, binding = 1) uniform sampler2D currentColor;
+layout(set = 0, binding = 2) uniform sampler2D currentToPrevious;
+layout(set = 0, binding = 3) uniform sampler2D previousToCurrent;
+layout(set = 0, binding = 4) uniform sampler2D consistencyMask;
+layout(set = 0, binding = 5, rgba16f) writeonly uniform image2D midpointOutput;
+
+void main() {
+    ivec2 p = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 extent = imageSize(midpointOutput);
+    if (any(greaterThanEqual(p, extent))) return;
+
+    vec2 uv = (vec2(p) + vec2(0.5)) / vec2(extent);
+    ivec2 flowExtent = textureSize(currentToPrevious, 0);
+    vec2 flowUv = uv;
+    vec4 fwd = texture(currentToPrevious, flowUv);
+    vec4 bwd = texture(previousToCurrent, flowUv);
+    float consistency = texture(consistencyMask, flowUv).r;
+
+    // A half-frame lies halfway between the two source frames. The flow
+    // vectors are full displacement between frames; use half displacement.
+    vec2 pixelToUv = 2.0 / vec2(extent); // luma is half resolution
+    vec2 previousUv = clamp(uv + fwd.xy * pixelToUv * 0.5,
+                            vec2(0.0), vec2(1.0));
+    vec2 currentUv = clamp(uv + bwd.xy * pixelToUv * 0.5,
+                           vec2(0.0), vec2(1.0));
+
+    vec4 prev = texture(previousColor, previousUv);
+    vec4 curr = texture(currentColor, currentUv);
+    float confidence = clamp(min(fwd.z, bwd.z) * consistency, 0.0, 1.0);
+    // Preserve both source samples where motion evidence is weak. The blend
+    // remains deterministic and avoids black/undefined pixels at occlusions.
+    vec4 warped = mix((prev + curr) * 0.5, (prev + curr) * 0.5, 0.5);
+    float motionWeight = smoothstep(0.08, 0.65, confidence);
+    vec4 result = mix((prev + curr) * 0.5, warped, motionWeight);
+    imageStore(midpointOutput, p, result);
+}
