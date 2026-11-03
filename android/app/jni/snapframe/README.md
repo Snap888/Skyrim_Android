@@ -246,3 +246,21 @@ implemented. Do not describe the current module as usable frame generation.
 **Build/test status:** no APK was built and no GitHub Actions workflow was
 triggered during this work. Local Android build and device validation remain
 pending.
+
+
+### Variable flow-grid density — source implementation added
+
+The `flow_scale_percent` setting now controls the motion-grid density. The
+base stride is 8 half-resolution luma texels at 100%; lower percentages
+increase the stride. Both the block matcher and forward/backward consistency
+derive the same stride from the luma and flow extents. The consistency
+dispatch now binds the current luma view as a fourth resource so projected
+coordinates use the correct grid spacing.
+
+For 2448x1080 input, the intended grids are 153x68 at 100%, 112x50 at 75%,
+77x34 at 50%, and 39x17 at 25%. The default 50% setting therefore reduces
+flow-cell count by approximately four times relative to 100%, but it also
+reduces spatial detail. These are calculated dimensions, not measured GPU
+performance. The shader pipeline and four-binding dispatch have not yet been
+compiled or validated on device; verify them with zero-motion and known-offset
+tests before using the resulting flow for reconstruction.
