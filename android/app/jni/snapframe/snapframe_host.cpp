@@ -230,8 +230,15 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
 }
 
 void snapframeDeviceDestroyed(void* devicePtr) {
-    if (g_device == reinterpret_cast<DxvkDevice*>(devicePtr))
+    if (g_device == reinterpret_cast<DxvkDevice*>(devicePtr)) {
+        snapframeLog("SnapFrame: DXVK device destroyed; releasing history\n");
         clearHistory();
+    }
+}
+
+void snapframeForwardDxvkLog(const char* message) {
+    if (message && *message)
+        snapframeLog("%s\n", message);
 }
 }
 
@@ -260,6 +267,7 @@ extern "C" void snapframe_host_log(const char *message) {
 extern "C" void snapframe_dxvk_set_copy_hook(
     void (*hook)(void*, void*, void*, uint32_t, uint32_t, uint32_t));
 extern "C" void snapframe_dxvk_set_device_destroy_hook(void (*hook)(void*));
+extern "C" void snapframe_dxvk_set_log_hook(void (*hook)(const char*));
 
 extern "C" void snapframe_config_defaults(SnapFrameConfig *config) {
     if (!config) return;
@@ -294,6 +302,7 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
 
     snapframe_dxvk_set_copy_hook(snapframeCopyFrame);
     snapframe_dxvk_set_device_destroy_hook(snapframeDeviceDestroyed);
+    snapframe_dxvk_set_log_hook(snapframeForwardDxvkLog);
     snapframeLog( "SnapFrame: host initialized enabled=%d quality=%d flow_scale=%d%% (capture prototype only)\n",
             validated.enabled, validated.quality, validated.flow_scale_percent);
     return 1;
