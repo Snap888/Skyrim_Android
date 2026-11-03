@@ -36,6 +36,7 @@ void main() {
     float bestCost = 1.0e20;
     float secondCost = 1.0e20;
     ivec2 bestMotion = ivec2(0);
+    int bestMotionDistanceSquared = 0x7fffffff;
 
     for (int dy = -searchRadius; dy <= searchRadius; ++dy) {
         for (int dx = -searchRadius; dx <= searchRadius; ++dx) {
@@ -67,6 +68,17 @@ void main() {
                 secondCost = bestCost;
                 bestCost = cost;
                 bestMotion = motion;
+                bestMotionDistanceSquared = dx * dx + dy * dy;
+            } else if (cost == bestCost) {
+                // Equal-cost matches are ambiguous. Prefer the smallest
+                // displacement (zero motion wins on flat/low-texture blocks)
+                // instead of retaining the first search candidate (-4,-4).
+                secondCost = bestCost;
+                int motionDistanceSquared = dx * dx + dy * dy;
+                if (motionDistanceSquared < bestMotionDistanceSquared) {
+                    bestMotion = motion;
+                    bestMotionDistanceSquared = motionDistanceSquared;
+                }
             } else if (cost < secondCost) {
                 secondCost = cost;
             }
