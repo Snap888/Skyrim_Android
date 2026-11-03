@@ -338,7 +338,7 @@ void recordFlowReadback(
             std::lock_guard<std::mutex> lock(g_flowLogMutex);
             if (g_flowLogFile) {
                 fprintf(g_flowLogFile,
-                    "%llu,%u,%u,0,0,0,0,0,0,0,0,0,0,0,0,0,completion_error:%d\\n",
+                    "%llu,%u,%u,0,0,0,0,0,0,0,0,0,0,0,0,0,completion_error:%d\n",
                     static_cast<unsigned long long>(frame), flowWidth, flowHeight, int(result));
                 fflush(g_flowLogFile);
             }
@@ -348,7 +348,8 @@ void recordFlowReadback(
         if (!data) {
             std::lock_guard<std::mutex> lock(g_flowLogMutex);
             if (g_flowLogFile) {
-                fprintf(g_flowLogFile, "%llu,%u,%u,0,0,0,0,0,0,0,0,0,0,0,0,0,readback_mapping_failed\\n",
+                fprintf(g_flowLogFile,
+                    "%llu,%u,%u,0,0,0,0,0,0,0,0,0,0,0,0,0,readback_mapping_failed\n",
                     static_cast<unsigned long long>(frame), flowWidth, flowHeight);
                 fflush(g_flowLogFile);
             }
@@ -377,21 +378,14 @@ void recordFlowReadback(
 
         std::lock_guard<std::mutex> lock(g_flowLogMutex);
         if (!g_flowLogFile) return;
-        if (result == VK_SUCCESS) {
-            fprintf(g_flowLogFile,
-                "%llu,%u,%u,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.3f,%llu,ok\n",
-                static_cast<unsigned long long>(frame), flowWidth, flowHeight,
-                forward.dx, forward.dy, forward.magnitude, forward.confidence, forward.cost,
-                backward.dx, backward.dy, backward.magnitude, backward.confidence, backward.cost,
-                consistencyMean, consistencyPercent, static_cast<unsigned long long>(nonFinite));
-        } else {
-            fprintf(g_flowLogFile,
-                "%llu,%u,%u,0,0,0,0,0,0,0,0,0,0,0,0,%llu,completion_error:%d\n",
-                static_cast<unsigned long long>(frame), flowWidth, flowHeight,
-                static_cast<unsigned long long>(nonFinite), int(result));
-        }
+        fprintf(g_flowLogFile,
+            "%llu,%u,%u,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.3f,%llu,ok\n",
+            static_cast<unsigned long long>(frame), flowWidth, flowHeight,
+            forward.dx, forward.dy, forward.magnitude, forward.confidence, forward.cost,
+            backward.dx, backward.dy, backward.magnitude, backward.confidence, backward.cost,
+            consistencyMean, consistencyPercent, static_cast<unsigned long long>(nonFinite));
         fflush(g_flowLogFile);
-    });
+    });;
 }
 
 void clearHistory() {
