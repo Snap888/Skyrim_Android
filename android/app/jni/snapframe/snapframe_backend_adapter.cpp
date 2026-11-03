@@ -44,6 +44,16 @@ SnapFrameStatus backendUpdateConfig(void*, const SnapFrameEngineConfig* config) 
         || config->multiplier < 1 || config->multiplier > 2)
         return SNAP_FRAME_ERROR_INVALID_ARGUMENT;
 
+    /* These settings are not yet hot-wired to the legacy GPU host. Reject
+     * changes instead of pretending that they affected the shader pipeline. */
+    if (config->multiplier != g_config.multiplier
+        || config->quality != g_config.quality
+        || config->motion_analysis != g_config.motion_analysis
+        || config->profiling_enabled != g_config.profiling_enabled
+        || config->diagnostic_suite != g_config.diagnostic_suite
+        || config->diagnostic_phase_frames != g_config.diagnostic_phase_frames)
+        return SNAP_FRAME_ERROR_INVALID_ARGUMENT;
+
     return snapframe_host_apply_backend_config(
         static_cast<int>(config->enabled),
         static_cast<int>(config->flow_scale_percent))
