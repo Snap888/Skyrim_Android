@@ -1,4 +1,5 @@
 #include "snapframe_host.h"
+#include "snap_ai/snap_ai.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -63,6 +64,9 @@ void snapframe_bootstrap(void) {
 
     snapframe_host_log("bootstrap entered");
     snapframe_host_init(&config);
+    const uint32_t snapAiApi = snap_ai_get_api_version();
+    fprintf(stderr, "SnapAI: library loaded api=%u expected=%u adaptive_control=pending_telemetry_adapter\\n",
+        snapAiApi, SNAP_AI_API_VERSION);
     char summary[1400];
     snprintf(summary, sizeof(summary), "config=%s log=%s gpu_csv=%s flow_csv=%s events_csv=%s enabled=%d multiplier=%d quality=%d flow_scale=%d motion_analysis=%d profiling=%d diagnostic_suite=%d phase_frames=%d",
              path, logPath, gpuLogPath, flowLogPath, eventLogPath, config.enabled, config.multiplier,
