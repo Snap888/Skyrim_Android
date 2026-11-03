@@ -76,10 +76,10 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             == requiredLumaFeatures
         && lumaImageResult == VK_SUCCESS
         && lumaExtendedFormatsEnabled
-        && ((width + 1u) / 2u) <= lumaImageProperties.maxExtent.width
-        && ((height + 1u) / 2u) <= lumaImageProperties.maxExtent.height;
+        && (width / 2u + width % 2u) <= lumaImageProperties.maxExtent.width
+        && (height / 2u + height % 2u) <= lumaImageProperties.maxExtent.height;
     fprintf(stderr,
-            "SnapFrame: R16F luma output %s (features=0x%x imageResult=%d extendedFormats=%d)\\n",
+            "SnapFrame: R16F luma output %s (features=0x%x imageResult=%d extendedFormats=%d)\n",
             lumaFormatSupported ? "supported" : "unsupported",
             static_cast<unsigned>(lumaFormatProperties.optimalTilingFeatures),
             static_cast<int>(lumaImageResult),
