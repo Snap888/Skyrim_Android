@@ -74,3 +74,28 @@ CMake project currently consumes generated DXVK shader headers; it does not
 compile standalone GLSL sources itself. A dedicated, reproducible
 GLSL-to-SPIR-V packaging step must be established before adding the first
 SnapFrame compute shader.
+
+
+## First preprocessing shader source
+
+The first SnapFrame compute source is
+`shaders/luma_downsample.comp`. It reads a real frame through a sampled
+`sampler2D`, computes Rec.709 luminance, and writes a half-resolution
+`R16_SFLOAT` image using a 2x2 box reduction. The output dimensions must be
+`ceil(sourceWidth / 2)` by `ceil(sourceHeight / 2)`; edge texels are clamped
+for odd source dimensions.
+
+Generate the C++ SPIR-V header on the host before integrating the shader:
+
+```sh
+python3 tools/compile_snapframe_shaders.py
+```
+
+The tool requires `glslangValidator` and `spirv-val` (or explicit
+`--glslang` / `--spirv-val` paths). It validates Vulkan 1.1 SPIR-V and writes
+`android/app/jni/snapframe/generated/snapframe_shaders.h`. Android NDK builds
+consume the generated header and do not need the shader compiler. The shader
+is source/build infrastructure only at this stage: no compute pipeline,
+descriptor binding, dispatch, or runtime output is wired yet. Runtime support
+for sampled source formats and `R16_SFLOAT` storage images must be checked on
+the physical device before dispatch.
