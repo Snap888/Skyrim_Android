@@ -42,21 +42,11 @@ INFO: Adding input device with name 23
 INFO: Adding output device with name 2
 INFO: Adding output device with name 3
 INFO: Adding output device with name 12
-INFO: Adding device with name 2, capture 1
-INFO: Adding device with name 3, capture 1
-INFO: Adding device with name 12, capture 1
-INFO: Adding device with name 19, capture 0
-INFO: Adding device with name 20, capture 0
-INFO: Adding device with name 21, capture 0
-INFO: Adding device with name 30, capture 0
-INFO: Adding device with name 22, capture 0
-INFO: Adding device with name 23, capture 0
 platform: window 2448x1080
 SnapFrame: bootstrap entered
-SnapFrame: diagnostic_suite requested but skipped because motion_analysis=0
-SnapFrame: diagnostic_suite=0 phase_frames=1800 phases=7 profiling=1 motion_analysis=0 timestamp_interval=30 flow_readback_interval=120
-SnapFrame: host initialized enabled=1 quality=1 flow_scale=50% motion_analysis=0 mode=capture-only
-SnapFrame: config=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe.conf log=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe.log gpu_csv=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe_gpu.csv flow_csv=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe_flow.csv enabled=1 multiplier=2 quality=1 flow_scale=50 motion_analysis=0 profiling=1 diagnostic_suite=1 phase_frames=1800
+SnapFrame: diagnostic_suite=1 phase_frames=1800 phases=7 profiling=1 motion_analysis=1 timestamp_interval=30 flow_readback_interval=120
+SnapFrame: host initialized enabled=1 quality=1 flow_scale=50% motion_analysis=1 mode=capture+luma+bidirectional-flow+fb-consistency
+SnapFrame: config=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe.conf log=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe.log gpu_csv=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe_gpu.csv flow_csv=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe_flow.csv enabled=1 multiplier=2 quality=1 flow_scale=50 motion_analysis=1 profiling=1 diagnostic_suite=1 phase_frames=1800
 guest threads on the fast cores: 3 4 5 6 7 (2803200 kHz; save/allcores.txt uses all)
 thread slot 0 taken (tid 260)
 profiler on (save/noprof.txt turns it off)
@@ -71,19 +61,19 @@ VirtualAlloc(00000000, 67108864, 2000) = 70040000
 VirtualAlloc(00000000, 268435456, 2000) = 74040000
 VirtualAlloc(74040000, 8388608, 1000) = 74040000
 CreateThread start=00a5b000 param=01b8b1d0
-CreateThread start=00a5b000 param=01b8b1d0
 thread slot 1 taken (tid 264)
+CreateThread start=00a5b000 param=01b8b1d0
+CreateThread start=00a5b000 param=01b8b1d0
 thread slot 2 taken (tid 268)
 CreateThread start=00a5b000 param=01b8b1d0
 thread slot 3 taken (tid 272)
-CreateThread start=00a5b000 param=01b8b1d0
 thread slot 4 taken (tid 276)
 CreateThread start=00a5b000 param=01b8b1d0
 CreateThread start=00a5b000 param=01b8b1d0
 CreateThread start=00a5ac30 param=01b8b1d0
 thread slot 5 taken (tid 284)
-thread slot 6 taken (tid 280)
-thread slot 7 taken (tid 288)
+thread slot 6 taken (tid 288)
+thread slot 7 taken (tid 280)
 VirtualAlloc(00000000, 5242880, 2000) = 84040000
 VirtualAlloc(84040000, 5242880, 1000) = 84040000
 GetFileAttributesExA failed: C:\Skyrim\DATA\NullStream (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/NullStream): No such file or directory
@@ -93,17 +83,17 @@ GetFileAttributesExA failed: C:\Skyrim\NullStream (/storage/emulated/0/Download/
 VirtualAlloc(6031e9b0, 4194320, 1000) = 6031e9b0
 SteamAPI_Init: offline stub
 CreateFileA failed: C:\Users\Player\Documents\Skyrim\.\Plugins.txt (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/Skyrim/./Plugins.txt)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Misc.bsa -> fd 132
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Misc.bsa -> fd 128
 VirtualAlloc(00000000, 16777216, 2000) = 84540000
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Shaders.bsa -> fd 143
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Textures.bsa -> fd 144
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Interface.bsa -> fd 145
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Animations.bsa -> fd 146
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Meshes.bsa -> fd 147
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Sounds.bsa -> fd 148
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Voices.bsa -> fd 160
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - VoicesExtra.bsa -> fd 166
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.bsa -> fd 167
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Shaders.bsa -> fd 139
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Textures.bsa -> fd 140
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Interface.bsa -> fd 141
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Animations.bsa -> fd 142
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Meshes.bsa -> fd 143
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Sounds.bsa -> fd 144
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Voices.bsa -> fd 147
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - VoicesExtra.bsa -> fd 148
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.bsa -> fd 161
 CreateFileA failed: C:\Users\Player\Documents\Skyrim\.\Plugins.txt (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/Skyrim/./Plugins.txt)
 FindFirstFileA C:\Skyrim\DATA\TEXTURES\\* -> /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/TEXTURES//*
 FindFirstFileA C:\Skyrim\DATA\TEXTURES\architecture\\* -> /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/TEXTURES/architecture//*
@@ -4654,14 +4644,14 @@ GetFileAttributesExA failed: C:\Skyrim\Interface\Controls\PC\Keyboard_RUSSIAN.tx
 GetFileAttributesExA failed: C:\Skyrim\Interface\Controls\PC\Keyboard_RUSSIAN.txt (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/Interface/Controls/PC/Keyboard_RUSSIAN.txt): No such file or directory
 DirectInput: created keyboard
 DirectInput: created mouse
-CreateThread start=00a4b4a0 param=744ca5c0
+CreateThread start=00a4b4a0 param=744ca580
 thread slot 9 taken (tid 296)
 xaudio2: created IXAudio2 200093a0
 xaudio2: build: xWMA path=yes decoder=FFmpeg WMAV2 log=port/log.txt + logcat
 xaudio2: mastering voice 6 ch at 48000 Hz
 CoCreateInstance -> E_NOINTERFACE
 thread slot 10 taken (tid 300)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/RendererInfo.txt (write, disposition 2) -> fd 172
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/RendererInfo.txt (write, disposition 2) -> fd 166
 Direct3DCreate9(32)
 info:  Game: app_process64
 info:  DXVK: v1.9.2
@@ -4814,8 +4804,7 @@ info:    bufferDeviceAddress                    : 0
 info:  Queue families:
 info:    Graphics : 0
 info:    Transfer : 0
-warn:  DXVK: No state cache file found
-warn:  DXVK: Creating new state cache file
+info:  DXVK: Read 401 valid state cache entries
 info:  DXVK: Pipeline compilation mode: asynchronous, compiler threads=5
 info:  Port: USCALED vertex fetch NOT supported, UBYTE4/SHORT fetched normalized + rescaled
 warn:  D3D9DeviceEx::SetupFPU: not supported on this arch.
@@ -4837,7 +4826,7 @@ info:    Exclusive FS: 0
 CreateDevice -> 00000000
 BC texture emulation off
 CreateTexture 2x1 levels 1 usage 0 fmt 17 pool 1 -> 00000000
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/RendererInfo.txt (write, disposition 4) -> fd 206
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/RendererInfo.txt (write, disposition 4) -> fd 208
 CreateTexture 16x16 levels 1 usage 0 fmt 16 pool 1 -> 00000000
 CreateTexture 16x16 levels 1 usage 0 fmt 15 pool 1 -> 00000000
 CreateTexture 64x64 levels 7 usage 0 fmt 31545844 pool 1 -> 00000000
@@ -4851,14 +4840,27 @@ GetFileAttributesExA failed: C:\Skyrim\DATA\shadersfx\Lighting\059\PC00003.fxp (
 GetFileAttributesExA failed: C:\Skyrim\shadersfx\Lighting\059\PC00003.fxp (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/shadersfx/Lighting/059/PC00003.fxp): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\shadersfx\Lighting\059\PC00003.fxp (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/shadersfx/Lighting/059/PC00003.fxp): No such file or directory
 CreateTexture 1x1 levels 1 usage 0 fmt 1c pool 0 -> 00000000
-CreateThread start=00a4b4a0 param=740cc100
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=18771
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=18813
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=18812
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=22074
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=11338
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=11360
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=15739
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=25487
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=10882
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=10954
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=18773
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=18490
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=12371
+CreateThread start=00a4b4a0 param=740cc480
 thread slot 11 taken (tid 304)
-CreateThread start=00a4b4a0 param=740cc080
+CreateThread start=00a4b4a0 param=740cc380
 thread slot 12 taken (tid 308)
 CreateTexture 256x512 levels 10 usage 0 fmt 35545844 pool 1 -> 00000000
 VirtualAlloc(00000000, 16777216, 2000) = 88540000
-CreateThread start=00f4f240 param=010cd560
 thread slot 13 taken (tid 312)
+CreateThread start=00f4f240 param=010cd560
 warn:  D3D9DeviceEx::SetRenderState: Unhandled render state 136
 info:  D3D9: vertex decltype 6 usage 0 -> VK_FORMAT_R16G16_SNORM
 info:  D3D9: vertex decltype 8 usage 10 -> VK_FORMAT_R8G8B8A8_UNORM
@@ -4870,53 +4872,64 @@ info:    Buffer size:  2448x1080
 info:    Image count:  7
 info:    Exclusive FS: 0
 SnapFrame: entered D3D9SwapChainEx::PresentImage
+info:  D3D9: vertex decltype 3 usage 9 -> VK_FORMAT_R32G32B32A32_SFLOAT
+info:  D3D9: vertex decltype 1 usage 5 -> VK_FORMAT_R32G32_SFLOAT
+info:  D3D9: vertex decltype 4 usage 10 -> VK_FORMAT_B8G8R8A8_UNORM
 SnapFrame: DXVK present path reached extent=2448x1080 format=0x25 usage=0x13 copy_hook=1
 SnapFrame: dispatching first DXVK copy callback
 SnapFrame: history reset requested; cached GPU resources released
 SnapFrame: host copy callback entered
 SnapFrame: R16F luma output supported (features=0x8001fd83 imageResult=0 extendedFormats=1)
-SnapFrame: motion analysis disabled or luma compute unsupported; capture-only mode
+SnapFrame: forward/backward consistency resources ready format=R16_SFLOAT extent=153x68
+SnapFrame: luma compute resources ready outputs=2 extent=1224x540 format=R16_SFLOAT
+SnapFrame: bidirectional block-matching flow ready outputs=2 extent=153x68 format=RGBA16F search=9x9 patch=3x3 scale=1/16
 SnapFrame: allocated two-frame history 2448x1080 format=0x25
+SnapFrame: TEST_PHASE_BEGIN index=1 name=static_scene target_frames=1800
+SnapFrame: TEST_ACTION remain still; do not move the camera
+SnapFrame: luma dispatch accepted count=1 groups=153x68
 SnapFrame: captured=1 skipped=0 extent=2448x1080
-info:  D3D9: vertex decltype 3 usage 9 -> VK_FORMAT_R32G32B32A32_SFLOAT
-info:  D3D9: vertex decltype 1 usage 5 -> VK_FORMAT_R32G32_SFLOAT
-info:  D3D9: vertex decltype 4 usage 10 -> VK_FORMAT_B8G8R8A8_UNORM
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=22555
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=22582
 FindFirstFileA Data\Video\BGS_LOGO.BIK -> Data/Video/BGS_LOGO.BIK
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=27025
 CreateTexture 256x256 levels 1 usage 200 fmt 16 pool 0 -> 00000000
+SnapFrame: bidirectional flow pair accepted count=1 groups=20x9
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=14529
+SnapFrame: forward/backward consistency accepted count=1
 SnapFrame: two real frames captured; history ring valid
 xaudio2: output timing queue_low=1 min_queue=0B slow_mix=0 max_mix=0ms (last 1s)
 thread slot 8 released
 CreateThread start=00a4b4a0 param=103ffdc8
 thread slot 8 taken (tid 316)
-CreateThread start=00a4b4a0 param=74b11140
+CreateThread start=00a4b4a0 param=74b2e0c0
 thread slot 14 taken (tid 320)
-CreateThread start=00a4b4a0 param=74cfbe20
+CreateThread start=00a4b4a0 param=74cfbd90
 thread slot 15 taken (tid 324)
 FindFirstFileA DATA\*.esm -> DATA/*.esm
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Dawnguard.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Dawnguard.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Dawnguard.esm)
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Dawnguard.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Dawnguard.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Dawnguard.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Dawnguard.esm -> fd 242
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Dawnguard.esm -> fd 242
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Dawnguard.esm -> fd 236
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Dawnguard.esm -> fd 236
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Dragonborn.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Dragonborn.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Dragonborn.esm)
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Dragonborn.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Dragonborn.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Dragonborn.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Dragonborn.esm -> fd 243
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Dragonborn.esm -> fd 243
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Dragonborn.esm -> fd 245
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Dragonborn.esm -> fd 245
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HearthFires.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\HearthFires.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HearthFires.esm)
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HearthFires.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\HearthFires.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HearthFires.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HearthFires.esm -> fd 244
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HearthFires.esm -> fd 244
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HearthFires.esm -> fd 248
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HearthFires.esm -> fd 248
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 250
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 250
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 249
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 249
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\Update.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm)
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm -> fd -1
@@ -4941,7 +4954,7 @@ CreateFileA failed: C:\Skyrim\DATA\DATA\HighResTexturePack03.esp (/storage/emula
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack03.esp -> fd -1
 CreateFileA failed: C:\Skyrim\DATA\DATA\HighResTexturePack03.esp (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/HighResTexturePack03.esp)
 CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack03.esp -> fd 254
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack03.esp -> fd 221
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/HighResTexturePack03.esp -> fd 254
 FindFirstFileA DATA\Update.esm -> DATA/Update.esm
 FindFirstFileA DATA\Skyrim.esm -> DATA/Skyrim.esm
 FindFirstFileA DATA\HearthFires.esm -> DATA/HearthFires.esm
@@ -4952,13 +4965,23 @@ FindFirstFileA DATA\HighResTexturePack02.esp -> DATA/HighResTexturePack02.esp
 FindFirstFileA DATA\HighResTexturePack01.esp -> DATA/HighResTexturePack01.esp
 VirtualAlloc(00000000, 16777216, 2000) = 89540000
 SnapFrame: captured=60 skipped=0 extent=2448x1080
+SnapFrame: bidirectional flow pair accepted count=120 groups=20x9
+SnapFrame: forward/backward consistency accepted count=120
 thread slot 13 released
 ExitThread(0)
-thread slot 7 released
+thread slot 6 released
 CreateFileA failed: C:\Users\Player\Documents\Skyrim\.\Plugins.txt (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/Skyrim/./Plugins.txt)
 info:  D3D9: vertex decltype 2 usage 0 -> VK_FORMAT_R32G32B32_SFLOAT
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=35547
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=35552
+SnapFrame: bidirectional flow pair accepted count=240 groups=20x9
+SnapFrame: forward/backward consistency accepted count=240
 VirtualAlloc(00000000, 16777216, 2000) = 8a540000
 VirtualAlloc(00000000, 16777216, 2000) = 8b540000
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=22190
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=23112
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=21983
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=24703
 CreateTexture 64x64 levels 7 usage 0 fmt 33545844 pool 1 -> 00000000
 GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\WindhelmWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/WindhelmWorld.LOD): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\WindhelmWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/WindhelmWorld.LOD): No such file or directory
@@ -5056,31 +5079,31 @@ GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\BrinewaterGrottoWorld.LO
 GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\BrinewaterGrottoWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/BrinewaterGrottoWorld.LOD): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\LODSettings\BrinewaterGrottoWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/BrinewaterGrottoWorld.LOD): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\LODSettings\BrinewaterGrottoWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/BrinewaterGrottoWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\AlftandWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/AlftandWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\AlftandWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/AlftandWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\AlftandWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/AlftandWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\AlftandWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/AlftandWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\FXLightWorldSpace.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/FXLightWorldSpace.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\FXLightWorldSpace.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/FXLightWorldSpace.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\FXLightWorldSpace.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/FXLightWorldSpace.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\FXLightWorldSpace.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/FXLightWorldSpace.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\KatariahWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/KatariahWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\KatariahWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/KatariahWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\KatariahWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/KatariahWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\KatariahWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/KatariahWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\FrostmereCryptWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/FrostmereCryptWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\FrostmereCryptWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/FrostmereCryptWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\FrostmereCryptWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/FrostmereCryptWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\FrostmereCryptWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/FrostmereCryptWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\WindhelmPitWorldspace.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/WindhelmPitWorldspace.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\WindhelmPitWorldspace.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/WindhelmPitWorldspace.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\WindhelmPitWorldspace.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/WindhelmPitWorldspace.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\WindhelmPitWorldspace.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/WindhelmPitWorldspace.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\LabyrinthianMazeWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/LabyrinthianMazeWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\LabyrinthianMazeWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/LabyrinthianMazeWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\LabyrinthianMazeWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/LabyrinthianMazeWorld.LOD): No such file or directory
-GetFileAttributesExA failed: C:\Skyrim\LODSettings\LabyrinthianMazeWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/LabyrinthianMazeWorld.LOD): No such file or directory
 info:  D3D9: vertex decltype 0 usage 5 -> VK_FORMAT_R32_SFLOAT
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\AlftandWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/AlftandWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\AlftandWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/AlftandWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\AlftandWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/AlftandWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\AlftandWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/AlftandWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\FXLightWorldSpace.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/FXLightWorldSpace.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\FXLightWorldSpace.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/FXLightWorldSpace.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\FXLightWorldSpace.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/FXLightWorldSpace.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\FXLightWorldSpace.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/FXLightWorldSpace.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\KatariahWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/KatariahWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\KatariahWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/KatariahWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\KatariahWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/KatariahWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\KatariahWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/KatariahWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\FrostmereCryptWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/FrostmereCryptWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\FrostmereCryptWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/FrostmereCryptWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\FrostmereCryptWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/FrostmereCryptWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\FrostmereCryptWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/FrostmereCryptWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\WindhelmPitWorldspace.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/WindhelmPitWorldspace.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\WindhelmPitWorldspace.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/WindhelmPitWorldspace.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\WindhelmPitWorldspace.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/WindhelmPitWorldspace.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\WindhelmPitWorldspace.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/WindhelmPitWorldspace.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\LabyrinthianMazeWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/LabyrinthianMazeWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\DATA\LODSettings\LabyrinthianMazeWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/LODSettings/LabyrinthianMazeWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\LabyrinthianMazeWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/LabyrinthianMazeWorld.LOD): No such file or directory
+GetFileAttributesExA failed: C:\Skyrim\LODSettings\LabyrinthianMazeWorld.LOD (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/LODSettings/LabyrinthianMazeWorld.LOD): No such file or directory
 ExitThread(0)
 thread slot 8 released
 FindFirstFileA C:\Users\Player\Documents\My Games\Skyrim\Saves\*.ess -> /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/Saves/*.ess
@@ -5088,14 +5111,18 @@ CreateTexture 512x512 levels 1 usage 0 fmt 1c pool 2 -> 00000000
 VirtualAlloc(00000000, 16777216, 2000) = 8c540000
 xaudio2: source format xWMA tag=0161 2 ch 48000 Hz avg_bps=6000 block_align=1008 extra=0 (voice #1, decoder FFmpeg)
 xaudio2: Start xWMA voice fmt=6 ch=2 rate=48000 queued=1 (#1)
-[wmav2 @ 0x72c7ea24a0] Could not update timestamps for skipped samples.
+[wmav2 @ 0x72c7e8c750] Could not update timestamps for skipped samples.
 xwma_ffmpeg: packets=1842 block_align=1008 pcm_frames=11311104 pcm=235.648s dpds=235.648s tag=0161 ba=1008 extra=6 flags=31 bitrate=48kbps
 xaudio2: xWMA decoded tag=0161 2 ch 48000 Hz bytes=1856736 -> 11311104 frames submit #1
-xaudio2: xWMA worker latency=183ms submit #1
+xaudio2: xWMA worker latency=224ms submit #1
+SnapFrame: luma dispatch accepted count=300 groups=153x68
 frame 300
-xaudio2: source starvation frames pending_decode=8641 empty_queue=0 (last 1s)
-frame 600
+xaudio2: source starvation frames pending_decode=10561 empty_queue=0 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=360 groups=20x9
+SnapFrame: forward/backward consistency accepted count=360
 xaudio2: source format tag=0001 fmt=0 2 ch 44100 Hz bits=16
+SnapFrame: bidirectional flow pair accepted count=480 groups=20x9
+SnapFrame: forward/backward consistency accepted count=480
 xaudio2: source format tag=0001 fmt=0 2 ch 44100 Hz bits=16
 FindFirstFileA XBoxSaves\*.exs -> XBoxSaves/*.exs (no such folder)
 FindFirstFileA C:\Users\Player\Documents\My Games\Skyrim\Saves\*.ess -> /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/Saves/*.ess
@@ -5105,21 +5132,38 @@ FindFirstFileA C:\Users\Player\Documents\My Games\Skyrim\Saves\autosave2.ess -> 
 FindFirstFileA C:\Users\Player\Documents\My Games\Skyrim\Saves\autosave3.ess -> /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/Saves/autosave3.ess
 FindFirstFileA C:\Users\Player\Documents\My Games\Skyrim\Saves\quicksave.ess -> /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/Saves/quicksave.ess
 CreateTexture 256x1 levels 1 usage 0 fmt 15 pool 0 -> 00000000
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=18904
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=15914
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=18450
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=14270
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=10645
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=11257
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=50272
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=53485
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=20879
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4275
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=6671
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=12654
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=42903
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=41161
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=11
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=33075
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=33064
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=8
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=85139
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=85104
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=86223
 VirtualAlloc(00000000, 16777216, 2000) = 8d540000
-xaudio2: source format xWMA tag=0161 2 ch 44100 Hz avg_bps=6000 block_align=2230 extra=0 (voice #2, decoder FFmpeg)
-[wmav2 @ 0x72c8105510] Could not update timestamps for skipped samples.
-xaudio2: Start xWMA voice fmt=6 ch=2 rate=44100 queued=1 (#2)
-xwma_ffmpeg: packets=885 block_align=2230 pcm_frames=14497792 pcm=328.748s dpds=328.748s tag=0161 ba=2230 extra=6 flags=31 bitrate=48kbps
-xaudio2: xWMA decoded tag=0161 2 ch 44100 Hz bytes=1973550 -> 14497792 frames submit #2
-xaudio2: xWMA worker latency=293ms submit #2
-xaudio2: source starvation frames pending_decode=12348 empty_queue=0 (last 1s)
-VirtualAlloc(639f8130, 5592624, 1000) = 639f8130
-VirtualAlloc(63f55770, 5592576, 1000) = 63f55770
+VirtualAlloc(637ee380, 5592624, 1000) = 637ee380
+VirtualAlloc(63d4b9c0, 5592576, 1000) = 63d4b9c0
 GetFileAttributesExA failed: C:\Skyrim\DATA\Textures\Actors\Character\FaceGenData\FaceTint\Skyrim.esm\00000007.dds (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Textures/Actors/Character/FaceGenData/FaceTint/Skyrim.esm/00000007.dds): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\DATA\Textures\Actors\Character\FaceGenData\FaceTint\Skyrim.esm\00000007.dds (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Textures/Actors/Character/FaceGenData/FaceTint/Skyrim.esm/00000007.dds): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\Textures\Actors\Character\FaceGenData\FaceTint\Skyrim.esm\00000007.dds (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/Textures/Actors/Character/FaceGenData/FaceTint/Skyrim.esm/00000007.dds): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\Textures\Actors\Character\FaceGenData\FaceTint\Skyrim.esm\00000007.dds (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/Textures/Actors/Character/FaceGenData/FaceTint/Skyrim.esm/00000007.dds): No such file or directory
-frame 900
+SnapFrame: luma dispatch accepted count=600 groups=153x68
+frame 600
+SnapFrame: bidirectional flow pair accepted count=600 groups=20x9
+SnapFrame: forward/backward consistency accepted count=600
 GetFileAttributesExA failed: C:\Skyrim\DATA\meshes\Actors\Character\Character Assets\Hair\4HairlineFemale.tri (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/meshes/Actors/Character/Character Assets/Hair/4HairlineFemale.tri): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\DATA\meshes\Actors\Character\Character Assets\Hair\4HairlineFemale.tri (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/meshes/Actors/Character/Character Assets/Hair/4HairlineFemale.tri): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\meshes\Actors\Character\Character Assets\Hair\4HairlineFemale.tri (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/meshes/Actors/Character/Character Assets/Hair/4HairlineFemale.tri): No such file or directory
@@ -5134,398 +5178,640 @@ GetFileAttributesExA failed: C:\Skyrim\DATA\meshes\Actors\Character\Character As
 GetFileAttributesExA failed: C:\Skyrim\DATA\meshes\Actors\Character\Character Assets\Hair\4HairlineFemale.tri (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/meshes/Actors/Character/Character Assets/Hair/4HairlineFemale.tri): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\meshes\Actors\Character\Character Assets\Hair\4HairlineFemale.tri (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/meshes/Actors/Character/Character Assets/Hair/4HairlineFemale.tri): No such file or directory
 GetFileAttributesExA failed: C:\Skyrim\meshes\Actors\Character\Character Assets\Hair\4HairlineFemale.tri (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/meshes/Actors/Character/Character Assets/Hair/4HairlineFemale.tri): No such file or directory
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=25860
+SnapFrame: bidirectional flow pair accepted count=720 groups=20x9
+SnapFrame: forward/backward consistency accepted count=720
 VirtualAlloc(00000000, 16777216, 2000) = 8e540000
 VirtualAlloc(00000000, 16777216, 2000) = 8f540000
 VirtualAlloc(00000000, 16777216, 2000) = 90540000
 VirtualAlloc(00000000, 16777216, 2000) = 91540000
 VirtualAlloc(00000000, 16777216, 2000) = 92540000
-VirtualAlloc(00000000, 16777216, 2000) = 94540000
-VirtualAlloc(00000000, 16777216, 2000) = 95540000
 VirtualAlloc(00000000, 16777216, 2000) = 93540000
-VirtualAlloc(00000000, 16777216, 2000) = 96540000VirtualAlloc(00000000, 16777216, 2000) = 98540000
-
-VirtualAlloc(00000000, 16777216, 2000) = 97540000
+VirtualAlloc(00000000, 16777216, 2000) = 94540000
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=14208
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=24885
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=23740
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=19587
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=33868
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=33770
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=10
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=10
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=15418
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=6
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=14245
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=23337
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=23518
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=21495
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=39222
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=16304
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=19842
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=48981
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=16459
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=10517
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=9482
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=11
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=7
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=6
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=6
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=13
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=21497
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=6
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=6
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=12
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=15
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=10
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=36704
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=11
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=68
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=10116
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=7782
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=7730
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=7793
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=11865
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=16248
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=12274
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=16371
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=9
 info:  D3D9: vertex decltype 16 usage 0 -> VK_FORMAT_R16G16B16A16_SFLOAT
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=17115
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=33465
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=33545
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=7
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=10
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=17273
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=17887
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=19995
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=19972
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=19293
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=21044
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=25264
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=45272
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=26771
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=28381
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=12040
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=8868
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=16378
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=44856
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=32552
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=41468
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=32495
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=42973
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=92667
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=16
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=67873
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=53071
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=77529
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=77534
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=9
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=12
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=3
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=8
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=23254
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=15246
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=28830
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=18739
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=10
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=19267
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=1353
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=1763
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=1847
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=1822
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=1767
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=7
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=7
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=8
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=16137
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=27871
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=27784
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=15
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=34075
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=11
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=81774
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=63886
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=70242
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=11
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=3
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=6
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=70222
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=97227
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=37559
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=37618
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=6
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=37723
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=37561
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=37498
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=7
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=3
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=15
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=16916
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=49591
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=38439
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5741
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=9
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=10
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=85992
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=86053
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=30803
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=87284
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=19921
 info:  D3D9: vertex decltype 15 usage 5 -> VK_FORMAT_R16G16_SFLOAT
-frame 1200
-xaudio2: source starvation frames pending_decode=0 empty_queue=171 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=1102 (last 1s)
-watchdog 30s: frames 1304
-profile: 8269 samples (1 ms CPU each)
-   24.5%  sched_yield
-    3.6%  f_91D870
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=10504
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=10241
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=9
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=43031
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=17732
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=62352
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=92837
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=11
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=23129
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=23157
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=86978
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=50217
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=20897
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=23535
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=14059
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=31624
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=42053
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=70631
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=22879
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=21774
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=28524
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=33598
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=44462
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=29734
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=10
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=25706
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=10
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=48080
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=8
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=11
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=20944
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=21096
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=19179
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=36428
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=19220
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=13997
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=14043
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=15
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=16
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=21346
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=7208
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=21518
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=21403
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=6
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=14
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=14
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=11
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=6
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=7882
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=15397
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=9748
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=10977
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=15117
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=24299
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=36180
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=47118
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=7
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=2305
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=8
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=6
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=20250
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=3
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=3
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=3
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=3
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=16100
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5576
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5524
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=46049
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=10497
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=7587
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=10
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=8
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=14100
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=18430
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=13037
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=47092
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=47121
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=6
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=49397
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=47183
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=49410
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=18503
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=13
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=5
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=21689
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=22364
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=22280
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=24484
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=31144
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=31665
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=31633
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=33949
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=40060
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=14921
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=14597
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=22695
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=22139
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=11995
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=3931
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=33021
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=30280
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=30219
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=75170
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=75421
+VirtualAlloc(00000000, 16777216, 2000) = 95540000
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=15929
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=20056
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=22912
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=23821
+xaudio2: source starvation frames pending_decode=0 empty_queue=527 (last 1s)
+watchdog 30s: frames 763
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=48099
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=48031
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=48097
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=48067
+profile: 8583 samples (1 ms CPU each)
+   30.2%  sched_yield
+    4.7%  f_91D870
+    2.5%  rt_call
     2.2%  fstatat
-    2.1%  rt_call
     1.5%  libmain.so+0x6463400
-    1.2%  __emutls_get_address
-    1.2%  libmain.so+0x64b4200
-    1.1%  libc.so+0xc1500
-    1.0%  syscall
-    1.0%  libc.so+0x56c00
-    1.0%  libdxvk_d3d9.so+0x221c00
-    0.8%  libmain.so+0x64b4100
-    0.7%  libmain.so+0x645d000
-    0.7%  libmain.so+0x6460300
+    1.1%  nanosleep
+    1.1%  __emutls_get_address
+    1.0%  libmain.so+0x64b4100
+    0.9%  _ZN4dxvk20DxvkGraphicsPipeline15compilePipelineERKNS_29DxvkGraphicsPipelineStateInfoEPKNS_14DxvkRenderPassE
+    0.9%  libmain.so+0x64b4200
+    0.8%  libmain.so+0x645d000
+    0.8%  f_A51C20
+    0.7%  syscall
+    0.7%  libc.so+0xc1500
     0.7%  libmain.so+0x6460400
-    0.7%  libc.so+0x56700
-    0.6%  nanosleep
-    0.6%  pread64
-    0.6%  f_F52E30
-    0.6%  pthread_getspecific
-    0.5%  f_A51C20
+    0.7%  pthread_getspecific
+    0.6%  f_A3CDD0
+    0.6%  _ZN4dxvk12D3D9DeviceEx15WaitForResourceERKNS_2RcINS_12DxvkResourceEEEj
+    0.5%  f_F52E30
+    0.5%  libmain.so+0x6460300
+    0.5%  f_E5FFF0
+    0.5%  f_A3B430
+    0.5%  libc.so+0x56c00
+    0.5%  libc.so+0x56700
     0.5%  f_A50A30
-    0.5%  madvise
-    0.5%  ?
-    0.5%  f_691410
-    0.4%  libc.so+0xcfb00
-    0.4%  libc.so+0xcfc00
-    0.4%  f_A50B30
-    0.4%  f_9008000
-    0.4%  libc.so+0xcfe00
-  thread 0 (tid 13681, guest 260): last KERNEL32!InterlockedIncrement from 007bb3ba, 82772600 calls; esi 741bf848 [690ef040 00000800]
-  thread 1 (tid 13700, guest 288): last KERNEL32!ExitThread from 00a5ac7a, 9 calls (idle); esi 00000006 [00000000 00000000]
-  thread 2 (tid 13792, guest 292): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 30296808 calls (idle); esi 01b4ae14 [00000000 00000000]
-  thread 3 (tid 13798, guest 296): last KERNEL32!Sleep from 00b9ef30, 240421 calls; esi 744ca5c0 [01124a4c 00000000]
-  thread 4 (tid 13824, guest 304): last KERNEL32!Sleep from 00a4af31, 4639586 calls; esi 00000001 [00000000 00000000]
-  thread 5 (tid 13825, guest 308): last KERNEL32!InterlockedCompareExchange from 00d640d7, 3636894 calls; esi 0107a47c [0042b100 0042b110]
-  thread 6 (tid 13827, guest 312): last KERNEL32!InterlockedCompareExchange from 0068c6ea, 88098 calls (idle); esi 74922288 [010cd524 00000000]
-  thread 7 (tid 13869, guest 316): last KERNEL32!ExitThread from 00a4b4fb, 13761429 calls (idle); esi 103ffdc8 [0110d640 00000000]
-  thread 8 (tid 13870, guest 320): last KERNEL32!WaitForSingleObject from 00af89b0, 7834351 calls; esi 74b11140 [0111d7ac 00000000]
-  thread 9 (tid 13871, guest 324): last KERNEL32!WaitForSingleObject from 00af863c, 1449692 calls; esi 74cfbe20 [0107a45c 00000000]
-  thread 10 (tid 13698, guest 280): last KERNEL32!WaitForSingleObject from 00a5aeac, 154259 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 11 (tid 13696, guest 272): last KERNEL32!WaitForSingleObject from 00a5aeac, 145234 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 12 (tid 13699, guest 284): last KERNEL32!WaitForSingleObject from 00a5aeac, 177472 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 13 (tid 13697, guest 276): last KERNEL32!WaitForSingleObject from 00a5aeac, 142614 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 14 (tid 13694, guest 264): last KERNEL32!WaitForSingleObject from 00a5aeac, 164843 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 15 (tid 13695, guest 268): last KERNEL32!WaitForSingleObject from 00a5aeac, 164619 calls; esi 01b8b1d0 [0110dd1c 00000101]
-xaudio2: source starvation frames pending_decode=0 empty_queue=43 (last 1s)
+    0.5%  f_9008000
+    0.5%  rt_call_ic
+    0.5%  libmain.so+0x6474b00
+    0.4%  read
+    0.4%  libc.so+0xcfd00
+  thread 0 (tid 22759, guest 260): last IDirect3DDevice9#17 from 00ce7e03, 71580405 calls; esi 746f92a0 [01159d38 00000002]
+  thread 1 (tid 22779, guest 288): last KERNEL32!ExitThread from 00a5ac7a, 9 calls (idle); esi 00000006 [00000000 00000000]
+  thread 2 (tid 22859, guest 292): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 30296915 calls (idle); esi 01b4ae14 [00000000 00000000]
+  thread 3 (tid 22865, guest 296): last KERNEL32!Sleep from 00b9ef30, 226098 calls; esi 744ca580 [01124a4c 00000000]
+  thread 4 (tid 22900, guest 304): last KERNEL32!WaitForSingleObject from 00a59095, 1518836 calls; esi ff00022c [00000000 00000000]
+  thread 5 (tid 22901, guest 308): last KERNEL32!WaitForSingleObject from 00a59095, 815420 calls; esi ff00022c [00000000 00000000]
+  thread 6 (tid 22905, guest 312): last KERNEL32!InterlockedCompareExchange from 0068c6ea, 86833 calls (idle); esi 749127d0 [010cd524 00000000]
+  thread 7 (tid 22957, guest 316): last KERNEL32!ExitThread from 00a4b4fb, 13760914 calls (idle); esi 103ffdc8 [0110d640 00000000]
+  thread 8 (tid 22958, guest 320): last KERNEL32!WaitForSingleObject from 00af89b0, 7873196 calls; esi 74b2e0c0 [0111d7ac 00000000]
+  thread 9 (tid 22960, guest 324): last KERNEL32!WaitForSingleObject from 00af863c, 1453260 calls; esi 74cfbd90 [0107a45c 00000000]
+  thread 10 (tid 22774, guest 268): last KERNEL32!WaitForSingleObject from 00a5aeac, 160251 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 11 (tid 22778, guest 284): last KERNEL32!WaitForSingleObject from 00a5aeac, 179220 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 12 (tid 22777, guest 280): last KERNEL32!WaitForSingleObject from 00a5aeac, 149170 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 13 (tid 22776, guest 276): last KERNEL32!WaitForSingleObject from 00a5aeac, 167159 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 14 (tid 22775, guest 272): last KERNEL32!WaitForSingleObject from 00a5aeac, 165294 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 15 (tid 22773, guest 264): last KERNEL32!WaitForSingleObject from 00a5aeac, 150804 calls; esi 01b8b1d0 [0110dd1c 00000101]
+xaudio2: source starvation frames pending_decode=0 empty_queue=1391 (last 1s)
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
+CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
+CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 252
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 252
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm -> fd -1
+CreateFileA failed: C:\Skyrim\DATA\DATA\Update.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm)
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm -> fd -1
+CreateFileA failed: C:\Skyrim\DATA\DATA\Update.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm)
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.esm -> fd 255
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.esm -> fd 222
+xaudio2: source starvation frames pending_decode=0 empty_queue=5093 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=840 groups=20x9
+SnapFrame: forward/backward consistency accepted count=840
+VirtualAlloc(00000000, 16777216, 2000) = 96540000
+VirtualAlloc(00000000, 16777216, 2000) = 97540000
+VirtualAlloc(00000000, 16777216, 2000) = 98540000
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=50950
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=50942
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=50939
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=24872
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=35091
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=24828
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=24829
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=37132
+xaudio2: source starvation frames pending_decode=0 empty_queue=2319 (last 1s)
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=22879
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=29958
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=27169
+xaudio2: source starvation frames pending_decode=0 empty_queue=3667 (last 1s)
+SnapFrame: luma dispatch accepted count=900 groups=153x68
+frame 900
+xaudio2: source starvation frames pending_decode=0 empty_queue=6244 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=1567 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=960 groups=20x9
+SnapFrame: forward/backward consistency accepted count=960
+xaudio2: source starvation frames pending_decode=0 empty_queue=752 (last 1s)
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=39742
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=39767
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=44823
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=44848
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=1616
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=44308
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=8
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=9
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=4
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=15428
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=28735
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=69470
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=71107
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=69437
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=72785
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=65557
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=44436
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=45948
+xaudio2: source starvation frames pending_decode=0 empty_queue=81 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=1080 groups=20x9
+SnapFrame: forward/backward consistency accepted count=1080
+xaudio2: source starvation frames pending_decode=0 empty_queue=1823 (last 1s)
+SnapFrame: luma dispatch accepted count=1200 groups=153x68
+frame 1200
+SnapFrame: bidirectional flow pair accepted count=1200 groups=20x9
+SnapFrame: forward/backward consistency accepted count=1200
+xaudio2: source starvation frames pending_decode=0 empty_queue=3453 (last 1s)
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=13096
+xaudio2: source starvation frames pending_decode=0 empty_queue=364 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=1320 groups=20x9
+SnapFrame: forward/backward consistency accepted count=1320
+xaudio2: source starvation frames pending_decode=0 empty_queue=2112 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=401 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=1516 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=1440 groups=20x9
+SnapFrame: forward/backward consistency accepted count=1440
+xaudio2: source starvation frames pending_decode=0 empty_queue=3846 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=6391 (last 1s)
+xaudio2: source format tag=0001 fmt=0 1 ch 32000 Hz bits=16
+SnapFrame: luma dispatch accepted count=1500 groups=153x68
 frame 1500
-xaudio2: source starvation frames pending_decode=0 empty_queue=1821 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=2043 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=576 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=3641 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=6159 (last 1s)
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=18896
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=18935
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=21941
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=24897
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=25468
+VirtualAlloc(00000000, 16777216, 2000) = 99540000
+xaudio2: source starvation frames pending_decode=0 empty_queue=4776 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=1560 groups=20x9
+SnapFrame: forward/backward consistency accepted count=1560
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=23984
+xaudio2: source starvation frames pending_decode=0 empty_queue=7037 (last 1s)
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=11515
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=12167
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=17268
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=22624
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=44289
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=44664
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=18042
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=20476
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=23998
+xaudio2: source starvation frames pending_decode=0 empty_queue=5486 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=1828 (last 1s)
+watchdog 60s: frames 1655
+profile: 6416 samples (1 ms CPU each)
+    4.7%  ?
+    4.0%  libdxvk_d3d9.so+0x221c00
+    3.5%  syscall
+    2.9%  sched_yield
+    1.6%  libc.so+0x56c00
+    1.5%  libmain.so+0x64b4200
+    1.3%  f_472580
+    1.2%  rt_call
+    0.9%  f_447ED0
+    0.9%  nanosleep
+    0.8%  vulkan.adreno.so+0x13df00
+    0.8%  _Z8com_hostj
+    0.8%  libc.so+0x56700
+    0.7%  libc.so+0x4c400
+    0.7%  libmain.so+0x6474b00
+    0.7%  libc.so+0xc1500
+    0.7%  _ZN11qglinternal20vkCmdBindIndexBufferEP17VkCommandBuffer_TP10VkBuffer_Tm11VkIndexType
+    0.7%  libmain.so+0x6457300
+    0.7%  madvise
+    0.6%  libc.so+0xcfb00
+    0.6%  libc.so+0xcfc00
+    0.5%  f_474CD0
+    0.5%  f_94C050
+    0.5%  f_ACE100
+    0.5%  f_AD21B0
+    0.5%  __emutls_get_address
+    0.5%  f_AFBF80
+    0.5%  libc.so+0xcfe00
+    0.5%  f_694FD0
+    0.5%  libmain.so+0x6460300
+cpu: 153% of one core in total; SDLActivity/22637:3%@1 SDLThread/22759:52%@4 Thread-3/22869:3%@4 SDLThread/22879:5%@3 SDLThread/22880:24%@6 Thread-5/22900:23%@3 SDLThread/22901:22%@5
+  thread 0 (tid 22759, guest 260): last IDirect3DDevice9#17 from 00ce7e03, 95759373 calls; esi 746f92a0 [01159d38 00000002]
+  thread 1 (tid 22779, guest 288): last KERNEL32!ExitThread from 00a5ac7a, 9 calls (idle); esi 00000006 [00000000 00000000]
+  thread 2 (tid 22859, guest 292): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 30296915 calls (idle); esi 01b4ae14 [00000000 00000000]
+  thread 3 (tid 22865, guest 296): last KERNEL32!Sleep from 00b9ef30, 374523 calls; esi 744ca580 [01124a4c 00000000]
+  thread 4 (tid 22900, guest 304): last KERNEL32!WaitForSingleObject from 00a59095, 12513163 calls; esi ff00022c [00000000 00000000]
+  thread 5 (tid 22901, guest 308): last KERNEL32!WaitForSingleObject from 00a59095, 11476285 calls; esi ff00022c [00000000 00000000]
+  thread 6 (tid 22905, guest 312): last KERNEL32!InterlockedCompareExchange from 0068c6ea, 86833 calls (idle); esi 749127d0 [010cd524 00000000]
+  thread 7 (tid 22957, guest 316): last KERNEL32!ExitThread from 00a4b4fb, 13760914 calls (idle); esi 103ffdc8 [0110d640 00000000]
+  thread 8 (tid 22958, guest 320): last KERNEL32!WaitForSingleObject from 00af89b0, 8907978 calls; esi 74b2e0c0 [0111d7ac 00000000]
+  thread 9 (tid 22960, guest 324): last KERNEL32!WaitForSingleObject from 00af863c, 1528575 calls; esi 74cfbd90 [0107a45c 00000000]
+  thread 10 (tid 22774, guest 268): last KERNEL32!WaitForSingleObject from 00a5aeac, 561494 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 11 (tid 22778, guest 284): last KERNEL32!WaitForSingleObject from 00a5aeac, 646418 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 12 (tid 22777, guest 280): last KERNEL32!WaitForSingleObject from 00a5aeac, 649443 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 13 (tid 22776, guest 276): last KERNEL32!WaitForSingleObject from 00a5aeac, 494052 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 14 (tid 22775, guest 272): last KERNEL32!WaitForSingleObject from 00a5aeac, 597845 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 15 (tid 22773, guest 264): last KERNEL32!WaitForSingleObject from 00a5aeac, 668084 calls; esi 01b8b1d0 [0110dd1c 00000101]
+xaudio2: source starvation frames pending_decode=0 empty_queue=7305 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=1680 groups=20x9
+SnapFrame: forward/backward consistency accepted count=1680
+xaudio2: source starvation frames pending_decode=0 empty_queue=1235 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=2171 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=2601 (last 1s)
+SnapFrame: luma dispatch accepted count=1800 groups=153x68
 SnapFrame: captured=1800 skipped=0 extent=2448x1080
 frame 1800
-xaudio2: source starvation frames pending_decode=0 empty_queue=291 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=2442 (last 1s)
+SnapFrame: TEST_PHASE_RESULT phase=static_scene frames=1800 luma_ok=1800 flow_pairs_ok=1799 consistency_ok=1799 skipped=0 luma_fail_total=0 flow_fail_total=0 consistency_fail_total=0
+SnapFrame: TEST_PHASE_BEGIN index=2 name=slow_camera_pan target_frames=1800
+SnapFrame: TEST_ACTION slowly pan the camera horizontally and vertically
+SnapFrame: bidirectional flow pair accepted count=1800 groups=20x9
+SnapFrame: forward/backward consistency accepted count=1800
+xaudio2: source starvation frames pending_decode=0 empty_queue=1363 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=573 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=6257 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=1625 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=1920 groups=20x9
+SnapFrame: forward/backward consistency accepted count=1920
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=32795
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=32778
+info:  DXVK-PIPELINE: mode=async worker=shader-cache elapsed_us=32735
+xaudio2: source starvation frames pending_decode=0 empty_queue=2953 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=2040 groups=20x9
+SnapFrame: forward/backward consistency accepted count=2040
+xaudio2: source starvation frames pending_decode=0 empty_queue=1703 (last 1s)
+SnapFrame: luma dispatch accepted count=2100 groups=153x68
 frame 2100
-frame 2400
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
-CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
-CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 249
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 281
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm -> fd -1
-CreateFileA failed: C:\Skyrim\DATA\DATA\Update.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm -> fd -1
-CreateFileA failed: C:\Skyrim\DATA\DATA\Update.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Update.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.esm -> fd 249
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.esm -> fd 249
-xaudio2: source starvation frames pending_decode=0 empty_queue=1623 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=3713 (last 1s)
-frame 2700
-xaudio2: source starvation frames pending_decode=0 empty_queue=7411 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=1627 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=4113 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=3330 (last 1s)
-frame 3000
-xaudio2: source starvation frames pending_decode=0 empty_queue=2847 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=4008 (last 1s)
-xaudio2: source format tag=0001 fmt=0 1 ch 22050 Hz bits=16
-xaudio2: source starvation frames pending_decode=0 empty_queue=5666 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=2364 (last 1s)
-frame 3300
-xaudio2: source starvation frames pending_decode=0 empty_queue=6246 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=3403 (last 1s)
-VirtualAlloc(00000000, 16777216, 2000) = 99540000
-xaudio2: source starvation frames pending_decode=0 empty_queue=5163 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=4067 (last 1s)
-watchdog 60s: frames 3571
-SnapFrame: captured=3600 skipped=0 extent=2448x1080
-frame 3600
-xaudio2: source starvation frames pending_decode=0 empty_queue=3060 (last 1s)
-profile: 9898 samples (1 ms CPU each)
-    4.5%  libdxvk_d3d9.so+0x221c00
-    2.7%  ?
-    2.6%  libmain.so+0x64b4200
-    2.5%  syscall
-    2.2%  libc.so+0x56c00
-    1.9%  f_472580
-    1.3%  rt_call
-    1.2%  _Z8com_hostj
-    1.2%  libc.so+0x56700
-    1.2%  f_694FD0
-    0.8%  f_4EC9C0
-    0.8%  libc.so+0x4c400
-    0.8%  f_474CD0
-    0.8%  libmain.so+0x6457300
-    0.8%  vulkan.adreno.so+0x13df00
-    0.7%  libc.so+0xc1500
-    0.7%  f_447ED0
-    0.7%  _ZN11qglinternal20vkCmdBindIndexBufferEP17VkCommandBuffer_TP10VkBuffer_Tm11VkIndexType
-    0.7%  f_AFBF80
-    0.6%  libc.so+0xcfd00
-    0.6%  libmain.so+0x6460300
-    0.6%  f_CD7C20
-    0.6%  madvise
-    0.6%  f_C8EB60
-    0.6%  libc.so+0xcfe00
-    0.5%  f_AD21B0
-    0.5%  libc.so+0xcfc00
-    0.5%  sched_yield
-    0.5%  libc.so+0x6f000
-    0.5%  __emutls_get_address
-cpu: 262% of one core in total; SDLActivity/13243:5%@1 RenderThread/13265:5%@5 SDLThread/13681:84%@6 SDLThread/13683:4%@7 SDLThread/13814:4%@5 SDLThread/13815:9%@3 SDLThread/13816:50%@3 Thread-5/13824:45%@4 SDLThread/13825:44%@5
-  thread 0 (tid 13681, guest 260): last KERNEL32!LeaveCriticalSection from 00a4ec70, 141345803 calls; esi 01b49b00 [00000000 00000000]
-  thread 1 (tid 13700, guest 288): last KERNEL32!ExitThread from 00a5ac7a, 9 calls (idle); esi 00000006 [00000000 00000000]
-  thread 2 (tid 13792, guest 292): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 30296808 calls (idle); esi 01b4ae14 [00000000 00000000]
-  thread 3 (tid 13798, guest 296): last KERNEL32!Sleep from 00b9ef30, 431719 calls; esi 744ca5c0 [01124a4c 00000000]
-  thread 4 (tid 13824, guest 304): last KERNEL32!TlsGetValue from 00de4b4b, 30412188 calls; esi 78409b80 [80000302 00040005]
-  thread 5 (tid 13825, guest 308): last KERNEL32!WaitForSingleObject from 00a59095, 27732939 calls; esi ff00022c [00000000 00000000]
-  thread 6 (tid 13827, guest 312): last KERNEL32!InterlockedCompareExchange from 0068c6ea, 88098 calls (idle); esi 74922288 [010cd524 00000000]
-  thread 7 (tid 13869, guest 316): last KERNEL32!ExitThread from 00a4b4fb, 13761429 calls (idle); esi 103ffdc8 [0110d640 00000000]
-  thread 8 (tid 13870, guest 320): last KERNEL32!WaitForSingleObject from 00af89b0, 10283888 calls; esi 74b11140 [0111d7ac 00000000]
-  thread 9 (tid 13871, guest 324): last KERNEL32!WaitForSingleObject from 00af863c, 1671817 calls; esi 74cfbe20 [0107a45c 00000000]
-  thread 10 (tid 13698, guest 280): last KERNEL32!WaitForSingleObject from 00a5aeac, 485336 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 11 (tid 13696, guest 272): last KERNEL32!WaitForSingleObject from 00a5aeac, 604924 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 12 (tid 13699, guest 284): last KERNEL32!WaitForSingleObject from 00a5aeac, 814840 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 13 (tid 13697, guest 276): last KERNEL32!WaitForSingleObject from 00a5aeac, 664440 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 14 (tid 13694, guest 264): last KERNEL32!WaitForSingleObject from 00a5aeac, 642850 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 15 (tid 13695, guest 268): last KERNEL32!WaitForSingleObject from 00a5aeac, 514284 calls; esi 01b8b1d0 [0110dd1c 00000101]
-xaudio2: source starvation frames pending_decode=0 empty_queue=1774 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=5010 (last 1s)
-frame 3900
-xaudio2: source starvation frames pending_decode=0 empty_queue=784 (last 1s)
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #3, decoder FFmpeg)
-xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#3)
-[wmav2 @ 0x72c9421d90] Could not update timestamps for skipped samples.
+xaudio2: source starvation frames pending_decode=0 empty_queue=846 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=2160 groups=20x9
+SnapFrame: forward/backward consistency accepted count=2160
+xaudio2: source starvation frames pending_decode=0 empty_queue=623 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=1012 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=2138 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=1434 (last 1s)
+xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #2, decoder FFmpeg)
+xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#2)
+[wmav2 @ 0x72c936fb00] Could not update timestamps for skipped samples.
 xwma_ffmpeg: packets=6 block_align=1487 pcm_frames=69632 pcm=1.579s dpds=1.579s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=8922 -> 69632 frames submit #3
-xaudio2: xWMA worker latency=2ms submit #3
-xaudio2: source starvation frames pending_decode=0 empty_queue=611 (last 1s)
-frame 4200
-xaudio2: source starvation frames pending_decode=0 empty_queue=3147 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=1534 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=4892 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=4582 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=297 (last 1s)
-frame 4500
-xaudio2: source starvation frames pending_decode=0 empty_queue=2639 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=7279 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=1134 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=5486 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=7699 (last 1s)
-frame 4800
-xaudio2: source starvation frames pending_decode=0 empty_queue=9147 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=1460 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=3288 (last 1s)
-xaudio2: source format tag=0001 fmt=0 1 ch 32000 Hz bits=16
-xaudio2: source starvation frames pending_decode=0 empty_queue=3018 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=6647 (last 1s)
-frame 5100
-xaudio2: source starvation frames pending_decode=0 empty_queue=35100 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=46649 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=38942 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=33716 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=31415 (last 1s)
-SnapFrame: captured=5400 skipped=0 extent=2448x1080
-frame 5400
-xaudio2: source starvation frames pending_decode=0 empty_queue=32618 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=33418 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=35621 (last 1s)
-watchdog 90s: frames 5542
-xaudio2: source starvation frames pending_decode=0 empty_queue=34074 (last 1s)
-profile: 11166 samples (1 ms CPU each)
-    4.9%  ?
-    4.1%  libdxvk_d3d9.so+0x221c00
-    2.9%  syscall
-    2.2%  f_472580
-    2.2%  libmain.so+0x64b4200
-    1.6%  libc.so+0xc1500
-    1.5%  libc.so+0x56c00
-    1.3%  rt_call
-    1.0%  _Z8com_hostj
-    1.0%  libc.so+0x56700
-    1.0%  sched_yield
-    0.9%  madvise
-    0.8%  f_447ED0
-    0.7%  libmain.so+0x6457300
-    0.7%  f_4EC9C0
-    0.7%  f_AFBF80
-    0.7%  libc.so+0x4c400
-    0.7%  vulkan.adreno.so+0x13df00
-    0.6%  f_694FD0
-    0.6%  libc.so+0xcfd00
-    0.6%  f_C8EB60
-    0.6%  libc.so+0xcfc00
-    0.6%  _ZN11qglinternal20vkCmdBindIndexBufferEP17VkCommandBuffer_TP10VkBuffer_Tm11VkIndexType
-    0.6%  f_474CD0
-    0.6%  __emutls_get_address
-    0.6%  libc.so+0xcfb00
-    0.6%  libdxvk_d3d9.so+0x221800
-    0.6%  f_ACE100
-    0.5%  f_AD21B0
-    0.5%  f_C93840
-cpu: 300% of one core in total; SDLActivity/13243:10%@5 RenderThread/13265:12%@2 SDLThread/13681:86%@4 SDLThread/13683:4%@7 Thread-3/13805:3%@6 SDLThread/13814:4%@3 SDLThread/13815:10%@6 SDLThread/13816:51%@3 Thread-5/13824:54%@5 SDLThread/13825:54%@6
-  thread 0 (tid 13681, guest 260): last KERNEL32!LeaveCriticalSection from 00a4ec70, 197853132 calls; esi 01b49b9c [00000000 00000000]
-  thread 1 (tid 13700, guest 288): last KERNEL32!ExitThread from 00a5ac7a, 9 calls (idle); esi 00000006 [00000000 00000000]
-  thread 2 (tid 13792, guest 292): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 30296808 calls (idle); esi 01b4ae14 [00000000 00000000]
-  thread 3 (tid 13798, guest 296): last KERNEL32!Sleep from 00b9ef30, 659202 calls; esi 744ca5c0 [01124a4c 00000000]
-  thread 4 (tid 13824, guest 304): last KERNEL32!InterlockedIncrement from 004ce1ae, 57579616 calls; esi 78035460 [0114d988 00000003]
-  thread 5 (tid 13825, guest 308): last KERNEL32!InterlockedCompareExchange from 0040a962, 55735996 calls; esi 75fc7b48 [01079af8 770df948]
-  thread 6 (tid 13827, guest 312): last KERNEL32!InterlockedCompareExchange from 0068c6ea, 88098 calls (idle); esi 74922288 [010cd524 00000000]
-  thread 7 (tid 13869, guest 316): last KERNEL32!ExitThread from 00a4b4fb, 13761429 calls (idle); esi 103ffdc8 [0110d640 00000000]
-  thread 8 (tid 13870, guest 320): last KERNEL32!WaitForSingleObject from 00af89b0, 13630895 calls; esi 74b11140 [0111d7ac 00000000]
-  thread 9 (tid 13871, guest 324): last KERNEL32!WaitForSingleObject from 00af863c, 2430337 calls; esi 74cfbe20 [0107a45c 00000000]
-  thread 10 (tid 13698, guest 280): last KERNEL32!WaitForSingleObject from 00a5aeac, 629108 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 11 (tid 13696, guest 272): last KERNEL32!WaitForSingleObject from 00a5aeac, 757671 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 12 (tid 13699, guest 284): last KERNEL32!WaitForSingleObject from 00a5aeac, 978900 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 13 (tid 13697, guest 276): last KERNEL32!WaitForSingleObject from 00a5aeac, 814100 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 14 (tid 13694, guest 264): last KERNEL32!WaitForSingleObject from 00a5aeac, 789935 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 15 (tid 13695, guest 268): last KERNEL32!WaitForSingleObject from 00a5aeac, 667437 calls; esi 01b8b1d0 [0110dd1c 00000101]
-xaudio2: source starvation frames pending_decode=0 empty_queue=46570 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=37573 (last 1s)
-frame 5700
-xaudio2: source starvation frames pending_decode=0 empty_queue=37673 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=37272 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=34233 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=40439 (last 1s)
-frame 6000
-xaudio2: source starvation frames pending_decode=0 empty_queue=32084 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=34541 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=35008 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=35768 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=35796 (last 1s)
-frame 6300
-xaudio2: source starvation frames pending_decode=0 empty_queue=36839 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=35799 (last 1s)
-xaudio2: source format tag=0001 fmt=0 1 ch 32000 Hz bits=16
-xaudio2: source starvation frames pending_decode=0 empty_queue=35791 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=34637 (last 1s)
-frame 6600
-xaudio2: source starvation frames pending_decode=0 empty_queue=38212 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=36809 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=34997 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=34545 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=35517 (last 1s)
-frame 6900
-xaudio2: source starvation frames pending_decode=0 empty_queue=34801 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=35819 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=36375 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=34739 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=36473 (last 1s)
-SnapFrame: captured=7200 skipped=0 extent=2448x1080
-frame 7200
-xaudio2: source starvation frames pending_decode=0 empty_queue=34548 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=33839 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=35906 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=40215 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=34467 (last 1s)
-frame 7500
-watchdog 120s: frames 7522
-xaudio2: source starvation frames pending_decode=0 empty_queue=34726 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=35842 (last 1s)
-profile: 11020 samples (1 ms CPU each)
-    4.6%  ?
-    4.4%  libdxvk_d3d9.so+0x221c00
-    2.8%  libmain.so+0x64b4200
-    2.6%  syscall
-    2.0%  libc.so+0x56c00
-    1.7%  f_472580
-    1.5%  libc.so+0xc1500
-    1.1%  _Z8com_hostj
-    1.1%  rt_call
-    1.0%  libc.so+0x56700
-    1.0%  f_694FD0
-    1.0%  f_447ED0
-    1.0%  f_474CD0
-    0.9%  libc.so+0xcfd00
-    0.8%  vulkan.adreno.so+0x13df00
-    0.8%  f_AFBF80
-    0.8%  f_4EC9C0
-    0.7%  libc.so+0x4c400
-    0.6%  f_AD21B0
-    0.6%  libc.so+0xcfb00
-    0.6%  libc.so+0xcfc00
-    0.6%  madvise
-    0.6%  _ZN11qglinternal20vkCmdBindIndexBufferEP17VkCommandBuffer_TP10VkBuffer_Tm11VkIndexType
-    0.6%  f_CD7C20
-    0.6%  libmain.so+0x6457300
-    0.6%  __emutls_get_address
-    0.6%  f_C8EB60
-    0.6%  f_AAF430
-    0.6%  libdxvk_d3d9.so+0x221800
-    0.5%  libmain.so+0x6460400
-cpu: 284% of one core in total; SDLActivity/13243:10%@4 RenderThread/13265:12%@0 SDLThread/13681:88%@5 SDLThread/13683:4%@7 Thread-3/13805:4%@4 SDLThread/13814:4%@5 SDLThread/13815:9%@4 SDLThread/13816:53%@6 Thread-5/13824:47%@6 SDLThread/13825:47%@4
-  thread 0 (tid 13681, guest 260): last KERNEL32!InterlockedIncrement from 007bb3ba, 255444039 calls; esi 741bf848 [690ef040 00000800]
-  thread 1 (tid 13700, guest 288): last KERNEL32!ExitThread from 00a5ac7a, 9 calls (idle); esi 00000006 [00000000 00000000]
-  thread 2 (tid 13792, guest 292): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 30296808 calls (idle); esi 01b4ae14 [00000000 00000000]
-  thread 3 (tid 13798, guest 296): last KERNEL32!Sleep from 00b9ef30, 848832 calls; esi 744ca5c0 [01124a4c 00000000]
-  thread 4 (tid 13824, guest 304): last KERNEL32!WaitForSingleObject from 00a59095, 81401269 calls; esi ff00022c [00000000 00000000]
-  thread 5 (tid 13825, guest 308): last KERNEL32!InterlockedExchangeAdd from 009241af, 79845758 calls; esi 61e81160 [0110e1e8 0000001a]
-  thread 6 (tid 13827, guest 312): last KERNEL32!InterlockedCompareExchange from 0068c6ea, 88098 calls (idle); esi 74922288 [010cd524 00000000]
-  thread 7 (tid 13869, guest 316): last KERNEL32!ExitThread from 00a4b4fb, 13761429 calls (idle); esi 103ffdc8 [0110d640 00000000]
-  thread 8 (tid 13870, guest 320): last KERNEL32!WaitForSingleObject from 00af89b0, 14243010 calls; esi 74b11140 [0111d7ac 00000000]
-  thread 9 (tid 13871, guest 324): last KERNEL32!WaitForSingleObject from 00af863c, 2456297 calls; esi 74cfbe20 [0107a45c 00000000]
-  thread 10 (tid 13698, guest 280): last KERNEL32!WaitForSingleObject from 00a5aeac, 693944 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 11 (tid 13696, guest 272): last KERNEL32!WaitForSingleObject from 00a5aeac, 839745 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 12 (tid 13699, guest 284): last KERNEL32!WaitForSingleObject from 00a5aeac, 1066758 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 13 (tid 13697, guest 276): last KERNEL32!WaitForSingleObject from 00a5aeac, 882589 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 14 (tid 13694, guest 264): last KERNEL32!WaitForSingleObject from 00a5aeac, 870280 calls; esi 01b8b1d0 [0110dd1c 00000101]
-  thread 15 (tid 13695, guest 268): last KERNEL32!WaitForSingleObject from 00a5aeac, 768287 calls; esi 01b8b1d0 [0110dd1c 00000101]
-xaudio2: refill gap voice=2432db40 gap=42034ms eos=1 queue_before=0 totals=1/>5ms:1/>10ms:1
-xaudio2: source starvation frames pending_decode=0 empty_queue=33174 (last 1s)
-xaudio2: source format tag=0001 fmt=0 1 ch 32000 Hz bits=16
-xaudio2: source starvation frames pending_decode=0 empty_queue=925 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=7131 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=4422 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=1044 (last 1s)
-frame 7800
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
-CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm -> fd -1
-CreateFileA failed: C:\Skyrim\DATA\DATA\Skyrim.esm (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/DATA/Skyrim.esm)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 247
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim.esm -> fd 247
-xaudio2: source format xWMA tag=0161 1 ch 44100 Hz avg_bps=4000 block_align=1487 extra=0 (voice #4, decoder FFmpeg)
-xaudio2: Start xWMA voice fmt=6 ch=1 rate=44100 queued=1 (#4)
-[wmav2 @ 0x72c7fac0c0] Could not update timestamps for skipped samples.
-xwma_ffmpeg: packets=12 block_align=1487 pcm_frames=155648 pcm=3.529s dpds=3.529s tag=0161 ba=1487 extra=6 flags=31 bitrate=32kbps
-xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=17844 -> 155648 frames submit #4
-xaudio2: xWMA worker latency=2ms submit #4
-xaudio2: source starvation frames pending_decode=0 empty_queue=2630 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=1067 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=1350 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=1387 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=1789 (last 1s)
+xaudio2: xWMA decoded tag=0161 1 ch 44100 Hz bytes=8922 -> 69632 frames submit #2
+xaudio2: xWMA worker latency=2ms submit #2
+SnapFrame: bidirectional flow pair accepted count=2280 groups=20x9
+SnapFrame: forward/backward consistency accepted count=2280
+xaudio2: source format xWMA tag=0161 2 ch 44100 Hz avg_bps=6000 block_align=2230 extra=0 (voice #3, decoder FFmpeg)
+xaudio2: Start xWMA voice fmt=6 ch=2 rate=44100 queued=1 (#3)
+[wmav2 @ 0x72c93513b0] Could not update timestamps for skipped samples.
+xaudio2: source starvation frames pending_decode=3087 empty_queue=0 (last 1s)
+xwma_ffmpeg: packets=563 block_align=2230 pcm_frames=9222144 pcm=209.119s dpds=209.119s tag=0161 ba=2230 extra=6 flags=31 bitrate=48kbps
+xaudio2: xWMA decoded tag=0161 2 ch 44100 Hz bytes=1255490 -> 9222144 frames submit #3
+xaudio2: xWMA worker latency=170ms submit #3
+xaudio2: source starvation frames pending_decode=4410 empty_queue=1313 (last 1s)
 CreateTexture 32x32 levels 1 usage 0 fmt 33545844 pool 0 -> 00000000
-frame 8100
-xaudio2: source starvation frames pending_decode=0 empty_queue=928 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=413 (last 1s)
-frame 8400
+xaudio2: source starvation frames pending_decode=0 empty_queue=1071 (last 1s)
+SnapFrame: luma dispatch accepted count=2400 groups=153x68
+frame 2400
+SnapFrame: bidirectional flow pair accepted count=2400 groups=20x9
+SnapFrame: forward/backward consistency accepted count=2400
 xaudio2: source starvation frames pending_decode=0 empty_queue=1486 (last 1s)
-frame 8700
-xaudio2: source starvation frames pending_decode=0 empty_queue=206 (last 1s)
-xaudio2: source starvation frames pending_decode=0 empty_queue=2104 (last 1s)
-SnapFrame: captured=9000 skipped=0 extent=2448x1080
-frame 9000
-xaudio2: source starvation frames pending_decode=0 empty_queue=526 (last 1s)
-frame 9300
-xaudio2: source starvation frames pending_decode=0 empty_queue=2365 (last 1s)
-frame 9600
+xaudio2: source starvation frames pending_decode=0 empty_queue=1887 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=5563 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=2520 groups=20x9
+SnapFrame: forward/backward consistency accepted count=2520
+xaudio2: source starvation frames pending_decode=0 empty_queue=2126 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=3704 (last 1s)
+xaudio2: source starvation frames pending_decode=0 empty_queue=1486 (last 1s)
+SnapFrame: bidirectional flow pair accepted count=2640 groups=20x9
+SnapFrame: forward/backward consistency accepted count=2640
+SnapFrame: luma dispatch accepted count=2700 groups=153x68
+frame 2700
 thread slot 11 released
 thread slot 12 released
+watchdog 90s: frames 2712
+xaudio2: source starvation frames pending_decode=0 empty_queue=160 (last 1s)
 thread slot 9 released
+profile: 4959 samples (1 ms CPU each)
+    5.0%  ?
+    4.1%  syscall
+    4.0%  libdxvk_d3d9.so+0x221c00
+    2.5%  libc.so+0x56c00
+    1.5%  libmain.so+0x64b4200
+    1.2%  nanosleep
+    1.2%  f_472580
+    1.1%  rt_call
+    1.1%  libmain.so+0x6474b00
+    1.1%  libc.so+0x4c400
+    0.9%  madvise
+    0.9%  libc.so+0xc1500
+    0.8%  libc.so+0x56700
+    0.8%  _Z8com_hostj
+    0.7%  libmain.so+0x6457300
+    0.7%  f_94C050
+    0.7%  libc.so+0xcfc00
+    0.6%  f_474CD0
+    0.6%  f_447ED0
+    0.6%  libc.so+0xcfb00
+    0.6%  vulkan.adreno.so+0x13df00
+    0.6%  sched_yield
+    0.6%  libc.so+0xc1300
+    0.6%  _ZN11qglinternal20vkCmdBindIndexBufferEP17VkCommandBuffer_TP10VkBuffer_Tm11VkIndexType
+    0.6%  libc.so+0xcfe00
+    0.5%  f_AC4970
+    0.5%  vulkan.adreno.so+0x2b6c00
+    0.5%  f_CD7C20
+    0.5%  f_AFBF80
+    0.5%  libc.so+0xcfd00
+cpu: 81% of one core in total; SDLThread/22759:43%@3 Thread-3/22869:3%@4 SDLThread/22879:4%@5 SDLThread/22880:18%@3
+  thread 0 (tid 22759, guest 260): last KERNEL32!InterlockedCompareExchange from 00401739, 117140172 calls; esi 012e32d4 [00000104 00000001]
+  thread 1 (tid 22779, guest 288): last KERNEL32!ExitThread from 00a5ac7a, 9 calls (idle); esi 00000006 [00000000 00000000]
+  thread 2 (tid 22859, guest 292): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 30296915 calls (idle); esi 01b4ae14 [00000000 00000000]
+  thread 3 (tid 22865, guest 296): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 1191281 calls; esi 01b4ae14 [00000000 00000000]
+  thread 4 (tid 22900, guest 304): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 21102462 calls; esi 01b4ae14 [00000000 00000000]
+  thread 5 (tid 22901, guest 308): last KERNEL32!InterlockedCompareExchange from 006ebdfe, 19553149 calls; esi 01b4ae14 [00000000 00000000]
+  thread 6 (tid 22905, guest 312): last KERNEL32!InterlockedCompareExchange from 0068c6ea, 86833 calls (idle); esi 749127d0 [00000000 00000000]
+  thread 7 (tid 22957, guest 316): last KERNEL32!ExitThread from 00a4b4fb, 13760914 calls (idle); esi 103ffdc8 [0110d640 00000000]
+  thread 8 (tid 22958, guest 320): last KERNEL32!WaitForSingleObject from 00af89b0, 8975148 calls; esi 74b2e0c0 [0111d7ac 00000000]
+  thread 9 (tid 22960, guest 324): last KERNEL32!WaitForSingleObject from 00af863c, 1529765 calls; esi 74cfbd90 [0107a45c 00000000]
+  thread 10 (tid 22774, guest 268): last KERNEL32!WaitForSingleObject from 00a5aeac, 622347 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 11 (tid 22778, guest 284): last KERNEL32!WaitForSingleObject from 00a5aeac, 686481 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 12 (tid 22777, guest 280): last KERNEL32!WaitForSingleObject from 00a5aeac, 695896 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 13 (tid 22776, guest 276): last KERNEL32!WaitForSingleObject from 00a5aeac, 546064 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 14 (tid 22775, guest 272): last KERNEL32!WaitForSingleObject from 00a5aeac, 633286 calls; esi 01b8b1d0 [0110dd1c 00000101]
+  thread 15 (tid 22773, guest 264): last KERNEL32!WaitForSingleObject from 00a5aeac, 710581 calls; esi 01b8b1d0 [0110dd1c 00000101]
 ExitThread(0)
-thread slot 6 releasedExitThread(0)
-thread slot 4 released
+thread slot 7 released
 ExitThread(0)
-
-ExitThread(0)
+ExitThread(0)ExitThread(0)
+thread slot 5 released
 thread slot 3 released
+
 thread slot 1 released
 ExitThread(0)
-thread slot 5 released
+thread slot 4 released
 ExitThread(0)
 thread slot 2 released
 ExitProcess(0)
