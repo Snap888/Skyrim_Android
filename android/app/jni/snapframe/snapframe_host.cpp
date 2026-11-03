@@ -99,7 +99,7 @@ void logDiagnosticPhase(uint64_t captured) {
     const uint32_t phase = static_cast<uint32_t>((captured - 1u) / g_diagnosticPhaseFrames);
     if (phase == g_diagnosticPhase) return;
     if (g_diagnosticPhase != UINT32_MAX) {
-        snapframeLog("SnapFrame: TEST_PHASE_RESULT phase=%s frames=%llu luma_ok=%llu flow_pairs_ok=%llu consistency_ok=%llu skipped=%llu luma_fail_total=%llu flow_fail_total=%llu consistency_fail_total=%llu\\n",
+        snapframeLog("SnapFrame: TEST_PHASE_RESULT phase=%s frames=%llu luma_ok=%llu flow_pairs_ok=%llu consistency_ok=%llu skipped=%llu luma_fail_total=%llu flow_fail_total=%llu consistency_fail_total=%llu\n",
             diagnosticPhaseName(g_diagnosticPhase),
             static_cast<unsigned long long>(captured - 1u - g_phaseStartCaptured),
             static_cast<unsigned long long>(g_lumaDispatchCount - g_phaseStartLuma),
@@ -117,7 +117,7 @@ void logDiagnosticPhase(uint64_t captured) {
     g_phaseStartConsistency = g_consistencyDispatchCount;
     g_phaseStartSkipped = g_skippedFrames.load(std::memory_order_relaxed);
     if (phase >= 7) {
-        snapframeLog("SnapFrame: TEST_SUITE_COMPLETE total_frames=%llu\\n", static_cast<unsigned long long>(captured - 1u));
+        snapframeLog("SnapFrame: TEST_SUITE_COMPLETE total_frames=%llu\n", static_cast<unsigned long long>(captured - 1u));
         return;
     }
     static const char* actions[] = {
@@ -129,9 +129,9 @@ void logDiagnosticPhase(uint64_t captured) {
         "open HUD, inventory and map; move selection/cursor",
         "continue normal gameplay for a sustained stability run"
     };
-    snapframeLog("SnapFrame: TEST_PHASE_BEGIN index=%u name=%s target_frames=%u\\n",
+    snapframeLog("SnapFrame: TEST_PHASE_BEGIN index=%u name=%s target_frames=%u\n",
         phase + 1u, diagnosticPhaseName(phase), g_diagnosticPhaseFrames);
-    snapframeLog("SnapFrame: TEST_ACTION %s\\n", actions[phase]);
+    snapframeLog("SnapFrame: TEST_ACTION %s\n", actions[phase]);
 }
 
 void clearHistory() {
@@ -458,7 +458,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                         g_consistencyShaderDevice = device;
                     }
                     if (g_consistencyAvailable)
-                        snapframeLog("SnapFrame: forward/backward consistency resources ready format=R16_SFLOAT extent=%ux%u\\n",
+                        snapframeLog("SnapFrame: forward/backward consistency resources ready format=R16_SFLOAT extent=%ux%u\n",
                             flowWidth, flowHeight);
                     if (!g_consistencyAvailable)
                         snapframeLog("SnapFrame: forward/backward consistency resources unavailable; flow remains diagnostic-only\n");
@@ -786,7 +786,7 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
     snapframe_dxvk_set_copy_hook(snapframeCopyFrame);
     snapframe_dxvk_set_device_destroy_hook(snapframeDeviceDestroyed);
     snapframe_dxvk_set_log_hook(snapframeForwardDxvkLog);
-    snapframeLog("SnapFrame: diagnostic_suite=%d phase_frames=%u phases=7\\n", g_diagnosticSuiteEnabled ? 1 : 0, g_diagnosticPhaseFrames);
+    snapframeLog("SnapFrame: diagnostic_suite=%d phase_frames=%u phases=7\n", g_diagnosticSuiteEnabled ? 1 : 0, g_diagnosticPhaseFrames);
     snapframeLog( "SnapFrame: host initialized enabled=%d quality=%d flow_scale=%d%% mode=capture+luma+bidirectional-flow+fb-consistency-test\n",
             validated.enabled, validated.quality, validated.flow_scale_percent);
     return 1;
