@@ -33,6 +33,8 @@ extern "C" int lsfg_gpu_profiler_begin_session(int lsfg_runtime_enabled) {
 }
 
 static std::atomic<unsigned> g_copy_n{0};
+// UI-thread setting changes are consumed by the DXVK render thread.
+static std::atomic<bool> g_temporal_reset_requested{false};
 static unsigned g_pp;
 static int g_logged;
 static unsigned g_history_mask;
@@ -265,12 +267,26 @@ static bool dispatch_mipmaps(DxvkContext *ctx, DxvkDevice *device,
     return true;
 }
 
+extern "C" void lsfg_step3g_request_temporal_reset(void) {
+    g_temporal_reset_requested.store(true, std::memory_order_release);
+}
+
 extern "C" void lsfg_step3g_copy_impl(
     void *ctx_v, void *src_view_v, void *device_v,
     uint32_t w, uint32_t h, uint32_t vkfmt) {
 
     if (!lsfg_host_active()) return;
     if (!ctx_v || !src_view_v || !device_v || !w || !h) return;
+
+    // Never reuse temporal flow after LSFG was disabled/re-enabled or its
+    // multiplier crossed the active/inactive boundary. The request may be
+    // raised on the UI thread, so consume it only on this render-thread hook.
+    if (g_temporal_reset_requested.exchange(false, std::memory_order_acq_rel)) {
+        g_wrap_frames = 0;
+        g_last_generation_pp = 0;
+        g_history_mask = 0;
+        lsfg_log("I", "step3g: runtime state transition; restarting temporal warmup");
+    }
     if (!lsfg_step3d_frames_ready()) return;
 
     // Latch UI changes once per source frame so mipmaps, flow and Generate
