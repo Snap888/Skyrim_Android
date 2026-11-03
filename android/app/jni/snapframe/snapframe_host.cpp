@@ -1,6 +1,8 @@
 #include "snapframe_host.h"
 
 #include <atomic>
+#include <mutex>
+#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -11,6 +13,25 @@
 using namespace dxvk;
 
 namespace {
+std::mutex g_logMutex;
+FILE* g_logFile = nullptr;
+
+void snapframeLog(const char* format, ...) {
+    std::lock_guard<std::mutex> lock(g_logMutex);
+    va_list args;
+    va_start(args, format);
+    va_list fileArgs;
+    va_copy(fileArgs, args);
+    vsnapframeLog( format, args);
+    fflush(stderr);
+    if (g_logFile) {
+        vfprintf(g_logFile, format, fileArgs);
+        fflush(g_logFile);
+    }
+    va_end(fileArgs);
+    va_end(args);
+}
+
 std::atomic<int> g_initialized{0};
 std::atomic<int> g_enabled{0};
 std::atomic<uint64_t> g_capturedFrames{0};
@@ -48,7 +69,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
     const VkFormatProperties formatProperties =
         device->adapter()->formatProperties(format);
     if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT)) {
-        fprintf(stderr,
+        snapframeLog(
                 "SnapFrame: history format unsupported: format=0x%x lacks sampled-image support\n",
                 static_cast<unsigned>(format));
         return false;
@@ -78,7 +99,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
         && lumaExtendedFormatsEnabled
         && (width / 2u + width % 2u) <= lumaImageProperties.maxExtent.width
         && (height / 2u + height % 2u) <= lumaImageProperties.maxExtent.height;
-    fprintf(stderr,
+    snapframeLog(
             "SnapFrame: R16F luma output %s (features=0x%x imageResult=%d extendedFormats=%d)\n",
             lumaFormatSupported ? "supported" : "unsupported",
             static_cast<unsigned>(lumaFormatProperties.optimalTilingFeatures),
@@ -126,7 +147,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
     g_format = format;
     g_frameIndex = 0;
     g_readyLogged = false;
-    fprintf(stderr, "SnapFrame: allocated two-frame history %ux%u format=0x%x\n",
+    snapframeLog( "SnapFrame: allocated two-frame history %ux%u format=0x%x\n",
             width, height, static_cast<unsigned>(format));
     return true;
 }
@@ -139,7 +160,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
     const uint64_t callbackCall =
         g_copyCallbackCalls.fetch_add(1, std::memory_order_relaxed) + 1;
     if (callbackCall == 1)
-        fprintf(stderr, "SnapFrame: host copy callback entered\n");
+        snapframeLog( "SnapFrame: host copy callback entered\n");
     if (g_resetHistoryRequested.exchange(0, std::memory_order_acq_rel))
         clearHistory();
 
@@ -166,7 +187,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
         g_skippedFrames.fetch_add(1, std::memory_order_relaxed);
         if (!g_skipReasonLogged) {
             g_skipReasonLogged = true;
-            fprintf(stderr, "SnapFrame: capture skipped: %s\n", skipReason);
+            snapframeLog( "SnapFrame: capture skipped: %s\n", skipReason);
         }
         return;
     }
@@ -177,7 +198,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
         if (!createHistory(device, width, height, format)) {
             clearHistory();
             g_skippedFrames.fetch_add(1, std::memory_order_relaxed);
-            fprintf(stderr, "SnapFrame: history allocation failed for %ux%u format=0x%x\n",
+            snapframeLog( "SnapFrame: history allocation failed for %ux%u format=0x%x\n",
                     width, height, static_cast<unsigned>(format));
             return;
         }
@@ -199,10 +220,10 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
     const uint64_t captured = g_capturedFrames.fetch_add(1, std::memory_order_relaxed) + 1;
     if (g_frameIndex >= 2 && !g_readyLogged) {
         g_readyLogged = true;
-        fprintf(stderr, "SnapFrame: two real frames captured; history ready for compute prototype\n");
+        snapframeLog( "SnapFrame: two real frames captured; history ready for compute prototype\n");
     }
     if (captured == 1 || captured == 60 || (captured % 1800) == 0)
-        fprintf(stderr, "SnapFrame: captured=%llu skipped=%llu extent=%ux%u\n",
+        snapframeLog( "SnapFrame: captured=%llu skipped=%llu extent=%ux%u\n",
                 static_cast<unsigned long long>(captured),
                 static_cast<unsigned long long>(g_skippedFrames.load(std::memory_order_relaxed)),
                 width, height);
@@ -212,6 +233,28 @@ void snapframeDeviceDestroyed(void* devicePtr) {
     if (g_device == reinterpret_cast<DxvkDevice*>(devicePtr))
         clearHistory();
 }
+}
+
+extern "C" int snapframe_host_set_log_path(const char *path) {
+    if (!path || !*path) return 0;
+    std::lock_guard<std::mutex> lock(g_logMutex);
+    if (g_logFile) {
+        fclose(g_logFile);
+        g_logFile = nullptr;
+    }
+    g_logFile = fopen(path, "w");
+    if (!g_logFile) {
+        fprintf(stderr, "SnapFrame: cannot open dedicated log: %s\\n", path);
+        return 0;
+    }
+    fprintf(g_logFile, "SnapFrame diagnostic log\\npath=%s\\n", path);
+    fflush(g_logFile);
+    return 1;
+}
+
+extern "C" void snapframe_host_log(const char *message) {
+    if (message && *message)
+        snapframeLog("SnapFrame: %s\\n", message);
 }
 
 extern "C" void snapframe_dxvk_set_copy_hook(
@@ -251,7 +294,7 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
 
     snapframe_dxvk_set_copy_hook(snapframeCopyFrame);
     snapframe_dxvk_set_device_destroy_hook(snapframeDeviceDestroyed);
-    fprintf(stderr, "SnapFrame: host initialized enabled=%d quality=%d flow_scale=%d%% (capture prototype only)\n",
+    snapframeLog( "SnapFrame: host initialized enabled=%d quality=%d flow_scale=%d%% (capture prototype only)\n",
             validated.enabled, validated.quality, validated.flow_scale_percent);
     return 1;
 }
