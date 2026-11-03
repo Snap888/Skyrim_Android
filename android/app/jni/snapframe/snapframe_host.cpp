@@ -36,6 +36,8 @@ std::mutex g_flowLogMutex;
 FILE* g_flowLogFile = nullptr;
 std::mutex g_vectorLogMutex;
 FILE* g_vectorLogFile = nullptr;
+std::mutex g_eventLogMutex;
+FILE* g_eventLogFile = nullptr;
 bool g_profilingEnabled = false;
 bool g_motionAnalysisEnabled = false;
 bool g_flowReadbackFailureLogged = false;
@@ -54,6 +56,19 @@ void snapframeLog(const char* format, ...) {
     }
     va_end(fileArgs);
     va_end(args);
+}
+
+void snapframeEvent(uint64_t frame, const char* event, uint32_t width,
+                    uint32_t height, const char* detail) {
+    std::lock_guard<std::mutex> lock(g_eventLogMutex);
+    if (!g_eventLogFile) return;
+    fprintf(g_eventLogFile, "%llu,%s,%u,%u,\"%s\"\\n",
+        static_cast<unsigned long long>(frame), event ? event : "unknown",
+        width, height, detail ? detail : "");
+    fflush(g_eventLogFile);
+    if (ferror(g_eventLogFile))
+        snapframeLog("SnapFrame: event CSV write failed event=%s frame=%llu\\n",
+            event ? event : "unknown", static_cast<unsigned long long>(frame));
 }
 
 std::atomic<int> g_initialized{0};
@@ -921,6 +936,8 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
     auto* device = reinterpret_cast<DxvkDevice*>(devicePtr);
     if (!context || !sourceView || !device || !width || !height) {
         g_skippedFrames.fetch_add(1, std::memory_order_relaxed);
+        snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed), "skip_invalid_args",
+            width, height, "null_callback_argument_or_zero_extent");
         if (!g_skipReasonLogged) {
             g_skipReasonLogged = true;
             snapframeLog("SnapFrame: capture skipped: invalid callback arguments context=%d source=%d device=%d extent=%ux%u\n",
@@ -943,6 +960,8 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
         skipReason = "source format mismatch";
     if (skipReason) {
         g_skippedFrames.fetch_add(1, std::memory_order_relaxed);
+        snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed), "skip_source_validation",
+            width, height, skipReason);
         if (!g_skipReasonLogged) {
             g_skipReasonLogged = true;
             snapframeLog( "SnapFrame: capture skipped: %s\n", skipReason);
@@ -962,6 +981,8 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
         if (!historyCreated) {
             clearHistory();
             g_skippedFrames.fetch_add(1, std::memory_order_relaxed);
+            snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed), "skip_history_allocation",
+                width, height, "history_or_compute_resource_allocation_failed");
             snapframeLog("SnapFrame: history allocation failed for %ux%u format=0x%x\n",
                     width, height, static_cast<unsigned>(format));
             return;
@@ -991,6 +1012,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
         VkExtent3D{ width, height, 1 });
     if (profileThisFrame) context->flushComputeBarriers();
     endGpuTimer(context, captureTimer);
+    snapframeEvent(nextCapturedFrame, "capture_copy_recorded", width, height, "history_image_copy_recorded_on_present_command_list");
 
     if (g_lumaAvailable) {
         const uint32_t lumaWidth = width / 2u + width % 2u;
@@ -1003,6 +1025,8 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
             g_lumaShader, g_historyViews[slot], g_lumaSampler, g_lumaView[slot], groupsX, groupsY);
         if (dispatched && profileThisFrame) context->flushComputeBarriers();
         endGpuTimer(context, lumaTimer);
+        snapframeEvent(nextCapturedFrame, dispatched ? "luma_dispatch_ok" : "luma_dispatch_failed",
+            width, height, dispatched ? "dispatch_accepted" : "dispatch_rejected_or_resources_unavailable");
         if (dispatched) {
             ++g_lumaDispatchCount;
             if (g_lumaDispatchCount == 1 || (g_lumaDispatchCount % 300u) == 0)
@@ -1041,6 +1065,10 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
                 if (previousToCurrent && profileThisFrame) context->flushComputeBarriers();
                 endGpuTimer(context, backwardTimer);
             }
+            snapframeEvent(nextCapturedFrame,
+                currentToPrevious && previousToCurrent ? "flow_pair_ok" : "flow_pair_failed",
+                width, height, currentToPrevious && previousToCurrent
+                    ? "both_directions_recorded" : "one_or_both_directions_rejected");
             if (currentToPrevious && previousToCurrent) {
                 ++g_flowDispatchCount;
                 if (g_flowDispatchCount == 1 || (g_flowDispatchCount % 120u) == 0)
@@ -1056,6 +1084,9 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
                             (flowWidth + 7u) / 8u, (flowHeight + 7u) / 8u);
                     if (consistencyDispatched && profileThisFrame) context->flushComputeBarriers();
                     endGpuTimer(context, consistencyTimer);
+                    snapframeEvent(nextCapturedFrame,
+                        consistencyDispatched ? "consistency_dispatch_ok" : "consistency_dispatch_failed",
+                        width, height, consistencyDispatched ? "dispatch_accepted" : "dispatch_rejected");
                     if (consistencyDispatched) {
                         ++g_consistencyDispatchCount;
                         if (g_profilingEnabled && (g_flowDispatchCount % 120u) == 0u) {
@@ -1089,6 +1120,8 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
         endGpuTimer(context, totalTimer);
     ++g_frameIndex;
     const uint64_t captured = g_capturedFrames.fetch_add(1, std::memory_order_relaxed) + 1;
+    snapframeEvent(captured, "frame_complete", width, height,
+        g_lumaAvailable ? "capture_complete_luma_path_available" : "capture_complete_capture_only");
     if (g_diagnosticSuiteEnabled && !g_diagnosticSuiteComplete
         && captured == uint64_t(g_diagnosticPhaseFrames) * 7u)
         logDiagnosticPhase(captured + 1u);
@@ -1171,6 +1204,20 @@ extern "C" int snapframe_host_set_flow_log_path(const char *path) {
     return 1;
 }
 
+extern "C" int snapframe_host_set_event_log_path(const char *path) {
+    if (!path || !*path) return 0;
+    std::lock_guard<std::mutex> lock(g_eventLogMutex);
+    if (g_eventLogFile) fclose(g_eventLogFile);
+    g_eventLogFile = fopen(path, "w");
+    if (!g_eventLogFile) {
+        fprintf(stderr, "SnapFrame: cannot open event CSV: %s\\n", path);
+        return 0;
+    }
+    fprintf(g_eventLogFile, "frame,event,width,height,detail\\n");
+    fflush(g_eventLogFile);
+    return 1;
+}
+
 extern "C" int snapframe_host_set_flow_vectors_log_path(const char *path) {
     if (!path || !*path) return 0;
     std::lock_guard<std::mutex> lock(g_vectorLogMutex);
@@ -1243,6 +1290,8 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
     snapframe_dxvk_set_copy_hook(snapframeCopyFrame);
     snapframe_dxvk_set_device_destroy_hook(snapframeDeviceDestroyed);
     snapframe_dxvk_set_log_hook(snapframeForwardDxvkLog);
+    snapframeEvent(0, "host_init", 0, 0,
+        g_motionAnalysisEnabled ? "motion_analysis_enabled" : "motion_analysis_disabled");
     snapframeLog("SnapFrame: diagnostic_suite=%d phase_frames=%u phases=7 profiling=%d motion_analysis=%d timestamp_interval=30 flow_readback_interval=120\n",
         g_diagnosticSuiteEnabled ? 1 : 0, g_diagnosticPhaseFrames,
         g_profilingEnabled ? 1 : 0, g_motionAnalysisEnabled ? 1 : 0);
