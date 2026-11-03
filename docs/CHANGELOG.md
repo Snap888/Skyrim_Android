@@ -22,4 +22,4 @@ Not yet completed: concrete DXVK `SnapFrameBackendV1` adapter, live AI telemetry
 - Explicitly load `snap_frame_engine` and `snap_ai_engine` shared libraries before the game runtime.
 - Added asynchronous scalar total-GPU-time and frame-interval export for the upcoming AI telemetry path.
 - Added host CI for portable API unit tests; both upstream test suites pass.
-- Verified the Snap AI bootstrap API-version probe and JNI settings bridge in the Android ARM64 native compile job (run #41738386096).
+- Verified the Snap AI bootstrap API-version probe, JNI settings bridge and scalar timing telemetry in the Android ARM64 native compile job (run #41738939416).
