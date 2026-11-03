@@ -99,6 +99,28 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
         return false;
     }
 
+    // History images are transfer destinations and sampled compute inputs.
+    // Query the exact usage combination and extent before allocating either
+    // image, so unsupported WSI formats fail with a precise diagnostic.
+    VkImageFormatProperties historyImageProperties{};
+    const VkResult historyImageResult = device->adapter()->imageFormatProperties(
+        format,
+        VK_IMAGE_TYPE_2D,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        0,
+        historyImageProperties);
+    if (historyImageResult != VK_SUCCESS
+        || width > historyImageProperties.maxExtent.width
+        || height > historyImageProperties.maxExtent.height) {
+        snapframeLog(
+                "SnapFrame: history image config unsupported format=0x%x result=%d extent=%ux%u max=%ux%u usage=TRANSFER_DST|SAMPLED\\n",
+                static_cast<unsigned>(format), static_cast<int>(historyImageResult),
+                width, height, historyImageProperties.maxExtent.width,
+                historyImageProperties.maxExtent.height);
+        return false;
+    }
+
     // The first preprocessing kernel writes half-resolution R16F luminance.
     // Check both format feature bits and the concrete image configuration before
     // attempting to create that output. Capture remains usable if compute is not.
@@ -266,15 +288,22 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
 
 void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
                         uint32_t width, uint32_t height, uint32_t formatValue) {
-    if (!g_initialized.load(std::memory_order_acquire)
-        || !g_enabled.load(std::memory_order_acquire))
+    if (!g_initialized.load(std::memory_order_acquire))
+        return;
+    // Consume pending resets before checking enabled. This lets the next
+    // present callback release GPU history immediately after the feature is
+    // switched off, rather than retaining it until a later re-enable/device
+    // destruction.
+    if (g_resetHistoryRequested.exchange(0, std::memory_order_acq_rel)) {
+        clearHistory();
+        snapframeLog("SnapFrame: history reset requested; cached GPU resources released\n");
+    }
+    if (!g_enabled.load(std::memory_order_acquire))
         return;
     const uint64_t callbackCall =
         g_copyCallbackCalls.fetch_add(1, std::memory_order_relaxed) + 1;
     if (callbackCall == 1)
         snapframeLog( "SnapFrame: host copy callback entered\n");
-    if (g_resetHistoryRequested.exchange(0, std::memory_order_acq_rel))
-        clearHistory();
 
     auto* context = reinterpret_cast<DxvkContext*>(contextPtr);
     auto* sourceView = reinterpret_cast<DxvkImageView*>(sourceViewPtr);
