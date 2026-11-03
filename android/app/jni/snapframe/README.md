@@ -5,7 +5,7 @@ Experimental, independent frame-generation engine for Skyrim_Android.
 **Status: GPU capture, temporal luminance, bidirectional coarse motion estimation, forward/backward consistency, midpoint color-warp compute output, sampled flow readback and opt-in GPU timestamp diagnostics. The midpoint image is generated into an internal RGBA16F image and routed through DXVK's additional WSI-present loop. The code path is wired but still requires a full native build and on-device validation; visual quality and device performance remain unverified.**
 This module is isolated from the existing `lsfg` implementation. It is now
 compiled as a separate host target and has an independent DXVK callback that
-copies the completed game image into a two-image GPU history ring. A first coarse bidirectional block-matching motion pair is estimated from a two-slot luma history; pyramid refinement and robust occlusion handling are not implemented. A first midpoint compute pass now writes an internal RGBA16F image, but that image is not yet presented.
+copies the completed game image into a two-image GPU history ring. A first coarse bidirectional block-matching motion pair is estimated from a two-slot luma history; pyramid refinement and robust occlusion handling are not implemented. A midpoint compute pass writes an internal RGBA16F image, which is now routed to an additional WSI present when ready.
 
 ## Goals
 
@@ -25,9 +25,9 @@ copies the completed game image into a two-image GPU history ring. A first coars
 6. Blend valid samples; use conservative spatial fallback where motion is uncertain.
 7. Add temporal stabilization only after the basic pipeline is validated.
 
-This is the target algorithm. Capture, luma preprocessing, bidirectional block matching, forward/backward consistency and a first confidence-weighted midpoint color-warp pass are implemented as GPU dispatches. Flow diagnostics are read back sparsely; the midpoint output is not yet read back or visually validated. Pyramid refinement, robust occlusion handling, and additional WSI presentation remain unimplemented. See [DESIGN.md](DESIGN.md) for the staged integration plan.
+This is the target algorithm. Capture, luma preprocessing, bidirectional block matching, forward/backward consistency and a first confidence-weighted midpoint color-warp pass are implemented as GPU dispatches. Flow diagnostics are read back sparsely; the midpoint output is not yet read back or visually validated. Pyramid refinement and robust occlusion handling remain unimplemented; the additional WSI-present path is wired but not yet device-validated. See [DESIGN.md](DESIGN.md) for the staged integration plan.
 
-## Current capture + preprocessing test
+## Current GPU reconstruction and presentation prototype
 
 - DXVK callback runs after the game image is blitted to the WSI image and before
   the HUD overlay is drawn.
@@ -84,15 +84,17 @@ stops progressing. If the present-path marker appears, the following
 `capture skipped` or allocation diagnostics identify the next failure point.
 
 The module is added to the JNI CMake build as a separate static target. The
-luma and block-matching GLSL compute shaders have DXVK compute pipeline/resource
-paths and are dispatched on the same active command list. Luma writes a
-half-resolution R16F image; block matching writes a 1/16-resolution RGBA16F
-motion field after two valid luma frames. CMake attempts to compile and
-validate the GLSL automatically on the build host when Python 3, glslangValidator
-and spirv-val are installed. If they are missing, the APK still builds with
-capture-only diagnostics and `snapframe.log` explicitly reports that luma
-compute was disabled. No optical flow, interpolation, or generated-frame
-presentation is implemented yet.
+luma, block-matching, consistency and midpoint-warp GLSL compute shaders have
+DXVK compute pipeline/resource paths. Luma writes a half-resolution R16F
+image; block matching writes a low-resolution RGBA16F motion field; the warp
+writes a full-resolution RGBA16F midpoint. The DXVK D3D9 present path then
+acquires an additional WSI image and presents that midpoint after the real
+frame. CMake compiles and validates all SnapFrame GLSL on the build host when
+Python 3, glslangValidator and spirv-val are installed. If they are missing,
+the APK still builds with capture-only diagnostics and `snapframe.log`
+explicitly reports that SnapFrame compute dispatches were disabled. The native
+C++ integration and device runtime still require a complete APK build and
+on-device verification.
 
 
 ## First preprocessing shader source
