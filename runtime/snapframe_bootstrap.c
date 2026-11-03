@@ -10,7 +10,10 @@ void snapframe_bootstrap(void) {
     snapframe_config_defaults(&config);
 
     char path[1200];
+    char logPath[1200];
     snprintf(path, sizeof(path), "%s/port/snapframe.conf", g_game_dir);
+    snprintf(logPath, sizeof(logPath), "%s/port/snapframe.log", g_game_dir);
+    snapframe_host_set_log_path(logPath);
     FILE *file = fopen(path, "r");
     if (file) {
         char line[512];
