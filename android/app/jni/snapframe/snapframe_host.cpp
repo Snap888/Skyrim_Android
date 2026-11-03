@@ -28,6 +28,13 @@
 
 using namespace dxvk;
 
+extern "C" int snapframe_engine_adapter_init(const SnapFrameConfig*);
+extern "C" void snapframe_engine_adapter_shutdown(void);
+extern "C" int snapframe_engine_adapter_update_settings(int, int);
+extern "C" int snapframe_engine_adapter_available(void);
+extern "C" int snapframe_engine_adapter_process_frame(
+    void*, void*, void*, uint32_t, uint32_t, uint32_t);
+
 namespace {
 std::mutex g_logMutex;
 FILE* g_logFile = nullptr;
@@ -1046,7 +1053,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
     return true;
 }
 
-void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
+void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* devicePtr,
                         uint32_t width, uint32_t height, uint32_t formatValue) {
     if (!g_initialized.load(std::memory_order_acquire))
         return;
@@ -1297,6 +1304,31 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
                 static_cast<unsigned long long>(captured),
                 static_cast<unsigned long long>(g_skippedFrames.load(std::memory_order_relaxed)),
                 width, height);
+}
+
+void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
+                        uint32_t width, uint32_t height, uint32_t formatValue) {
+    if (!g_initialized.load(std::memory_order_acquire))
+        return;
+
+    /* UI changes only set this flag. Resource release happens on this serialized
+     * DXVK callback, before either the portable core or legacy fallback runs. */
+    if (g_resetHistoryRequested.exchange(0, std::memory_order_acq_rel)) {
+        clearHistory();
+        snapframeLog("SnapFrame: queued history reset consumed on render callback\\n");
+    }
+    g_midpointFrameReady.store(0, std::memory_order_release);
+
+    const int adapterResult = snapframe_engine_adapter_process_frame(
+        contextPtr, sourceViewPtr, devicePtr, width, height, formatValue);
+    if (adapterResult == 0) {
+        /* Portable engine creation failure: preserve the previous real path. */
+        snapframeCopyFrameImpl(contextPtr, sourceViewPtr, devicePtr,
+            width, height, formatValue);
+    } else if (adapterResult < 0) {
+        g_skippedFrames.fetch_add(1, std::memory_order_relaxed);
+        snapframeLog("SnapFrame: portable backend failed; presenting real frame only\\n");
+    }
 }
 
 void snapframeDeviceDestroyed(void* devicePtr) {
