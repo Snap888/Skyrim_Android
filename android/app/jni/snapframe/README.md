@@ -42,7 +42,7 @@ This is the target algorithm. Capture, luma preprocessing, bidirectional block m
   ```ini
   enabled=1
   ```
-- This stage captures each real frame, downsamples to R16F luma in a two-slot history ring, and—after two valid frames—runs a coarse block-matching pass into a 1/16-resolution RGBA16F motion field. The pass searches a 9x9 displacement window over 3x3 luma patches and stores motion, best/second-best confidence and matching cost. It does not interpolate or alter presentation. Enabling it adds two full-resolution history images, two half-resolution luma images, two low-resolution motion images, a GPU copy and two motion compute dispatches per real frame. Treat it as a diagnostic test, not a performance mode.
+- This stage captures each real frame, downsamples to R16F luma in a two-slot history ring, and—after two valid frames—runs bidirectional coarse-to-fine block matching into a configurable RGBA16F motion grid. The matcher evaluates 9x9 coarse offsets at two-luma-texel spacing and a 3x3 full-resolution refinement over 3x3 luma patches. It stores displacement, best/second-best confidence and matching cost. It does not interpolate or alter presentation. Enabling it adds two full-resolution history images, two half-resolution luma images, two low-resolution motion images, a GPU copy and two motion compute dispatches per real frame. Treat it as a diagnostic test, not a performance mode.
 
 When the game starts, SnapFrame creates separate diagnostic outputs under
 `<game-directory>/port/`: `snapframe.log`, `snapframe_gpu.csv`,
@@ -130,7 +130,7 @@ luma values can be considered numerically verified.
 
 ## First motion-estimation pass (experimental)
 
-The `shaders/block_match_flow.comp` kernel runs after the current frame's luma pass once both temporal luma slots are valid. Each motion texel represents a 16x16 source-image region. The kernel searches +/-4 half-resolution luma texels using a 3x3 absolute-difference patch and writes RGBA16F: X/Y displacement in luma texels, best/second-best separation confidence, and normalized matching cost.
+The `shaders/block_match_flow.comp` kernel runs after the current frame's luma pass once both temporal luma slots are valid. Each motion texel represents a configurable region: at 50% flow scale it is approximately 32x32 source pixels. The matcher searches a +/-8 coarse lattice with two-luma-texel spacing, then refines +/-1 around the coarse winner (effective +/-9 range), using a 3x3 absolute-difference patch. It writes RGBA16F: X/Y displacement in luma texels, best/second-best separation confidence, and normalized matching cost.
 
 The motion field is diagnostic/preparatory data only. It is not yet consumed by a warp, occlusion resolver, interpolation pass, or presentation path. The search is intentionally conservative and may fail on repeated textures, disocclusion, thin geometry, particles, and HUD elements. Its GPU cost and numerical output have not yet been measured on device. The output format is queried at runtime; unsupported devices keep capture/luma active and skip motion estimation.
 
