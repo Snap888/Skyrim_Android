@@ -23,17 +23,17 @@ The corresponding PR #1 is still a draft and open. Its portable C APIs and core 
 - It uses DXVK internal classes and owns the current luma, bidirectional block-flow, consistency and midpoint-warp GPU resources.
 - The existing DXVK fork already has Skyrim-specific copy-frame, device-destroy, logging and generated-frame/present-result hooks.
 - `runtime/snapframe_bootstrap.c` initializes the legacy host and its per-game logs.
-- `SkyrimActivity.java` currently exposes the LSFG menu, not a Snap AI / SnapFrame settings section.
+- `SkyrimActivity.java` exposes LSFG plus a Snap AI / Frame Generation section with live Frame Generation and Flow Scale controls. Snap AI itself is explicitly marked unavailable until telemetry is connected.
 - The app currently builds C++17 for Android `arm64-v8a`, with CMake 3.22.1 and NDK 29.0.14206865 in CI.
 
 ## Changes made in this branch
 
 1. The Android JNI CMake project now fetches Snap AI Engine at the pinned commit above and disables upstream tests/examples for the Android app build.
 2. The Android game shared library links `SnapAI::Engine` and `SnapFrame::Engine`, so the portable libraries participate in the native link/package dependency graph.
-3. The existing DXVK-coupled `snapframe_host` remains enabled and unchanged as the current GPU implementation. It must not be removed until the new adapter has parity-tested GPU output.
+3. The existing DXVK-coupled `snapframe_host` remains the real GPU implementation. It now exposes safe live settings and is called through a concrete `SnapFrameBackendV1` adapter. Its shaders and WSI present hooks are preserved.
 4. Android CI push/PR branch filters now include this branch.
 
-These changes establish the portable library build/link boundary. They do **not** yet mean that the new portable SnapFrame API is driving frame generation or that Snap AI recommendations affect GPU dispatches.
+The portable SnapFrame core now drives the DXVK frame callback through the concrete adapter; the adapter delegates to the existing real GPU pipeline. Snap AI remains linked but its telemetry/control loop is not yet active.
 
 ## API constraints discovered
 
@@ -53,22 +53,22 @@ These changes establish the portable library build/link boundary. They do **not*
 
 ## Required next implementation steps
 
-1. Implement a per-DXVK-device `SnapFrameBackendV1` adapter by migrating the existing GPU dispatches without changing their algorithms.
-2. Move ownership from process-global SnapFrame resources to per-device adapter state; preserve all destruction/reset hooks.
-3. Define how the host passes frame metadata and an opaque frame token into `snap_frame_process` on the serialized render/present path.
+1. **Implemented:** `SnapFrameBackendV1` adapter routes the serialized DXVK copy callback through the portable core into the existing GPU pipeline.
+2. Move ownership from process-global SnapFrame resources to per-device adapter state; preserve all destruction/reset hooks. The current adapter is a single host-level instance.
+3. **Implemented:** frame metadata, monotonic frame id and a synchronous opaque native-frame token are passed into `snap_frame_process`.
 4. Preserve current midpoint present acceptance/fallback semantics; report generated frames only after DXVK accepts the generated present.
 5. Export scalar telemetry from asynchronous GPU timestamp completion and GPU-side flow summaries. Do not add synchronous pixel/flow readback for AI.
 6. Connect Snap AI decisions to the next safe frame's backend configuration, clamp all values to capabilities, and bypass AI on invalid metrics/errors.
-7. Add JNI settings backed by real native state, then expose only controls that the adapter actually supports.
+7. **Partially implemented:** JNI settings and menu controls exist for enable/disable and Flow Scale 25–100%. Other SnapFrame and Snap AI controls remain hidden until supported.
 8. Add separate SnapFrame/SnapAI logs, automated lifecycle tests and a full ARM64 APK workflow run.
 
 ## Validation status
 
 - Branch creation and base equality: verified with Git commit comparison.
 - Portable Snap AI + SnapFrame ARM64 shared-library build: passed Android NDK CI (run #41736778626).
-- DXVK adapter parity: not implemented.
+- DXVK adapter compile/parity: adapter code is committed; ARM64 compile validation is running, and visual parity/device validation remains outstanding.
 - Snap AI telemetry/control loop: not implemented.
-- In-game Snap AI / Frame Generation section: added with working Frame Generation and Flow Scale controls for the legacy host; Snap AI adaptive control is explicitly marked unavailable until the telemetry adapter is connected.
+- In-game Snap AI / Frame Generation section: added with Frame Generation and Flow Scale controls routed through the portable SnapFrame core; Snap AI adaptive control is explicitly marked unavailable until scalar telemetry is connected.
 - APK and physical-device GPU validation: not run.
 
 Do not treat a successful portable/mock test as proof of GPU frame generation. Do not claim performance gains until same-device, same-scene GPU timings and output quality have been compared.
