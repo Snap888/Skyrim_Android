@@ -102,6 +102,7 @@ uint32_t g_diagnosticPhaseFrames = 1800;
 uint32_t g_diagnosticPhase = UINT32_MAX;
 uint64_t g_phaseStartCaptured = 0, g_phaseStartLuma = 0, g_phaseStartFlow = 0;
 uint64_t g_phaseStartConsistency = 0, g_phaseStartSkipped = 0;
+uint64_t g_phaseLastProgress = 0;
 
 const char* diagnosticPhaseName(uint32_t phase) {
     static const char* names[] = { "static_scene", "slow_camera_pan", "fast_camera_rotation",
@@ -138,9 +139,12 @@ void beginDiagnosticPhase(uint32_t phase, uint64_t captured) {
     g_phaseStartFlow = g_flowDispatchCount;
     g_phaseStartConsistency = g_consistencyDispatchCount;
     g_phaseStartSkipped = g_skippedFrames.load(std::memory_order_relaxed);
+    g_phaseLastProgress = 0;
     snapframeLog("SnapFrame: TEST_PHASE_BEGIN index=%u name=%s target_frames=%u\n",
         phase + 1u, diagnosticPhaseName(phase), g_diagnosticPhaseFrames);
     snapframeLog("SnapFrame: TEST_ACTION %s\n", actions[phase]);
+    snapframeLog("SnapFrame: TEST_PHASE_PROGRESS phase=%s elapsed_frames=0 target_frames=%u\n",
+        diagnosticPhaseName(phase), g_diagnosticPhaseFrames);
 }
 
 void logDiagnosticPhase(uint64_t captured) {
@@ -161,8 +165,17 @@ void logDiagnosticPhase(uint64_t captured) {
 
     const uint32_t phase = static_cast<uint32_t>(
         std::min<uint64_t>((captured - 1u) / g_diagnosticPhaseFrames, 6u));
-    if (phase == g_diagnosticPhase)
+    if (phase == g_diagnosticPhase) {
+        const uint64_t elapsed = captured - g_phaseStartCaptured;
+        if (elapsed >= g_phaseLastProgress + 300u) {
+            g_phaseLastProgress = (elapsed / 300u) * 300u;
+            snapframeLog("SnapFrame: TEST_PHASE_PROGRESS phase=%s elapsed_frames=%llu target_frames=%u\n",
+                diagnosticPhaseName(phase),
+                static_cast<unsigned long long>(g_phaseLastProgress),
+                g_diagnosticPhaseFrames);
+        }
         return;
+    }
 
     if (g_diagnosticPhase != UINT32_MAX) {
         logDiagnosticPhaseResult(g_diagnosticPhase,
@@ -259,6 +272,9 @@ float snapFrameHalfToFloat(uint16_t value) {
 struct SnapFrameFlowStats {
     double dx = 0.0, dy = 0.0, magnitude = 0.0, confidence = 0.0, cost = 0.0;
     uint64_t finite = 0, nonFinite = 0;
+    uint64_t confidenceLt01 = 0, confidence01To05 = 0;
+    uint64_t confidenceGe05 = 0, confidenceGe075 = 0, confidenceGe09 = 0;
+    uint64_t highConfidenceNonZero = 0, boundarySaturated = 0, boundaryLowConfidence = 0;
 };
 
 SnapFrameFlowStats summarizeFlow(const uint16_t* values, uint64_t count) {
@@ -274,8 +290,20 @@ SnapFrameFlowStats summarizeFlow(const uint16_t* values, uint64_t count) {
             continue;
         }
         stats.dx += dx; stats.dy += dy;
-        stats.magnitude += std::sqrt(double(dx) * dx + double(dy) * dy);
+        const double magnitude = std::sqrt(double(dx) * dx + double(dy) * dy);
+        stats.magnitude += magnitude;
         stats.confidence += confidence; stats.cost += cost;
+        if (confidence < 0.1f) ++stats.confidenceLt01;
+        else if (confidence < 0.5f) ++stats.confidence01To05;
+        if (confidence >= 0.5f) ++stats.confidenceGe05;
+        if (confidence >= 0.75f) ++stats.confidenceGe075;
+        if (confidence >= 0.9f) ++stats.confidenceGe09;
+        if (confidence >= 0.5f && magnitude > 0.5) ++stats.highConfidenceNonZero;
+        const bool boundary = std::fabs(dx) >= 3.5f || std::fabs(dy) >= 3.5f;
+        if (boundary) {
+            ++stats.boundarySaturated;
+            if (confidence < 0.1f) ++stats.boundaryLowConfidence;
+        }
         ++stats.finite;
     }
     if (stats.finite) {
@@ -384,10 +412,28 @@ void recordFlowReadback(
             std::lock_guard<std::mutex> lock(g_flowLogMutex);
             if (g_flowLogFile) {
                 fprintf(g_flowLogFile,
-                    "%llu,%u,%u,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.3f,%llu,ok\n",
+                    "%llu,%u,%u,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,"
+                    "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,"
+                    "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%.6f,%.3f,%llu,ok\n",
                     static_cast<unsigned long long>(frame), flowWidth, flowHeight,
                     forward.dx, forward.dy, forward.magnitude, forward.confidence, forward.cost,
                     backward.dx, backward.dy, backward.magnitude, backward.confidence, backward.cost,
+                    static_cast<unsigned long long>(forward.confidenceLt01),
+                    static_cast<unsigned long long>(forward.confidence01To05),
+                    static_cast<unsigned long long>(forward.confidenceGe05),
+                    static_cast<unsigned long long>(forward.confidenceGe075),
+                    static_cast<unsigned long long>(forward.confidenceGe09),
+                    static_cast<unsigned long long>(forward.highConfidenceNonZero),
+                    static_cast<unsigned long long>(forward.boundarySaturated),
+                    static_cast<unsigned long long>(forward.boundaryLowConfidence),
+                    static_cast<unsigned long long>(backward.confidenceLt01),
+                    static_cast<unsigned long long>(backward.confidence01To05),
+                    static_cast<unsigned long long>(backward.confidenceGe05),
+                    static_cast<unsigned long long>(backward.confidenceGe075),
+                    static_cast<unsigned long long>(backward.confidenceGe09),
+                    static_cast<unsigned long long>(backward.highConfidenceNonZero),
+                    static_cast<unsigned long long>(backward.boundarySaturated),
+                    static_cast<unsigned long long>(backward.boundaryLowConfidence),
                     consistencyMean, consistencyPercent, static_cast<unsigned long long>(nonFinite));
                 fflush(g_flowLogFile);
             }
@@ -911,6 +957,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
         g_history[slot], subresource, VkOffset3D{ 0, 0, 0 },
         sourceImage, subresource, VkOffset3D{ 0, 0, 0 },
         VkExtent3D{ width, height, 1 });
+    if (profileThisFrame) context->flushComputeBarriers();
     endGpuTimer(context, captureTimer);
 
     if (g_lumaAvailable) {
@@ -922,6 +969,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
             context, device, "luma", nextCapturedFrame, width, height, profileThisFrame);
         const bool dispatched = context->dispatchSnapFrame(
             g_lumaShader, g_historyViews[slot], g_lumaSampler, g_lumaView[slot], groupsX, groupsY);
+        if (dispatched && profileThisFrame) context->flushComputeBarriers();
         endGpuTimer(context, lumaTimer);
         if (dispatched) {
             ++g_lumaDispatchCount;
@@ -948,6 +996,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
             const bool currentToPrevious = context->dispatchSnapFrameFlow(
                 g_flowShader, g_lumaView[previousSlot], g_lumaView[slot],
                 g_lumaSampler, g_flowView[0], flowGroupsX, flowGroupsY);
+            if (currentToPrevious && profileThisFrame) context->flushComputeBarriers();
             endGpuTimer(context, forwardTimer);
             SnapFrameGpuTimer backwardTimer;
             bool previousToCurrent = false;
@@ -957,6 +1006,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
                 previousToCurrent = context->dispatchSnapFrameFlow(
                     g_flowShader, g_lumaView[slot], g_lumaView[previousSlot],
                     g_lumaSampler, g_flowView[1], flowGroupsX, flowGroupsY);
+                if (previousToCurrent && profileThisFrame) context->flushComputeBarriers();
                 endGpuTimer(context, backwardTimer);
             }
             if (currentToPrevious && previousToCurrent) {
@@ -972,6 +1022,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
                             g_consistencyShader, g_flowView[0], g_flowView[1],
                             g_lumaSampler, g_consistencyView,
                             (flowWidth + 7u) / 8u, (flowHeight + 7u) / 8u);
+                    if (consistencyDispatched && profileThisFrame) context->flushComputeBarriers();
                     endGpuTimer(context, consistencyTimer);
                     if (consistencyDispatched) {
                         ++g_consistencyDispatchCount;
@@ -1080,7 +1131,10 @@ extern "C" int snapframe_host_set_flow_log_path(const char *path) {
         fprintf(stderr, "SnapFrame: cannot open flow readback CSV: %s\n", path);
         return 0;
     }
-    fprintf(g_flowLogFile, "frame,grid_width,grid_height,forward_mean_dx,forward_mean_dy,forward_mean_magnitude,forward_mean_confidence,forward_mean_cost,backward_mean_dx,backward_mean_dy,backward_mean_magnitude,backward_mean_confidence,backward_mean_cost,consistency_mean,consistency_gt_0_5_pct,nonfinite_values,status\n");
+    fprintf(g_flowLogFile, "frame,grid_width,grid_height,forward_mean_dx,forward_mean_dy,forward_mean_magnitude,forward_mean_confidence,forward_mean_cost,backward_mean_dx,backward_mean_dy,backward_mean_magnitude,backward_mean_confidence,backward_mean_cost,"
+        "forward_conf_lt_0_1,forward_conf_0_1_to_0_5,forward_conf_ge_0_5,forward_conf_ge_0_75,forward_conf_ge_0_9,forward_high_conf_nonzero,forward_boundary_saturated,forward_boundary_low_conf,"
+        "backward_conf_lt_0_1,backward_conf_0_1_to_0_5,backward_conf_ge_0_5,backward_conf_ge_0_75,backward_conf_ge_0_9,backward_high_conf_nonzero,backward_boundary_saturated,backward_boundary_low_conf,"
+        "consistency_mean,consistency_gt_0_5_pct,nonfinite_values,status\n");
     fflush(g_flowLogFile);
     return 1;
 }
