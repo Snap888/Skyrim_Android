@@ -1,0 +1,23 @@
+SnapFrame diagnostic log
+path=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe.log
+SnapFrame: bootstrap entered
+SnapFrame: diagnostic_suite requested but skipped because motion_analysis=0
+SnapFrame: diagnostic_suite=0 phase_frames=1800 phases=7 profiling=1 motion_analysis=0 timestamp_interval=30 flow_readback_interval=120
+SnapFrame: host initialized enabled=1 quality=1 flow_scale=50% motion_analysis=0 mode=capture-only
+SnapFrame: config=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe.conf log=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe.log gpu_csv=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe_gpu.csv flow_csv=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe_flow.csv enabled=1 multiplier=2 quality=1 flow_scale=50 motion_analysis=0 profiling=1 diagnostic_suite=1 phase_frames=1800
+SnapFrame: entered D3D9SwapChainEx::PresentImage
+SnapFrame: DXVK present path reached extent=2448x1080 format=0x25 usage=0x13 copy_hook=1
+SnapFrame: dispatching first DXVK copy callback
+SnapFrame: history reset requested; cached GPU resources released
+SnapFrame: host copy callback entered
+SnapFrame: R16F luma output supported (features=0x8001fd83 imageResult=0 extendedFormats=1)
+SnapFrame: motion analysis disabled or luma compute unsupported; capture-only mode
+SnapFrame: allocated two-frame history 2448x1080 format=0x25
+SnapFrame: captured=1 skipped=0 extent=2448x1080
+SnapFrame: two real frames captured; history ring valid
+SnapFrame: captured=60 skipped=0 extent=2448x1080
+SnapFrame: captured=1800 skipped=0 extent=2448x1080
+SnapFrame: captured=3600 skipped=0 extent=2448x1080
+SnapFrame: captured=5400 skipped=0 extent=2448x1080
+SnapFrame: captured=7200 skipped=0 extent=2448x1080
+SnapFrame: captured=9000 skipped=0 extent=2448x1080
