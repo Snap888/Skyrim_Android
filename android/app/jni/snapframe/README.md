@@ -2,10 +2,10 @@
 
 Experimental, independent frame-generation engine for Skyrim_Android.
 
-**Status: GPU capture, temporal luminance, bidirectional coarse motion estimation, forward/backward consistency, sampled flow readback and opt-in GPU timestamp diagnostics. No interpolated/generated frames are presented yet; numerical accuracy and device performance remain unverified.**
+**Status: GPU capture, temporal luminance, bidirectional coarse motion estimation, forward/backward consistency, midpoint color-warp compute output, sampled flow readback and opt-in GPU timestamp diagnostics. The midpoint image is generated into an internal RGBA16F image but is not yet inserted as an additional WSI present; generated-frame presentation, visual validation and device performance remain pending.**
 This module is isolated from the existing `lsfg` implementation. It is now
 compiled as a separate host target and has an independent DXVK callback that
-copies the completed game image into a two-image GPU history ring. A first coarse bidirectional block-matching motion pair is estimated from a two-slot luma history; pyramid refinement, occlusion handling, interpolation and generated-frame presentation are not implemented.
+copies the completed game image into a two-image GPU history ring. A first coarse bidirectional block-matching motion pair is estimated from a two-slot luma history; pyramid refinement and robust occlusion handling are not implemented. A first midpoint compute pass now writes an internal RGBA16F image, but that image is not yet presented.
 
 ## Goals
 
@@ -25,7 +25,7 @@ copies the completed game image into a two-image GPU history ring. A first coars
 6. Blend valid samples; use conservative spatial fallback where motion is uncertain.
 7. Add temporal stabilization only after the basic pipeline is validated.
 
-This is the target algorithm. Capture, luma preprocessing, bidirectional block matching and a first forward/backward consistency mask are implemented as GPU dispatches; the values have not yet been read back or visually validated. Pyramid refinement, occlusion handling, interpolation and presentation remain unimplemented. See [DESIGN.md](DESIGN.md) for the staged integration plan.
+This is the target algorithm. Capture, luma preprocessing, bidirectional block matching, forward/backward consistency and a first confidence-weighted midpoint color-warp pass are implemented as GPU dispatches. Flow diagnostics are read back sparsely; the midpoint output is not yet read back or visually validated. Pyramid refinement, robust occlusion handling, and additional WSI presentation remain unimplemented. See [DESIGN.md](DESIGN.md) for the staged integration plan.
 
 ## Current capture + preprocessing test
 
@@ -42,7 +42,7 @@ This is the target algorithm. Capture, luma preprocessing, bidirectional block m
   ```ini
   enabled=1
   ```
-- This stage captures each real frame, downsamples to R16F luma in a two-slot history ring, and—after two valid frames—runs bidirectional coarse-to-fine block matching into a configurable RGBA16F motion grid. The matcher evaluates 9x9 coarse offsets at two-luma-texel spacing and a 3x3 full-resolution refinement over 3x3 luma patches. It stores displacement, best/second-best confidence and matching cost. It does not interpolate or alter presentation. Enabling it adds two full-resolution history images, two half-resolution luma images, two low-resolution motion images, a GPU copy and two motion compute dispatches per real frame. Treat it as a diagnostic test, not a performance mode.
+- This stage captures each real frame, downsamples to R16F luma in a two-slot history ring, and—after two valid frames—runs bidirectional coarse-to-fine block matching into a configurable RGBA16F motion grid, calculates forward/backward consistency, and dispatches a confidence-weighted midpoint warp into an internal RGBA16F output image. The matcher evaluates 9x9 coarse offsets at two-luma-texel spacing and a 3x3 full-resolution refinement over 3x3 luma patches. It stores displacement, best/second-best confidence and matching cost. It does not alter presentation or increase the WSI present cadence. The midpoint image is an internal compute result only. Enabling it adds two full-resolution history images, two half-resolution luma images, two low-resolution motion images, an RGBA16F midpoint image, a GPU copy and multiple compute dispatches per real frame. Treat it as a diagnostic test, not a performance mode.
 
 When the game starts, SnapFrame creates separate diagnostic outputs under
 `<game-directory>/port/`: `snapframe.log`, `snapframe_gpu.csv`,
@@ -294,3 +294,28 @@ device. Do not enable reconstruction/presentation based on this source change.
 Next device run should repeat static, pan and rotation tests at 50% scale and
 compare boundary counts, confidence and consistency against this upload.
 A deterministic known-offset validation remains mandatory.
+
+### Midpoint reconstruction compute pass (2026-11-03)
+
+The new `midpoint_warp.comp` pass samples the two retained color frames,
+current-to-previous and previous-to-current RGBA16F motion fields, and the
+R16F forward/backward consistency mask. It offsets each color lookup by half
+of the estimated inter-frame displacement, weights the two samples by local
+motion confidence, and falls back to a conservative 50/50 blend when motion
+evidence is weak. Output is a device-local RGBA16F image.
+
+The pass is registered and dispatched through a state-preserving DXVK compute
+helper. It is timed as `midpoint_warp` in `snapframe_gpu.csv`; the event log
+records `midpoint_resources_ready/unavailable` and
+`midpoint_warp_ok/failed`. This confirms only that a midpoint image was
+written by an accepted GPU dispatch. It does not establish visual correctness,
+occlusion quality, or successful presentation.
+
+**Important limitation:** the runtime still presents only the game's normal
+real frame. The midpoint output is not yet consumed by the swapchain blitter
+and no second WSI image is acquired/presented between real frames. Do not treat
+`midpoint_warp_ok` or the public `generated_frames` statistic as proof of
+displayed frame generation; `generated_frames` intentionally remains zero
+until an additional present is implemented and confirmed. The next integration
+stage must add safe presenter scheduling, image/semaphore ownership, frame
+pacing, and HUD composition without changing the default LSFG path.
