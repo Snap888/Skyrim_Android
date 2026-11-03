@@ -2,7 +2,7 @@
 
 ## Current status
 
-The existing in-game overlay menu exposes LSFG settings and controls. A dedicated Snap AI / Frame Generation settings section has not yet been added. The portable libraries are linked, but their runtime settings are not yet connected to JNI or the Android UI.
+The in-game overlay menu now exposes a separate **Snap AI / Frame Generation** section. The currently supported controls are Frame Generation on/off and Flow Scale (25–100%). These call the legacy DXVK host's native API, queue changes for the next serialized frame callback, and persist them to `port/snapframe.conf`. Snap AI adaptive control is shown as unavailable until scalar telemetry and the new DXVK adapter are connected.
 
 ## Existing behavior to preserve
 
@@ -13,12 +13,12 @@ The existing in-game overlay menu exposes LSFG settings and controls. A dedicate
 
 ## UI rules for the new section
 
-Only expose settings that the active backend can actually apply. API v1 currently supports SnapFrame Performance/Balanced/Quality, flow scale 25..100%, motion-analysis/profiling/diagnostic flags, and multiplier 1/2. Additional search-radius, refinement-pass, HUD handling and artifact-reduction controls must remain hidden until the adapter implements them.
+Only expose settings that the active backend can actually apply. The legacy host currently exposes live enable/disable and flow scale (25–100%). The portable SnapFrame API v1 additionally defines Performance/Balanced/Quality, motion-analysis/profiling/diagnostic flags and multiplier 1/2, but these are not yet wired to the active legacy host and must not be presented as active controls. Additional search-radius, refinement-pass, HUD handling and artifact-reduction controls remain hidden until the adapter implements them.
 
 Snap AI API v1 supports enable/disable and Performance/Balanced/Quality profile selection. Do not expose Custom or independent AI switches that have no native effect.
 
 ## Persistence and application
 
-Persist validated settings in the per-game configuration under `port/`. Native state is authoritative. JNI calls must validate inputs, return an explicit failure when a setting cannot be applied, and enqueue GPU-affecting changes for the render thread rather than mutating resources from the UI thread.
+The current Frame Generation and Flow Scale controls persist validated values in `port/snapframe.conf`. Native state is authoritative. JNI validates flow scale and returns failure if the host is not initialized. GPU-affecting changes are queued to the render callback; the UI thread never accesses Vulkan objects. The toast confirms that settings were queued, not that GPU resource recreation has already completed.
 
 A setting requiring resource recreation must show a pending/restart-safe status until the backend confirms application. Preserve settings across app/game restarts without changing existing LSFG configuration.
