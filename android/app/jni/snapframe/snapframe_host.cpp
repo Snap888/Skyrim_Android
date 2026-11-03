@@ -120,6 +120,8 @@ uint64_t g_midpointFailureCount = 0;
 std::atomic<uint32_t> g_flowScalePercent{50};
 std::atomic<uint64_t> g_lastGpuTimingFrame{0};
 std::atomic<float> g_lastGpuTimingMs{0.0f};
+std::atomic<float> g_lastGpuFrameIntervalMs{0.0f};
+std::atomic<int> g_lastGpuTimingValid{0};
 std::atomic<float> g_lastFrameIntervalMs{0.0f};
 std::atomic<uint64_t> g_lastFrameTimestampNs{0};
 
@@ -250,6 +252,7 @@ struct SnapFrameGpuTimer {
     uint64_t frame = 0;
     uint32_t width = 0;
     uint32_t height = 0;
+    float frameTimeMs = 0.0f;
     std::string stage;
 };
 
@@ -265,6 +268,7 @@ SnapFrameGpuTimer beginGpuTimer(
     timer.frame = frame;
     timer.width = width;
     timer.height = height;
+    timer.frameTimeMs = g_lastFrameIntervalMs.load(std::memory_order_acquire);
     timer.stage = stage;
     if (timer.begin == nullptr || timer.end == nullptr || timer.periodNs <= 0.0) {
         timer.begin = Rc<DxvkGpuQuery>();
@@ -296,6 +300,8 @@ void endGpuTimer(DxvkContext* context, const SnapFrameGpuTimer& timer) {
             if (timer.stage == "total_chain") {
                 g_lastGpuTimingFrame.store(timer.frame, std::memory_order_release);
                 g_lastGpuTimingMs.store(static_cast<float>(gpuMs), std::memory_order_release);
+                g_lastGpuFrameIntervalMs.store(timer.frameTimeMs, std::memory_order_release);
+                g_lastGpuTimingValid.store(1, std::memory_order_release);
             }
             fprintf(g_gpuLogFile, "%llu,%s,%.6f,%u,%u,ok\n",
                 static_cast<unsigned long long>(timer.frame), timer.stage.c_str(),
@@ -304,6 +310,8 @@ void endGpuTimer(DxvkContext* context, const SnapFrameGpuTimer& timer) {
             if (timer.stage == "total_chain") {
                 g_lastGpuTimingFrame.store(timer.frame, std::memory_order_release);
                 g_lastGpuTimingMs.store(0.0f, std::memory_order_release);
+                g_lastGpuFrameIntervalMs.store(timer.frameTimeMs, std::memory_order_release);
+                g_lastGpuTimingValid.store(0, std::memory_order_release);
             }
             fprintf(g_gpuLogFile, "%llu,%s,0,%u,%u,unavailable:%d:%d:%d\n",
                 static_cast<unsigned long long>(timer.frame), timer.stage.c_str(),
@@ -1547,6 +1555,8 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
     g_copyCallbackCalls.store(0, std::memory_order_relaxed);
     g_lastGpuTimingFrame.store(0, std::memory_order_relaxed);
     g_lastGpuTimingMs.store(0.0f, std::memory_order_relaxed);
+    g_lastGpuFrameIntervalMs.store(0.0f, std::memory_order_relaxed);
+    g_lastGpuTimingValid.store(0, std::memory_order_relaxed);
     g_lastFrameIntervalMs.store(0.0f, std::memory_order_relaxed);
     g_lastFrameTimestampNs.store(0, std::memory_order_relaxed);
     g_resetHistoryRequested.store(1, std::memory_order_release);
@@ -1607,8 +1617,8 @@ extern "C" int snapframe_host_get_last_telemetry(
     const uint64_t completedFrame = g_lastGpuTimingFrame.load(std::memory_order_acquire);
     if (frame) *frame = completedFrame;
     if (gpu_time_ms) *gpu_time_ms = g_lastGpuTimingMs.load(std::memory_order_acquire);
-    if (frame_time_ms) *frame_time_ms = g_lastFrameIntervalMs.load(std::memory_order_acquire);
-    return completedFrame != 0 ? 1 : 0;
+    if (frame_time_ms) *frame_time_ms = g_lastGpuFrameIntervalMs.load(std::memory_order_acquire);
+    return completedFrame != 0 && g_lastGpuTimingValid.load(std::memory_order_acquire) ? 1 : 0;
 }
 
 extern "C" int snapframe_host_update_settings(int enabled, int flow_scale_percent) {
