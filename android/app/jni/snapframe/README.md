@@ -37,8 +37,9 @@ This is a proposed algorithm, not an implemented or measured result. See
   it performs no CPU readback and submits no unrelated Vulkan queue work.
 - Two private DXVK images are allocated for frame history. They are released
   from a device-destroy callback while the DXVK allocator is still alive.
-- Capture is disabled by default. To enable this diagnostic prototype, create
-  `<game-directory>/port/snapframe.conf` containing:
+- Capture is disabled by default. To enable this diagnostic prototype, copy
+  `snapframe.conf.example` to `<game-directory>/port/snapframe.conf` or create
+  that file containing:
 
   ```ini
   enabled=1
@@ -48,6 +49,13 @@ This is a proposed algorithm, not an implemented or measured result. See
   a copy per real frame. This is only for validating the hook and history
   lifetime; it is not a performance mode and should remain disabled during
   normal gameplay until interpolation exists.
+
+When the game starts, SnapFrame creates a separate diagnostic file at
+`<game-directory>/port/snapframe.log` (truncated for each launch). It records
+bootstrap/configuration, DXVK PresentImage entry, WSI image details, callback
+entry, format capability checks, history allocation, capture skips and frame
+counters. The same messages are also mirrored to the normal stderr log. This
+makes it possible to send `snapframe.log` without the large general game log.
 
 When enabled, the diagnostic sequence is:
 
