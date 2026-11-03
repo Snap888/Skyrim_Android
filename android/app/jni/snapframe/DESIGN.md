@@ -290,7 +290,7 @@ evidence that the GPU produced numerically correct luminance values.
 
 A two-slot R16F luma history now feeds `shaders/block_match_flow.comp`. The flow field is stored at 1/16 source resolution in RGBA16F and contains displacement in half-resolution luma texels, a best/second-best SAD confidence estimate, and normalized matching cost. The 9x9 search over 3x3 patches is intentionally a first baseline, not production optical flow. Runtime checks gate the RGBA16F storage image; if unsupported, capture and luma preprocessing remain active.
 
-The DXVK flow dispatch binds previous luma, current luma and one output image in slots 0..2, preserving all three prior resource slots and compute state. The host records two dispatches for each adjacent-frame pair: current-to-previous and previous-to-current, into separate RGBA16F images. A pair is counted only when both dispatches are accepted. The host dispatches only when both temporal luma slots are valid and the current luma dispatch was accepted. No generated frame is reconstructed or presented yet. The device test must check for `bidirectional flow pair accepted`; that confirms command recording for both directions, not numerical motion-field correctness. Add GPU readback or a controlled visual validation path before trusting vector values.
+The DXVK flow dispatch binds previous luma, current luma and one output image in slots 0..2, preserving all three prior resource slots and compute state. The host records two dispatches for each adjacent-frame pair: current-to-previous and previous-to-current, into separate RGBA16F images. A pair is counted only when both dispatches are accepted. The host dispatches only when both temporal luma slots are valid and the current luma dispatch was accepted. No generated frame is reconstructed or presented yet. The device test must check for `bidirectional flow pair accepted`; that confirms command recording for both directions, not numerical motion-field correctness. Sparse GPU readback now records aggregate flow/mask statistics and periodic per-cell vectors; inspect those outputs before trusting vector values.
 
 
 The two directional fields are preparatory inputs for the next consistency pass. They are not yet checked against one another, confidence is only a local best-versus-second-best SAD separation, and no occlusion/disocclusion classification is performed. The motion images are reused for each subsequent adjacent-frame pair; any later interpolation consumer must read them before the next pair overwrites them or introduce an explicit per-frame lifetime/ring.
@@ -306,18 +306,21 @@ RGBA16F fields, follows the forward vector to the reverse field, computes the
 cycle-closure error, and attenuates the result using local match confidence.
 
 This is only a first confidence/validity estimate. It is not a full occlusion
-or disocclusion classifier, and it has not been numerically validated by
-readback or visualization. No warping, interpolation, HUD composition, or
-generated-frame presentation is included. Device shader compilation and APK
-build have not been run as part of this change.
+or disocclusion classifier, and it has not been numerically validated against
+ground truth. No warping, interpolation, HUD composition, or generated-frame
+presentation is included. Device shader compilation and APK build have not
+been run as part of this change.
 
 Next validation gate:
 1. Build the generated SPIR-V header with glslangValidator and spirv-val.
 2. Build the Android APK locally and run it on the target Adreno device.
 3. Confirm `forward/backward consistency accepted` increments with no failures.
-4. Add a debug visualization/readback path to inspect the R16F mask and both
-   motion directions on controlled static, pan, and moving-object scenes.
-5. Only after numeric validation, use the mask in a two-sided warp prototype.
+4. Inspect `snapframe_gpu.csv`, `snapframe_flow.csv`, and
+   `snapframe_flow_vectors.csv` for valid timings, non-finite values, vector
+   direction, confidence and consistency-mask behavior.
+5. Add controlled synthetic zero-motion and known-translation GPU tests to
+   establish vector direction and scale against ground truth.
+6. Only after numeric validation, use the mask in a two-sided warp prototype.
 
 
 ## 9. Single-build diagnostic campaign
