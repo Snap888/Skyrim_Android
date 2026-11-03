@@ -109,10 +109,15 @@ bool g_consistencyAvailable = false;
 bool g_midpointAvailable = false;
 uint64_t g_midpointDispatchCount = 0;
 uint64_t g_midpointFailureCount = 0;
-uint32_t g_flowScalePercent = 50;
+std::atomic<uint32_t> g_flowScalePercent{50};
+
+uint32_t flowScalePercent() {
+    return g_flowScalePercent.load(std::memory_order_acquire);
+}
 
 uint32_t flowBlockStride() {
-    return (800u + g_flowScalePercent - 1u) / g_flowScalePercent;
+    const uint32_t scale = flowScalePercent();
+    return (800u + scale - 1u) / scale;
 }
 
 uint32_t flowExtent(uint32_t lumaExtent) {
@@ -1016,7 +1021,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             snapframeLog("SnapFrame: bidirectional block-matching flow ready outputs=2 extent=%ux%u format=RGBA16F search=coarse5x5-step4+refine5x5 range=+/-10 patch=3x3 candidates_max=49 flow_scale=%u%% block_stride=%u luma_texels\n",
                 flowExtent(width / 2u + width % 2u),
                 flowExtent(height / 2u + height % 2u),
-                g_flowScalePercent, flowBlockStride());
+                flowScalePercent(), flowBlockStride());
         } else {
             g_flowView[0] = Rc<DxvkImageView>();
             g_flowView[1] = Rc<DxvkImageView>();
@@ -1439,7 +1444,7 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
         validated.flow_scale_percent = 100;
     if (validated.diagnostic_phase_frames < 300) validated.diagnostic_phase_frames = 300;
     if (validated.diagnostic_phase_frames > 36000) validated.diagnostic_phase_frames = 36000;
-    g_flowScalePercent = static_cast<uint32_t>(validated.flow_scale_percent);
+    g_flowScalePercent.store(static_cast<uint32_t>(validated.flow_scale_percent), std::memory_order_release);
     g_motionAnalysisEnabled = validated.motion_analysis != 0;
     g_diagnosticSuiteEnabled = validated.diagnostic_suite != 0 && g_motionAnalysisEnabled;
     if (validated.diagnostic_suite != 0 && !g_motionAnalysisEnabled)
@@ -1500,6 +1505,38 @@ extern "C" int snapframe_host_set_enabled(int enabled) {
     return 1;
 }
 
+
+extern "C" int snapframe_host_get_settings(int *enabled, int *flow_scale_percent) {
+    if (!g_initialized.load(std::memory_order_acquire)) return 0;
+    if (enabled) *enabled = g_enabled.load(std::memory_order_acquire);
+    if (flow_scale_percent) *flow_scale_percent = static_cast<int>(flowScalePercent());
+    return 1;
+}
+
+extern "C" int snapframe_host_update_settings(int enabled, int flow_scale_percent) {
+    if (!g_initialized.load(std::memory_order_acquire)
+        || flow_scale_percent < 25 || flow_scale_percent > 100)
+        return 0;
+
+    const uint32_t requestedScale = static_cast<uint32_t>(flow_scale_percent);
+    const uint32_t previousScale = g_flowScalePercent.exchange(
+        requestedScale, std::memory_order_acq_rel);
+    const int requestedEnabled = enabled ? 1 : 0;
+    const int previousEnabled = g_enabled.exchange(
+        requestedEnabled, std::memory_order_acq_rel);
+
+    if (previousScale != requestedScale || previousEnabled != requestedEnabled) {
+        /* The DXVK copy callback consumes this flag on its serialized render
+         * path, releases temporal resources, and recreates them using the
+         * new scale before dispatch. UI thread never touches Vulkan objects. */
+        g_resetHistoryRequested.store(1, std::memory_order_release);
+        snapframeLog("SnapFrame: live settings queued enabled=%d flow_scale=%u%% (previous=%u%%)\n",
+            requestedEnabled, requestedScale, previousScale);
+        snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed),
+            "settings_queued", g_width, g_height, "enable_or_flow_scale_changed");
+    }
+    return 1;
+}
 
 extern "C" bool snapframe_host_can_generate(void) {
     return snapframe_host_active()
