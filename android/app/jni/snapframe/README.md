@@ -50,7 +50,7 @@ When the game starts, SnapFrame creates separate diagnostic outputs under
 (each truncated for a new launch). The event CSV records capture-copy
 submission, luma dispatch success/failure, both flow directions, consistency
 dispatch status, completed frames, and early skips (invalid callback arguments,
-source validation, or history allocation). It is intended to make it clear
+source validation, history allocation, midpoint dispatch, and additional WSI-present request/result). It is intended to make it clear
 which stage stopped progressing even when the text log is incomplete. The text log records
 bootstrap/configuration, DXVK PresentImage entry, WSI image details, callback
 entry, format capability checks, history allocation, capture skips and frame
