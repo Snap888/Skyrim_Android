@@ -56,6 +56,7 @@ Rc<DxvkImage> g_lumaImage;
 Rc<DxvkImageView> g_lumaView;
 Rc<DxvkSampler> g_lumaSampler;
 Rc<DxvkShader> g_lumaShader;
+DxvkDevice* g_lumaShaderDevice = nullptr;
 bool g_lumaAvailable = false;
 uint64_t g_lumaDispatchCount = 0;
 uint64_t g_lumaFailureCount = 0;
@@ -74,7 +75,6 @@ void clearHistory() {
     g_lumaView = Rc<DxvkImageView>();
     g_lumaImage = Rc<DxvkImage>();
     g_lumaSampler = Rc<DxvkSampler>();
-    g_lumaShader = Rc<DxvkShader>();
     g_lumaAvailable = false;
     g_lumaDispatchCount = 0;
     g_lumaFailureCount = 0;
@@ -217,16 +217,22 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             samplerInfo.usePixelCoord = VK_FALSE;
             g_lumaSampler = device->createSampler(samplerInfo);
 
-            const DxvkResourceSlot slots[] = {
-                { 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
-                { 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_WRITE_BIT },
-            };
-            DxvkInterfaceSlots iface{};
-            SpirvCodeBuffer shaderCode(snapframe::shaders::k_luma_downsample_word_count,
-                                       snapframe::shaders::k_luma_downsample);
-            g_lumaShader = device->createShader(VK_SHADER_STAGE_COMPUTE_BIT, 2, slots, iface, shaderCode);
-            if (g_lumaShader != nullptr)
-                device->registerShader(g_lumaShader);
+            if (g_lumaShaderDevice != device || g_lumaShader == nullptr) {
+                g_lumaShader = Rc<DxvkShader>();
+                g_lumaShaderDevice = nullptr;
+                const DxvkResourceSlot slots[] = {
+                    { 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
+                    { 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_WRITE_BIT },
+                };
+                DxvkInterfaceSlots iface{};
+                SpirvCodeBuffer shaderCode(snapframe::shaders::k_luma_downsample_word_count,
+                                           snapframe::shaders::k_luma_downsample);
+                g_lumaShader = device->createShader(VK_SHADER_STAGE_COMPUTE_BIT, 2, slots, iface, shaderCode);
+                if (g_lumaShader != nullptr) {
+                    device->registerShader(g_lumaShader);
+                    g_lumaShaderDevice = device;
+                }
+            }
 
             g_lumaAvailable = g_lumaImage != nullptr && g_lumaView != nullptr
                            && g_lumaSampler != nullptr && g_lumaShader != nullptr;
@@ -356,9 +362,12 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
 }
 
 void snapframeDeviceDestroyed(void* devicePtr) {
-    if (g_device == reinterpret_cast<DxvkDevice*>(devicePtr)) {
-        snapframeLog("SnapFrame: DXVK device destroyed; releasing history\n");
+    auto* device = reinterpret_cast<DxvkDevice*>(devicePtr);
+    if (g_device == device || g_lumaShaderDevice == device) {
+        snapframeLog("SnapFrame: DXVK device destroyed; releasing history and shader state\n");
         clearHistory();
+        g_lumaShader = Rc<DxvkShader>();
+        g_lumaShaderDevice = nullptr;
     }
 }
 
