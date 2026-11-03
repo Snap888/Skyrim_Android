@@ -8,6 +8,7 @@ add_library(snapframe_host STATIC
 find_package(Python3 COMPONENTS Interpreter QUIET)
 find_program(SNAPFRAME_GLSLANG_VALIDATOR glslangValidator)
 find_program(SNAPFRAME_SPIRV_VAL spirv-val)
+set(SNAPFRAME_GENERATED_SHADER_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/generated/snapframe_shaders.h")
 if(Python3_Interpreter_FOUND AND SNAPFRAME_GLSLANG_VALIDATOR AND SNAPFRAME_SPIRV_VAL)
   execute_process(
     COMMAND "${Python3_EXECUTABLE}"
@@ -21,9 +22,11 @@ if(Python3_Interpreter_FOUND AND SNAPFRAME_GLSLANG_VALIDATOR AND SNAPFRAME_SPIRV
   if(SNAPFRAME_SHADER_RESULT EQUAL 0)
     message(STATUS "${SNAPFRAME_SHADER_OUTPUT}")
   else()
+    file(REMOVE "${SNAPFRAME_GENERATED_SHADER_HEADER}")
     message(WARNING "SnapFrame shader compilation failed; capture remains available but luma dispatch is disabled: ${SNAPFRAME_SHADER_ERROR}")
   endif()
 else()
+  file(REMOVE "${SNAPFRAME_GENERATED_SHADER_HEADER}")
   message(WARNING "SnapFrame shader tools not found on build host (Python3, glslangValidator, spirv-val); capture remains available but luma dispatch is disabled.")
 endif()
 target_include_directories(snapframe_host PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
