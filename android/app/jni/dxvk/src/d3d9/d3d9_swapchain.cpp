@@ -978,7 +978,7 @@ namespace dxvk {
           g_snapFramePresentPathCount.fetch_add(1, std::memory_order_relaxed) + 1;
         if (presentPathCount == 1) {
           fprintf(stderr,
-            "SnapFrame: DXVK present path reached extent=%ux%u format=0x%x usage=0x%x copy_hook=%d\\n",
+            "SnapFrame: DXVK present path reached extent=%ux%u format=0x%x usage=0x%x copy_hook=%d\n",
             info.imageExtent.width, info.imageExtent.height,
             static_cast<unsigned>(info.format.format),
             static_cast<unsigned>(info.imageUsage),
@@ -988,7 +988,7 @@ namespace dxvk {
           const uint64_t dispatchCount =
             g_snapFrameCallbackDispatchCount.fetch_add(1, std::memory_order_relaxed) + 1;
           if (dispatchCount == 1)
-            fprintf(stderr, "SnapFrame: dispatching first DXVK copy callback\\n");
+            fprintf(stderr, "SnapFrame: dispatching first DXVK copy callback\n");
           g_snapFrameCopyHook(
               m_context.ptr(),
               m_imageViews.at(imageIndex).ptr(),
