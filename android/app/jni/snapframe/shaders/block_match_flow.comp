@@ -29,7 +29,10 @@ void main() {
         imageStore(motionOutput, outPos, vec4(0.0, 0.0, 0.0, 1.0));
         return;
     }
-    ivec2 center = min(outPos * 8 + ivec2(4), extent - ivec2(2));
+    // Derive the luma-space cell stride from the actual output extent. This
+    // keeps vector locations correct for every configured flow density.
+    ivec2 blockStride = max(ivec2(1), ivec2(round(vec2(extent) / vec2(outExtent))));
+    ivec2 center = min(outPos * blockStride + blockStride / 2, extent - ivec2(2));
     const int searchRadius = 4;
     const int patchRadius = 1;
 
