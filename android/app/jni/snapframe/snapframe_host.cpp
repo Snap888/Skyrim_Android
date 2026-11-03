@@ -22,7 +22,7 @@ void snapframeLog(const char* format, ...) {
     va_start(args, format);
     va_list fileArgs;
     va_copy(fileArgs, args);
-    vsnapframeLog( format, args);
+    vfprintf(stderr, format, args);
     fflush(stderr);
     if (g_logFile) {
         vfprintf(g_logFile, format, fileArgs);
@@ -244,17 +244,17 @@ extern "C" int snapframe_host_set_log_path(const char *path) {
     }
     g_logFile = fopen(path, "w");
     if (!g_logFile) {
-        fprintf(stderr, "SnapFrame: cannot open dedicated log: %s\\n", path);
+        fprintf(stderr, "SnapFrame: cannot open dedicated log: %s\n", path);
         return 0;
     }
-    fprintf(g_logFile, "SnapFrame diagnostic log\\npath=%s\\n", path);
+    fprintf(g_logFile, "SnapFrame diagnostic log\npath=%s\n", path);
     fflush(g_logFile);
     return 1;
 }
 
 extern "C" void snapframe_host_log(const char *message) {
     if (message && *message)
-        snapframeLog("SnapFrame: %s\\n", message);
+        snapframeLog("SnapFrame: %s\n", message);
 }
 
 extern "C" void snapframe_dxvk_set_copy_hook(
