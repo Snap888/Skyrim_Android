@@ -54,8 +54,9 @@ Rc<DxvkImage> g_history[2];
 Rc<DxvkImageView> g_historyViews[2];
 Rc<DxvkImage> g_lumaImage[2];
 Rc<DxvkImageView> g_lumaView[2];
-Rc<DxvkImage> g_flowImage;
-Rc<DxvkImageView> g_flowView;
+// [0] current->previous, [1] previous->current motion fields.
+Rc<DxvkImage> g_flowImage[2];
+Rc<DxvkImageView> g_flowView[2];
 Rc<DxvkSampler> g_lumaSampler;
 Rc<DxvkShader> g_lumaShader;
 Rc<DxvkShader> g_flowShader;
@@ -84,8 +85,10 @@ void clearHistory() {
     g_lumaView[1] = Rc<DxvkImageView>();
     g_lumaImage[0] = Rc<DxvkImage>();
     g_lumaImage[1] = Rc<DxvkImage>();
-    g_flowView = Rc<DxvkImageView>();
-    g_flowImage = Rc<DxvkImage>();
+    g_flowView[0] = Rc<DxvkImageView>();
+    g_flowView[1] = Rc<DxvkImageView>();
+    g_flowImage[0] = Rc<DxvkImage>();
+    g_flowImage[1] = Rc<DxvkImage>();
     g_lumaSampler = Rc<DxvkSampler>();
     g_lumaAvailable = false;
     g_flowAvailable = false;
@@ -316,18 +319,19 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                 flowInfo.layout = VK_IMAGE_LAYOUT_GENERAL;
                 flowInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
                 flowInfo.shared = VK_FALSE;
-                g_flowImage = device->createImage(flowInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-                if (g_flowImage != nullptr) {
-                    DxvkImageViewCreateInfo flowViewInfo{};
-                    flowViewInfo.type = VK_IMAGE_VIEW_TYPE_2D;
-                    flowViewInfo.format = flowFormat;
-                    flowViewInfo.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-                    flowViewInfo.aspect = VK_IMAGE_ASPECT_COLOR_BIT;
-                    flowViewInfo.minLevel = 0;
-                    flowViewInfo.numLevels = 1;
-                    flowViewInfo.minLayer = 0;
-                    flowViewInfo.numLayers = 1;
-                    g_flowView = device->createImageView(g_flowImage, flowViewInfo);
+                DxvkImageViewCreateInfo flowViewInfo{};
+                flowViewInfo.type = VK_IMAGE_VIEW_TYPE_2D;
+                flowViewInfo.format = flowFormat;
+                flowViewInfo.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+                flowViewInfo.aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+                flowViewInfo.minLevel = 0;
+                flowViewInfo.numLevels = 1;
+                flowViewInfo.minLayer = 0;
+                flowViewInfo.numLayers = 1;
+                for (unsigned i = 0; i < 2; ++i) {
+                    g_flowImage[i] = device->createImage(flowInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                    if (g_flowImage[i] != nullptr)
+                        g_flowView[i] = device->createImageView(g_flowImage[i], flowViewInfo);
                 }
 
                 const bool needFlowRegistration = g_flowShaderDevice != device || g_flowShader == nullptr;
@@ -345,7 +349,9 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                     g_flowShader = device->createShader(VK_SHADER_STAGE_COMPUTE_BIT, 3, flowSlots, flowIface, flowCode);
                     createdFlowShader = true;
                 }
-                g_flowAvailable = g_flowImage != nullptr && g_flowView != nullptr && g_flowShader != nullptr;
+                g_flowAvailable = g_flowImage[0] != nullptr && g_flowImage[1] != nullptr
+                               && g_flowView[0] != nullptr && g_flowView[1] != nullptr
+                               && g_flowShader != nullptr;
                 if (g_flowAvailable && needFlowRegistration) {
                     device->registerShader(g_flowShader);
                     g_flowShaderDevice = device;
@@ -366,8 +372,10 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                 g_flowShader = Rc<DxvkShader>();
                 g_flowShaderDevice = nullptr;
             }
-            g_flowView = Rc<DxvkImageView>();
-            g_flowImage = Rc<DxvkImage>();
+            g_flowView[0] = Rc<DxvkImageView>();
+            g_flowView[1] = Rc<DxvkImageView>();
+            g_flowImage[0] = Rc<DxvkImage>();
+            g_flowImage[1] = Rc<DxvkImage>();
             snapframeLog("SnapFrame: exception while creating luma/flow compute resources\n");
         }
         if (g_lumaAvailable) {
@@ -386,12 +394,14 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             snapframeLog("SnapFrame: luma compute resource creation failed; capture remains active\n");
         }
         if (g_flowAvailable) {
-            snapframeLog("SnapFrame: block-matching flow ready output=%ux%u format=RGBA16F search=9x9 patch=3x3 scale=1/16\n",
+            snapframeLog("SnapFrame: bidirectional block-matching flow ready outputs=2 extent=%ux%u format=RGBA16F search=9x9 patch=3x3 scale=1/16\n",
                 ((width / 2u + width % 2u + 7u) / 8u),
                 ((height / 2u + height % 2u + 7u) / 8u));
         } else {
-            g_flowView = Rc<DxvkImageView>();
-            g_flowImage = Rc<DxvkImage>();
+            g_flowView[0] = Rc<DxvkImageView>();
+            g_flowView[1] = Rc<DxvkImageView>();
+            g_flowImage[0] = Rc<DxvkImage>();
+            g_flowImage[1] = Rc<DxvkImage>();
         }
     } else {
         snapframeLog("SnapFrame: luma compute disabled by GPU format/feature limits\n");
@@ -520,19 +530,25 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
             const uint32_t flowHeight = (lumaHeight + 7u) / 8u;
             const uint32_t flowGroupsX = (flowWidth + 7u) / 8u;
             const uint32_t flowGroupsY = (flowHeight + 7u) / 8u;
-            const bool flowDispatched = context->dispatchSnapFrameFlow(
+            // Slot 0 stores current->previous; slot 1 stores previous->current.
+            const bool currentToPrevious = context->dispatchSnapFrameFlow(
                 g_flowShader, g_lumaView[previousSlot], g_lumaView[slot],
-                g_lumaSampler, g_flowView, flowGroupsX, flowGroupsY);
-            if (flowDispatched) {
+                g_lumaSampler, g_flowView[0], flowGroupsX, flowGroupsY);
+            const bool previousToCurrent = currentToPrevious
+                && context->dispatchSnapFrameFlow(
+                    g_flowShader, g_lumaView[slot], g_lumaView[previousSlot],
+                    g_lumaSampler, g_flowView[1], flowGroupsX, flowGroupsY);
+            if (currentToPrevious && previousToCurrent) {
                 ++g_flowDispatchCount;
                 if (g_flowDispatchCount == 1 || (g_flowDispatchCount % 120u) == 0)
-                    snapframeLog("SnapFrame: flow dispatch accepted count=%llu groups=%ux%u\n",
+                    snapframeLog("SnapFrame: bidirectional flow pair accepted count=%llu groups=%ux%u\n",
                         static_cast<unsigned long long>(g_flowDispatchCount), flowGroupsX, flowGroupsY);
             } else {
                 ++g_flowFailureCount;
                 if (g_flowFailureCount == 1 || (g_flowFailureCount % 30u) == 0)
-                    snapframeLog("SnapFrame: flow dispatch failed count=%llu\n",
-                        static_cast<unsigned long long>(g_flowFailureCount));
+                    snapframeLog("SnapFrame: bidirectional flow pair failed count=%llu current_to_previous=%d previous_to_current=%d\n",
+                        static_cast<unsigned long long>(g_flowFailureCount),
+                        currentToPrevious, previousToCurrent);
             }
         }
     }
