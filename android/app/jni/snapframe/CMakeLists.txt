@@ -27,7 +27,7 @@ if(Python3_Interpreter_FOUND AND SNAPFRAME_GLSLANG_VALIDATOR AND SNAPFRAME_SPIRV
   endif()
 else()
   file(REMOVE "${SNAPFRAME_GENERATED_SHADER_HEADER}")
-  message(WARNING "SnapFrame shader tools not found on build host (Python3, glslangValidator, spirv-val); capture remains available but luma dispatch is disabled.")
+  message(WARNING "SnapFrame shader tools not found on build host (Python3, glslangValidator, spirv-val); capture remains available but SnapFrame compute dispatches are disabled.")
 endif()
 target_include_directories(snapframe_host PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(snapframe_host PRIVATE
