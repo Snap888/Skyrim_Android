@@ -23,7 +23,9 @@ target_include_directories(main PRIVATE ${PORT}/runtime ${PORT}/gen ../sdlinc
 target_compile_definitions(main PRIVATE DXVK_NATIVE GAME_SKYRIM)
 target_compile_options(main PRIVATE -O2 -fno-strict-aliasing -fwrapv -fsigned-char -Wno-everything
     $<$<COMPILE_LANGUAGE:C>:-std=gnu11>)
-target_link_libraries(main PRIVATE SDL2 dxvk_d3d9 lsfg_host snapframe_host m $<$<BOOL:${ANDROID}>:log> $<$<BOOL:${ANDROID}>:android>)
+target_link_libraries(main PRIVATE SDL2 dxvk_d3d9 lsfg_host snapframe_host
+    SnapAI::Engine SnapFrame::Engine
+    m $<$<BOOL:${ANDROID}>:log> $<$<BOOL:${ANDROID}>:android>)
 
 # ---- xWMA / FFmpeg (optional) ------------------------------------------------
 set(FFMPEG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../ffmpeg)
