@@ -5,8 +5,7 @@ Experimental, independent frame-generation engine for Skyrim_Android.
 **Status: GPU capture, temporal luminance and coarse block-matching motion estimation prototype. No interpolated/generated frames are presented yet.**
 This module is isolated from the existing `lsfg` implementation. It is now
 compiled as a separate host target and has an independent DXVK callback that
-copies the completed game image into a two-image GPU history ring. Optical flow,
-interpolation and generated-frame presentation are not implemented.
+copies the completed game image into a two-image GPU history ring. A first coarse block-matching motion field is estimated from a two-slot luma history; flow refinement, interpolation and generated-frame presentation are not implemented.
 
 ## Goals
 
@@ -26,8 +25,7 @@ interpolation and generated-frame presentation are not implemented.
 6. Blend valid samples; use conservative spatial fallback where motion is uncertain.
 7. Add temporal stabilization only after the basic pipeline is validated.
 
-This is a proposed algorithm, not an implemented or measured result. See
-[DESIGN.md](DESIGN.md) for the architecture and staged integration plan.
+This is the target algorithm. Only capture, luma preprocessing and the first coarse block-matching pass are implemented; the remaining stages are not yet measured or implemented. See [DESIGN.md](DESIGN.md) for the staged integration plan.
 
 ## Current capture + preprocessing test
 
@@ -44,11 +42,7 @@ This is a proposed algorithm, not an implemented or measured result. See
   ```ini
   enabled=1
   ```
-- This stage captures each real frame and runs one half-resolution R16F luma
-  downsample compute pass. It does not interpolate or alter presentation. The motion pass searches a 9x9 displacement window over 3x3 luma patches and stores motion, best/second-best confidence and matching cost.
-  Enabling it adds two full-resolution history images, one half-resolution
-  output image, a GPU copy and a compute dispatch per real frame. Treat it as a
-  diagnostic test, not a performance mode.
+- This stage captures each real frame, downsamples to R16F luma in a two-slot history ring, and—after two valid frames—runs a coarse block-matching pass into a 1/16-resolution RGBA16F motion field. The pass searches a 9x9 displacement window over 3x3 luma patches and stores motion, best/second-best confidence and matching cost. It does not interpolate or alter presentation. Enabling it adds two full-resolution history images, two half-resolution luma images, one low-resolution motion image, a GPU copy and compute work per real frame. Treat it as a diagnostic test, not a performance mode.
 
 When the game starts, SnapFrame creates a separate diagnostic file at
 `<game-directory>/port/snapframe.log` (truncated for each launch). It records
@@ -72,7 +66,8 @@ When enabled, the diagnostic sequence is:
 5. `allocated two-frame history` — the private history images were allocated.
 6. `two real frames captured` — at least two copies were recorded.
 7. `luma compute resources ready` — the R16F output, sampler and shader were created.
-8. `luma dispatch accepted` — DXVK committed the compute pipeline and recorded the dispatch. This confirms command recording, not yet the numeric correctness of the output.
+8. `luma dispatch accepted` — DXVK committed the luma compute pipeline and recorded the dispatch. This confirms command recording, not numeric correctness.
+9. `block-matching flow ready` and `flow dispatch accepted` — the RGBA16F motion output and compute dispatch are available. This still does not validate motion-vector values.
 
 If the log contains only `host initialized` and no `entered D3D9SwapChainEx::PresentImage`,
 the current evidence does not show that the game reached its first D3D9 present.
