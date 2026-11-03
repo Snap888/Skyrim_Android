@@ -352,7 +352,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
     const uint64_t captured = g_capturedFrames.fetch_add(1, std::memory_order_relaxed) + 1;
     if (g_frameIndex >= 2 && !g_readyLogged) {
         g_readyLogged = true;
-        snapframeLog( "SnapFrame: two real frames captured; history ready for compute prototype\n");
+        snapframeLog( "SnapFrame: two real frames captured; history ring valid\n");
     }
     if (captured == 1 || captured == 60 || (captured % 1800) == 0)
         snapframeLog( "SnapFrame: captured=%llu skipped=%llu extent=%ux%u\n",
@@ -438,7 +438,7 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
     snapframe_dxvk_set_copy_hook(snapframeCopyFrame);
     snapframe_dxvk_set_device_destroy_hook(snapframeDeviceDestroyed);
     snapframe_dxvk_set_log_hook(snapframeForwardDxvkLog);
-    snapframeLog( "SnapFrame: host initialized enabled=%d quality=%d flow_scale=%d%% (capture prototype only)\n",
+    snapframeLog( "SnapFrame: host initialized enabled=%d quality=%d flow_scale=%d%% mode=capture+luma-preprocess-test\n",
             validated.enabled, validated.quality, validated.flow_scale_percent);
     return 1;
 }
