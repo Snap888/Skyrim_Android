@@ -8,3 +8,9 @@ profiling_enabled=1
 diagnostic_suite=1
 # 1800 frames ~= 30s at 60 FPS or 60s at 30 FPS
 diagnostic_phase_frames=1800
+
+# profiling_enabled=1 writes:
+#   port/snapframe_gpu.csv          GPU timestamps every 30 captured frames
+#   port/snapframe_flow.csv         aggregate flow/mask readback every 120 flow pairs
+#   port/snapframe_flow_vectors.csv spatial vectors every 600 flow pairs
+# Set profiling_enabled=0 to disable timestamp queries and all diagnostic readback.
