@@ -78,9 +78,10 @@ stops progressing. If the present-path marker appears, the following
 `capture skipped` or allocation diagnostics identify the next failure point.
 
 The module is added to the JNI CMake build as a separate static target. The
-first GLSL compute shader now has a DXVK compute pipeline/resource path and is
-dispatched on the same active command list immediately after each captured
-frame. It writes half-resolution R16F luminance. CMake attempts to compile and
+luma and block-matching GLSL compute shaders have DXVK compute pipeline/resource
+paths and are dispatched on the same active command list. Luma writes a
+half-resolution R16F image; block matching writes a 1/16-resolution RGBA16F
+motion field after two valid luma frames. CMake attempts to compile and
 validate the GLSL automatically on the build host when Python 3, glslangValidator
 and spirv-val are installed. If they are missing, the APK still builds with
 capture-only diagnostics and `snapframe.log` explicitly reports that luma
