@@ -403,6 +403,9 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                         device->registerShader(g_consistencyShader);
                         g_consistencyShaderDevice = device;
                     }
+                    if (g_consistencyAvailable)
+                        snapframeLog("SnapFrame: forward/backward consistency resources ready format=R16_SFLOAT extent=%ux%u\\n",
+                            flowWidth, flowHeight);
                     if (!g_consistencyAvailable)
                         snapframeLog("SnapFrame: forward/backward consistency resources unavailable; flow remains diagnostic-only\n");
                 }
@@ -649,6 +652,8 @@ void snapframeDeviceDestroyed(void* devicePtr) {
         g_lumaShaderDevice = nullptr;
         g_flowShader = Rc<DxvkShader>();
         g_flowShaderDevice = nullptr;
+        g_consistencyShader = Rc<DxvkShader>();
+        g_consistencyShaderDevice = nullptr;
     }
 }
 
