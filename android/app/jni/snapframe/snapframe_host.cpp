@@ -352,7 +352,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                 }
             } else {
                 g_flowAvailable = false;
-                snapframeLog("SnapFrame: block-matching flow unsupported result=%d features=0x%x extent=%ux%u\\n",
+                snapframeLog("SnapFrame: block-matching flow unsupported result=%d features=0x%x extent=%ux%u\n",
                     static_cast<int>(flowImageResult), static_cast<unsigned>(flowProperties.optimalTilingFeatures),
                     flowWidth, flowHeight);
             }
@@ -386,7 +386,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             snapframeLog("SnapFrame: luma compute resource creation failed; capture remains active\n");
         }
         if (g_flowAvailable) {
-            snapframeLog("SnapFrame: block-matching flow ready output=%ux%u format=RGBA16F search=9x9 patch=3x3\n",
+            snapframeLog("SnapFrame: block-matching flow ready output=%ux%u format=RGBA16F search=9x9 patch=3x3 scale=1/16\n",
                 ((width / 2u + width % 2u + 3u) / 4u),
                 ((height / 2u + height % 2u + 3u) / 4u));
         } else {
