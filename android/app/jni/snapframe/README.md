@@ -191,10 +191,10 @@ All currently implemented GPU stages remain active in every phase. This is
 not a numerical shader self-test: dispatch acceptance does not prove vector
 accuracy. Sampled GPU timestamp rows are written every 30th captured frame to
 `snapframe_gpu.csv` (capture copy, luma, forward flow, backward flow,
-consistency and total chain). Every 120th accepted flow pair, the two flow
+consistency and total chain). During the active seven-phase suite, every 120th accepted flow pair, the two flow
 fields and consistency mask are copied into a host-visible staging buffer;
 summary statistics go to `snapframe_flow.csv`. A spatial vector dump is
-written every 600th accepted pair to `snapframe_flow_vectors.csv`. Readback is
+written every 600th accepted pair during the suite to `snapframe_flow_vectors.csv`. Readback is
 performed only after the active command list completes and is not consumed by
 the runtime rendering path. These summaries are diagnostics, not ground-truth
 accuracy tests; controlled synthetic translations and visual inspection are
