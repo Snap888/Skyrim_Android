@@ -91,6 +91,7 @@ Rc<DxvkImageView> g_consistencyView;
 Rc<DxvkImage> g_midpointImage;
 Rc<DxvkImageView> g_midpointView;
 Rc<DxvkSampler> g_lumaSampler;
+Rc<DxvkSampler> g_midpointSampler;
 Rc<DxvkShader> g_lumaShader;
 Rc<DxvkShader> g_flowShader;
 Rc<DxvkShader> g_consistencyShader;
@@ -549,6 +550,7 @@ void clearHistory() {
     g_midpointDispatchCount = 0;
     g_midpointFailureCount = 0;
     g_lumaSampler = Rc<DxvkSampler>();
+    g_midpointSampler = Rc<DxvkSampler>();
     g_lumaAvailable = false;
     g_flowAvailable = false;
     g_consistencyAvailable = false;
@@ -725,6 +727,10 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             samplerInfo.borderColor = VkClearColorValue{ { 0.0f, 0.0f, 0.0f, 0.0f } };
             samplerInfo.usePixelCoord = VK_FALSE;
             g_lumaSampler = device->createSampler(samplerInfo);
+            DxvkSamplerCreateInfo midpointSamplerInfo = samplerInfo;
+            midpointSamplerInfo.magFilter = VK_FILTER_LINEAR;
+            midpointSamplerInfo.minFilter = VK_FILTER_LINEAR;
+            g_midpointSampler = device->createSampler(midpointSamplerInfo);
 
             const bool needShaderRegistration =
                 g_lumaShaderDevice != device || g_lumaShader == nullptr;
@@ -931,7 +937,8 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                                 midpointIface, midpointCode);
                         }
                         g_midpointAvailable = g_midpointImage != nullptr
-                            && g_midpointView != nullptr && g_midpointShader != nullptr;
+                            && g_midpointView != nullptr && g_midpointSampler != nullptr
+                            && g_midpointShader != nullptr;
                         if (g_midpointAvailable && needMidpointRegistration) {
                             device->registerShader(g_midpointShader);
                             g_midpointShaderDevice = device;
@@ -976,6 +983,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             g_consistencyShaderDevice = nullptr;
             g_midpointView = Rc<DxvkImageView>();
             g_midpointImage = Rc<DxvkImage>();
+            g_midpointSampler = Rc<DxvkSampler>();
             g_midpointShader = Rc<DxvkShader>();
             g_midpointShaderDevice = nullptr;
             g_midpointAvailable = false;
@@ -1209,7 +1217,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
                             const bool midpointDispatched = context->dispatchSnapFrameWarp(
                                 g_midpointShader, g_historyViews[previousSlot],
                                 g_historyViews[slot], g_flowView[0], g_flowView[1],
-                                g_consistencyView, g_lumaSampler, g_midpointView,
+                                g_consistencyView, g_midpointSampler, g_midpointView,
                                 (width + 7u) / 8u, (height + 7u) / 8u);
                             endGpuTimer(context, midpointTimer);
                             snapframeEvent(nextCapturedFrame,
