@@ -57,18 +57,25 @@ Rc<DxvkImageView> g_lumaView[2];
 // [0] current->previous, [1] previous->current motion fields.
 Rc<DxvkImage> g_flowImage[2];
 Rc<DxvkImageView> g_flowView[2];
+Rc<DxvkImage> g_consistencyImage;
+Rc<DxvkImageView> g_consistencyView;
 Rc<DxvkSampler> g_lumaSampler;
 Rc<DxvkShader> g_lumaShader;
 Rc<DxvkShader> g_flowShader;
+Rc<DxvkShader> g_consistencyShader;
 DxvkDevice* g_lumaShaderDevice = nullptr;
 DxvkDevice* g_flowShaderDevice = nullptr;
+DxvkDevice* g_consistencyShaderDevice = nullptr;
 bool g_lumaAvailable = false;
 bool g_flowAvailable = false;
+bool g_consistencyAvailable = false;
 bool g_lumaValid[2] = { false, false };
 uint64_t g_lumaDispatchCount = 0;
 uint64_t g_lumaFailureCount = 0;
 uint64_t g_flowDispatchCount = 0;
 uint64_t g_flowFailureCount = 0;
+uint64_t g_consistencyDispatchCount = 0;
+uint64_t g_consistencyFailureCount = 0;
 uint32_t g_width = 0;
 uint32_t g_height = 0;
 VkFormat g_format = VK_FORMAT_UNDEFINED;
@@ -89,14 +96,19 @@ void clearHistory() {
     g_flowView[1] = Rc<DxvkImageView>();
     g_flowImage[0] = Rc<DxvkImage>();
     g_flowImage[1] = Rc<DxvkImage>();
+    g_consistencyView = Rc<DxvkImageView>();
+    g_consistencyImage = Rc<DxvkImage>();
     g_lumaSampler = Rc<DxvkSampler>();
     g_lumaAvailable = false;
     g_flowAvailable = false;
+    g_consistencyAvailable = false;
     g_lumaValid[0] = g_lumaValid[1] = false;
     g_lumaDispatchCount = 0;
     g_lumaFailureCount = 0;
     g_flowDispatchCount = 0;
     g_flowFailureCount = 0;
+    g_consistencyDispatchCount = 0;
+    g_consistencyFailureCount = 0;
     g_device = nullptr;
     g_width = g_height = 0;
     g_format = VK_FORMAT_UNDEFINED;
@@ -356,6 +368,44 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                     device->registerShader(g_flowShader);
                     g_flowShaderDevice = device;
                 }
+                if (g_flowAvailable) {
+                    DxvkImageCreateInfo consistencyInfo = flowInfo;
+                    consistencyInfo.format = VK_FORMAT_R16_SFLOAT;
+                    g_consistencyImage = device->createImage(
+                        consistencyInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                    DxvkImageViewCreateInfo consistencyViewInfo = flowViewInfo;
+                    consistencyViewInfo.format = VK_FORMAT_R16_SFLOAT;
+                    if (g_consistencyImage != nullptr)
+                        g_consistencyView = device->createImageView(
+                            g_consistencyImage, consistencyViewInfo);
+
+                    const bool needConsistencyRegistration =
+                        g_consistencyShaderDevice != device || g_consistencyShader == nullptr;
+                    if (needConsistencyRegistration) {
+                        g_consistencyShader = Rc<DxvkShader>();
+                        g_consistencyShaderDevice = nullptr;
+                        const DxvkResourceSlot consistencySlots[] = {
+                            { 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
+                            { 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
+                            { 2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_WRITE_BIT },
+                        };
+                        DxvkInterfaceSlots consistencyIface{};
+                        SpirvCodeBuffer consistencyCode(
+                            snapframe::shaders::k_flow_consistency_word_count,
+                            snapframe::shaders::k_flow_consistency);
+                        g_consistencyShader = device->createShader(
+                            VK_SHADER_STAGE_COMPUTE_BIT, 3, consistencySlots,
+                            consistencyIface, consistencyCode);
+                    }
+                    g_consistencyAvailable = g_consistencyImage != nullptr
+                        && g_consistencyView != nullptr && g_consistencyShader != nullptr;
+                    if (g_consistencyAvailable && needConsistencyRegistration) {
+                        device->registerShader(g_consistencyShader);
+                        g_consistencyShaderDevice = device;
+                    }
+                    if (!g_consistencyAvailable)
+                        snapframeLog("SnapFrame: forward/backward consistency resources unavailable; flow remains diagnostic-only\n");
+                }
             } else {
                 g_flowAvailable = false;
                 snapframeLog("SnapFrame: block-matching flow unsupported result=%d features=0x%x extent=%ux%u\n",
@@ -543,6 +593,26 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
                 if (g_flowDispatchCount == 1 || (g_flowDispatchCount % 120u) == 0)
                     snapframeLog("SnapFrame: bidirectional flow pair accepted count=%llu groups=%ux%u\n",
                         static_cast<unsigned long long>(g_flowDispatchCount), flowGroupsX, flowGroupsY);
+                if (g_consistencyAvailable) {
+                    const bool consistencyDispatched =
+                        context->dispatchSnapFrameConsistency(
+                            g_consistencyShader, g_flowView[0], g_flowView[1],
+                            g_lumaSampler, g_consistencyView,
+                            (flowWidth + 7u) / 8u, (flowHeight + 7u) / 8u);
+                    if (consistencyDispatched) {
+                        ++g_consistencyDispatchCount;
+                        if (g_consistencyDispatchCount == 1
+                         || (g_consistencyDispatchCount % 120u) == 0)
+                            snapframeLog("SnapFrame: forward/backward consistency accepted count=%llu\n",
+                                static_cast<unsigned long long>(g_consistencyDispatchCount));
+                    } else {
+                        ++g_consistencyFailureCount;
+                        if (g_consistencyFailureCount == 1
+                         || (g_consistencyFailureCount % 30u) == 0)
+                            snapframeLog("SnapFrame: forward/backward consistency failed count=%llu\n",
+                                static_cast<unsigned long long>(g_consistencyFailureCount));
+                    }
+                }
             } else {
                 ++g_flowFailureCount;
                 if (g_flowFailureCount == 1 || (g_flowFailureCount % 30u) == 0)

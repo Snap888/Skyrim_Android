@@ -1,0 +1,35 @@
+#version 450
+
+// Forward/backward cycle validation for the two coarse block-matching fields.
+// Motion vectors are measured in half-resolution luma texels; each flow texel
+// represents an 8x8 region. R16F output is a soft validity/confidence mask.
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+layout(set = 0, binding = 0) uniform sampler2D flowCurrentToPrevious;
+layout(set = 0, binding = 1) uniform sampler2D flowPreviousToCurrent;
+layout(set = 0, binding = 2, r16f) writeonly uniform image2D consistencyOutput;
+
+void main() {
+    ivec2 p = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 extent = imageSize(consistencyOutput);
+    if (any(greaterThanEqual(p, extent)))
+        return;
+
+    vec4 forwardFlow = texelFetch(flowCurrentToPrevious, p, 0);
+    vec2 lumaPosition = vec2(p * 8 + ivec2(4)) + forwardFlow.xy;
+    ivec2 reverseCoord = ivec2(floor(lumaPosition / 8.0));
+    ivec2 reverseExtent = textureSize(flowPreviousToCurrent, 0);
+
+    if (any(lessThan(reverseCoord, ivec2(0))) ||
+        any(greaterThanEqual(reverseCoord, reverseExtent))) {
+        imageStore(consistencyOutput, p, vec4(0.0));
+        return;
+    }
+
+    vec4 reverseFlow = texelFetch(flowPreviousToCurrent, reverseCoord, 0);
+    float fbError = length(forwardFlow.xy + reverseFlow.xy);
+    float threshold = 0.75 + 0.05 * length(forwardFlow.xy);
+    float consistency = 1.0 - smoothstep(threshold, threshold * 2.0, fbError);
+    float localConfidence = min(forwardFlow.z, reverseFlow.z);
+    consistency *= clamp(localConfidence * 2.0, 0.0, 1.0);
+    imageStore(consistencyOutput, p, vec4(consistency, 0.0, 0.0, 1.0));
+}

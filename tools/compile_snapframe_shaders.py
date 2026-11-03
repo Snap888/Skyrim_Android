@@ -20,6 +20,7 @@ DEFAULT_OUTPUT = ROOT / "android/app/jni/snapframe/generated/snapframe_shaders.h
 SHADERS = [
     ("luma_downsample", SHADER_DIR / "luma_downsample.comp"),
     ("block_match_flow", SHADER_DIR / "block_match_flow.comp"),
+    ("flow_consistency", SHADER_DIR / "flow_consistency.comp"),
 ]
 
 

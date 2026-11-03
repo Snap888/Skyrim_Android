@@ -574,6 +574,14 @@ namespace dxvk {
       const Rc<DxvkImageView>&    flowOutputView,
             uint32_t              groupsX,
             uint32_t              groupsY);
+    bool dispatchSnapFrameConsistency(
+      const Rc<DxvkShader>&       shader,
+      const Rc<DxvkImageView>&    currentToPreviousView,
+      const Rc<DxvkImageView>&    previousToCurrentView,
+      const Rc<DxvkSampler>&      sourceSampler,
+      const Rc<DxvkImageView>&    consistencyOutputView,
+            uint32_t              groupsX,
+            uint32_t              groupsY);
 
 
     /**
