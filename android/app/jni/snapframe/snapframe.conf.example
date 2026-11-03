@@ -1,11 +1,12 @@
-# SnapFrame multi-scene GPU diagnostic campaign
+# SnapFrame capture and motion-analysis configuration
 # Copy to <game-directory>/port/snapframe.conf
 enabled=1
 multiplier=2
 quality=1
 flow_scale_percent=50
+motion_analysis=0
 profiling_enabled=1
-diagnostic_suite=1
+diagnostic_suite=0
 # 1800 frames ~= 30s at 60 FPS or 60s at 30 FPS
 diagnostic_phase_frames=1800
 
@@ -14,3 +15,9 @@ diagnostic_phase_frames=1800
 #   port/snapframe_flow.csv         aggregate flow/mask readback every 120 flow pairs during diagnostic suite
 #   port/snapframe_flow_vectors.csv spatial vectors every 600 flow pairs during diagnostic suite
 # Set profiling_enabled=0 to disable timestamp queries and all diagnostic readback.
+
+# motion_analysis=0 keeps SnapFrame in capture-only mode (no luma/flow/consistency compute).
+# Set motion_analysis=1 to enable bidirectional optical flow and forward/backward consistency.
+# diagnostic_suite=1 runs the seven-phase motion-analysis test and therefore requires motion_analysis=1.
+# profiling_enabled is independent: it controls GPU timestamps and diagnostic readback only.
+# NOTE: flow_scale_percent is currently accepted/clamped but does not yet change compute resolution.

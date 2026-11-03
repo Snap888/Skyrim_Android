@@ -17,6 +17,7 @@ typedef struct SnapFrameConfig {
     int multiplier;       /* Initially only 1 (off) or 2 (one generated frame). */
     int quality;          /* SnapFrameQuality */
     int flow_scale_percent;
+    int motion_analysis; /* Enables luma, bidirectional flow and consistency. */
     int profiling_enabled;
     int diagnostic_suite;
     int diagnostic_phase_frames;

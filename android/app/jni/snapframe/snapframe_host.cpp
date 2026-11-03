@@ -37,6 +37,7 @@ FILE* g_flowLogFile = nullptr;
 std::mutex g_vectorLogMutex;
 FILE* g_vectorLogFile = nullptr;
 bool g_profilingEnabled = false;
+bool g_motionAnalysisEnabled = false;
 bool g_flowReadbackFailureLogged = false;
 
 void snapframeLog(const char* format, ...) {
@@ -558,7 +559,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
     }
 
 #if SNAPFRAME_HAS_LUMA_SHADER
-    if (lumaFormatSupported) {
+    if (g_motionAnalysisEnabled && lumaFormatSupported) {
         bool createdShader = false;
         bool createdFlowShader = false;
         try {
@@ -775,7 +776,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             g_consistencyShaderDevice = nullptr;
             snapframeLog("SnapFrame: exception while creating luma/flow compute resources\n");
         }
-        if (g_lumaAvailable) {
+        if (g_motionAnalysisEnabled && g_lumaAvailable) {
             snapframeLog("SnapFrame: luma compute resources ready outputs=2 extent=%ux%u format=R16_SFLOAT\n",
                          width / 2u + width % 2u, height / 2u + height % 2u);
         } else {
@@ -801,7 +802,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             g_flowImage[1] = Rc<DxvkImage>();
         }
     } else {
-        snapframeLog("SnapFrame: luma compute disabled by GPU format/feature limits\n");
+        snapframeLog("SnapFrame: motion analysis disabled or luma compute unsupported; capture-only mode\n");
     }
 #else
     snapframeLog("SnapFrame: luma SPIR-V header missing; run tools/compile_snapframe_shaders.py before APK build\n");
@@ -1135,7 +1136,10 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
         validated.flow_scale_percent = 100;
     if (validated.diagnostic_phase_frames < 300) validated.diagnostic_phase_frames = 300;
     if (validated.diagnostic_phase_frames > 36000) validated.diagnostic_phase_frames = 36000;
-    g_diagnosticSuiteEnabled = validated.diagnostic_suite != 0;
+    g_motionAnalysisEnabled = validated.motion_analysis != 0;
+    g_diagnosticSuiteEnabled = validated.diagnostic_suite != 0 && g_motionAnalysisEnabled;
+    if (validated.diagnostic_suite != 0 && !g_motionAnalysisEnabled)
+        snapframeLog("SnapFrame: diagnostic_suite requested but skipped because motion_analysis=0\n");
     g_diagnosticSuiteComplete = false;
     g_diagnosticPhaseFrames = static_cast<uint32_t>(validated.diagnostic_phase_frames);
     g_diagnosticPhase = UINT32_MAX;
@@ -1152,10 +1156,13 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
     snapframe_dxvk_set_copy_hook(snapframeCopyFrame);
     snapframe_dxvk_set_device_destroy_hook(snapframeDeviceDestroyed);
     snapframe_dxvk_set_log_hook(snapframeForwardDxvkLog);
-    snapframeLog("SnapFrame: diagnostic_suite=%d phase_frames=%u phases=7 profiling=%d timestamp_interval=30 flow_readback_interval=120\n",
-        g_diagnosticSuiteEnabled ? 1 : 0, g_diagnosticPhaseFrames, g_profilingEnabled ? 1 : 0);
-    snapframeLog( "SnapFrame: host initialized enabled=%d quality=%d flow_scale=%d%% mode=capture+luma+bidirectional-flow+fb-consistency-test\n",
-            validated.enabled, validated.quality, validated.flow_scale_percent);
+    snapframeLog("SnapFrame: diagnostic_suite=%d phase_frames=%u phases=7 profiling=%d motion_analysis=%d timestamp_interval=30 flow_readback_interval=120\n",
+        g_diagnosticSuiteEnabled ? 1 : 0, g_diagnosticPhaseFrames,
+        g_profilingEnabled ? 1 : 0, g_motionAnalysisEnabled ? 1 : 0);
+    snapframeLog( "SnapFrame: host initialized enabled=%d quality=%d flow_scale=%d%% motion_analysis=%d mode=%s\n",
+            validated.enabled, validated.quality, validated.flow_scale_percent,
+            g_motionAnalysisEnabled ? 1 : 0,
+            g_motionAnalysisEnabled ? "capture+luma+bidirectional-flow+fb-consistency" : "capture-only");
     return 1;
 }
 

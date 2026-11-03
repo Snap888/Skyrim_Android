@@ -46,6 +46,8 @@ void snapframe_bootstrap(void) {
                 config.quality = atoi(eq);
             else if (!strcmp(key, "flow_scale_percent"))
                 config.flow_scale_percent = atoi(eq);
+            else if (!strcmp(key, "motion_analysis"))
+                config.motion_analysis = atoi(eq) != 0;
             else if (!strcmp(key, "profiling_enabled"))
                 config.profiling_enabled = atoi(eq) != 0;
             else if (!strcmp(key, "diagnostic_suite"))
@@ -59,9 +61,9 @@ void snapframe_bootstrap(void) {
     snapframe_host_log("bootstrap entered");
     snapframe_host_init(&config);
     char summary[1400];
-    snprintf(summary, sizeof(summary), "config=%s log=%s gpu_csv=%s flow_csv=%s enabled=%d multiplier=%d quality=%d flow_scale=%d profiling=%d diagnostic_suite=%d phase_frames=%d",
+    snprintf(summary, sizeof(summary), "config=%s log=%s gpu_csv=%s flow_csv=%s enabled=%d multiplier=%d quality=%d flow_scale=%d motion_analysis=%d profiling=%d diagnostic_suite=%d phase_frames=%d",
              path, logPath, gpuLogPath, flowLogPath, config.enabled, config.multiplier,
-             config.quality, config.flow_scale_percent, config.profiling_enabled,
-             config.diagnostic_suite, config.diagnostic_phase_frames);
+             config.quality, config.flow_scale_percent, config.motion_analysis,
+             config.profiling_enabled, config.diagnostic_suite, config.diagnostic_phase_frames);
     snapframe_host_log(summary);
 }
