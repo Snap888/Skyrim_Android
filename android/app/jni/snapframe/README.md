@@ -29,7 +29,7 @@ interpolation and generated-frame presentation are not implemented.
 This is a proposed algorithm, not an implemented or measured result. See
 [DESIGN.md](DESIGN.md) for the architecture and staged integration plan.
 
-## Current capture prototype
+## Current capture + preprocessing test
 
 - DXVK callback runs after the game image is blitted to the WSI image and before
   the HUD overlay is drawn.
@@ -44,11 +44,11 @@ This is a proposed algorithm, not an implemented or measured result. See
   ```ini
   enabled=1
   ```
-- The prototype currently only captures frames. It does not interpolate or
-  alter presentation, and enabling it adds two full-resolution GPU images and
-  a copy per real frame. This is only for validating the hook and history
-  lifetime; it is not a performance mode and should remain disabled during
-  normal gameplay until interpolation exists.
+- This stage captures each real frame and runs one half-resolution R16F luma
+  downsample compute pass. It does not interpolate or alter presentation.
+  Enabling it adds two full-resolution history images, one half-resolution
+  output image, a GPU copy and a compute dispatch per real frame. Treat it as a
+  diagnostic test, not a performance mode.
 
 When the game starts, SnapFrame creates a separate diagnostic file at
 `<game-directory>/port/snapframe.log` (truncated for each launch). It records
@@ -86,11 +86,7 @@ validate the GLSL automatically on the build host when Python 3, glslangValidato
 and spirv-val are installed. If they are missing, the APK still builds with
 capture-only diagnostics and `snapframe.log` explicitly reports that luma
 compute was disabled. No optical flow, interpolation, or generated-frame
-presentation is implemented yet. The Android native
-CMake project currently consumes generated DXVK shader headers; it does not
-compile standalone GLSL sources itself. A dedicated, reproducible
-GLSL-to-SPIR-V packaging step must be established before adding the first
-SnapFrame compute shader.
+presentation is implemented yet.
 
 
 ## First preprocessing shader source
