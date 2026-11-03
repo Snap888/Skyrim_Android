@@ -687,3 +687,8 @@ Requested/generated averages в CSV находятся между 0,983333 и 1,
 ### Ограничения анализа
 
 В текущей загрузке нет `dxvk_perf_off.csv`, поэтому это не A/B тест. Большие файлы `dxvk_lsfg_gpu.csv` (25,7 МБ) и `log.txt` (1,43 МБ) присутствуют в Git tree, но их содержимое не удалось прочитать через GitHub file connector. Поэтому не публикуются новые GPU stage timings и выводы по звуку/xWMA. Подробный разбор и следующий тест — в [статусе snap-patch-5](LSFG_SNAP_PATCH_5_STATUS.md).
+
+
+## Audio playback result — 3 November 2026
+
+The latest device test is now confirmed by the project owner: **audio playback is clean and the previous crackling is gone**. This validates the combined XAudio2/SDL audio changes in the tested setup. The confirmation is based on listening; no new diagnostic log or controlled A/B capture was attached, so exact queue/starvation metrics and output latency are not quantified. The audio path is considered successful for now and should remain unchanged unless a new reproducible issue appears. See [XAudio2 starvation and output fixes](XAUDIO2_STARVATION_FIX.md) and [optimization plan](OPTIMIZATION_PLAN_SNAP_PATCH_5.md).
