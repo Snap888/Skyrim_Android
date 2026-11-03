@@ -293,7 +293,7 @@ void endGpuTimer(DxvkContext* context, const SnapFrameGpuTimer& timer) {
         if (valid) {
             const double gpuMs = double(endData.timestamp.time - beginData.timestamp.time)
                 * timer.periodNs / 1000000.0;
-            if (timer.stage == "total") {
+            if (timer.stage == "total_chain") {
                 g_lastGpuTimingFrame.store(timer.frame, std::memory_order_release);
                 g_lastGpuTimingMs.store(static_cast<float>(gpuMs), std::memory_order_release);
             }
@@ -301,7 +301,7 @@ void endGpuTimer(DxvkContext* context, const SnapFrameGpuTimer& timer) {
                 static_cast<unsigned long long>(timer.frame), timer.stage.c_str(),
                 gpuMs, timer.width, timer.height);
         } else {
-            if (timer.stage == "total") {
+            if (timer.stage == "total_chain") {
                 g_lastGpuTimingFrame.store(timer.frame, std::memory_order_release);
                 g_lastGpuTimingMs.store(0.0f, std::memory_order_release);
             }
