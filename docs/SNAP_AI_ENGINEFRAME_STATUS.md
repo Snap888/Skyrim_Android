@@ -66,7 +66,7 @@ The portable SnapFrame core now drives the DXVK frame callback through the concr
 
 - Branch creation and base equality: verified with Git commit comparison.
 - Portable Snap AI + SnapFrame ARM64 shared-library build: passed Android NDK CI (run #41736778626).
-- DXVK adapter + JNI main bridge compile: passed Android ARM64 CI (run #41738044737); visual parity/device validation remains outstanding. The later Snap AI bootstrap API-version probe is in a newer compile run.
+- DXVK adapter + JNI bridge + Snap AI API-version probe: passed Android ARM64 CI (run #41738386096); visual parity/device validation remains outstanding.
 - Snap AI telemetry/control loop: not implemented.
 - In-game Snap AI / Frame Generation section: added with Frame Generation and Flow Scale controls routed through the portable SnapFrame core; Snap AI adaptive control is explicitly marked unavailable until scalar telemetry is connected.
 - APK and physical-device GPU validation: not run.
