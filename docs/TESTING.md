@@ -2,7 +2,7 @@
 
 ## Status
 
-The portable Snap AI/SnapFrame shared libraries, concrete DXVK adapter and JNI main bridge have passed Android ARM64 compile CI (run #41738044737). Both upstream portable unit tests (`snap_ai_tests`, `snap_frame_tests`) also pass in CI (run #41738584797). Java compilation has passed. The newer run is checking the scalar timing telemetry and Snap AI bootstrap API-version probe. No full APK or physical-device GPU validation has been completed. The full APK job is skipped unless explicitly dispatched with generated `gen/` sources.
+The portable Snap AI/SnapFrame shared libraries, concrete DXVK adapter and JNI main bridge have passed Android ARM64 compile CI (run #41738044737). Both upstream portable unit tests (`snap_ai_tests`, `snap_frame_tests`) also pass in CI (run #41738584797). Java compilation has passed. The Snap AI bootstrap API-version probe also compiled successfully in run #41738386096. The latest scalar timing telemetry changes are in a newer native compile run. No full APK or physical-device GPU validation has been completed. The full APK job is skipped unless explicitly dispatched with generated `gen/` sources.
 
 ## Portable API tests
 
