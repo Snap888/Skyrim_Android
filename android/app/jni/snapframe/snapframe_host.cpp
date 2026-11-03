@@ -9,6 +9,16 @@
 #include "dxvk_context.h"
 #include "dxvk_device.h"
 #include "dxvk_image.h"
+#include "dxvk_sampler.h"
+#include "dxvk_shader.h"
+#include "../spirv/spirv_code_buffer.h"
+
+#if __has_include("generated/snapframe_shaders.h")
+  #include "generated/snapframe_shaders.h"
+  #define SNAPFRAME_HAS_LUMA_SHADER 1
+#else
+  #define SNAPFRAME_HAS_LUMA_SHADER 0
+#endif
 
 using namespace dxvk;
 
@@ -42,6 +52,13 @@ std::atomic<int> g_resetHistoryRequested{0};
 DxvkDevice* g_device = nullptr;
 Rc<DxvkImage> g_history[2];
 Rc<DxvkImageView> g_historyViews[2];
+Rc<DxvkImage> g_lumaImage;
+Rc<DxvkImageView> g_lumaView;
+Rc<DxvkSampler> g_lumaSampler;
+Rc<DxvkShader> g_lumaShader;
+bool g_lumaAvailable = false;
+uint64_t g_lumaDispatchCount = 0;
+uint64_t g_lumaFailureCount = 0;
 uint32_t g_width = 0;
 uint32_t g_height = 0;
 VkFormat g_format = VK_FORMAT_UNDEFINED;
@@ -54,6 +71,13 @@ void clearHistory() {
     g_historyViews[1] = Rc<DxvkImageView>();
     g_history[0] = Rc<DxvkImage>();
     g_history[1] = Rc<DxvkImage>();
+    g_lumaView = Rc<DxvkImageView>();
+    g_lumaImage = Rc<DxvkImage>();
+    g_lumaSampler = Rc<DxvkSampler>();
+    g_lumaShader = Rc<DxvkShader>();
+    g_lumaAvailable = false;
+    g_lumaDispatchCount = 0;
+    g_lumaFailureCount = 0;
     g_device = nullptr;
     g_width = g_height = 0;
     g_format = VK_FORMAT_UNDEFINED;
