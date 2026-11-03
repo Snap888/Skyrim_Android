@@ -2,7 +2,7 @@
 
 Experimental, independent frame-generation engine for Skyrim_Android.
 
-**Status: GPU capture, temporal luminance, bidirectional coarse motion estimation, forward/backward consistency, midpoint color-warp compute output, sampled flow readback and opt-in GPU timestamp diagnostics. The midpoint image is generated into an internal RGBA16F image and routed through DXVK's additional WSI-present loop. The code path is wired but still requires a full native build and on-device validation; visual quality and device performance remain unverified.**
+**Status: the capture → luma → bidirectional flow → consistency → midpoint warp → additional WSI-present path has been exercised on the target device. The latest user test reports no black frames and approximately 2× HUD output FPS, but visible geometry distortion remains unacceptable during fast camera motion and animated foliage. The latest shader/grid changes below are source-only and still need a new APK/device test.**
 This module is isolated from the existing `lsfg` implementation. It is now
 compiled as a separate host target and has an independent DXVK callback that
 copies the completed game image into a two-image GPU history ring. A first coarse bidirectional block-matching motion pair is estimated from a two-slot luma history; pyramid refinement and robust occlusion handling are not implemented. A midpoint compute pass writes an internal RGBA16F image, which is now routed to an additional WSI present when ready.
@@ -244,10 +244,7 @@ availability and command-list completion ordering are verified. The spatial vect
 6. Keep generated-frame presentation disabled until swapchain image lifetime,
    acquire/present semaphore ordering and pacing are proven.
 
-The runtime currently has capture, luma, bidirectional coarse block matching,
-forward/backward consistency and diagnostic readback only. No warp, blend,
-intermediate-frame reconstruction, or generated-frame presentation is
-implemented. Do not describe the current module as usable frame generation.
+The runtime also dispatches a midpoint warp and routes its RGBA16F output through an additional DXVK WSI present. The path is operational enough to produce the reported 2× HUD rate, but current motion quality is not release-ready; the generated rate is not proof of physical scan-out.
 
 **Build/test status:** no APK was built and no GitHub Actions workflow was
 triggered during this work. Local Android build and device validation remain
@@ -348,3 +345,69 @@ The uploaded snapframe_events.csv and snapframe_flow_vectors.csv were returned a
 ### Generated-FPS HUD counter
 
 The DXVK generated-frame HUD counter is now incremented for successful SnapFrame generated presents as well as LSFG outputs. The existing FG FPS field can therefore display SnapFrame output rate when the DXVK FPS HUD is enabled. This is a queued/generated-present rate, not a scan-out confirmation. The native build and device visibility check are still pending.
+
+
+### Latest user test and reconstruction update — 2026-11-03
+
+The newest upload is commit `c316bdde516a4b8b0fbf58afffae0a9530104bf7`.
+The captured mode is 2448x1080, `flow_scale_percent=50` (77x34 = 2,618
+motion cells), `motion_analysis=1`, `profiling_enabled=1`, and
+`diagnostic_suite=1`. The text log completes the static and slow-pan phases
+(1,800 frames each), then records fast-camera-rotation progress through 900
+of 1,800 frames before the uploaded log ends. It does not contain phases 4–7
+or `TEST_SUITE_COMPLETE`; the diagnostic campaign is incomplete.
+
+The aggregate flow samples confirm the visual report:
+- During moving samples, mean confidence commonly falls to roughly 0.05–0.18.
+- Forward/backward consistency above 0.5 is often only about 0.2–13%.
+- Many motion cells touch the +/-9 luma-texel search limit.
+- Some samples in the rotation phase (e.g. frames 4201 and 4321) have mean
+  confidence near 0.05–0.06 and only about 0.19% consistency values above 0.5.
+- Static intervals can recover near-zero displacement and high confidence,
+  so the problem is motion estimation/reconstruction rather than a permanent
+  image or present failure.
+
+The uploaded GPU CSV usually reports about 8–10 ms for `total_chain`, but
+later samples rise to roughly 14.5–15.2 ms. In those samples luma and both flow
+directions also become more expensive. This can be GPU load/clock/thermal
+variation; the current CSV alone does not prove thermal throttling. The
+instrumented chain time is not full game frame time.
+
+The user reports no black frames and approximately 2× output FPS on the HUD.
+That is consistent with the extra-present path being active, but queued
+generated presents are not a physical scan-out measurement. The visual result
+is still not acceptable: thin animated objects (grass) and fast camera motion
+show local geometry distortion while nearby static objects remain sharp. This
+strongly implicates coarse/ambiguous local flow and vector interpolation across
+motion boundaries.
+
+#### Source changes applied after this upload
+
+1. `midpoint_warp.comp` now samples the flow grid by nearest cell rather
+   than bilinearly blending neighboring motion vectors. This prevents vectors
+   from foreground and background blocks being averaged across object edges.
+2. The midpoint confidence now includes normalized SAD photometric residual
+   from the flow field. Large residuals suppress the warp.
+3. The motion-warp threshold was raised; weak or inconsistent flow now favors
+   a stable unwarped temporal blend rather than bending geometry.
+4. Default `flow_scale_percent` was raised from 50 to 75. At 2448x1080 this
+   changes the nominal grid from 77x34 to about 112x50 (roughly 2.1× as many
+   cells, not 4×). The existing game-side `port/snapframe.conf` overrides
+   defaults, so change its value to 75 to test the denser grid. A 100% grid
+   (153x68) is a later quality experiment and may have a much higher GPU cost.
+
+These are conservative quality changes, not a claim that optical flow is now
+correct. Nearest-cell sampling can expose block boundaries; the denser 75%
+grid is intended to reduce their size. No shader CI result, native build, or
+device validation is available yet for these commits.
+
+#### Next device test
+
+Use `flow_scale_percent=75` in the active
+`<game-directory>/port/snapframe.conf`. Repeat the same fast camera rotation
+and foliage/grass scene. Keep the same resolution and game settings. Compare
+visual distortion, real FPS, generated HUD FPS, `total_chain`, mean confidence,
+consistency percentage, and boundary-saturated cells. If distortion remains,
+the next algorithm step is a true coarse-to-fine image pyramid plus
+occlusion-aware two-sided warping; simply increasing search radius is not
+sufficient.
