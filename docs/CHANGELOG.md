@@ -20,3 +20,5 @@ Not yet completed: concrete DXVK `SnapFrameBackendV1` adapter, live AI telemetry
 - Added a concrete `SnapFrameBackendV1` DXVK adapter that routes the portable SnapFrame core into the existing GPU pipeline without replacing its shaders or present hooks.
 - Added a compile-only Android ARM64 CI target for the JNI settings bridge and real DXVK host; adapter + JNI compile passed in CI run #41738044737.
 - Explicitly load `snap_frame_engine` and `snap_ai_engine` shared libraries before the game runtime.
+- Added asynchronous scalar total-GPU-time and frame-interval export for the upcoming AI telemetry path.
+- Added host CI for portable API unit tests; both upstream test suites pass.
