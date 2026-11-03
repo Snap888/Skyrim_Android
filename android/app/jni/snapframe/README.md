@@ -326,3 +326,20 @@ Check `midpoint_present_requested`, `midpoint_present_queued` and
 `midpoint_present_failed` in `snapframe_events.csv`, plus the generated
 count in the performance log. Visual quality, pacing, semaphore behavior
 under stress, and GPU cost are not yet validated. LSFG remains unchanged.
+
+
+### Latest device run — motion confidence and presentation observations (2026-11-03)
+
+The newest upload completed the static-scene phase and at least the first part of the slow-pan phase. Capture and dispatch counters show 1,800/1,800 luma dispatches in the static phase and 1,799 accepted flow, consistency and midpoint dispatches. No black-frame or dispatch-failure evidence appears in the supplied SnapFrame log excerpt.
+
+The 77x34 flow grid is frequently ambiguous during motion. At sampled frames 721–1561, mean confidence is generally low (about 0.01–0.15 in several samples), while hundreds of cells are pinned to the +/-9 search boundary. At frame 721, 936/2,618 cells are boundary-saturated and mean flow magnitude is 6.90 luma texels. This is a concrete reason to distrust the reconstructed geometry even though dispatches succeed. Static samples around frames 2641–3001 show near-zero flow and confidence/consistency around 0.99.
+
+Two conservative matcher corrections have now been applied:
+- Forward/backward consistency projects to the nearest reverse block center. The previous floor(position / stride) mapped against block corners and introduced an approximately half-cell spatial bias.
+- Motion vectors at or near the +/-8 coarse-search boundary have their local match confidence reduced to 5%. A clipped boundary match must not strongly deform the midpoint image; it should fall back toward the temporal blend.
+
+These changes are source-level only. They require shader CI, native C++/APK build, and a repeat device test. They are not yet proven to remove visible distortion. A proper deterministic known-translation test remains necessary.
+
+The GPU CSV contains total_chain samples mostly around 7–9 ms in the available later portion, with some 12–13.5 ms samples. These values represent the instrumented SnapFrame compute/capture chain, not the game's complete frame time and not measured FPS uplift. The present/HUD currently does not expose a reliable SnapFrame generated-FPS counter. A queued additional present must be counted separately from a completed scan-out; the next instrumentation step is to show game FPS, SnapFrame queued/generated FPS, and output FPS as separate values, without conflating them.
+
+The uploaded snapframe_events.csv and snapframe_flow_vectors.csv were returned as empty by the GitHub file reader in this retrieval, despite the text log reporting vector dumps. Their contents therefore could not be independently audited in this pass. Re-upload these as ordinary text CSVs if they are still empty in the repository.
