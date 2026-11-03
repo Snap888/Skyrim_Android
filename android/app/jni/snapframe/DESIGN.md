@@ -588,3 +588,28 @@ dispatch proves command recording only, not correct pixels or scan-out.
    HUD elements.
 5. Validate pixel output and timing on device before enabling any default
    behavior. LSFG remains isolated and unchanged.
+
+
+## 15. Latest device run — distortion diagnosis and conservative flow gating (2026-11-03)
+
+The latest frame_gen/Logs files report a 2448x1080 input, 50% flow scale (77x34 cells), motion_analysis=1, and diagnostic_suite=1. The static phase completed with 1,800 luma dispatches and 1,799 accepted bidirectional flow, consistency and midpoint dispatches. The visible log excerpt contains no dispatch failures or black-frame indication. This proves stage execution, not pixel correctness or successful scan-out.
+
+The aggregate flow samples reveal weak motion evidence during pan/rotation. Several samples have mean confidence around 0.01–0.15 and hundreds of boundary-saturated vectors. Frame 721 has mean magnitude 6.897 luma texels, mean confidence 0.0148, only 0.382% of consistency values above 0.5, and 936/2,618 cells at the +/-9 search boundary. Other moving samples similarly show low confidence and sparse consistency. Static samples around 2641–3001 show zero mean displacement and confidence/consistency near 0.99. The matcher therefore distinguishes static scenes reasonably well but does not yet produce a trustworthy field under substantial camera motion.
+
+### Corrections applied after this run
+
+flow_consistency.comp now projects the forward endpoint to the nearest reverse-grid cell center. The previous floor(lumaPosition / blockStride) treated cells as if their coordinates were block corners, despite the matcher sampling at p * stride + stride/2. This half-cell projection bias could invalidate otherwise compatible reverse vectors and depress consistency.
+
+block_match_flow.comp now reduces confidence to 5% for vectors touching the coarse search boundary (absolute X or Y >= 8). Boundary matches may be clipped by the search window and must not be allowed to drive strong geometric warps. This is deliberately conservative: large real motion will temporarily fall back toward a temporal blend until the search range is improved.
+
+Both changes are shader-source edits only. Re-run shader compilation/validation, then a native Android build and device test. Compare boundary counts, confidence, consistency and visual distortion against this run. Do not treat the expected improvement as verified before those tests.
+
+### Timing and FPS observability
+
+The available GPU timing rows show total_chain generally around 7–9 ms in the later sampled frames, with occasional 12–13.5 ms samples. These are instrumented GPU stage timings and do not equal total game frame time or output frame time. They cannot establish FPS uplift.
+
+The DXVK present path increments perfGenerated after the additional present is queued, while SnapFrame's host generated counter is also a queued-present counter. Neither proves physical scan-out. The current HUD does not show a SnapFrame generated-FPS value, so the next instrumentation milestone is to display three independent rates: game FPS, SnapFrame generated/queued FPS, and output present FPS. Keep a separate count for present failures and do not label queued presents as completed scan-outs.
+
+The GitHub file reader returned empty content for the uploaded snapframe_events.csv and snapframe_flow_vectors.csv in this retrieval, although the text log reports completed vector dumps. Their rows could not be independently checked here. Confirm that these files are non-empty in the repository or upload them again as plain-text CSV.
+
+Current assessment: no black-frame symptom is reported; midpoint dispatch is active; visible geometry distortion is consistent with unreliable, search-boundary motion vectors and a biased reverse-grid projection. The two conservative shader corrections are committed, but their runtime effect, FPS uplift, and full native build remain unverified.
