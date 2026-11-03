@@ -288,8 +288,8 @@ SnapFrameFlowStats summarizeFlow(const uint16_t* values, uint64_t count) {
 void recordFlowReadback(
     DxvkContext* context, DxvkDevice* device, uint64_t frame,
     uint32_t flowWidth, uint32_t flowHeight, bool dumpVectors) {
-    if (!g_profilingEnabled || !context || !device
-        || !g_flowImage[0] || !g_flowImage[1] || !g_consistencyImage)
+    if (!g_profilingEnabled || !g_diagnosticSuiteEnabled || g_diagnosticSuiteComplete
+        || !context || !device || !g_flowImage[0] || !g_flowImage[1] || !g_consistencyImage)
         return;
 
     const VkDeviceSize pixels = VkDeviceSize(flowWidth) * flowHeight;
@@ -891,7 +891,9 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
     const unsigned slot = static_cast<unsigned>(g_frameIndex & 1u);
     const uint64_t nextCapturedFrame = g_capturedFrames.load(std::memory_order_relaxed) + 1u;
     logDiagnosticPhase(nextCapturedFrame);
-    const bool profileThisFrame = g_profilingEnabled && (nextCapturedFrame % 30u) == 0u;
+    const bool profileThisFrame = g_profilingEnabled
+        && (!g_diagnosticSuiteEnabled || !g_diagnosticSuiteComplete)
+        && (nextCapturedFrame % 30u) == 0u;
     const SnapFrameGpuTimer totalTimer = beginGpuTimer(
         context, device, "total_chain", nextCapturedFrame, width, height, profileThisFrame);
     bool totalTimerEnded = false;
