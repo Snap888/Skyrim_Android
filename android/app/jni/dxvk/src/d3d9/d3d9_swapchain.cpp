@@ -121,6 +121,7 @@ namespace dxvk {
                  << (double(generatedTotal) / 120.0) << ','
                  << width << ',' << height << ','
                  << (vsync ? 1 : 0) << ','
+                 << snapFrameActiveFrames << '\n';
           stream.flush();
           totalMs = 0.0;
           minMs = 1.0e30;
@@ -1166,7 +1167,6 @@ namespace dxvk {
         g_snapFramePresentResultHook.load(std::memory_order_acquire);
       if (resultHook)
         resultHook(accepted ? 1 : 0);
-      if (accepted)
       m_snapFramePresentPending = false;
     }
 
