@@ -1185,6 +1185,8 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                           VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_WRITE_BIT },
                     };
                     DxvkInterfaceSlots v2LumaIface{};
+                    v2LumaIface.pushConstOffset = 0;
+                    v2LumaIface.pushConstSize = 16;
                     SpirvCodeBuffer v2LumaCode(
                         snapframe::shaders::k_snap_motion_v2_luma_word_count,
                         snapframe::shaders::k_snap_motion_v2_luma);
@@ -1198,6 +1200,8 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                           VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_WRITE_BIT },
                     };
                     DxvkInterfaceSlots v2DownsampleIface{};
+                    v2DownsampleIface.pushConstOffset = 0;
+                    v2DownsampleIface.pushConstSize = 16;
                     SpirvCodeBuffer v2DownsampleCode(
                         snapframe::shaders::k_snap_motion_v2_downsample_word_count,
                         snapframe::shaders::k_snap_motion_v2_downsample);
