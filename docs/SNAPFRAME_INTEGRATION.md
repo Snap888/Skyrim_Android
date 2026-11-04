@@ -2,7 +2,7 @@
 
 ## Current status
 
-The portable SnapFrame v1 library is pinned and linked into the Android runtime. A concrete `SnapFrameBackendV1` adapter now routes DXVK frame callbacks through the portable core and invokes the existing real DXVK GPU pipeline using an opaque native-frame token. The shader algorithms and WSI present hooks remain unchanged. This is a real backend adapter, not a mock. The adapter is currently a single host-level instance; migrating process-global GPU state to per-device adapter objects remains outstanding.
+The portable SnapFrame v1 library is pinned and linked into the Android runtime. A concrete `SnapFrameBackendV1` adapter routes DXVK frame callbacks through the portable core and invokes the real DXVK GPU pipeline using an opaque native-frame token. SnapFrame is the sole frame-generation backend. The adapter is currently a single host-level instance; migrating process-global GPU state to per-device adapter objects remains outstanding.
 
 ## Existing GPU path
 
