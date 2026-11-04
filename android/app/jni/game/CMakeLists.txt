@@ -24,7 +24,7 @@ target_compile_definitions(main PRIVATE DXVK_NATIVE GAME_SKYRIM)
 target_compile_options(main PRIVATE -O2 -fno-strict-aliasing -fwrapv -fsigned-char -Wno-everything
     $<$<COMPILE_LANGUAGE:C>:-std=gnu11>)
 target_link_libraries(main PRIVATE SDL2 dxvk_d3d9 lsfg_host snapframe_host
-    SnapAI::Engine SnapFrame::Engine
+    SnapAI::Engine SnapFrame::Engine SnapFrame::MotionV2
     m $<$<BOOL:${ANDROID}>:log> $<$<BOOL:${ANDROID}>:android>)
 
 # Compile the Android JNI settings bridge independently of generated game
