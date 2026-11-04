@@ -67,6 +67,12 @@ namespace dxvk {
       uint64_t requestedTotal = 0;
       uint64_t generatedTotal = 0;
       uint64_t snapFrameActiveFrames = 0;
+      double sourceAcquireMs = 0.0;
+      double generatedAcquireMs = 0.0;
+      double submitEnqueueMs = 0.0;
+      double generateRecordMs = 0.0;
+      double retireWaitMs = 0.0;
+      double frameLatencyWaitMs = 0.0;
       std::string run;
       bool initialized = false;
 
@@ -92,7 +98,9 @@ namespace dxvk {
                    << " snapframe_bypassed=" << (snapFrameBypassed ? 1 : 0) << " ===\n";
             stream << "columns: frame,avg_cpu_present_ms,min_cpu_present_ms,max_cpu_present_ms,"
                       "avg_generated_requested,avg_generated_queued,width,height,vsync,"
-                      "snapframe_active_frames\n";
+                      "snapframe_active_frames,avg_source_acquire_ms,avg_generated_acquire_ms,"
+                      "avg_submit_enqueue_ms,avg_generate_record_ms,avg_retire_wait_ms,"
+                      "avg_frame_latency_wait_ms\n";
             stream.flush();
           }
         }
@@ -100,7 +108,10 @@ namespace dxvk {
 
       void record(double ms, uint32_t requested, uint32_t generated,
                   uint32_t width, uint32_t height, bool vsync,
-                  bool snapFrameActive, bool snapFrameBypassed) {
+                  bool snapFrameActive, bool snapFrameBypassed,
+                  double sourceAcquire, double generatedAcquire,
+                  double submitEnqueue, double generateRecord,
+                  double retireWait, double frameLatencyWait) {
         std::lock_guard<std::mutex> lock(mutex);
         init(snapFrameBypassed);
         if (!stream)
@@ -113,6 +124,12 @@ namespace dxvk {
         requestedTotal += requested;
         generatedTotal += generated;
         snapFrameActiveFrames += snapFrameActive ? 1 : 0;
+        sourceAcquireMs += sourceAcquire;
+        generatedAcquireMs += generatedAcquire;
+        submitEnqueueMs += submitEnqueue;
+        generateRecordMs += generateRecord;
+        retireWaitMs += retireWait;
+        frameLatencyWaitMs += frameLatencyWait;
         if ((frames % 120) == 0) {
           stream << frames << ','
                  << (totalMs / 120.0) << ','
@@ -121,7 +138,13 @@ namespace dxvk {
                  << (double(generatedTotal) / 120.0) << ','
                  << width << ',' << height << ','
                  << (vsync ? 1 : 0) << ','
-                 << snapFrameActiveFrames << '\n';
+                 << snapFrameActiveFrames << ','
+                 << (sourceAcquireMs / 120.0) << ','
+                 << (generatedAcquireMs / 120.0) << ','
+                 << (submitEnqueueMs / 120.0) << ','
+                 << (generateRecordMs / 120.0) << ','
+                 << (retireWaitMs / 120.0) << ','
+                 << (frameLatencyWaitMs / 120.0) << '\n';
           stream.flush();
           totalMs = 0.0;
           minMs = 1.0e30;
@@ -129,6 +152,8 @@ namespace dxvk {
           requestedTotal = 0;
           generatedTotal = 0;
           snapFrameActiveFrames = 0;
+          sourceAcquireMs = generatedAcquireMs = submitEnqueueMs = 0.0;
+          generateRecordMs = retireWaitMs = frameLatencyWaitMs = 0.0;
         }
       }
     };
@@ -943,6 +968,12 @@ namespace dxvk {
     const bool perfBypassSnapFrame = snapFramePerfBypassEnabled();
     uint32_t perfGenerated = 0;
     uint32_t perfRequested = 0;
+    double perfSourceAcquireMs = 0.0;
+    double perfGeneratedAcquireMs = 0.0;
+    double perfSubmitEnqueueMs = 0.0;
+    double perfGenerateRecordMs = 0.0;
+    double perfRetireWaitMs = 0.0;
+    double perfFrameLatencyWaitMs = 0.0;
     m_parent->Flush();
 
     // Retrieve the image and image view to present
@@ -953,7 +984,12 @@ namespace dxvk {
     ++m_frameId;
 
     for (uint32_t i = 0; i < SyncInterval || i < 1; i++) {
-      SynchronizePresent();
+      {
+        const auto waitStart = std::chrono::steady_clock::now();
+        SynchronizePresent();
+        perfRetireWaitMs += std::chrono::duration<double, std::milli>(
+          std::chrono::steady_clock::now() - waitStart).count();
+      }
 
       // Presentation semaphores and WSI swap chain image
       vk::PresenterInfo info = m_presenter->info();
@@ -961,14 +997,16 @@ namespace dxvk {
 
       uint32_t imageIndex = 0;
 
+      auto sourceAcquireStart = std::chrono::steady_clock::now();
       VkResult status = m_presenter->acquireNextImage(sync, imageIndex);
 
       while (status != VK_SUCCESS && status != VK_SUBOPTIMAL_KHR) {
         RecreateSwapChain(m_vsync);
-        
         info = m_presenter->info();
         status = m_presenter->acquireNextImage(sync, imageIndex);
       }
+      perfSourceAcquireMs += std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - sourceAcquireStart).count();
 
       m_context->beginRecording(
         m_device->createCommandList());
@@ -1023,7 +1061,12 @@ namespace dxvk {
       if (i + 1 >= SyncInterval)
         m_context->signal(m_frameLatencySignal, m_frameId);
 
-      SubmitPresent(sync, i, m_sourcePresentStatus);
+      {
+        const auto submitStart = std::chrono::steady_clock::now();
+        SubmitPresent(sync, i, m_sourcePresentStatus);
+        perfSubmitEnqueueMs += std::chrono::duration<double, std::milli>(
+          std::chrono::steady_clock::now() - submitStart).count();
+      }
     }
 
     /* SnapFrame is the only frame-generation backend. */
@@ -1044,13 +1087,17 @@ namespace dxvk {
         vk::PresenterInfo generatedInfo = m_presenter->info();
         vk::PresenterSync generatedSync;
         uint32_t generatedImageIndex = 0;
+        const auto generatedAcquireStart = std::chrono::steady_clock::now();
         VkResult generatedStatus = m_presenter->acquireNextImage(generatedSync, generatedImageIndex);
         while (generatedStatus != VK_SUCCESS && generatedStatus != VK_SUBOPTIMAL_KHR) {
           RecreateSwapChain(m_vsync);
           generatedInfo = m_presenter->info();
           generatedStatus = m_presenter->acquireNextImage(generatedSync, generatedImageIndex);
         }
+        perfGeneratedAcquireMs += std::chrono::duration<double, std::milli>(
+          std::chrono::steady_clock::now() - generatedAcquireStart).count();
 
+        const auto generateRecordStart = std::chrono::steady_clock::now();
         m_context->beginRecording(m_device->createCommandList());
 
         VkRect2D fallbackSrcRect = {
@@ -1092,7 +1139,14 @@ namespace dxvk {
         if (m_hud != nullptr)
           m_hud->render(m_context, generatedInfo.format, generatedInfo.imageExtent);
 
-        SubmitPresent(generatedSync, generation + 1, m_generatedPresentStatus);
+        perfGenerateRecordMs += std::chrono::duration<double, std::milli>(
+          std::chrono::steady_clock::now() - generateRecordStart).count();
+        {
+          const auto submitStart = std::chrono::steady_clock::now();
+          SubmitPresent(generatedSync, generation + 1, m_generatedPresentStatus);
+          perfSubmitEnqueueMs += std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - submitStart).count();
+        }
         if (snapFrameGeneration) {
           if (generationFailed) {
             const SnapFramePresentResultHook resultHook =
@@ -1111,7 +1165,12 @@ namespace dxvk {
       }
     }
 
-    SyncFrameLatency();
+    {
+      const auto latencyStart = std::chrono::steady_clock::now();
+      SyncFrameLatency();
+      perfFrameLatencyWaitMs += std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - latencyStart).count();
+    }
 
     // Rotate swap chain buffers so that the back
     // buffer at index 0 becomes the front buffer.
@@ -1126,7 +1185,10 @@ namespace dxvk {
     const auto perfInfo = m_presenter->info();
     dxvkPerfSample().record(perfMs, perfRequested, perfGenerated,
       perfInfo.imageExtent.width, perfInfo.imageExtent.height, m_vsync,
-      snapFrameCanGenerate, perfBypassSnapFrame);
+      snapFrameCanGenerate, perfBypassSnapFrame,
+      perfSourceAcquireMs, perfGeneratedAcquireMs,
+      perfSubmitEnqueueMs, perfGenerateRecordMs,
+      perfRetireWaitMs, perfFrameLatencyWaitMs);
 
   }
 
