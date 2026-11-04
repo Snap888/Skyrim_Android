@@ -94,6 +94,18 @@ Consequences:
 - No FPS improvement is claimed from the previous change.
 - The next implementation must first add ticket-based acquire/present APIs and validate semaphore reuse, swapchain recreation, and CS-thread ordering; only then may the barrier be removed.
 
+## Bounded WSI acquire recovery — 2026-11-04
+
+Code commit: `241d00525003de96d4c2ba4f2eadd83519d8e910`.
+
+- Source and generated WSI acquire now use a bounded three-attempt recovery loop instead of an unbounded retry loop.
+- Each failed acquire is logged with its VkResult and retry count; the swapchain is recreated before the next attempt.
+- If source acquisition still fails, `PresentImage()` exits without submitting commands that reference an unacquired image.
+- If generated acquisition still fails, SnapFrame reports a rejected generated frame and skips the generated submission rather than using an invalid image/semaphore pair.
+- This prevents a persistent surface/acquire error from trapping the render thread in an infinite retry loop. It is a reliability fix, not an FPS optimization.
+- The temporary source-to-generated `SynchronizePresent()` barrier remains. Ticket-based independent WSI acquisition is not implemented; do not remove the barrier based on this change.
+- CI and device validation are pending.
+
 ## Validation status
 
 - Android Java compilation: passed in workflow run [41874788768](https://github.com/Snap888/Skyrim_Android/actions/runs/41874788768).
