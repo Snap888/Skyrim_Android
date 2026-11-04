@@ -69,7 +69,7 @@ The portable SnapFrame core now drives the DXVK frame callback through the concr
 - DXVK adapter + JNI bridge + Snap AI API-version probe + scalar GPU/frame timing export: passed Android ARM64 compile CI (run #41738939416); visual parity/device validation remains outstanding.
 - Snap AI telemetry/control loop: not implemented.
 - In-game Snap AI / Frame Generation section: added with Frame Generation and Flow Scale controls routed through the portable SnapFrame core; Snap AI adaptive control is explicitly marked unavailable until scalar telemetry is connected.
-- APK and physical-device GPU validation: not run.
+- Full APK build: not run. Physical-device gameplay logs have now been supplied and audited, but visual parity, generated-image acceptance and measured FPS uplift remain unverified.
 
 Do not treat a successful portable/mock test as proof of GPU frame generation. Do not claim performance gains until same-device, same-scene GPU timings and output quality have been compared.
 
@@ -142,7 +142,7 @@ The upstream V2 shader set now includes luma, downsample, coarse/fine search, re
 - Linked SnapFrame::MotionV2 into both snapframe_host and the game target. Android explicitly loads libsnap_motion_v2.so before main.
 - Android CI now builds/tests the updated pinned engine revision in both portable jobs and compiles the Skyrim ARM64 DXVK host against the new target.
 - This is the portable core linkage milestone only. The current host does not yet call snap_motion_v2_*; V2 shaders are not part of Skyrim runtime shader dispatch, and the active rendering path remains V1.
-- Latest Skyrim CI run #41811189312 (https://github.com/Snap888/Skyrim_Android/actions/runs/41811189312) is pending; no build result is claimed yet.
+- Latest Skyrim CI run #41817208666 passed portable API tests, portable ARM64 libraries, DXVK host ARM64 compile and Java compilation. The full APK job was skipped.
 
 
 ## Second device log audit — 2026-11-04
