@@ -1326,7 +1326,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                             endGpuTimer(context, totalTimer);
                             totalTimerEnded = true;
                             recordFlowReadback(context, device, nextCapturedFrame, flowWidth, flowHeight,
-                                (g_flowDispatchCount % 600u) == 0u);
+                                g_diagnosticSuiteEnabled && (g_flowDispatchCount % 600u) == 0u);
                         }
                         if (g_consistencyDispatchCount == 1
                          || (g_consistencyDispatchCount % 120u) == 0)
