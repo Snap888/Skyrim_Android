@@ -86,3 +86,8 @@ Collect real FPS, generated FPS, stage GPU timings, total GPU time, dropped/gene
 - Largest LSFG stages: GammaDelta_L6 (~1.446 ms), Generate (~1.166 ms), Alpha (~0.838 ms), Mipmaps (~0.732 ms), Beta (~0.594 ms). Track these independently from SnapFrame stage timings.
 - Full Android runtime log ends with normal `ExitProcess(0)`; no fatal signal, Vulkan device loss or fatal exception was found.
 - Audio output mixer telemetry shows no recorded queue-low condition, enqueue failure or slow mix; max mix time is 1 ms. A source refill gap of 34 ms is marked EOS. Preserve current audio implementation unless a reproducible audible regression appears.
+
+
+## MotionV2 dependency revision — 2026-11-04
+
+The Skyrim project now pins Snap AI Engine revision `ccf4589ca19d5f788adc56c7248d94f83ca0a506`, which includes the corrected L0-coordinate normalization in V2 validation and interpolation. Upstream shader compile/validation CI passed. The next Skyrim ARM64 CI run must confirm the new FetchContent pin and regenerated SPIR-V header compile in the DXVK host. This still does not test V2 dispatch or runtime image quality.
