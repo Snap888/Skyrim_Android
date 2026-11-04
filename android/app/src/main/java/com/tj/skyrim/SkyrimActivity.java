@@ -177,9 +177,9 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
                     else if (which == 1) {
                         // SDLActivity routes this request to Android's InputMethodManager.
                         showTextInput(0, 0, 1, 1);
-                    } else if (which == 3) {
+                    } else if (which == 2) {
                         setGamepadOverlayEnabled(!gamepadOverlayEnabled);
-                    } else if (which == 4) {
+                    } else if (which == 3) {
                         showGamepadControlsEditor();
                     } else {
                         touchEditorEnabled = !touchEditorEnabled;
