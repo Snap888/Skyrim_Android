@@ -73,3 +73,40 @@ Before enabling adaptive decisions by default:
 - No full-resolution or full-flow CPU readback for AI.
 - No GPU/queue/device waits, per-frame resource allocation, or unmeasured performance claims.
 - No change to the source-frame Present path, audio, touch/gamepad controls or generated-present acceptance semantics.
+
+
+## Performance-first runtime baseline update — 2026-11-04
+
+The user's controlled A/B report shows SnapFrame ON at 10–12 source FPS + 10–12 generated FPS, while OFF sustains 20–24 source FPS. Output cadence is therefore not improved; the current compute/present path consumes nearly the same frame budget as the game itself.
+
+A performance-first baseline is now selected for fresh configurations:
+- `flow_scale_percent=50` (77x34 flow cells at 2448x1080, versus 112x50 at 75%). This reduces the number of motion cells to about 47% of the 75% grid. It is a workload reduction estimate, not a measured FPS gain; visual quality must be checked for thin foliage and fast motion.
+- `profiling_enabled=0` by default. Timestamp queries and diagnostic readbacks are for controlled tests, not normal gameplay.
+- Existing per-game `port/snapframe.conf` values override compiled defaults. Existing installs must change these two values to receive the performance-first profile.
+
+### AI controller status correction
+
+GPU scalar reduction and MotionV2 telemetry publication exist in the host, but the active Snap AI Engine controller is not yet instantiated/called by the runtime. The portable SnapFrame adapter also currently rejects config changes outside its supported fields. Thus there is no active AI policy loop yet and no AI-controlled optimization claim.
+
+Next implementation gate:
+1. Instantiate `SnapAI::Engine` in a per-device runtime owner.
+2. Consume only frame-matched, asynchronously completed GPU scalar metrics and timestamp samples.
+3. Start with bounded flow-scale decisions (25–75%), applied only at history-reset boundaries; keep 50% as the fallback.
+4. Add hysteresis/cooldown so decisions do not oscillate each frame.
+5. Log telemetry frame ID, validity, decision/profile, old/new scale and reason.
+6. Keep AI bypass on stale/missing metrics, low coverage, scene transition, or controller error.
+7. Validate A/B with identical scenes and thermal state before enabling adaptation by default.
+
+### Experimental x3/x4 multiplier gate
+
+The current renderer's generated-present loop is hard-coded to one generated frame per source frame. The portable adapter validates multiplier 1–2, and the current midpoint shader only writes one fixed t=0.5 output image. Merely changing the multiplier integer would submit duplicate midpoint images, not correctly interpolated temporal phases.
+
+A real x3/x4 implementation requires:
+- parameterized interpolation phase (t=k/M) in the warp shader;
+- distinct output images (or a proven sequential output lifetime) for each phase;
+- DXVK generation callback carrying phase index and multiplier;
+- multiple WSI acquire/present tickets with one-time ownership and present-semaphore retirement;
+- correct source/generated pacing and per-phase accepted/drop counters;
+- x3/x4 visual tests on motion boundaries and HUD composition.
+
+Do not expose x3/x4 as selectable runtime modes until this pipeline exists. The current shared Presenter acquire state and temporary source/generated synchronization barrier are still a hard safety gate. x3/x4 is an experimental engineering target, not yet implemented.
