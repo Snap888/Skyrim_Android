@@ -1279,10 +1279,15 @@ namespace dxvk {
 
 
   void D3D9SwapChainEx::SynchronizePresent() {
+    const bool sourceWasPending = m_sourcePresentPending;
     WaitForPresentSubmissions();
 
     const VkResult sourceStatus = m_sourcePresentStatus.result.load();
     const VkResult generatedStatus = m_generatedPresentStatus.result.load();
+
+    if (sourceWasPending
+        && (sourceStatus == VK_SUCCESS || sourceStatus == VK_SUBOPTIMAL_KHR))
+      hud::addSnapFrameGameFrame();
 
     if (m_snapFramePresentPending) {
       const bool accepted = generatedStatus == VK_SUCCESS
@@ -1291,6 +1296,8 @@ namespace dxvk {
         g_snapFramePresentResultHook.load(std::memory_order_acquire);
       if (resultHook)
         resultHook(accepted ? 1 : 0);
+      if (accepted)
+        hud::addSnapFrameGeneratedFrame();
       m_snapFramePresentPending = false;
     }
 
