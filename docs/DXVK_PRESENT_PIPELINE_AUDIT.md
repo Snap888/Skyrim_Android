@@ -197,3 +197,8 @@ The Snap AI controller is now called on the serialized render callback using a s
 The flow matcher now uses a 3x3 fine refinement neighborhood (33 maximum candidates including the coarse grid, versus 49 previously), and the warp bypasses displaced source sampling in near-zero-confidence cells. These changes are compute-cost reductions only; on-device timing is required to quantify them.
 
 The WSI ownership design remains unchanged: one mutable acquire token and pre-acquire state in Presenter. `SynchronizePresent()` remains a mandatory correctness barrier for the current source/generated sequence. Do not add x3/x4 presents or remove the barrier before move-only generation-bound tickets and present semaphore retirement are implemented.
+
+
+## SnapFrame compute push-constant isolation
+
+The generic SnapMotion V2 dispatch helper and the existing scalar-metrics finalization dispatch now save and restore the full DXVK push-constant shadow state. After the internal compute dispatch they mark push constants dirty so the next game pipeline commit re-emits the game's saved values. This is required because DXVK compute and graphics pipelines share the context push-constant shadow; restoring only the compute pipeline and resource slots was insufficient and could leave a game's next draw observing SnapFrame metric/V2 constants. This correctness fix is included before any V2 shader is wired into the live path.
