@@ -1386,6 +1386,11 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                 }
                 g_v2FlowAvailable = v2FlowImagesCreated
                     && g_v2SearchShader != nullptr && g_lumaSampler != nullptr;
+                if (!g_v2FlowAvailable) {
+                    snapframeLog("SnapFrame: V2 flow search unavailable (images=%u search=%u sampler=%u); pyramid remains independently available\\n",
+                        unsigned(v2FlowImagesCreated), unsigned(g_v2SearchShader != nullptr),
+                        unsigned(g_lumaSampler != nullptr));
+                }
                 if (g_v2FlowAvailable) {
                     snapframeLog("SnapFrame: V2 flow grids ready L0=%ux%u L1=%ux%u L2=%ux%u directions=2 format=RGBA16F\n",
                         v2FlowGridExtent(v2LumaWidths[0]), v2FlowGridExtent(v2LumaHeights[0]),
