@@ -153,6 +153,7 @@ DxvkDevice* g_metricsShaderDevice = nullptr;
 Rc<DxvkBuffer> g_metricsPartialBuffer;
 Rc<DxvkBuffer> g_metricsResultBuffer;
 static constexpr uint32_t kMetricsReadbackSlots = 3;
+static constexpr uint64_t kAiTelemetryIntervalFrames = 30;
 Rc<DxvkBuffer> g_metricsReadbackBuffers[kMetricsReadbackSlots];
 std::atomic<int> g_metricsReadbackBusy[kMetricsReadbackSlots] = {};
 std::atomic<uint64_t> g_metricsReadbackGeneration{1};
@@ -1630,11 +1631,11 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
     logDiagnosticPhase(nextCapturedFrame);
     const bool profileThisFrame = g_profilingEnabled
         && (!g_diagnosticSuiteEnabled || !g_diagnosticSuiteComplete)
-        && (nextCapturedFrame % 30u) == 0u;
+        && (nextCapturedFrame % kAiTelemetryIntervalFrames) == 0u;
     /* AI needs sparse GPU timing even when verbose profiling is disabled.
      * Keep the total-chain timestamp at the same 30-frame cadence as the
      * validated scalar readback; per-stage timers remain profiling-only. */
-    const bool collectAiTiming = (nextCapturedFrame % 30u) == 0u;
+    const bool collectAiTiming = (nextCapturedFrame % kAiTelemetryIntervalFrames) == 0u;
     const SnapFrameGpuTimer totalTimer = beginGpuTimer(
         context, device, "total_chain", nextCapturedFrame, width, height,
         profileThisFrame || collectAiTiming);
@@ -1730,7 +1731,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                         width, height, consistencyDispatched ? "dispatch_accepted" : "dispatch_rejected");
                     if (consistencyDispatched) {
                         ++g_consistencyDispatchCount;
-                        if (g_metricsAvailable && (nextCapturedFrame % 30u) == 0u) {
+                        if (g_metricsAvailable && (nextCapturedFrame % kAiTelemetryIntervalFrames) == 0u) {
                             recordV1GpuMetrics(context, nextCapturedFrame,
                                 width, height, flowWidth, flowHeight);
                         }
