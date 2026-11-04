@@ -718,7 +718,11 @@ bool recordV1GpuMetrics(
                                     timestampNs](VkResult completion) {
         bool accepted = false;
         const char* rejectReason = "command_list_completion_error";
-        if (completion == VK_SUCCESS && readback != nullptr) {
+        const bool currentGeneration = generation == g_metricsReadbackGeneration.load(
+            std::memory_order_acquire);
+        if (!currentGeneration) {
+            rejectReason = "stale_resource_generation";
+        } else if (completion == VK_SUCCESS && readback != nullptr) {
             const auto* gpu = reinterpret_cast<const SnapFrameMetricsGpuResult*>(
                 readback->mapPtr(0));
             if (gpu != nullptr) {
@@ -786,8 +790,7 @@ bool recordV1GpuMetrics(
             }
         }
 
-        if (generation == g_metricsReadbackGeneration.load(
-                std::memory_order_acquire)) {
+        if (currentGeneration) {
             g_metricsReadbackBusy[slot].store(0, std::memory_order_release);
         }
         if (accepted) {
@@ -1396,6 +1399,11 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             g_midpointShader = Rc<DxvkShader>();
             g_midpointShaderDevice = nullptr;
             g_midpointAvailable = false;
+            g_metricsAvailable = false;
+            g_metricsPartialBuffer = Rc<DxvkBuffer>();
+            g_metricsResultBuffer = Rc<DxvkBuffer>();
+            for (uint32_t slot = 0; slot < kMetricsReadbackSlots; ++slot)
+                g_metricsReadbackBuffers[slot] = Rc<DxvkBuffer>();
             snapframeLog("SnapFrame: exception while creating luma/flow compute resources\n");
         }
         if (g_motionAnalysisEnabled && g_lumaAvailable) {
