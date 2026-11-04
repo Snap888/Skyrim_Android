@@ -3,16 +3,14 @@
 Experimental, independent frame-generation engine for Skyrim_Android.
 
 **Status: the capture → luma → bidirectional flow → consistency → midpoint warp → additional WSI-present path has been exercised on the target device. The latest user test reports no black frames and approximately 2× HUD output FPS, but visible geometry distortion remains unacceptable during fast camera motion and animated foliage. The latest shader/grid changes below are source-only and still need a new APK/device test.**
-This module is isolated from the existing `lsfg` implementation. It is now
-compiled as a separate host target and has an independent DXVK callback that
-copies the completed game image into a two-image GPU history ring. A first coarse bidirectional block-matching motion pair is estimated from a two-slot luma history; pyramid refinement and robust occlusion handling are not implemented. A midpoint compute pass writes an internal RGBA16F image, which is now routed to an additional WSI present when ready.
+This module is compiled as a separate host target and uses an independent DXVK callback to copy the completed game image into a two-image GPU history ring. The active development path is SnapFrame + Snap AI; LSFG is not a runtime backend or fallback in this project. The current V2 experimental path builds a three-level R16F luma pyramid, estimates bidirectional coarse flow at L2→L1→L0, refines both L0 flow fields, and writes a forward/backward round-trip confidence mask. V2 refinement/validation is diagnostic only: it is not yet consumed by the V1 midpoint warp, and GPU cost and visual quality still require device validation.
 
 ## Goals
 
 - Implement an original hybrid motion-estimation and frame-warping pipeline.
 - Run image processing on the Vulkan GPU; keep CPU readback out of the normal path and use sparse readback only for diagnostics.
-- Keep the existing LSFG implementation unchanged and available for A/B tests.
-- Make the engine independently switchable: Off / LSFG / SnapFrame.
+- Keep SnapFrame independently switchable without an external frame-generation backend.
+- Let Snap AI adapt flow scale and dispatch quality from measured frame-time and GPU-budget telemetry.
 - Add per-stage GPU timing and diagnostic counters before performance tuning.
 
 ## Initial algorithm direction
@@ -25,7 +23,7 @@ copies the completed game image into a two-image GPU history ring. A first coars
 6. Blend valid samples; use conservative spatial fallback where motion is uncertain.
 7. Add temporal stabilization only after the basic pipeline is validated.
 
-This is the target algorithm. Capture, luma preprocessing, bidirectional block matching, forward/backward consistency and a first confidence-weighted midpoint color-warp pass are implemented as GPU dispatches. Flow diagnostics are read back sparsely; the midpoint output is not yet read back or visually validated. Pyramid refinement and robust occlusion handling remain unimplemented; the additional WSI-present path is wired but not yet device-validated. See [DESIGN.md](DESIGN.md) for the staged integration plan.
+This is the target algorithm. Capture, V1 luma/flow/consistency/midpoint warp and an additional WSI-present path are implemented as GPU dispatches. The experimental V2 pyramid, bidirectional coarse search, L0 refinement and forward/backward validation mask are also dispatched, but remain a diagnostic side path and do not feed V1 interpolation. The mask is a round-trip confidence estimate, not a complete spatial occlusion classifier. Flow diagnostics are read back sparsely; output quality, stage GPU timings and WSI pacing still require device validation. See [DESIGN.md](DESIGN.md) for the staged integration plan.
 
 ## Current GPU reconstruction and presentation prototype
 
