@@ -23,3 +23,9 @@ Not yet completed: concrete DXVK `SnapFrameBackendV1` adapter, live AI telemetry
 - Added asynchronous scalar total-GPU-time and frame-interval export for the upcoming AI telemetry path.
 - Added host CI for portable API unit tests; both upstream test suites pass.
 - Verified the Snap AI bootstrap API-version probe, JNI settings bridge and scalar timing telemetry in the Android ARM64 native compile job (run #41738939416).
+
+## 2026-11-04 — device log audit and telemetry fix
+- Audited the latest SnapFrame logs: 7,650 captured frames, zero skips, and 255 successful stage-timing samples.
+- Identified that sparse flow diagnostics were incorrectly gated by the optional diagnostic suite rather than the motion-analysis setting.
+- Corrected the flow-readback gate so `motion_analysis=1` can collect aggregate flow diagnostics even when the seven-phase diagnostic suite is off.
+- Updated GPU telemetry and testing documentation with measured timing distributions and the required device retest.
