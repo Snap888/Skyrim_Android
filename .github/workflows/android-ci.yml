@@ -75,7 +75,7 @@ jobs:
       - name: Checkout pinned Snap AI Engine source
         run: |
           git clone https://github.com/Snap888/Snap_AI_Engine.git "$RUNNER_TEMP/snap-ai-engine"
-          git -C "$RUNNER_TEMP/snap-ai-engine" checkout f60acfcb7b09722d5927215957c46045b11f7897
+          git -C "$RUNNER_TEMP/snap-ai-engine" checkout bc040d08b021b63d3d437455663be014a1e9f383
 
       - name: Configure portable libraries for Android ARM64
         run: |
@@ -102,7 +102,7 @@ jobs:
       - name: Checkout pinned Snap AI Engine source
         run: |
           git clone https://github.com/Snap888/Snap_AI_Engine.git "$RUNNER_TEMP/snap-ai-tests"
-          git -C "$RUNNER_TEMP/snap-ai-tests" checkout f60acfcb7b09722d5927215957c46045b11f7897
+          git -C "$RUNNER_TEMP/snap-ai-tests" checkout bc040d08b021b63d3d437455663be014a1e9f383
 
       - name: Configure portable unit tests
         run: |
