@@ -59,3 +59,22 @@ Collect real FPS, generated FPS, stage GPU timings, total GPU time, dropped/gene
 - Confirm failure/rejection events are retained immediately and stage-success samples appear at the configured 120-frame cadence.
 - Confirm `frame_complete` progress appears at frame 1 and every 300 frames thereafter.
 - Compare `snapframe_events.csv` size and verify no per-frame flush regression; GPU timings and skipped-frame counts should remain comparable under the same scene/device conditions.
+
+
+## Second uploaded device run — 2026-11-04
+
+- SnapFrame capture: 2448x1080, frame checkpoints through 840.
+- GPU timing: 28 successful samples per stage; total-chain mean/P95 12.389/16.106 ms. Forward/backward flow mean 4.754/4.824 ms.
+- Flow diagnostics: seven aggregate samples and one 5,600-cell vector dump at frame 601. The vector dump is a difficult-motion case (mean confidence ~0.105, ~62.5% below 0.1, ~12% search-boundary saturation, mean consistency ~0.023); do not treat it as a session-wide average.
+- Event logging now produces sparse progress samples; verify that failures remain immediately visible in a future run.
+- LSFG log has its own longer frame counter (up to 5400) and must not be aligned to SnapFrame's 840-frame counter. LSFG begins at multiplier 2 and later switches to multiplier 1. The available logs show generate dispatches and requested/queued counters, not a confirmed count of accepted generated WSI presents or displayed FPS.
+- The full APK has not been built in this CI run. Physical-device visual quality and FPS comparisons remain outstanding.
+
+## Next V2 validation gates
+
+1. Integrate the V2 pyramid, search, refinement, validation and interpolation resources into DXVK behind an explicit experimental mode; keep V1 as default.
+2. Implement frame-tagged GPU scalar reduction and asynchronous readback without queue-idle/fence waits.
+3. Validate frame IDs, timestamps, resize/reset epochs and two-frames-in-flight resource lifetime.
+4. Record actual generated-image present acceptance separately from generation dispatch/request/queue counters.
+5. Run same-scene V1/V2 and LSFG ON/OFF captures with the same resolution, multiplier, duration and thermal starting condition.
+6. Only then expose V2 and Snap AI adaptive control to normal gameplay.
