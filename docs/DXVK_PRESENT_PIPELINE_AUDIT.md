@@ -57,11 +57,11 @@ Keep GPU timestamp measurements separate from CPU wall-clock measurements. Do no
 
 ### Stage 2 — independent submission slots
 
-Replace the single mutable `m_presentStatus` with a bounded per-submission status/retirement structure. Each slot must own its status until the corresponding completion has been observed. Keep source and generated submissions separately tagged. Preserve WSI semaphore reuse rules and make swapchain recreation drain only the submissions that reference the old swapchain.
+Implemented in commit `b9a9c6ffd233e5957db0a3c9052ce6bc83f09018`: source and generated presents now have independent status objects and pending flags. Each status remains owned by the swap chain until the submission queue publishes its result. Swapchain recreation, reset, invalidation and destruction drain both pending statuses before waiting idle.
 
 ### Stage 3 — overlap only after lifetime proof
 
-Once slot ownership and completion are independently tracked, allow source present and SnapFrame compute to overlap where resource dependencies permit. Keep the visible order source → generated → next source. Do not let generated work read a source image before its capture copy is ordered, and do not reuse capture/flow/output resources before their GPU completion values retire.
+The generated path no longer calls `SynchronizePresent()` between source submission and generated submission. This removes the CPU-side wait for the source present result before recording/enqueuing FG. The DXVK submission queue still preserves source command-list → source present → generated command-list → generated present order. This is a host-side scheduling improvement; it does not prove GPU execution overlap or a measured FPS gain. The existing capture copy is recorded in the source command list before its present, so queue order preserves the dependency. Device-side resource retirement and capture/flow/output lifetime still require validation.
 
 ### Stage 4 — pacing
 
@@ -71,7 +71,9 @@ Revisit frame-latency accounting for two WSI submissions per source frame. The l
 
 - Renamed a stale Vulkan presenter diagnostic prefix from `LSFG:` to `SnapFrame:`. The line only reports whether swapchain transfer-source usage is enabled; it was stale text, not an active LSFG implementation.
 - The SDL runtime's two stale LSFG bootstrap references were removed in commit `bb41d4856aab09abfce4b48d11bfa3c6fcc7505e`; the bootstrap entry now calls `snapframe_bootstrap()`.
-- No unsafe synchronization removal was made. The current source/generated serialization is documented for the next staged implementation rather than bypassed without per-submission lifetime tracking.
+- Added independent source/generated present status slots and removed the CPU `SynchronizePresent()` wait between source and generated submissions. Queue ordering and WSI semaphore ownership are retained; both statuses are drained at the next frame boundary and before swapchain teardown/recreation.
+- The generated present acceptance callback continues to use the actual generated WSI result, not enqueue success.
+- No `vkQueueWaitIdle` or `vkDeviceWaitIdle` was added to the steady-state frame path. `waitForIdle` remains in swapchain recreation/invalidation paths as before.
 
 ## Validation status
 
@@ -81,3 +83,13 @@ Revisit frame-latency accounting for two WSI submissions per source frame. The l
 - DXVK SnapFrame host ARM64 compile: passed.
 - Full APK build: skipped by this workflow; this run is not an APK artifact validation.
 - Physical-device WSI timing, overlap, frame pacing and FPS A/B: not yet validated.
+
+
+## Follow-up change — independent source/generated submissions (2026-11-04)
+
+- Commit: `b9a9c6ffd233e5957db0a3c9052ce6bc83f09018`.
+- `D3D9SwapChainEx` now owns `m_sourcePresentStatus` and `m_generatedPresentStatus` independently; `SubmitPresent` receives the status object for the corresponding submission.
+- `WaitForPresentSubmissions()` drains only statuses marked pending and is used before swapchain destruction/recreation and at the next frame boundary.
+- Removed the intermediate `SynchronizePresent()` before generated-frame acquisition/recording. The submission queue still serializes Vulkan queue operations in source-before-generated order.
+- This removes a CPU wait point but does not guarantee hardware overlap: source and FG still use the same Vulkan queue. Actual benefit, pacing, and device compatibility must be measured on Android.
+- CI for this commit is queued as run [41878691981](https://github.com/Snap888/Skyrim_Android/actions/runs/41878691981); no compile or device validation claim is made yet.
