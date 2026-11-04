@@ -844,6 +844,11 @@ void clearHistory() {
     }
     g_metricsReadbackGeneration.fetch_add(1, std::memory_order_acq_rel);
     g_metricsPublishedFrame.store(0, std::memory_order_release);
+    {
+        std::lock_guard<std::mutex> lock(g_motionV2Mutex);
+        if (g_motionV2)
+            snap_motion_v2_reset(g_motionV2, SNAP_MOTION_V2_RESET_SWAPCHAIN);
+    }
     g_midpointAvailable = false;
     g_metricsAvailable = false;
     g_metricsPartialCount = 0;
@@ -1928,6 +1933,10 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
         if (!g_motionV2) {
             SnapMotionV2Config motionConfig{};
             snap_motion_v2_default_config(&motionConfig);
+            motionConfig.enabled = 0;
+            motionConfig.static_mask_enabled = 0;
+            motionConfig.validation_enabled = 0;
+            motionConfig.adaptive_quality_enabled = 0;
             g_motionV2 = snap_motion_v2_create(&motionConfig);
         }
     }
