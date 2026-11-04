@@ -1495,12 +1495,16 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
     if (!g_initialized.load(std::memory_order_acquire))
         return;
     SnapAIPendingMetrics aiMetricsSnapshot{};
+    const uint64_t aiTimingFrame = g_lastGpuTimingFrame.load(std::memory_order_acquire);
     {
         std::lock_guard<std::mutex> aiMetricsLock(g_snapAiMetricsMutex);
         aiMetricsSnapshot = g_snapAiPendingMetrics;
-        g_snapAiPendingMetrics.frame = 0;
+        /* Keep the validated metrics pending until their timestamp callback
+         * arrives. Drop only if a newer timing sample proves them stale. */
+        if (aiMetricsSnapshot.frame != 0
+            && aiTimingFrame >= aiMetricsSnapshot.frame)
+            g_snapAiPendingMetrics.frame = 0;
     }
-    const uint64_t aiTimingFrame = g_lastGpuTimingFrame.load(std::memory_order_acquire);
     if (aiMetricsSnapshot.frame != 0
         && aiTimingFrame == aiMetricsSnapshot.frame
         && g_lastGpuTimingValid.load(std::memory_order_acquire)) {
@@ -1542,7 +1546,8 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                     aiMetrics.flow_confidence, aiMetrics.motion_complexity,
                     aiMetrics.artifact_risk);
         }
-    } else if (aiMetricsSnapshot.frame != 0) {
+    } else if (aiMetricsSnapshot.frame != 0
+        && aiTimingFrame > aiMetricsSnapshot.frame) {
         snapframeEvent(aiMetricsSnapshot.frame, "ai_bypass", width, height,
             "same_frame_gpu_timestamp_unavailable_or_stale");
     }
