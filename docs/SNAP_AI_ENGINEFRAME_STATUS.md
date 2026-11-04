@@ -365,3 +365,13 @@ GitHub Actions run `41902453483` for commit `255750b2b0d5868686a4a1ce5fc94e97397
 - Full arm64 APK build: skipped by workflow
 
 This validates compilation of the generic V2 dispatch API and push-constant state isolation, but does not validate runtime execution of V2 shaders or produce a tested APK.
+
+## SnapMotionV2 runtime: first live pyramid passes — 2026-11-04
+
+- Added a separate per-temporal-slot V2 luminance pyramid to the DXVK host. It allocates six independent R16_SFLOAT images and six matching views: L0, L1 and L2 for each of the two real-frame history slots. The existing V1 luma/flow resources are not aliased or repurposed.
+- L0 is generated from the real captured source image at half source resolution using the upstream V2 Rec.709 luma compute shader. Two real V2 downsample dispatches then build L0→L1 and L1→L2 using the upstream 2×2 box filter. Odd dimensions use ceil division at each level.
+- Each pass uses the generic DXVK V2 dispatch API, explicit sampled-image/storage-image descriptors and a 16-byte push-constant ABI. Compute barriers are recorded between dependent passes and after L2 so later consumers see the completed pyramid. Resources use VK_IMAGE_LAYOUT_GENERAL with compute read/write access tracking; image objects and views are separate per level.
+- V2 pass failure is non-fatal to the existing V1 path: the legacy luma/flow/warp pipeline continues and the real game frame remains the fallback. V2 dispatch success/failure is logged as sparse events.
+- This is the first V2 shader execution path wired into the DXVK runtime, but CI and device execution still need to confirm descriptor reflection, image layout transitions and output values. Do not call it device-validated yet.
+- Not implemented in this commit: L2/L1/L0 coarse-to-fine motion search, inter-level vector upscaling/seeding, refinement/forward-backward occlusion confidence, V2 interpolation, and ×3/×4 Present scheduling.
+- ×3/×4 phase contract for the next stage: for multiplier M, generate exactly M−1 intermediate time samples t=i/M for i=1..M−1 between two real frames. Each generated frame must consume the same frame-pair identity/history and its own time value; no generated frame may become a source-history frame. Present acceptance and pacing must remain separate from dispatch completion. ×3/×4 stays disabled until those conditions and WSI semaphore ownership are proven.
