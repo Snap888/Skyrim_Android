@@ -76,3 +76,21 @@ The event log is now sparse and contains sampled progress events rather than per
 The LSFG log is a separate, longer counter stream than the 840-frame SnapFrame capture: LSFG reports present progress up to frame 5400 while SnapFrame stops at frame 840. Do not correlate their frame IDs or assume they cover identical intervals. LSFG starts with `enabled=1 mult=2`, records real WSI images, history copies and generate dispatch commands, then logs a live settings change to `multiplier=1`; the final `lsfg.conf` also contains multiplier=1. `dxvk_perf_on.csv` reports 31 CPU-present samples through frame 3720, with mean `avg_cpu_present_ms` ~30.32 ms and mean requested/queued generated counts ~0.978. These counters indicate generation requests were queued, but the log set does not provide a confirmed generated-image WSI-present/acceptance counter or a measured displayed-FPS result. Therefore, real LSFG output cadence and FPS uplift remain unverified.
 
 The current diagnostic readback still copies flow images for sparse analysis. It is not suitable for Snap AI. The next implementation should prioritize the V2 coarse-to-fine pyramid and a GPU-side scalar reduction with frame ID/timestamp, followed by asynchronous readback. Do not lower the V1 search radius based on this sample and do not enable AI decisions from these metrics yet.
+
+
+## LSFG GPU profile and runtime log audit — 2026-11-04
+
+The uploaded `dxvk_lsfg_gpu.csv` contains 215,881 lines: one session marker and 215,880 successful stage samples across 76 stage names. There are 2,843 frame IDs (0–2842); 2,840 samples each for `Generate` and `GammaDelta_L6`. All measurement rows have `status=ok`.
+
+The sum of all recorded stage durations per frame averages approximately 8.558 ms; P95 is approximately 9.944 ms. This is a derived sum of the stage timestamp intervals, not a displayed-FPS measurement. Highest average individual stages:
+- `GammaDelta_L6`: 1.446 ms
+- `Generate`: 1.166 ms
+- `Alpha`: 0.838 ms
+- `Mipmaps`: 0.732 ms
+- `Beta`: 0.594 ms
+- `GammaDelta_L5`: 0.528 ms
+- `GammaDelta_L4`: 0.320 ms
+
+These stages are the current LSFG GPU optimization targets. Do not combine this 0–2842 LSFG GPU counter stream with SnapFrame's 1–840 capture stream or the DXVK CPU-present sample stream; their counters and captured durations differ.
+
+The Android `log.txt` has 6,133 lines and no observed `SIGSEGV`, `SIGABRT`, `VK_ERROR_DEVICE_LOST`, fatal exception or abnormal process termination. It ends with `ExitProcess(0)`. Audio telemetry repeatedly reports source-level `empty_queue` counters, but the output mixer reports `queue_low=0`, `enqueue_fail=0`, `slow_mix=0` and `max_mix` no higher than 1 ms. One 34 ms refill gap is marked `eos=1`. This log does not show an output-mixer underrun; no audio changes are justified by this run.
