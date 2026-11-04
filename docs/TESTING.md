@@ -78,3 +78,11 @@ Collect real FPS, generated FPS, stage GPU timings, total GPU time, dropped/gene
 4. Record actual generated-image present acceptance separately from generation dispatch/request/queue counters.
 5. Run same-scene V1/V2 and LSFG ON/OFF captures with the same resolution, multiplier, duration and thermal starting condition.
 6. Only then expose V2 and Snap AI adaptive control to normal gameplay.
+
+
+## LSFG full GPU profile and audio regression review — 2026-11-04
+
+- Full `dxvk_lsfg_gpu.csv` audit: 215,880 successful stage samples across 76 stage names; no non-`ok` stage rows. Derived sum of per-frame stage durations: mean ~8.558 ms, P95 ~9.944 ms.
+- Largest LSFG stages: GammaDelta_L6 (~1.446 ms), Generate (~1.166 ms), Alpha (~0.838 ms), Mipmaps (~0.732 ms), Beta (~0.594 ms). Track these independently from SnapFrame stage timings.
+- Full Android runtime log ends with normal `ExitProcess(0)`; no fatal signal, Vulkan device loss or fatal exception was found.
+- Audio output mixer telemetry shows no recorded queue-low condition, enqueue failure or slow mix; max mix time is 1 ms. A source refill gap of 34 ms is marked EOS. Preserve current audio implementation unless a reproducible audible regression appears.
