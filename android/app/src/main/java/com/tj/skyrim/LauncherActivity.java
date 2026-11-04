@@ -45,16 +45,13 @@ import java.util.Map;
  * are written to SkyrimPrefs.ini (where the game reads them) before the game
  * starts; the folder is passed to the native side as argv[1]. */
 public class LauncherActivity extends Activity {
-    private static final int REQ_FOLDER = 1, REQ_PERM = 2, REQ_DLL = 3, REQ_GPU_DRIVER = 4;
+    private static final int REQ_FOLDER = 1, REQ_PERM = 2, REQ_GPU_DRIVER = 4;
     private SharedPreferences prefs;
     private TextView folderText, folderStatus;
     private Button playButton;
-    private Button pickDllButton;
-    private TextView dllText, lsfgQualityValue;
     private Spinner gpuDriverSpinner;
     private TurnipDriverManager gpuDrivers;
     private List<TurnipDriverManager.Driver> installedGpuDrivers = new ArrayList<>();
-    private SeekBar lsfgQuality;
     private boolean pendingPick, pendingPlay;  /* continue once the storage prompt is answered */
     private boolean askedAllFiles;
     private final Map<String, Spinner> spinners = new LinkedHashMap<>();
@@ -117,8 +114,6 @@ public class LauncherActivity extends Activity {
     private static final String[] HUD_SIZE = {"Small", "Normal", "Large"};
     private static final String[] HUD_ALIGN = {"Left", "Center", "Right"};
     private static final String[] HUD_VERTICAL = {"Top", "Bottom"};
-    private static final String[] LSFG_MULTIPLIER = {"x2", "x3", "x4"};
-    private static final String[] LSFG_MODE = {"Performance", "Stability", "Low"};
     private static final String[] GAME_FPS_LIMIT = {"Unlimited", "30 FPS", "40 FPS", "45 FPS", "50 FPS", "60 FPS", "90 FPS", "120 FPS"};
 
     @Override
@@ -241,7 +236,7 @@ public class LauncherActivity extends Activity {
         check(root, "touch", "Touch controls", true);
         check(root, "nintendo", "Nintendo button layout (A/B, X/Y swapped)", false);
 
-        text(root, "LSFG FPS HUD", 20, true);
+        text(root, "SnapFrame FPS HUD", 20, true);
         check(root, "hudEnabled", "Show FPS HUD", true);
         spinner(root, "hudSize", "Font size", HUD_SIZE, 1);
         spinner(root, "hudAlign", "Horizontal position", HUD_ALIGN, 0);
@@ -250,37 +245,6 @@ public class LauncherActivity extends Activity {
         check(root, "hudGenerated", "FG submit FPS", true);
         check(root, "hudOutput", "Output submit FPS", true);
         check(root, "hudDriverInfo", "Show Vulkan driver information", false);
-
-        text(root, "Lossless Scaling Frame Generation", 20, true);
-        check(root, "lsfgEnabled", "Enable LSFG frame generation", false);
-        text(root, "Lossless.dll", 16, false);
-        dllText = text(root, prefs.getString("lsfgDllName", "No DLL selected"), 14, false);
-        pickDllButton = new Button(this);
-        pickDllButton.setText("Choose Lossless.dll");
-        pickDllButton.setOnClickListener(v -> {
-            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-            intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.setType("*/*");
-            startActivityForResult(intent, REQ_DLL);
-        });
-        root.addView(pickDllButton);
-        spinner(root, "lsfgMultiplier", "Generated frames", LSFG_MULTIPLIER, 0);
-        text(root, "Generation quality", 16, false);
-        lsfgQuality = new SeekBar(this);
-        lsfgQuality.setMax(9);
-        lsfgQuality.setProgress(Math.max(0, Math.min(9, prefs.getInt("lsfgQuality", 6))));
-        root.addView(lsfgQuality);
-        lsfgQualityValue = text(root, "", 14, false);
-        updateLsfgQualityLabel();
-        lsfgQuality.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
-                updateLsfgQualityLabel();
-            }
-            @Override public void onStartTrackingTouch(SeekBar bar) {}
-            @Override public void onStopTrackingTouch(SeekBar bar) {}
-        });
-        spinner(root, "lsfgMode", "Generation mode", LSFG_MODE, 0);
-        text(root, "Recommended: Performance (75% of selected flow resolution). Stability: 100%. Low: 50%. Lower flow resolution reduces LSFG GPU workload; existing saved choices are preserved.", 13, false);
 
         text(root, "Vulkan GPU driver", 20, true);
         text(root, "System uses the Android device driver. Import a compatible Turnip ZIP to use a custom Adreno driver.", 13, false);
@@ -299,12 +263,12 @@ public class LauncherActivity extends Activity {
 
         text(root, "Game frame rate limit (DXVK)", 20, true);
         spinner(root, "gameFpsLimit", "Maximum game FPS", GAME_FPS_LIMIT, 0);
-        text(root, "Limits the original game's frame rate before LSFG. Generated frames are not capped by this setting. Use Unlimited to disable the limiter.", 13, false);
+        text(root, "Caps the original game frame rate. Generated SnapFrame frames are paced separately.", 13, false);
 
         text(root, "DXVK Performance A/B test", 20, true);
         check(root, "dxvkPerfEnabled", "Write separate DXVK benchmark log", false);
-        spinner(root, "dxvkPerfRun", "Test pass", new String[] {"A — LSFG OFF", "B — LSFG ON"}, 0);
-        text(root, "The CSV log is saved under port/dxvk_perf_off.csv or port/dxvk_perf_on.csv. The selected pass forces LSFG OFF/ON and bypasses SnapFrame capture/generation, so the A/B isolates the LSFG path.", 13, false);
+        spinner(root, "dxvkPerfRun", "Test pass", new String[] {"A — SnapFrame OFF", "B — SnapFrame ON"}, 0);
+        text(root, "Writes separate DXVK timing CSVs under port/snapframe_perf_off.csv or port/snapframe_perf_on.csv. Pass A bypasses SnapFrame; pass B runs the native SnapFrame pipeline.", 13, false);
 
         text(root, "Experimental runtime tuning", 20, true);
         check(root, "runtimeSyncPipelines", "Synchronous shader pipeline compilation (noasync.txt)", false);
@@ -315,8 +279,6 @@ public class LauncherActivity extends Activity {
         text(root, "Records surface create/change/destroy, actual SurfaceView dimensions, display dimensions and refresh rate.", 13, false);
         check(root, "runtimeTuningLogs", "Write runtime tuning configuration and diagnostics", true);
         text(root, "Configuration and DXVK log are stored in the selected game folder under port/. Android Surface events are also visible in logcat (tag SDL).", 13, false);
-        check(root, "lsfgGpuProfile", "LSFG GPU stage profiling (CSV)", false);
-        text(root, "Writes per-stage Vulkan GPU timings to port/dxvk_lsfg_gpu.csv. Diagnostic mode adds timestamp queries and file I/O; keep OFF during normal gameplay.", 13, false);
 
         preset.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             boolean first = true;
@@ -335,11 +297,6 @@ public class LauncherActivity extends Activity {
         lp.topMargin = dp(16);
         root.addView(playButton, lp);
         setContentView(sv);
-    }
-
-    private void updateLsfgQualityLabel() {
-        if (lsfgQualityValue != null && lsfgQuality != null)
-            lsfgQualityValue.setText(String.format(java.util.Locale.US, "%.1f", (lsfgQuality.getProgress() + 1) / 10.0f));
     }
 
     /* Choosing a preset sets the detail options to what the PC launcher's preset does. */
@@ -423,16 +380,6 @@ public class LauncherActivity extends Activity {
             }
             return;
         }
-        if (req == REQ_DLL) {
-            if (res == RESULT_OK && data != null && data.getData() != null) {
-                try {
-                    copyLosslessDll(data.getData());
-                } catch (Exception e) {
-                    folderStatus.setText("Could not import Lossless.dll: " + e.getMessage());
-                }
-            }
-            return;
-        }
         if (req != REQ_FOLDER || res != RESULT_OK || data == null || data.getData() == null) return;
         String path = treeToPath(data.getData());
         if (path == null) {
@@ -445,41 +392,6 @@ public class LauncherActivity extends Activity {
             askedAllFiles = true;
             requestAllFiles();
         }
-    }
-
-    /* content://...tree/primary:Games/Skyrim -> /storage/emulated/0/Games/Skyrim */
-    private void copyLosslessDll(Uri uri) throws Exception {
-        File dir = new File(getFilesDir(), "lsfg");
-        if (!dir.exists() && !dir.mkdirs()) throw new java.io.IOException("cannot create app LSFG folder");
-        File target = new File(dir, "Lossless.dll");
-        File temp = new File(dir, "Lossless.dll.tmp");
-        try (InputStream in = getContentResolver().openInputStream(uri)) {
-            if (in == null) throw new java.io.IOException("selected file cannot be opened");
-            int first = in.read();
-            int second = in.read();
-            if (first != 'M' || second != 'Z')
-                throw new java.io.IOException("selected file is not a Windows PE DLL (MZ header missing)");
-            try (FileOutputStream out = new FileOutputStream(temp)) {
-                out.write(first);
-                out.write(second);
-                byte[] buffer = new byte[1 << 16];
-                for (int n; (n = in.read(buffer)) > 0; ) out.write(buffer, 0, n);
-                out.getFD().sync();
-            }
-        }
-        if (target.exists() && !target.delete()) {
-            temp.delete();
-            throw new java.io.IOException("cannot replace previous DLL");
-        }
-        if (!temp.renameTo(target)) {
-            temp.delete();
-            throw new java.io.IOException("cannot move imported DLL into app storage");
-        }
-        File cache = new File(getNoBackupFilesDir(), "lsfg/cache");
-        deleteTree(cache);
-        prefs.edit().putString("lsfgDllName", "Lossless.dll (app storage)").apply();
-        dllText.setText("Lossless.dll (app storage)");
-        folderStatus.setText("Lossless.dll imported into private app storage");
     }
 
     private static void deleteTree(File file) {
@@ -615,7 +527,6 @@ public class LauncherActivity extends Activity {
         SharedPreferences.Editor e = prefs.edit();
         for (Map.Entry<String, Spinner> s : spinners.entrySet()) e.putInt(s.getKey(), s.getValue().getSelectedItemPosition());
         for (Map.Entry<String, CheckBox> c : checks.entrySet()) e.putBoolean(c.getKey(), c.getValue().isChecked());
-        if (lsfgQuality != null) e.putInt("lsfgQuality", lsfgQuality.getProgress());
         TurnipDriverManager.Driver gpuDriver = selectedGpuDriver();
         e.putString("gpuDriverId", gpuDriver != null ? gpuDriver.id : "");
         e.apply();
@@ -627,12 +538,7 @@ public class LauncherActivity extends Activity {
         if (!hasStorage()) { pendingPlay = true; requestStorage(); return; }
         saveChoices();
         boolean perfEnabled = checks.get("dxvkPerfEnabled").isChecked();
-        boolean perfLsfgOn = sel("dxvkPerfRun") == 1;
-        boolean effectiveLsfgEnabled = perfEnabled ? perfLsfgOn : checks.get("lsfgEnabled").isChecked();
-        if (effectiveLsfgEnabled && !new File(getFilesDir(), "lsfg/Lossless.dll").isFile()) {
-            folderStatus.setText("LSFG is enabled for this run: choose a valid Lossless.dll first.");
-            return;
-        }
+        boolean snapFramePerfOn = sel("dxvkPerfRun") == 1;
         String folder = prefs.getString("folder", null);
         File save = new File(folder, "port/save");
         File iniDir = new File(save, "Documents/My Games/Skyrim");
@@ -640,11 +546,10 @@ public class LauncherActivity extends Activity {
         try {
             writePrefs(new File(folder), new File(iniDir, "SkyrimPrefs.ini"));
             writeDxvkHudConfig(new File(folder));
-            writeLsfgConfig(new File(folder), effectiveLsfgEnabled);
             writeGpuDriverConfig(new File(folder));
-            configureDxvkPerfEnvironment(new File(folder), perfEnabled, perfLsfgOn);
+            configureDxvkPerfEnvironment(new File(folder), perfEnabled, snapFramePerfOn);
             configureRuntimeTuning(new File(folder));
-            configureLsfgGpuProfiler(new File(folder));
+            removeLegacyFrameGenArtifacts(new File(folder));
             // the native side builds the same mode list from this aspect (see modes())
             int[] av = ASPECT_V[sel("aspect")];
             try (Writer w = new OutputStreamWriter(new FileOutputStream(new File(save, "display.cfg")))) {
@@ -710,38 +615,9 @@ public class LauncherActivity extends Activity {
         else Os.unsetenv(name);
     }
 
-    /* Configure LSFG GPU timestamp profiling before SkyrimActivity starts.
-     * The native profiler caches its environment setting on first use. */
-    private void configureLsfgGpuProfiler(File game) throws Exception {
-        File port = new File(game, "port");
-        if (!port.exists() && !port.mkdirs())
-            throw new java.io.IOException("cannot create port GPU profiler folder");
-
-        boolean enabled = checks.get("lsfgGpuProfile").isChecked();
-        File log = new File(port, "dxvk_lsfg_gpu.csv");
-        if (enabled) {
-            if (log.exists() && !log.delete())
-                throw new java.io.IOException("cannot reset previous LSFG GPU log: " + log);
-            // Leave the CSV absent: the native profiler detects this and writes its header.
-            Os.setenv("DXVK_LSFG_GPU_PROFILE_LOG", log.getAbsolutePath(), true);
-            Os.setenv("DXVK_LSFG_GPU_PROFILE", "1", true);
-        } else {
-            Os.unsetenv("DXVK_LSFG_GPU_PROFILE");
-            Os.unsetenv("DXVK_LSFG_GPU_PROFILE_LOG");
-        }
-
-        File config = new File(port, "lsfg_gpu_profile.conf");
-        try (Writer w = new OutputStreamWriter(new FileOutputStream(config))) {
-            w.write("enabled=" + (enabled ? "1" : "0") + "\n");
-            w.write("csv_path=" + (enabled ? log.getAbsolutePath() : "disabled") + "\n");
-        }
-        android.util.Log.i("SkyrimRuntime", "LSFG GPU profiler: enabled=" + enabled
-                + (enabled ? ", csv=" + log.getAbsolutePath() : ""));
-    }
-
     /* Configure benchmark variables in this app process before SDL loads DXVK.
      * The CSV is intentionally stored beside the other port diagnostics. */
-    private void configureDxvkPerfEnvironment(File game, boolean enabled, boolean lsfgOn) throws Exception {
+    private void configureDxvkPerfEnvironment(File game, boolean enabled, boolean snapFrameOn) throws Exception {
         if (!enabled) {
             Os.unsetenv("DXVK_PERF_LOG");
             Os.unsetenv("DXVK_PERF_RUN");
@@ -750,14 +626,15 @@ public class LauncherActivity extends Activity {
         }
         File port = new File(game, "port");
         if (!port.exists() && !port.mkdirs()) throw new java.io.IOException("cannot create port log folder");
-        String run = lsfgOn ? "lsfg_on" : "lsfg_off";
-        File log = new File(port, lsfgOn ? "dxvk_perf_on.csv" : "dxvk_perf_off.csv");
+        String run = snapFrameOn ? "snapframe_on" : "snapframe_off";
+        File log = new File(port, snapFrameOn ? "snapframe_perf_on.csv" : "snapframe_perf_off.csv");
         if (log.exists() && !log.delete()) throw new java.io.IOException("cannot reset previous benchmark log: " + log);
         if (!log.createNewFile()) throw new java.io.IOException("cannot create benchmark log: " + log);
         if (!log.delete()) throw new java.io.IOException("cannot prepare benchmark log: " + log);
         Os.setenv("DXVK_PERF_RUN", run, true);
         Os.setenv("DXVK_PERF_LOG", log.getAbsolutePath(), true);
-        Os.setenv("DXVK_PERF_DISABLE_SNAPFRAME", "1", true);
+        if (snapFrameOn) Os.unsetenv("DXVK_PERF_DISABLE_SNAPFRAME");
+        else Os.setenv("DXVK_PERF_DISABLE_SNAPFRAME", "1", true);
     }
 
     /* DXVK reads dxvk.conf beside the game executable. Preserve unrelated
@@ -801,30 +678,16 @@ public class LauncherActivity extends Activity {
         }
     }
 
-    /* LSFG reads only user-supplied Lossless.dll; shader/cache files are kept
-     * in app-private storage and never copied into the game folder. */
-    private void writeLsfgConfig(File game, boolean enabled) throws Exception {
+    private void removeLegacyFrameGenArtifacts(File game) throws Exception {
         File port = new File(game, "port");
-        if (!port.exists() && !port.mkdirs()) throw new java.io.IOException("cannot create port config folder");
-        File dll = new File(getFilesDir(), "lsfg/Lossless.dll");
-        File privateRoot = new File(getNoBackupFilesDir(), "lsfg");
-        File cache = new File(privateRoot, "cache");
-        File dxvkCache = new File(privateRoot, "dxvk");
-        if (!cache.exists() && !cache.mkdirs()) throw new java.io.IOException("cannot create private LSFG cache");
-        if (!dxvkCache.exists() && !dxvkCache.mkdirs()) throw new java.io.IOException("cannot create private DXVK cache");
-        int multiplier = sel("lsfgMultiplier") + 2;
-        float quality = (lsfgQuality.getProgress() + 1) / 10.0f;
-        int mode = sel("lsfgMode"); // 0 performance, 1 stability, 2 low GPU load
-        File config = new File(port, "lsfg.conf");
-        try (Writer w = new OutputStreamWriter(new FileOutputStream(config))) {
-            w.write("enabled=" + (enabled ? "1" : "0") + "\n");
-            w.write("multiplier=" + multiplier + "\n");
-            w.write(String.format(java.util.Locale.US, "flow_scale=%.1f\n", quality));
-            w.write("performance=" + mode + "\n");
-            w.write("dll_path=" + dll.getAbsolutePath() + "\n");
-            w.write("shader_cache=" + cache.getAbsolutePath() + "\n");
-            w.write("state_cache=" + dxvkCache.getAbsolutePath() + "\n");
+        String[] names = {"lsfg.conf", "lsfg_gpu_profile.conf", "dxvk_lsfg_gpu.csv"};
+        for (String name : names) {
+            File artifact = new File(port, name);
+            if (artifact.exists() && !artifact.delete())
+                throw new java.io.IOException("cannot remove retired frame-generation artifact: " + artifact);
         }
+        Os.unsetenv("DXVK_LSFG_GPU_PROFILE");
+        Os.unsetenv("DXVK_LSFG_GPU_PROFILE_LOG");
     }
 
     /* SkyrimPrefs.ini: keep what is there, start from the chosen preset file
