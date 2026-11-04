@@ -428,3 +428,35 @@ sufficient.
 - x3/x4 is not enabled: one midpoint output and one generated WSI present remain
   the current backend contract. Multiple phases require separate output lifetimes
   and Presenter acquire tickets; shared mutable Presenter state remains a safety gate.
+
+
+## Adaptive V2 GPU budget — 2026-11-05
+
+The experimental V2 pyramid and motion search are now decoupled from the
+V1 midpoint reconstruction path. V2 search/refinement/validation are diagnostic
+stages and do not currently feed the generated midpoint image.
+
+A sparse total-chain GPU timestamp is sampled every 30 captured frames even
+when verbose profiling is disabled. The host uses completed timing samples as
+a conservative V2 workload guard:
+
+- GPU chain above 6 ms for two consecutive samples: V2 search, refinement and
+  validation are scheduled once every four source frames.
+- GPU chain below 4 ms for three consecutive samples: V2 analysis returns to
+  every source frame.
+- Between thresholds, the current interval is retained.
+
+This does not reduce V1 flow cost or fix WSI retirement waits. It preserves the
+V1 source and midpoint output path while reducing diagnostic V2 compute under
+GPU pressure. The guard is not yet the full SnapAI Engine policy loop.
+
+The latest uploaded performance log shows avg_retire_wait_ms dominating
+avg_cpu_present_ms; this requires a separate WSI/pacing investigation.
+The latest uploaded scalar metrics are rejected for low valid-flow coverage,
+so no full AI Flow Scale decision should be assumed. Keep the 90% coverage
+gate until the reduction is validated against a CPU reference.
+
+For controlled stage profiling, set profiling_enabled=1. The CSV stage
+measurements (v2_pyramid, v2_search, v2_refine, v2_validation) are diagnostic
+GPU execution intervals, not total game frame time. With profiling disabled,
+sparse total_chain rows still support the V2 budget guard.
