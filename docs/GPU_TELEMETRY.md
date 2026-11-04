@@ -12,7 +12,7 @@ The optional flow diagnostic readback copies the two low-resolution RGBA16F flow
 
 This path is for diagnostics only. It is not the AI telemetry implementation and must not be converted into a per-frame CPU pixel readback. The flow readback gate must follow `motion_analysis`, not `diagnostic_suite`: the latter controls the seven-phase scripted test sequence and should be independently switchable.
 
-A log audit on 2026-11-04 found `motion_analysis=1`, `profiling=1`, `diagnostic_suite=0`, but `snapframe_flow.csv` contained only its header. The cause was the incorrect diagnostic-suite gate in `recordFlowReadback`. The gate has been corrected to use `motion_analysis`; the next device run must confirm that aggregate rows and periodic vector samples are actually produced.
+A log audit on 2026-11-04 found `motion_analysis=1`, `profiling=1`, `diagnostic_suite=0`, but `snapframe_flow.csv` contained only its header. The cause was the incorrect diagnostic-suite gate in `recordFlowReadback`. The gate was corrected to use `motion_analysis`; the second uploaded device run confirms aggregate rows and periodic vector samples are produced with `diagnostic_suite=0`.
 
 ## AI-safe telemetry
 
@@ -45,7 +45,7 @@ The uploaded `Logs/snapframe.conf` contained literal backslash-n separators inst
 The event CSV previously flushed after every event, while the render callback emitted several successful stage events plus `frame_complete` for every captured frame. That caused synchronous stdio flushes on the frame path and unnecessarily large event logs. The logger now uses a 64 KiB stdio buffer, flushes critical failures/rejections and lifecycle/test-phase events immediately, and otherwise flushes every 64 accepted event records. Routine successful stage/present events are sampled every 120 frames; `frame_complete` progress is sampled every 300 frames (the first event is retained). Failures are never rate-limited. This reduces diagnostic I/O pressure without changing the GPU pipeline or its dispatch cadence. Validate event ordering, failure retention and log size on the next device run.
 
 
-## Latest device measurements — 2026-11-04
+## Previous device measurements — 2026-11-04
 
 The latest uploaded run contains 206 successful timestamp samples per stage at 2448x1080. Average/P95 milliseconds: capture/copy 0.568/0.739; luma 0.404/0.403; forward flow 4.456/5.722; backward flow 4.450/5.485; consistency 0.012/0.014; midpoint warp 1.612/1.565; total chain 11.508/14.270. The small P95 values below averages for luma/warp reflect highly clustered samples with a few outliers; use the full CSV when comparing builds. Total chain remains the SnapFrame GPU chain only.
 
