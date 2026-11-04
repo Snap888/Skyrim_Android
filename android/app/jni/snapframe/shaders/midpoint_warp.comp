@@ -48,15 +48,18 @@ void main() {
     vec2 currentUv = clamp(uv + bwd.xy * pixelToUv * 0.5,
                            vec2(0.0), vec2(1.0));
 
+    // IMPORTANT: do not average unwarped frames when motion is uncertain.
+    // Skip displaced color fetches entirely when the motion field is invalid
+    // or too weak; keep the sharp current-frame fallback in ambiguous regions.
+    float motionWeight = smoothstep(0.18, 0.70, confidence);
+    if (motionWeight <= 0.001) {
+        imageStore(midpointOutput, p, texture(currentColor, uv));
+        return;
+    }
+
     vec4 prev = texture(previousColor, previousUv);
     vec4 curr = texture(currentColor, currentUv);
     vec4 warped = (prev + curr) * 0.5;
-
-    // IMPORTANT: do not average unwarped frames when motion is uncertain.
-    // That creates double edges/blur during even a slow camera pan. Prefer a
-    // sharp real-frame sample in ambiguous regions; this trades local temporal
-    // smoothness for spatial clarity until a reliable vector is available.
     vec4 fallback = texture(currentColor, uv);
-    float motionWeight = smoothstep(0.18, 0.70, confidence);
     imageStore(midpointOutput, p, mix(fallback, warped, motionWeight));
 }
