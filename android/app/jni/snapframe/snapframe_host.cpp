@@ -234,6 +234,10 @@ std::atomic<uint64_t> g_lastGpuTimingFrame{0};
 std::atomic<float> g_lastGpuTimingMs{0.0f};
 std::atomic<float> g_lastGpuFrameIntervalMs{0.0f};
 std::atomic<int> g_lastGpuTimingValid{0};
+std::atomic<uint32_t> g_v2SearchIntervalFrames{1};
+std::atomic<uint32_t> g_v2GpuPressureHighSamples{0};
+std::atomic<uint32_t> g_v2GpuPressureLowSamples{0};
+uint32_t g_v2SearchIntervalLogged = 1;
 std::atomic<float> g_lastFrameIntervalMs{0.0f};
 std::atomic<uint64_t> g_lastFrameTimestampNs{0};
 
@@ -377,7 +381,9 @@ SnapFrameGpuTimer beginGpuTimer(
     DxvkContext* context, DxvkDevice* device, const char* stage,
     uint64_t frame, uint32_t width, uint32_t height, bool sample) {
     SnapFrameGpuTimer timer;
-    if (!g_profilingEnabled || !sample || !context || !device || !stage)
+    /* Sparse total-chain samples also feed the runtime budget governor when
+     * verbose profiling is disabled. The caller decides which stages sample. */
+    if (!sample || !context || !device || !stage)
         return timer;
     timer.begin = device->createGpuQuery(VK_QUERY_TYPE_TIMESTAMP, 0, 0);
     timer.end = device->createGpuQuery(VK_QUERY_TYPE_TIMESTAMP, 0, 0);
@@ -409,28 +415,54 @@ void endGpuTimer(DxvkContext* context, const SnapFrameGpuTimer& timer) {
             && endStatus == DxvkGpuQueryStatus::Available
             && endData.timestamp.time >= beginData.timestamp.time
             && timer.periodNs > 0.0;
-        std::lock_guard<std::mutex> lock(g_gpuLogMutex);
-        if (!g_gpuLogFile) return;
+        double gpuMs = 0.0;
         if (valid) {
-            const double gpuMs = double(endData.timestamp.time - beginData.timestamp.time)
+            gpuMs = double(endData.timestamp.time - beginData.timestamp.time)
                 * timer.periodNs / 1000000.0;
             if (timer.stage == "total_chain") {
                 g_lastGpuTimingFrame.store(timer.frame, std::memory_order_release);
                 g_lastGpuTimingMs.store(static_cast<float>(gpuMs), std::memory_order_release);
                 g_lastGpuFrameIntervalMs.store(timer.frameTimeMs, std::memory_order_release);
                 g_lastGpuTimingValid.store(1, std::memory_order_release);
+
+                /* V2 search/refine/validation are diagnostic-only: the V1
+                 * midpoint path does not consume these fields. Decimate V2
+                 * work under sustained GPU pressure without reducing source
+                 * frame rate or changing the generated-frame image. */
+                uint32_t high = g_v2GpuPressureHighSamples.load(std::memory_order_relaxed);
+                uint32_t low = g_v2GpuPressureLowSamples.load(std::memory_order_relaxed);
+                if (gpuMs > 6.0) {
+                    high = std::min(high + 1u, 8u);
+                    g_v2GpuPressureHighSamples.store(high, std::memory_order_relaxed);
+                    g_v2GpuPressureLowSamples.store(0u, std::memory_order_relaxed);
+                    if (high >= 2u)
+                        g_v2SearchIntervalFrames.store(4u, std::memory_order_release);
+                } else if (gpuMs < 4.0) {
+                    low = std::min(low + 1u, 8u);
+                    g_v2GpuPressureLowSamples.store(low, std::memory_order_relaxed);
+                    g_v2GpuPressureHighSamples.store(0u, std::memory_order_relaxed);
+                    if (low >= 3u)
+                        g_v2SearchIntervalFrames.store(1u, std::memory_order_release);
+                } else {
+                    g_v2GpuPressureHighSamples.store(0u, std::memory_order_relaxed);
+                    g_v2GpuPressureLowSamples.store(0u, std::memory_order_relaxed);
+                }
             }
-            fprintf(g_gpuLogFile, "%llu,%s,%.6f,%u,%u,ok\n",
+        } else if (timer.stage == "total_chain") {
+            g_lastGpuTimingFrame.store(timer.frame, std::memory_order_release);
+            g_lastGpuTimingMs.store(0.0f, std::memory_order_release);
+            g_lastGpuFrameIntervalMs.store(timer.frameTimeMs, std::memory_order_release);
+            g_lastGpuTimingValid.store(0, std::memory_order_release);
+        }
+
+        std::lock_guard<std::mutex> lock(g_gpuLogMutex);
+        if (!g_gpuLogFile) return;
+        if (valid) {
+            fprintf(g_gpuLogFile, "%llu,%s,%.6f,%u,%u,ok\\n",
                 static_cast<unsigned long long>(timer.frame), timer.stage.c_str(),
                 gpuMs, timer.width, timer.height);
         } else {
-            if (timer.stage == "total_chain") {
-                g_lastGpuTimingFrame.store(timer.frame, std::memory_order_release);
-                g_lastGpuTimingMs.store(0.0f, std::memory_order_release);
-                g_lastGpuFrameIntervalMs.store(timer.frameTimeMs, std::memory_order_release);
-                g_lastGpuTimingValid.store(0, std::memory_order_release);
-            }
-            fprintf(g_gpuLogFile, "%llu,%s,0,%u,%u,unavailable:%d:%d:%d\n",
+            fprintf(g_gpuLogFile, "%llu,%s,0,%u,%u,unavailable:%d:%d:%d\\n",
                 static_cast<unsigned long long>(timer.frame), timer.stage.c_str(),
                 timer.width, timer.height, int(result), int(beginStatus), int(endStatus));
         }
@@ -901,6 +933,10 @@ void clearHistory() {
     g_v2PyramidValid[0] = g_v2PyramidValid[1] = false;
     g_v2FlowAvailable = false;
     g_v2FlowDispatchCount = 0;
+    g_v2SearchIntervalFrames.store(1u, std::memory_order_relaxed);
+    g_v2GpuPressureHighSamples.store(0u, std::memory_order_relaxed);
+    g_v2GpuPressureLowSamples.store(0u, std::memory_order_relaxed);
+    g_v2SearchIntervalLogged = 1u;
     g_v2RefinementAvailable = false;
     g_v2RefinementDispatchCount = 0;
     g_v2ValidationView = Rc<DxvkImageView>();
@@ -1962,6 +1998,13 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
     const SnapFrameGpuTimer totalTimer = beginGpuTimer(
         context, device, "total_chain", nextCapturedFrame, width, height,
         profileThisFrame || collectAiTiming);
+    const uint32_t currentV2SearchInterval =
+        g_v2SearchIntervalFrames.load(std::memory_order_acquire);
+    if (currentV2SearchInterval != g_v2SearchIntervalLogged) {
+        g_v2SearchIntervalLogged = currentV2SearchInterval;
+        snapframeLog("SnapFrame AI budget: V2 motion search interval=%u source frames (GPU budget target=6ms)\\n",
+            currentV2SearchInterval);
+    }
     bool totalTimerEnded = false;
     const SnapFrameGpuTimer captureTimer = beginGpuTimer(
         context, device, "capture_copy", nextCapturedFrame, width, height, profileThisFrame);
@@ -2055,8 +2098,10 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
         endGpuTimer(context, v2PyramidTimer);
     }
 
+    const bool v2SearchScheduled = currentV2SearchInterval <= 1u
+        || (nextCapturedFrame % currentV2SearchInterval) == 0u;
     if (g_v2FlowAvailable && g_v2PyramidValid[slot]
-        && g_v2PyramidValid[slot ^ 1u]) {
+        && g_v2PyramidValid[slot ^ 1u] && v2SearchScheduled) {
         const SnapFrameGpuTimer v2SearchTimer = beginGpuTimer(
             context, device, "v2_search", nextCapturedFrame, width, height, profileThisFrame);
         const unsigned previousSlot = slot ^ 1u;
