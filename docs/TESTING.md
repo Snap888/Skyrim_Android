@@ -100,3 +100,10 @@ The Skyrim project now pins Snap AI Engine revision `ccf4589ca19d5f788adc56c7248
 - Frame 601 vector dump is high-confidence/static: mean confidence 0.88464, consistency 0.90590; this supersedes the prior incorrect frame-601 note in the second-upload section.
 - New generated-present acceptance is resolved after the existing WSI completion wait. Verify `midpoint_present_accepted`/failure events on the next device run. This must not introduce a new queue/device wait.
 - Full APK and physical-device validation of the updated present-result accounting remain outstanding.
+
+
+## Third-run LSFG and CPU-present interpretation
+
+- Final config files show LSFG enabled at multiplier 2 and SnapFrame disabled at 25% flow scale. The LSFG runtime log shows a temporary switch to 1x followed by 2x.
+- The LSFG GPU CSV (frames 0–1219) and DXVK CPU-present CSV (frames 120–5760) are separate counter streams.
+- The 48 DXVK CPU-present samples average 18.52 ms (P95 32.96 ms); requested/queued generated counts average 0.407. No matched LSFG-OFF baseline or confirmed generated-image WSI acceptance is present in this log set.
