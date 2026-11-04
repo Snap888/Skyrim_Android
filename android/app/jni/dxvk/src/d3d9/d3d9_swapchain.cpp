@@ -1081,6 +1081,24 @@ namespace dxvk {
     const bool snapFrameGeneration = snapFrameCanGenerate;
     perfRequested = generationCount;
     if (generationCount) {
+      /*
+       * Presenter currently exposes one outstanding acquire token
+       * (m_acquireStatus/m_imageIndex/m_frameIndex). The source present is
+       * queued asynchronously, and its CS-thread presentImage() advances that
+       * token and pre-acquires the next WSI image. Until Presenter is converted
+       * to explicit per-acquire tickets, retire the source submission here so
+       * generated acquire cannot reuse the source image/semaphores.
+       *
+       * This is intentionally a correctness barrier, not a permanent pacing
+       * design. A future ticket-based Presenter can remove it safely.
+       */
+      {
+        const auto waitStart = std::chrono::steady_clock::now();
+        SynchronizePresent();
+        perfRetireWaitMs += std::chrono::duration<double, std::milli>(
+          std::chrono::steady_clock::now() - waitStart).count();
+      }
+
       for (uint32_t generation = 0; generation < generationCount; generation++) {
         /* Queue order preserves source -> generated presentation. Independent
          * status slots remove the CPU wait between the two submissions. */
