@@ -64,9 +64,7 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
         super.onDestroy();
     }
 
-    // ---- In-game LSFG controls ------------------------------------------------
-    private static native int[] nativeGetLsfgSettings();
-    private static native boolean nativeSetLsfgSettings(int multiplier, int flowPercent, int performance, int gameFpsLimit);
+    // ---- In-game SnapFrame controls ---------------------------------------------
     private static native int[] nativeGetSnapFrameSettings();
     private static native boolean nativeSetSnapFrameSettings(int enabled, int flowPercent);
 
@@ -171,13 +169,12 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
     }
 
     private void showOverlayMenu() {
-        String[] items = { "LSFG settings", "Snap AI / Frame Generation", "Android keyboard", "Gamepad overlay: " + (gamepadOverlayEnabled ? "ON" : "OFF"), "Gamepad editor", "Legacy touch controls editor" };
+        String[] items = { "Snap AI / Frame Generation", "Android keyboard", "Gamepad overlay: " + (gamepadOverlayEnabled ? "ON" : "OFF"), "Gamepad editor", "Legacy touch controls editor" };
         new AlertDialog.Builder(this)
                 .setTitle("Skyrim overlay")
                 .setItems(items, (dialog, which) -> {
-                    if (which == 0) showLsfgSettings();
-                    else if (which == 1) showSnapFrameSettings();
-                    else if (which == 2) {
+                    if (which == 0) showSnapFrameSettings();
+                    else if (which == 1) {
                         // SDLActivity routes this request to Android's InputMethodManager.
                         showTextInput(0, 0, 1, 1);
                     } else if (which == 3) {
@@ -552,101 +549,6 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
                                 android.widget.Toast.LENGTH_SHORT).show();
                     } else {
                         android.widget.Toast.makeText(this, "SnapFrame settings queued for the next frame",
-                                android.widget.Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .show();
-    }
-
-    private void showLsfgSettings() {
-        int[] current = nativeGetLsfgSettings();
-        if (current == null || current.length < 5 || current[0] == 0) {
-            new AlertDialog.Builder(this)
-                    .setTitle("LSFG")
-                    .setMessage("LSFG backend is not active. Check port/lsfg.conf and Lossless.dll, then restart the game.")
-                    .setPositiveButton("OK", null)
-                    .show();
-            return;
-        }
-
-        LinearLayout panel = new LinearLayout(this);
-        panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding(dp(20), dp(8), dp(20), dp(4));
-
-        TextView status = new TextView(this);
-        status.setText("Changes apply during gameplay and are saved for the next launch. x-0 disables frame generation; x-2/x-3/x-4 enable it.");
-        status.setTextSize(13);
-        panel.addView(status);
-
-        TextView multiplierLabel = new TextView(this);
-        multiplierLabel.setText("Frame generation");
-        multiplierLabel.setPadding(0, dp(16), 0, dp(4));
-        panel.addView(multiplierLabel);
-        Spinner multiplier = new Spinner(this);
-        multiplier.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
-                new String[] { "x-0 (Off)", "x-2", "x-3", "x-4" }));
-        multiplier.setSelection(current[1] <= 1 ? 0 : Math.max(1, Math.min(3, current[1] - 1)));
-        panel.addView(multiplier);
-
-        TextView flowLabel = new TextView(this);
-        flowLabel.setPadding(0, dp(16), 0, 0);
-        panel.addView(flowLabel);
-        SeekBar flow = new SeekBar(this);
-        flow.setMax(60);
-        flow.setProgress(Math.max(0, Math.min(60, current[2] - 40)));
-        panel.addView(flow);
-        Runnable updateFlowLabel = () -> flowLabel.setText("Flow quality: " + (flow.getProgress() + 40) + "%");
-        updateFlowLabel.run();
-        flow.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar bar, int value, boolean fromUser) {
-                updateFlowLabel.run();
-            }
-            @Override public void onStartTrackingTouch(SeekBar bar) {}
-            @Override public void onStopTrackingTouch(SeekBar bar) {}
-        });
-
-        TextView modeLabel = new TextView(this);
-        modeLabel.setText("GPU mode");
-        modeLabel.setPadding(0, dp(16), 0, dp(4));
-        panel.addView(modeLabel);
-        Spinner mode = new Spinner(this);
-        mode.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
-                new String[] { "Performance", "Balanced", "Low GPU load" }));
-        mode.setSelection(Math.max(0, Math.min(2, current[3])));
-        panel.addView(mode);
-
-        TextView experimentalLabel = new TextView(this);
-        experimentalLabel.setText("EXPERIMENTAL");
-        experimentalLabel.setTextSize(12);
-        experimentalLabel.setTypeface(null, android.graphics.Typeface.BOLD);
-        experimentalLabel.setPadding(0, dp(20), 0, dp(6));
-        panel.addView(experimentalLabel);
-        TextView gameFpsLabel = new TextView(this);
-        gameFpsLabel.setText("Game FPS limit (generated frames are not limited)");
-        panel.addView(gameFpsLabel);
-        Spinner gameFps = new Spinner(this);
-        String[] fpsOptions = { "Off", "15 FPS", "20 FPS", "25 FPS", "30 FPS", "60 FPS" };
-        gameFps.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, fpsOptions));
-        int[] fpsValues = { 0, 15, 20, 25, 30, 60 };
-        int fpsSelection = 0;
-        for (int i = 0; i < fpsValues.length; i++) if (fpsValues[i] == current[4]) fpsSelection = i;
-        gameFps.setSelection(fpsSelection);
-        panel.addView(gameFps);
-
-        new AlertDialog.Builder(this)
-                .setTitle("LSFG dynamic settings")
-                .setView(panel)
-                .setNegativeButton("Cancel", null)
-                .setPositiveButton("Apply", (dialog, which) -> {
-                    int selectedFrameMode = multiplier.getSelectedItemPosition();
-                    int mult = selectedFrameMode == 0 ? 1 : selectedFrameMode + 1;
-                    int quality = flow.getProgress() + 40;
-                    int perf = mode.getSelectedItemPosition();
-                    if (!nativeSetLsfgSettings(mult, quality, perf, fpsValues[gameFps.getSelectedItemPosition()])) {
-                        android.widget.Toast.makeText(this, "Could not apply LSFG settings",
-                                android.widget.Toast.LENGTH_SHORT).show();
-                    } else {
-                        android.widget.Toast.makeText(this, "LSFG settings applied",
                                 android.widget.Toast.LENGTH_SHORT).show();
                     }
                 })

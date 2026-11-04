@@ -11,21 +11,8 @@
 #include <cstdlib>
 #include <fstream>
 #include <mutex>
-#include <thread>
 
-/* LSFG callback registration keeps DXVK independent of lsfg_host at link time. */
-using LsfgGameFpsLimitHook = int (*)(void);
-static LsfgGameFpsLimitHook g_lsfgGameFpsLimitHook = nullptr;
-extern "C" void lsfg_step3g_set_game_fps_limit_hook(LsfgGameFpsLimitHook hook) {
-  g_lsfgGameFpsLimitHook = hook;
-}
-using LsfgCopyHook = void (*)(void*, void*, void*, uint32_t, uint32_t, uint32_t);
-static LsfgCopyHook g_lsfgCopyHook = nullptr;
-extern "C" void lsfg_step3g_set_copy_hook(LsfgCopyHook hook) {
-  g_lsfgCopyHook = hook;
-}
-
-/* SnapFrame captures the source image independently of LSFG. */
+/* SnapFrame owns source capture and midpoint generation in this DXVK path. */
 using SnapFrameCopyHook = void (*)(void*, void*, void*, uint32_t, uint32_t, uint32_t);
 static std::atomic<SnapFrameCopyHook> g_snapFrameCopyHook{nullptr};
 using SnapFrameLogHook = void (*)(const char*);
@@ -52,8 +39,7 @@ static std::atomic<SnapFrameCanGenerateHook> g_snapFrameCanGenerateHook{nullptr}
 static std::atomic<SnapFrameGenerateHook> g_snapFrameGenerateHook{nullptr};
 static std::atomic<SnapFramePresentResultHook> g_snapFramePresentResultHook{nullptr};
 
-/* The DXVK LSFG A/B benchmark must isolate LSFG from the independent
- * SnapFrame fallback. The launcher sets this only for explicit A/B passes. */
+/* Optional diagnostic bypass for a SnapFrame-off control run. */
 static bool snapFramePerfBypassEnabled() {
   const char* value = std::getenv("DXVK_PERF_DISABLE_SNAPFRAME");
   return value && std::string(value) == "1";
@@ -68,22 +54,6 @@ extern "C" void snapframe_dxvk_set_generation_hooks(
   g_snapFramePresentResultHook.store(presentResultHook, std::memory_order_release);
 }
 
-using LsfgGenerationCountHook = unsigned (*)(void);
-using LsfgCanGenerateHook = bool (*)(void);
-using LsfgGenerateHook = void* (*)(void*, void*, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
-static LsfgGenerationCountHook g_lsfgGenerationCountHook = nullptr;
-static LsfgCanGenerateHook g_lsfgCanGenerateHook = nullptr;
-static LsfgGenerateHook g_lsfgGenerateHook = nullptr;
-
-extern "C" void lsfg_step3g_set_generation_hooks(
-    LsfgGenerationCountHook countHook,
-    LsfgCanGenerateHook canGenerateHook,
-    LsfgGenerateHook generateHook) {
-  g_lsfgGenerationCountHook = countHook;
-  g_lsfgCanGenerateHook = canGenerateHook;
-  g_lsfgGenerateHook = generateHook;
-}
-
 namespace dxvk {
 
   namespace {
@@ -96,7 +66,6 @@ namespace dxvk {
       double maxMs = 0.0;
       uint64_t requestedTotal = 0;
       uint64_t generatedTotal = 0;
-      uint64_t lsfgActiveFrames = 0;
       uint64_t snapFrameActiveFrames = 0;
       std::string run;
       bool initialized = false;
@@ -120,11 +89,10 @@ namespace dxvk {
           stream.open(filePath.c_str(), std::ios::out | std::ios::app);
           if (stream) {
             stream << "=== DXVK_PERF_START run=" << run
-                   << " lsfg_mode_is_runtime_observed=false"
                    << " snapframe_bypassed=" << (snapFrameBypassed ? 1 : 0) << " ===\n";
             stream << "columns: frame,avg_cpu_present_ms,min_cpu_present_ms,max_cpu_present_ms,"
                       "avg_generated_requested,avg_generated_queued,width,height,vsync,"
-                      "lsfg_active_frames,snapframe_active_frames\n";
+                      "snapframe_active_frames\n";
             stream.flush();
           }
         }
@@ -132,7 +100,7 @@ namespace dxvk {
 
       void record(double ms, uint32_t requested, uint32_t generated,
                   uint32_t width, uint32_t height, bool vsync,
-                  bool lsfgActive, bool snapFrameActive, bool snapFrameBypassed) {
+                  bool snapFrameActive, bool snapFrameBypassed) {
         std::lock_guard<std::mutex> lock(mutex);
         init(snapFrameBypassed);
         if (!stream)
@@ -144,7 +112,6 @@ namespace dxvk {
         maxMs = std::max(maxMs, ms);
         requestedTotal += requested;
         generatedTotal += generated;
-        lsfgActiveFrames += lsfgActive ? 1 : 0;
         snapFrameActiveFrames += snapFrameActive ? 1 : 0;
         if ((frames % 120) == 0) {
           stream << frames << ','
@@ -154,14 +121,12 @@ namespace dxvk {
                  << (double(generatedTotal) / 120.0) << ','
                  << width << ',' << height << ','
                  << (vsync ? 1 : 0) << ','
-                 << lsfgActiveFrames << ',' << snapFrameActiveFrames << '\n';
           stream.flush();
           totalMs = 0.0;
           minMs = 1.0e30;
           maxMs = 0.0;
           requestedTotal = 0;
           generatedTotal = 0;
-          lsfgActiveFrames = 0;
           snapFrameActiveFrames = 0;
         }
       }
@@ -978,7 +943,6 @@ namespace dxvk {
     uint32_t perfGenerated = 0;
     uint32_t perfRequested = 0;
     m_parent->Flush();
-    hud::addLsfgGameFrame();
 
     // Retrieve the image and image view to present
     auto swapImage = m_backBuffers[0]->GetCommonTexture()->GetImage();
@@ -1055,58 +1019,22 @@ namespace dxvk {
       if (m_hud != nullptr)
         m_hud->render(m_context, info.format, info.imageExtent);
 
-      /* LSFG step 3e: notify host of WSI image about to be presented */
-      {
-        extern void (*lsfg_present_image_hook_ptr)(void*, void*, uint32_t, uint32_t, uint32_t);
-        /* resolved via lsfg_set_present_image_hook in dxvk_device.cpp */
-        extern void* lsfg_get_present_image_hook(void);
-        auto hook = reinterpret_cast<void(*)(void*,void*,uint32_t,uint32_t,uint32_t)>(
-            lsfg_get_present_image_hook());
-        if (i == 0 && hook) {
-          vk::PresenterImage pi = m_presenter->getImage(imageIndex);
-          hook(reinterpret_cast<void*>(m_device->handle()),
-               reinterpret_cast<void*>(pi.image),
-               info.imageExtent.width,
-               info.imageExtent.height,
-               static_cast<uint32_t>(info.format.format));
-        }
-      }
-
-      /* LSFG step 3g-a: copy swapchain -> history inside same DXVK cmd list */
-      {
-        if (i == 0 && g_lsfgCopyHook
-         && (info.imageUsage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT))
-          g_lsfgCopyHook(
-              m_context.ptr(),
-              m_imageViews.at(imageIndex).ptr(),
-              m_device.ptr(),
-              info.imageExtent.width,
-              info.imageExtent.height,
-              static_cast<uint32_t>(info.format.format));
-      }
-
       if (i + 1 >= SyncInterval)
         m_context->signal(m_frameLatencySignal, m_frameId);
 
       SubmitPresent(sync, i);
     }
 
-    /* Append generated presentations after the source frame. LSFG keeps
-     * priority when its own generator is active; SnapFrame is an independent
-     * fallback and never runs alongside an active LSFG generation pass. */
-    const uint32_t lsfgGenerations = g_lsfgGenerationCountHook ? g_lsfgGenerationCountHook() : 0;
-    const bool lsfgCanGenerate = lsfgGenerations && g_lsfgCanGenerateHook
-                              && g_lsfgCanGenerateHook() && g_lsfgGenerateHook;
+    /* SnapFrame is the only frame-generation backend. */
     const SnapFrameCanGenerateHook snapFrameCanGenerateHook =
       g_snapFrameCanGenerateHook.load(std::memory_order_acquire);
     const SnapFrameGenerateHook snapFrameGenerateHook =
       g_snapFrameGenerateHook.load(std::memory_order_acquire);
-    const bool snapFrameCanGenerate = !perfBypassSnapFrame && !lsfgCanGenerate
+    const bool snapFrameCanGenerate = !perfBypassSnapFrame
       && snapFrameCanGenerateHook && snapFrameGenerateHook
       && snapFrameCanGenerateHook();
-    const uint32_t generationCount = lsfgCanGenerate ? lsfgGenerations
-      : (snapFrameCanGenerate ? 1u : 0u);
-    const bool snapFrameGeneration = !lsfgCanGenerate && snapFrameCanGenerate;
+    const uint32_t generationCount = snapFrameCanGenerate ? 1u : 0u;
+    const bool snapFrameGeneration = snapFrameCanGenerate;
     perfRequested = generationCount;
     if (generationCount) {
       for (uint32_t generation = 0; generation < generationCount; generation++) {
@@ -1132,16 +1060,10 @@ namespace dxvk {
           { 0, 0 },
           { generatedInfo.imageExtent.width, generatedInfo.imageExtent.height } };
 
-        void* generatedOpaque = lsfgCanGenerate
-          ? g_lsfgGenerateHook(
-              m_context.ptr(), m_device.ptr(),
-              generatedInfo.imageExtent.width, generatedInfo.imageExtent.height,
-              static_cast<uint32_t>(generatedInfo.format.format),
-              lsfgGenerations, generation)
-          : snapFrameGenerateHook(
-              m_context.ptr(), m_device.ptr(),
-              generatedInfo.imageExtent.width, generatedInfo.imageExtent.height,
-              static_cast<uint32_t>(generatedInfo.format.format));
+        void* generatedOpaque = snapFrameGenerateHook(
+          m_context.ptr(), m_device.ptr(),
+          generatedInfo.imageExtent.width, generatedInfo.imageExtent.height,
+          static_cast<uint32_t>(generatedInfo.format.format));
         auto* generatedView = static_cast<Rc<DxvkImageView>*>(generatedOpaque);
 
         const bool generationFailed = generatedView == nullptr || *generatedView == nullptr;
@@ -1152,7 +1074,7 @@ namespace dxvk {
             { generatedExtent.width, generatedExtent.height } };
           if (generatedExtent.width != generatedInfo.imageExtent.width
            || generatedExtent.height != generatedInfo.imageExtent.height) {
-            Logger::warn(str::format("LSFG: generated image extent ",
+            Logger::warn(str::format("SnapFrame: generated image extent ",
               generatedExtent.width, "x", generatedExtent.height,
               " differs from swapchain ", generatedInfo.imageExtent.width,
               "x", generatedInfo.imageExtent.height, "; scaling to full output"));
@@ -1203,24 +1125,9 @@ namespace dxvk {
     const auto perfInfo = m_presenter->info();
     dxvkPerfSample().record(perfMs, perfRequested, perfGenerated,
       perfInfo.imageExtent.width, perfInfo.imageExtent.height, m_vsync,
-      lsfgCanGenerate, snapFrameCanGenerate, perfBypassSnapFrame);
+      snapFrameCanGenerate, perfBypassSnapFrame);
 
-    // Experimental game-only pacing, once per D3D9 Present after LSFG outputs.
-    // This throttles the next game frame, not individual generated presents.
-    const int gameFpsLimit = g_lsfgGameFpsLimitHook ? g_lsfgGameFpsLimitHook() : 0;
-    if (gameFpsLimit > 0) {
-      const auto interval = std::chrono::nanoseconds(1000000000ll / gameFpsLimit);
-      const auto now = std::chrono::steady_clock::now();
-      if (m_gameFpsDeadline.time_since_epoch().count() == 0
-       || now - m_gameFpsDeadline > interval * 2)
-        m_gameFpsDeadline = now;
-      m_gameFpsDeadline += interval;
-      std::this_thread::sleep_until(m_gameFpsDeadline);
-    } else {
-      m_gameFpsDeadline = std::chrono::steady_clock::time_point{};
-    }
   }
-
 
   void D3D9SwapChainEx::SubmitPresent(const vk::PresenterSync& Sync, uint32_t FrameId) {
     // Present from CS thread so that we don't
@@ -1260,7 +1167,6 @@ namespace dxvk {
       if (resultHook)
         resultHook(accepted ? 1 : 0);
       if (accepted)
-        hud::addLsfgGeneratedFrame();
       m_snapFramePresentPending = false;
     }
 

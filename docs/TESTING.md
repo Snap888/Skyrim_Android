@@ -1,115 +1,34 @@
-# Snap AI EngineFrame testing
+# Device testing — SnapFrame / DXVK
 
-## Status
+## Controlled baseline
 
-The portable Snap AI/SnapFrame shared libraries, concrete DXVK adapter, JNI settings bridge and scalar timing telemetry have passed Android ARM64 compile CI in earlier runs. Portable upstream API tests have passed. A full APK build and physical-device GPU validation have not yet been completed. The latest CI run #41817208666 passed portable API tests, portable ARM64 libraries, DXVK host ARM64 compile and Java compilation; the full APK job was skipped.
+Run the same save, camera path, resolution, VSync mode and duration for each pass. Record branch/commit, APK version, device/GPU driver, resolution, refresh rate, graphics settings and thermal starting condition.
 
-The earlier 2026-11-04 baseline run reported 7,650 captured frames and 255 successful GPU timing samples. The newest uploaded run at 2448x1080 contains 206 successful GPU timing samples per stage (1,442 rows), 51 sparse flow-stat rows, and vector-dump completion messages every 600 flow frames. The corrected flow readback gate is confirmed operational with `motion_analysis=1` and `diagnostic_suite=0`. The second log upload has a separate, longer LSFG counter stream; generated WSI-present acceptance and displayed FPS remain unconfirmed.
+1. SnapFrame OFF: verify normal DXVK rendering and record source-frame interval and CPU Present timings.
+2. SnapFrame ON at 50% flow scale: record generated-frame WSI acceptance, GPU stage timings and flow-quality telemetry.
+3. Repeat at 75% only if the 50% pass is stable; compare quality and total GPU cost rather than assuming higher scale is better.
+4. Repeat the problematic scene and note exact points where game motion slows or accelerates.
+5. Run a long session to check history/resource lifecycle, audio, input and surface recreation.
 
-## Portable API tests
+## Required logs
 
-Run upstream Snap AI and SnapFrame C API tests in the Snap_AI_Engine repository or a host build. These cover portable lifecycle and policy behavior only; they do not exercise DXVK or Vulkan.
-
-## Required native tests
-
-- Snap AI create/destroy, disabled state, profile changes, invalid metrics, scene cut, non-monotonic frame ids and bounded output.
-- SnapFrame create/destroy, disabled/bypass, frame ordering, backend failure, update_config, reset_history, resize and device recreation.
-- DXVK adapter fallback when portable engine creation fails; backend-error bypass; accepted-present counting only after DXVK reports success.
-- Verify SnapFrame remains functional when Snap AI is absent, disabled or returns an error.
-- Verify Frame Generation OFF prevents backend dispatch.
-- Verify original-frame present fallback on every backend failure.
-- Verify GPU resources are released before DXVK device teardown and rebuilt after device recreation.
-- Verify motion_analysis=1 with diagnostic_suite=0 still produces sparse aggregate flow rows.
-- Verify flow readback failures are logged and do not block normal presentation.
-
-## Required Android menu scenarios
-
-1. Toggle Frame Generation during gameplay.
-2. Change Flow Scale across low/mid/high values and verify history reset/reallocation.
-3. Restart the game and verify persisted settings.
-4. Verify the UI reports unavailable Snap AI control until the metric/controller adapter is complete.
-5. Verify LSFG ON/OFF independently from SnapFrame and confirm the selected configuration in logs.
-
-## GPU/device test matrix
-
-Compare identical scenes and device conditions:
-- Frame Generation OFF.
-- Legacy SnapFrame ON, AI OFF.
-- SnapFrame ON, AI ON (only after AI telemetry is implemented and validated).
-
-Collect real FPS, generated FPS, stage GPU timings, total GPU time, dropped/generated counters and visual artifact notes. Use median and P90 across repeatable samples. Do not treat policy estimates or mock-backend output as measured GPU savings.
+- `snapframe.log`
+- `snapframe_events.csv`
+- `snapframe_gpu.csv`
+- `snapframe_flow.csv`
+- `dxvk_perf.log` when CPU Present/frame-interval profiling is enabled
+- Android `log.txt` / logcat for crashes or Vulkan errors
 
 ## Acceptance criteria
 
-- Android ARM64 native build succeeds with the pinned NDK/CMake versions.
-- No regression in audio, controls, LSFG behavior or game startup.
-- Generated-frame output is accepted by the existing DXVK present path.
-- AI recommendations demonstrably alter supported dispatch parameters and remain within backend limits.
-- All fallback, device recreation and hot-setting tests pass.
-- APK is produced by a successful full CI job and installed/tested on a real device.
+- Source-frame presentation remains functional with SnapFrame disabled or when generation fails.
+- Generated-frame counters increment only after WSI reports `VK_SUCCESS` or `VK_SUBOPTIMAL_KHR`.
+- No additional synchronous GPU readback or device-wide idle wait is introduced into the steady-state frame path.
+- Frame-latency synchronization and WSI submission ordering remain correct.
+- No regression in audio, touch controls, gamepad input or startup.
+- GPU stage timings, CPU Present timings and source-frame intervals are analyzed on matching session/frame identifiers.
+- No FPS uplift or image-quality improvement is claimed without same-scene device measurements and visual review.
 
-## Configuration persistence regression test
-- Change Flow Scale in the in-game menu, then inspect `port/snapframe.conf`: each key must occupy its own physical line (no literal `\\n` characters).
-- Restart the game and confirm the selected Flow Scale is restored rather than silently falling back to the default.
-- Confirm the host log uses separate physical lines for backend status and config summary.
+## AI validation
 
-
-## Event logging performance regression test
-- Run the same scene and frame count with profiling enabled before/after the event logger change.
-- Confirm failure/rejection events are retained immediately and stage-success samples appear at the configured 120-frame cadence.
-- Confirm `frame_complete` progress appears at frame 1 and every 300 frames thereafter.
-- Compare `snapframe_events.csv` size and verify no per-frame flush regression; GPU timings and skipped-frame counts should remain comparable under the same scene/device conditions.
-
-
-## Second uploaded device run — 2026-11-04
-
-- SnapFrame capture: 2448x1080, frame checkpoints through 840.
-- GPU timing: 28 successful samples per stage; total-chain mean/P95 12.389/16.106 ms. Forward/backward flow mean 4.754/4.824 ms.
-- Flow diagnostics: seven aggregate samples and one 5,600-cell vector dump at frame 601. The vector dump is a difficult-motion case (mean confidence ~0.105, ~62.5% below 0.1, ~12% search-boundary saturation, mean consistency ~0.023); do not treat it as a session-wide average.
-- Event logging now produces sparse progress samples; verify that failures remain immediately visible in a future run.
-- LSFG log has its own longer frame counter (up to 5400) and must not be aligned to SnapFrame's 840-frame counter. LSFG begins at multiplier 2 and later switches to multiplier 1. The available logs show generate dispatches and requested/queued counters, not a confirmed count of accepted generated WSI presents or displayed FPS.
-- The full APK has not been built in this CI run. Physical-device visual quality and FPS comparisons remain outstanding.
-
-## Next V2 validation gates
-
-1. Integrate the V2 pyramid, search, refinement, validation and interpolation resources into DXVK behind an explicit experimental mode; keep V1 as default.
-2. Implement frame-tagged GPU scalar reduction and asynchronous readback without queue-idle/fence waits.
-3. Validate frame IDs, timestamps, resize/reset epochs and two-frames-in-flight resource lifetime.
-4. Record actual generated-image present acceptance separately from generation dispatch/request/queue counters.
-5. Run same-scene V1/V2 and LSFG ON/OFF captures with the same resolution, multiplier, duration and thermal starting condition.
-6. Only then expose V2 and Snap AI adaptive control to normal gameplay.
-
-
-## LSFG full GPU profile and audio regression review — 2026-11-04
-
-- Full `dxvk_lsfg_gpu.csv` audit: 215,880 successful stage samples across 76 stage names; no non-`ok` stage rows. Derived sum of per-frame stage durations: mean ~8.558 ms, P95 ~9.944 ms.
-- Largest LSFG stages: GammaDelta_L6 (~1.446 ms), Generate (~1.166 ms), Alpha (~0.838 ms), Mipmaps (~0.732 ms), Beta (~0.594 ms). Track these independently from SnapFrame stage timings.
-- Full Android runtime log ends with normal `ExitProcess(0)`; no fatal signal, Vulkan device loss or fatal exception was found.
-- Audio output mixer telemetry shows no recorded queue-low condition, enqueue failure or slow mix; max mix time is 1 ms. A source refill gap of 34 ms is marked EOS. Preserve current audio implementation unless a reproducible audible regression appears.
-
-
-## MotionV2 dependency revision — 2026-11-04
-
-The Skyrim project now pins Snap AI Engine revision `ccf4589ca19d5f788adc56c7248d94f83ca0a506`, which includes the corrected L0-coordinate normalization in V2 validation and interpolation. Upstream shader compile/validation CI passed. The next Skyrim ARM64 CI run must confirm the new FetchContent pin and regenerated SPIR-V header compile in the DXVK host. This still does not test V2 dispatch or runtime image quality.
-
-
-## Third uploaded device run — 2026-11-04
-
-- SnapFrame was disabled at startup, enabled at 75%, changed to 25%, then disabled. Do not pool these intervals into one fixed-setting test.
-- At 75% flow scale (112x50), average forward/backward flow is 4.460/4.470 ms and total chain 11.508 ms. At 25% (39x17), 0.592/0.638 ms and 3.933 ms. Different scene intervals prevent a controlled A/B conclusion.
-- Frame 601 vector dump is high-confidence/static: mean confidence 0.88464, consistency 0.90590; this supersedes the prior incorrect frame-601 note in the second-upload section.
-- New generated-present acceptance is resolved after the existing WSI completion wait. Verify `midpoint_present_accepted`/failure events on the next device run. This must not introduce a new queue/device wait.
-- Full APK and physical-device validation of the updated present-result accounting remain outstanding.
-
-
-## Third-run LSFG and CPU-present interpretation
-
-- Final config files show LSFG enabled at multiplier 2 and SnapFrame disabled at 25% flow scale. The LSFG runtime log shows a temporary switch to 1x followed by 2x.
-- The LSFG GPU CSV (frames 0–1219) and DXVK CPU-present CSV (frames 120–5760) are separate counter streams.
-- The 48 DXVK CPU-present samples average 18.52 ms (P95 32.96 ms); requested/queued generated counts average 0.407. No matched LSFG-OFF baseline or confirmed generated-image WSI acceptance is present in this log set.
-
-## Stutter-scene benchmark follow-up — 2026-11-04
-
-For a valid LSFG A/B, enable the launcher's DXVK benchmark and run pass A then pass B on the same save, scene, camera path, resolution, VSync and duration. The updated launcher sets `DXVK_PERF_DISABLE_SNAPFRAME=1` during both passes, so SnapFrame's capture, motion analysis and fallback generation are bypassed. Verify each CSV header contains `snapframe_bypassed=1`; verify `snapframe_active_frames=0` in all rows. Pass B should show nonzero `lsfg_active_frames` in windows where LSFG can generate. If it remains zero, the LSFG pass did not become generation-ready and the A/B is invalid.
-
-Test SnapFrame separately: disable LSFG, disable the DXVK A/B benchmark, enable SnapFrame, and compare 25%, 50% and 75% flow scale in the same scene. Keep other settings fixed. Capture `snapframe_gpu.csv`, `snapframe_flow.csv`, `snapframe_events.csv`, `dxvk_perf` only if needed, and the runtime config/log files. Record visible slowdown timing and whether it occurs with SnapFrame disabled. Do not compare captures from different scenes as controlled A/B results.
+MotionV2 metrics must be frame-tagged and asynchronously read back as compact scalar records. Invalid coverage, stale frame IDs, scene cuts or low confidence must disable adaptive decisions for that sample. Keep V2 out of runtime until descriptor/resource lifecycle, dispatch ordering, synchronization and output parity pass device testing.

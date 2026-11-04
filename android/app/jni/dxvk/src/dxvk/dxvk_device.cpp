@@ -1,27 +1,10 @@
 #include "dxvk_device.h"
 #include "dxvk_instance.h"
 
-/* LSFG: context hook (device, physicalDevice, graphicsQueue, queueFamily) */
-static void (*g_lsfg_vk_ctx_hook)(void*, void*, void*, uint32_t) = nullptr;
-static void (*g_lsfg_vk_device_hook)(void*) = nullptr;
-static void (*g_lsfg_present_image_hook)(void*, void*, uint32_t, uint32_t, uint32_t) = nullptr;
 static void (*g_snapframe_device_destroy_hook)(void*) = nullptr;
 
 extern "C" void snapframe_dxvk_set_device_destroy_hook(void (*fn)(void*)) {
   g_snapframe_device_destroy_hook = fn;
-}
-
-extern "C" void lsfg_set_vk_device_hook(void (*fn)(void*)) {
-  g_lsfg_vk_device_hook = fn;
-}
-extern "C" void lsfg_set_vk_context_hook(void (*fn)(void*, void*, void*, uint32_t)) {
-  g_lsfg_vk_ctx_hook = fn;
-}
-extern "C" void lsfg_set_present_image_hook(void (*fn)(void*, void*, uint32_t, uint32_t, uint32_t)) {
-  g_lsfg_present_image_hook = fn;
-}
-extern "C" void* lsfg_get_present_image_hook(void) {
-  return (void*)g_lsfg_present_image_hook;
 }
 
 namespace dxvk {
@@ -63,14 +46,6 @@ namespace dxvk {
     m_queues.graphics = getQueue(queueFamilies.graphics, 0);
     m_queues.transfer = getQueue(queueFamilies.transfer, 0);
 
-    if (g_lsfg_vk_ctx_hook)
-      g_lsfg_vk_ctx_hook(
-        reinterpret_cast<void*>(m_vkd->device()),
-        reinterpret_cast<void*>(m_adapter->handle()),
-        reinterpret_cast<void*>(m_queues.graphics.queueHandle),
-        m_queues.graphics.queueFamily);
-    else if (g_lsfg_vk_device_hook)
-      g_lsfg_vk_device_hook(reinterpret_cast<void*>(m_vkd->device()));
   }
   
   
@@ -255,9 +230,6 @@ namespace dxvk {
           DxvkSubmitStatus*         status) {
     status->result = VK_NOT_READY;
 
-    /* LSFG: present-image hook ONLY from D3D9SwapChainEx::PresentImage
-       (real VkImage). Do not fire here with nullptr. */
-
     DxvkPresentInfo presentInfo;
     presentInfo.presenter = presenter;
     m_submissionQueue.present(presentInfo, status);
@@ -335,8 +307,6 @@ namespace dxvk {
   }
 
   /* PresentImage declares this inside namespace dxvk */
-  void* lsfg_get_present_image_hook() {
-    return reinterpret_cast<void*>(g_lsfg_present_image_hook);
-  }
+
   
 }

@@ -1,6 +1,5 @@
 # dxvk-native D3D9 (native-1.9.2b, patched for mobile GPUs). Source list and
 # generated shader headers come from a desktop meson build (tools/make_android.py).
-# dxbc/* added for LSFG DXBC->SPIR-V translation.
 # Note: dxvk_openvr.cpp is intentionally NOT listed (Win32 Reg* APIs).
 add_library(dxvk_d3d9 SHARED
     src/d3d9/d3d9_adapter.cpp

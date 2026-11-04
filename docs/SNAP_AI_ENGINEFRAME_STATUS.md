@@ -23,7 +23,6 @@ The corresponding PR #1 is still a draft and open. Its portable C APIs and core 
 - It uses DXVK internal classes and owns the current luma, bidirectional block-flow, consistency and midpoint-warp GPU resources.
 - The existing DXVK fork already has Skyrim-specific copy-frame, device-destroy, logging and generated-frame/present-result hooks.
 - `runtime/snapframe_bootstrap.c` initializes the legacy host and its per-game logs.
-- `SkyrimActivity.java` exposes LSFG plus a Snap AI / Frame Generation section with live Frame Generation and Flow Scale controls. Snap AI itself is explicitly marked unavailable until telemetry is connected.
 - The app currently builds C++17 for Android `arm64-v8a`, with CMake 3.22.1 and NDK 29.0.14206865 in CI.
 
 ## Changes made in this branch
@@ -77,7 +76,6 @@ Do not treat a successful portable/mock test as proof of GPU frame generation. D
 - The uploaded log set records 7,650 captured frames at 2448x1080 with zero skipped frames.
 - `snapframe_gpu.csv` contains 255 samples for each of seven stages (1,785 rows total); all rows report `status=ok`. Mean / median / P95 total_chain GPU time is 11.44 / 11.48 / 14.56 ms. Forward and backward flow average 4.39 and 4.43 ms respectively and dominate the measured SnapFrame GPU chain.
 - `snapframe_flow.csv` and `snapframe_flow_vectors.csv` contained headers only. The root cause was found in `recordFlowReadback`: it was gated by `diagnostic_suite`, although the user's configuration had `motion_analysis=1` and `diagnostic_suite=0`. The gate now follows `motion_analysis`; device confirmation is pending.
-- LSFG was disabled in the uploaded `lsfg.log`; this run is not an LSFG-on comparison.
 - The GPU timing results describe the SnapFrame GPU chain, not full game frame time or measured FPS uplift.
 
 ## Configuration and diagnostic fixes — 2026-11-04
@@ -95,7 +93,6 @@ Do not treat a successful portable/mock test as proof of GPU frame generation. D
 - Flow readback is enabled with `motion_analysis=1`, `profiling=1`, `diagnostic_suite=0`, interval 120; aggregate CSV contains 51 rows from frames 121 through 6121. Vector dump completion is reported at frames 601, 1201, ... 6001 (5600 rows per dump).
 - GPU CSV contains 206 successful samples per stage (1442 rows). Means: capture/copy 0.568 ms, luma 0.404 ms, flow forward 4.456 ms, flow backward 4.450 ms, consistency 0.012 ms, midpoint warp 1.612 ms, total chain 11.508 ms. Total-chain P95 14.270 ms. These are SnapFrame stage timings, not whole-game frame time.
 - Flow quality remains scene-dependent: average sampled mean confidence is about 0.230 in both directions; approximately 53.7–53.8% of all sampled vectors have confidence below 0.1, and approximately 9.8–9.9% are pinned to the search boundary. This is a reason to improve motion estimation/quality validation, not to shrink the search range blindly.
-- LSFG config reports `enabled=0`; no LSFG ON/OFF conclusion can be drawn.
 - No skipped frames are reported in the visible progress checkpoints, but the uploaded log does not contain a final session summary; do not treat this as a full-session zero-skip certification.
 - Event CSV was 3.43 MB. Source review found a per-frame `frame_complete` event and per-stage success events flushed synchronously on each event. The logger was changed to buffer output, sample routine successes, and preserve immediate failure/lifecycle logging. Device verification is pending.
 
@@ -153,18 +150,13 @@ The upstream V2 shader set now includes luma, downsample, coarse/fine search, re
 - `snapframe_flow.csv`: seven samples at frames 121–841. Mean confidence and consistency vary strongly by scene; this is not a uniformly reliable motion field.
 - `snapframe_flow_vectors.csv`: 5,600 vectors for frame 601. Mean forward/backward confidence ~0.105; ~62.5% below 0.1; ~12% at the search boundary; mean consistency ~0.023 and ~91.7% zero. This is one difficult-motion snapshot, not the whole session.
 - GPU stage times increase around frame 720 while resolution remains 2448x1080. No temperature/frequency data is present, so thermal throttling is only one possible explanation.
-- LSFG's own log runs to present frame 5400 and must not be frame-correlated with SnapFrame's 840-frame stream. It starts enabled at multiplier 2, then records a runtime change to multiplier 1. The final config is multiplier 1. Generate dispatch commands and requested/queued counters exist, but actual generated WSI-present acceptance and displayed FPS are not proven by these files.
 - Latest Android CI run [#41817208666](https://github.com/Snap888/Skyrim_Android/actions/runs/41817208666) passed portable API tests, Snap AI/SnapFrame ARM64 shared-library build, DXVK SnapFrame host ARM64 compile and Java compilation. The full APK job was skipped because `build_apk` was not requested.
 - A safety backup was created before this follow-up work: [backup/Snap-AI-EngineFrame-pre-2026-11-04-logs2](https://github.com/Snap888/Skyrim_Android/tree/backup/Snap-AI-EngineFrame-pre-2026-11-04-logs2).
 
 The active Skyrim runtime remains V1. The portable MotionV2 core is linked, and its V2 shader sources are compiled into the generated shader header and validated by CI. The V2 GPU resources, descriptor bindings, dispatch sequence and async readback are not yet connected to DXVK; Snap AI adaptive control remains unavailable. Do not treat shader compile validation or queued generate commands as proof of actual frame generation.
 
 
-## Full DXVK/LSFG and audio log audit — 2026-11-04
 
-- `dxvk_lsfg_gpu.csv` was parsed in full: 215,880 stage samples, 76 stage names, all `status=ok`, covering frame IDs 0–2842. Derived sum of stage durations averages ~8.558 ms/frame, P95 ~9.944 ms.
-- Highest LSFG GPU costs: GammaDelta_L6 ~1.446 ms, Generate ~1.166 ms, Alpha ~0.838 ms, Mipmaps ~0.732 ms, Beta ~0.594 ms. These are separate from SnapFrame's GPU measurements and should be optimized as a distinct path.
-- The LSFG GPU, LSFG present, DXVK CPU-present and SnapFrame frame counters do not cover identical ranges. Do not align or combine their timings as one frame.
 - Full Android `log.txt` has 6,133 lines and no observed fatal signal, Vulkan device loss, fatal exception or abnormal process exit; it ends with `ExitProcess(0)`.
 - Audio diagnostics show repeated per-source empty-queue counters, but output mixer telemetry remains `queue_low=0`, `enqueue_fail=0`, `slow_mix=0`, maximum mix time 1 ms. One 34 ms refill gap is explicitly marked end-of-stream. No output mixer underrun is evidenced; audio code was left untouched.
  
@@ -185,7 +177,6 @@ The active Skyrim runtime remains V1. The portable MotionV2 core is linked, and 
 - Test configuration changed during the run: SnapFrame started disabled, was enabled at 75%, changed to 25%, then disabled. The custom ICD is Turnip Gen8 V38. CPU affinity and worker spin-wait settings are explicitly marked not implemented.
 - At 75% (112x50 flow grid), mean forward/backward flow cost is 4.460/4.470 ms and total chain 11.508 ms. At 25% (39x17), these are 0.592/0.638 ms and 3.933 ms. Different scene intervals mean this is not a controlled A/B test.
 - Flow quality is scene-dependent. Frames 121/241/361 and 826/946/1066 have low confidence; frame 601 is mostly static and high-confidence. Its full 5,600-cell vector dump gives confidence 0.88464, consistency 0.90590, 4.625% below confidence 0.1 and 0.5% at the +/-10 search boundary. This explicitly supersedes the previous incorrect frame-601 interpretation in this document.
-- The current LSFG profile covers frame IDs 0–1219; the highest mean GPU stages are GammaDelta_L6 1.093 ms, Generate 0.988 ms, Alpha 0.642 ms, Mipmaps 0.607 ms and Beta 0.460 ms. Do not compare its absolute totals directly with the earlier longer LSFG session.
 - Audio output mixer remains healthy in the log: queue_low=0, enqueue_fail=0, slow_mix=0, max_mix <=5 ms. Source empty_queue counters alone do not prove output underrun. Keep audio unchanged.
 - Corrected DXVK generated-present accounting: SnapFrame's result callback and HUD generated-frame counter now wait for the existing asynchronous WSI result in SynchronizePresent. This distinguishes a generated image being dispatched/queued from a completed successful WSI present. It does not prove compositor scanout or FPS uplift; verify the new `midpoint_present_accepted` event on device.
 
@@ -193,16 +184,13 @@ The active Skyrim runtime remains V1. The portable MotionV2 core is linked, and 
 ### Final runtime configuration from third upload
 
 - `snapframe.conf`: disabled, flow scale 25% (the run itself includes an enabled 75% interval and an enabled 25% interval before final disable).
-- `lsfg.conf`: enabled, multiplier 2. The LSFG runtime log records a temporary 1x setting followed by a return to 2x.
 - `dxvk_perf_on.csv`: 48 samples through frame 5760; mean CPU-present interval 18.52 ms, P95 32.96 ms; mean generated requested/queued count 0.407. This is not a displayed-FPS or generated-present-acceptance measurement.
 
 ## Stutter-scene upload — 2026-11-04
 
 The latest uploaded scene is 2448x1080, SnapFrame enabled at 75% flow scale. Across 130 GPU timestamp samples, total SnapFrame chain mean is 10.646 ms (P95 11.802 ms, max 14.243 ms); bidirectional flow accounts for about 8.22 ms mean. This is enough additional GPU work to be a serious performance suspect, but the CSV does not time-align the GPU samples to the observed game slowdowns. Flow confidence is low in 25 of 32 aggregate samples (<0.15 forward mean); mean boundary-saturated vectors are 616/5600. Keep the V1 search radius unchanged; implement coarse-to-fine V2 rather than blindly increasing the V1 radius.
 
-The DXVK pass files show CPU PresentImage window-average mean/median/P95 of 24.22/26.72/45.65 ms for the OFF-labelled file and 18.52/18.73/31.40 ms for the ON-labelled file. Maximum single samples are 678.35/499.06 ms. Do not infer LSFG uplift: the uploaded config/log snapshot says LSFG disabled, SnapFrame is enabled, and the old CSV header falsely claimed runtime observation. The old queued-generated counter conflates LSFG and SnapFrame fallback output.
 
-The LSFG A/B harness is now corrected to bypass SnapFrame capture and generation for both explicit passes. New DXVK CSV rows include per-window LSFG-ready and SnapFrame-ready frame counts, and the header reports the requested pass label without claiming to observe LSFG mode. Re-run A/B using the updated build; run a separate SnapFrame test with LSFG disabled. No device-side performance improvement is claimed yet.
 
 
 ## Fourth device log audit — difficult stutter scene — 2026-11-04
@@ -212,7 +200,12 @@ The LSFG A/B harness is now corrected to bypass SnapFrame capture and generation
 - `snapframe_gpu.csv`: 206 successful samples per stage. Mean/median/P95/max total chain: 10.147/10.524/11.935/13.288 ms. Mean forward/backward flow: 3.842/3.824 ms; combined mean 7.666 ms. Capture copy 0.473 ms, luma 0.407 ms, consistency 0.011 ms, midpoint warp 1.584 ms. These are asynchronous GPU stage timings, not full game frame time.
 - `snapframe_flow.csv`: 51 samples at frames 121–6121. Motion quality changes sharply by scene. Early/moving samples have low confidence and low forward/backward consistency; around frames 5521–6121 the field becomes nearly static/zero-motion and confidence/consistency rise to ~0.64–0.78. This can be a genuinely static interval or repeated/frozen source image; these aggregate records alone cannot distinguish them. Correlate source-image hashes/timestamps and game-frame intervals before classifying it as a game hang.
 - `snapframe_flow_vectors.csv` is ~4.70 MB and the runtime log reports repeated 5,600-cell dumps at 600-frame intervals. Source review found that the full vector dump was triggered every 600 flow pairs even when `diagnostic_suite=0`. This caused avoidable per-dump formatting, file writes and flushes on the command-completion callback path. **Fixed in this branch:** full vector dumps now require `diagnostic_suite=1`; sparse aggregate flow telemetry remains available with `motion_analysis=1` and profiling. Device confirmation is pending.
-- `lsfg.log` and `lsfg.conf` both show LSFG disabled for this run. `dxvk_lsfg_gpu.csv` contains only its header and `profiling_disabled`. Therefore this upload validates the SnapFrame fallback path, not an LSFG-on run or a valid DXVK/LSFG A/B comparison.
-- The game-side slowdown/acceleration is not yet attributable from these files: the SnapFrame GPU chain is measured, but this upload has no valid same-run alignment between game frame interval, CPU `PresentImage`, LSFG GPU stages, and SnapFrame GPU timestamps. Do not infer thermal throttling, a CPU bottleneck, or FPS uplift from these logs.
-- Next instrumentation priority: low-overhead per-window source-frame interval and CPU `PresentImage` P50/P95/max plus effective LSFG-ready/SnapFrame-ready counters, all on one monotonic frame/session timeline. Keep the existing WSI acceptance callback as the only source of accepted-generated-frame counts. Do not add synchronous GPU readback or waits.
-- Next performance priority: keep V1 search radius unchanged; evaluate the isolated SnapFrame path with LSFG explicitly off, and LSFG A/B with SnapFrame bypassed. Compare identical scene paths and time-correlated counters. V2 remains un-dispatched; do not switch the runtime path before GPU resource/dispatch and output-parity validation.
+
+
+## Frame-generation backend consolidation — 2026-11-04
+
+- Removed the legacy frame-generation backend and its Vulkan/device hooks, DXVK callbacks, native bootstrap, JNI settings bridge, and in-game menu.
+- SnapFrame is now the sole frame-generation path. DXVK still owns source-frame presentation, SnapFrame capture/generation callbacks, generated-image blit, asynchronous WSI acceptance accounting, and the existing frame-latency synchronization.
+- Removed legacy backend source, build target, historical backend-specific logs, and backend-specific documentation/tools from this branch. The Git history and pre-change backup branch remain available for audit/rollback.
+- No change was made to `SyncFrameLatency()` or the normal WSI submission order. The old backend-specific game-FPS sleep limiter was removed; pacing optimization will be implemented as SnapFrame/DXVK policy only after frame-interval telemetry.
+- Next: finish ARM64 compile/CI, then connect frame-tagged MotionV2 GPU metrics to Snap AI adaptive control. V2 remains disabled in runtime until dispatch/resource lifecycle and output parity pass device validation.

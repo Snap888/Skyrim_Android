@@ -16,9 +16,7 @@ Youtube link below:
 - **Graphics:** a patched [dxvk-native](https://github.com/Joshua-Ashton/dxvk-native) (native-1.9.2b) translates D3D9 to Vulkan 1.1. You must meet this requirement for the game to even launch, but most devices support it nowadays.
 - **Platform:** SDL2 2.30.9 is used for the window, input, audio and the Android activity. There is an optional on-screen overlay for phones without a controller. XAudio2 is reimplemented on top of SDL2.
 
-## LSFG GPU profiler
 
-GPU-stage timing output and test instructions: [docs/LSFG_GPU_PROFILER.md](docs/LSFG_GPU_PROFILER.md).
 
 ## Port settings
 ![Launcher](images/launcher.png)
@@ -146,8 +144,6 @@ Everything the port writes goes into a `port` folder inside your Skyrim folder: 
 
 ## Controls
 - Bluetooth, USB, and integrated controllers should work fine (Xbox layout by default; see Nintendo button layout).
-- The in-game top-left **☰** menu opens LSFG settings, Snap AI / Frame Generation settings (currently Frame Generation enable and Flow Scale), the Android on-screen keyboard, and the touch-controls editor.
-- In **LSFG settings**, the ON/OFF slider fully bypasses frame generation at runtime (OFF uses 1x); ON restores the selected 2x/3x/4x multiplier. See [in-game LSFG settings](docs/LSFG_IN_GAME_SETTINGS.md).
 - The touch overlay provides left and right analog sticks, a four-way D-pad, A/B/X/Y, LB/RB, analog LT/RT, Start/Back, and QS/QL (Skyrim's default F5 quick-save and F9 quick-load shortcuts).
 - In **Touch controls editor**, drag a button or either stick to reposition it. The layout is saved as `port/save/touch_layout.cfg` and restored on the next launch. Tap the ☰ menu again and select the editor item to leave edit mode.
 - The keyboard can also be opened from the menu; the small native keyboard control remains available on the overlay.
@@ -183,3 +179,8 @@ The `Snap-AI-EngineFrame` branch is the isolated integration workstream for the 
 - [Testing plan](docs/TESTING.md)
 
 The portable libraries being linked is an integration milestone, not a claim that AI-controlled frame generation or the new DXVK backend is already complete. See the status document for verified and pending work.
+
+
+## Frame generation
+
+The Android runtime uses **SnapFrame** as its only frame-generation backend. Its DXVK path captures the source frame, estimates bidirectional motion, validates consistency, reconstructs a midpoint, and submits it through the normal WSI presentation path. See [SnapFrame integration](docs/SNAPFRAME_INTEGRATION.md) and [current engine status](docs/SNAP_AI_ENGINEFRAME_STATUS.md).

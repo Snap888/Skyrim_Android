@@ -6,7 +6,7 @@ The in-game overlay menu now exposes a separate **Snap AI / Frame Generation** s
 
 ## Existing behavior to preserve
 
-- The LSFG menu is already opened from the in-game overlay button.
+- The Snap AI / Frame Generation panel is opened from the in-game overlay button.
 - Its current JNI methods are implemented in `runtime/main.c`.
 - Existing touch/gamepad controls and editor settings must remain unchanged.
 - The separate SnapFrame bootstrap currently reads `port/snapframe.conf` and writes dedicated SnapFrame logs.
@@ -21,4 +21,4 @@ Snap AI API v1 supports enable/disable and Performance/Balanced/Quality profile 
 
 The current Frame Generation and Flow Scale controls persist validated values in `port/snapframe.conf`. Native state is authoritative. JNI validates flow scale and returns failure if the host is not initialized. GPU-affecting changes are queued to the render callback; the UI thread never accesses Vulkan objects. The toast confirms that settings were queued, not that GPU resource recreation has already completed.
 
-A setting requiring resource recreation must show a pending/restart-safe status until the backend confirms application. Preserve settings across app/game restarts without changing existing LSFG configuration.
+A setting requiring resource recreation must show a pending/restart-safe status until the backend confirms application. Preserve settings across app/game restarts without changing the existing SnapFrame configuration.

@@ -20,7 +20,6 @@
 #include <stdio.h>
 #include <SDL2/SDL.h>
 #include <jni.h>
-#include "lsfg_host.h"
 #include "snapframe_host.h"
 #endif
 
@@ -32,31 +31,11 @@ uint32_t g_image_size;
 uint32_t g_entry;
 
 #ifdef __ANDROID__
-JNIEXPORT jintArray JNICALL
-Java_com_tj_skyrim_SkyrimActivity_nativeGetLsfgSettings(JNIEnv *env, jclass clazz) {
-    (void)clazz;
-    int multiplier = 2, flow_percent = 70, performance = 1, game_fps_limit = 0;
-    int active = lsfg_host_get_settings(&multiplier, &flow_percent, &performance, &game_fps_limit);
-    jint values[5] = { active, multiplier, flow_percent, performance, game_fps_limit };
-    jintArray result = (*env)->NewIntArray(env, 5);
-    if (result) (*env)->SetIntArrayRegion(env, result, 0, 5, values);
-    return result;
-}
-
 JNIEXPORT void JNICALL
 Java_com_tj_skyrim_SkyrimActivity_nativeSetTouchEditor(JNIEnv *env, jclass clazz, jboolean enabled) {
     (void)env; (void)clazz;
     extern void touch_set_edit_mode(int);
     touch_set_edit_mode(enabled == JNI_TRUE);
-}
-
-JNIEXPORT jboolean JNICALL
-Java_com_tj_skyrim_SkyrimActivity_nativeSetLsfgSettings(
-        JNIEnv *env, jclass clazz, jint multiplier, jint flow_percent, jint performance, jint game_fps_limit) {
-    (void)env;
-    (void)clazz;
-    return lsfg_host_update_settings(multiplier, flow_percent, performance, game_fps_limit)
-        ? JNI_TRUE : JNI_FALSE;
 }
 
 static pthread_mutex_t g_snapframeConfigMutex = PTHREAD_MUTEX_INITIALIZER;

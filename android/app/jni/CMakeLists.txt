@@ -35,8 +35,6 @@ set(SDL_STATIC OFF CACHE BOOL "" FORCE)
 set(SDL_TEST OFF CACHE BOOL "" FORCE)
 add_subdirectory(SDL2)
 add_subdirectory(dxvk)
-add_subdirectory(lsfg)
-# Legacy DXVK-coupled SnapFrame host remains active during backend migration.
-# Do not remove until the SnapFrameBackendV1 adapter has parity-tested output.
+# SnapFrame is the sole frame-generation backend.
 add_subdirectory(snapframe)
 add_subdirectory(game)

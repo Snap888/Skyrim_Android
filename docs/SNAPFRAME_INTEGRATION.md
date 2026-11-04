@@ -16,7 +16,7 @@ Header: `snap_frame/snap_frame.h`.
 
 The portable core owns configuration validation, frame sequencing, bypass/fallback state and host-visible counters. The adapter passes an opaque stack-scoped native-frame token synchronously; it is never retained. The backend delegates GPU resource ownership, shader dispatch, barriers, synchronization and generated-frame scheduling to the existing DXVK host.
 
-API v1 supports multiplier 1 (bypass) and multiplier 2 (one midpoint). The current legacy LSFG menu's x2/x3/x4 values are not interchangeable with SnapFrame v1 multiplier values; do not map x3/x4 into the new API.
+API v1 supports multiplier 1 (bypass) and multiplier 2 (one midpoint). SnapFrame is the only frame-generation backend exposed by the Skyrim runtime.
 
 ## Backend migration requirements
 

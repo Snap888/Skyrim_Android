@@ -45,7 +45,6 @@ Not yet completed: concrete DXVK `SnapFrameBackendV1` adapter, live AI telemetry
 
 ## 2026-11-04 — second device-log audit and MotionV2 coordinate fix
 - Audited the 840-frame SnapFrame capture, all 196 GPU timing rows, seven flow samples and the 5,600-cell frame-601 vector dump.
-- Parsed the full 215,880-row LSFG GPU timing stream and runtime/audio log; recorded stage optimization targets and confirmed no fatal process/Vulkan failure in the supplied run.
 - Found and corrected L0-pixel to normalized-UV conversion in MotionV2 validation/interpolation shaders.
 - Updated Skyrim's pinned Snap AI Engine revision and CI to the upstream coordinate-corrected commit. V2 remains compile-validated but not dispatched; V1 remains the runtime path.
 
@@ -54,14 +53,9 @@ Not yet completed: concrete DXVK `SnapFrameBackendV1` adapter, live AI telemetry
 
 - Corrected SnapFrame generated-frame accounting: defer the result callback and HUD output-frame count until the existing DXVK present-status wait completes; accept VK_SUCCESS and Android's accepted VK_SUBOPTIMAL_KHR. No additional synchronization wait was added.
 - Renamed the success event to `midpoint_present_accepted` to distinguish completed WSI present from dispatch/queue. This still does not establish compositor scanout or displayed FPS.
-- Audited third device upload: 75% vs 25% flow-grid costs, scene-dependent confidence, corrected frame-601 vector statistics, Turnip Gen8 V38 config, latest LSFG GPU profile and audio mixer health. See GPU_TELEMETRY.md.
 
 
-- Third-upload LSFG configuration audit: final multiplier 2 with an intervening 1x live setting; DXVK CPU-present profile is 48 samples (mean 18.52 ms, P95 32.96 ms), not a measured displayed-FPS result.
 
-## 2026-11-04 — Stutter-scene diagnosis and LSFG A/B isolation
 
 - Audited the new stutter-scene logs. SnapFrame at 75% flow scale adds a mean 10.646 ms GPU chain; bidirectional flow costs about 8.22 ms. Motion confidence is low in most moving aggregate samples and vectors often hit the V1 search boundary.
-- Corrected the DXVK LSFG A/B harness: both explicit passes now bypass SnapFrame capture, analysis and fallback generation so SnapFrame cannot contaminate the LSFG comparison.
-- DXVK benchmark header no longer falsely claims that LSFG runtime mode is observed. Added per-window LSFG-ready and SnapFrame-ready frame counters and a SnapFrame-bypass marker.
 - No FPS uplift or device-side fix is claimed pending a new isolated A/B run and separate SnapFrame scale tests.
