@@ -134,3 +134,12 @@ The upstream V2 shader set now includes luma, downsample, coarse/fine search, re
 - Latest upstream CI run [#41810959946](https://github.com/Snap888/Snap_AI_Engine/actions/runs/41810959946) passed, including portable builds/tests and Vulkan 1.1 SPIR-V compile/validation for the complete current V2 shader set.
 - The reduction's artifact-risk and scene-cut outputs are provisional heuristics. They are not yet connected to Snap AI and must not be used for adaptive decisions before device calibration and frame/history validation.
 - Skyrim still runs V1 only. V2 shaders are not yet wired to DXVK resources, dispatch, synchronization or Present. The pinned external Snap AI Engine commit remains unchanged.
+
+
+## Portable MotionV2 core linked into Skyrim — 2026-11-04
+
+- Updated the pinned Snap AI Engine dependency from the earlier f60acf revision to reviewed feature-branch commit bc040d08b021b63d3d437455663be014a1e9f383.
+- Linked SnapFrame::MotionV2 into both snapframe_host and the game target. Android explicitly loads libsnap_motion_v2.so before main.
+- Android CI now builds/tests the updated pinned engine revision in both portable jobs and compiles the Skyrim ARM64 DXVK host against the new target.
+- This is the portable core linkage milestone only. The current host does not yet call snap_motion_v2_*; V2 shaders are not part of Skyrim runtime shader dispatch, and the active rendering path remains V1.
+- Latest Skyrim CI run #41811189312 (https://github.com/Snap888/Skyrim_Android/actions/runs/41811189312) is pending; no build result is claimed yet.
