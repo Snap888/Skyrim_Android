@@ -8,15 +8,15 @@
 
 namespace dxvk::hud {
 
-  static std::atomic<uint64_t> g_lsfgGameFrames{0};
-  static std::atomic<uint64_t> g_lsfgGeneratedFrames{0};
+  static std::atomic<uint64_t> g_snapFrameGameFrames{0};
+  static std::atomic<uint64_t> g_snapFrameGeneratedFrames{0};
 
-  void addLsfgGameFrame() {
-    g_lsfgGameFrames.fetch_add(1, std::memory_order_relaxed);
+  void addSnapFrameGameFrame() {
+    g_snapFrameGameFrames.fetch_add(1, std::memory_order_relaxed);
   }
 
-  void addLsfgGeneratedFrame() {
-    g_lsfgGeneratedFrames.fetch_add(1, std::memory_order_relaxed);
+  void addSnapFrameGeneratedFrame() {
+    g_snapFrameGeneratedFrames.fetch_add(1, std::memory_order_relaxed);
   }
 
 
@@ -243,13 +243,13 @@ namespace dxvk::hud {
   }
 
 
-  HudLsfgFpsItem::HudLsfgFpsItem(bool showGame, bool showGenerated, bool showOutput)
+  HudSnapFrameFpsItem::HudSnapFrameFpsItem(bool showGame, bool showGenerated, bool showOutput)
   : m_showGame(showGame), m_showGenerated(showGenerated), m_showOutput(showOutput) { }
-  HudLsfgFpsItem::~HudLsfgFpsItem() { }
+  HudSnapFrameFpsItem::~HudSnapFrameFpsItem() { }
 
-  void HudLsfgFpsItem::update(dxvk::high_resolution_clock::time_point time) {
-    const uint64_t gameFrames = g_lsfgGameFrames.load(std::memory_order_relaxed);
-    const uint64_t generatedFrames = g_lsfgGeneratedFrames.load(std::memory_order_relaxed);
+  void HudSnapFrameFpsItem::update(dxvk::high_resolution_clock::time_point time) {
+    const uint64_t gameFrames = g_snapFrameGameFrames.load(std::memory_order_relaxed);
+    const uint64_t generatedFrames = g_snapFrameGeneratedFrames.load(std::memory_order_relaxed);
 
     auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(
       time - m_lastUpdate);
@@ -270,7 +270,7 @@ namespace dxvk::hud {
   }
 
 
-  HudPos HudLsfgFpsItem::render(
+  HudPos HudSnapFrameFpsItem::render(
           HudRenderer& renderer,
           HudPos       position) {
     position.y += 16.0f;
