@@ -1737,10 +1737,10 @@ extern "C" void snapframe_host_present_result(int success) {
     if (success) {
         g_generatedFrames.fetch_add(1, std::memory_order_relaxed);
         snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed),
-            "midpoint_present_queued", g_width, g_height, "additional_wsi_present_submitted");
+            "midpoint_present_accepted", g_width, g_height, "wsi_present_completion_vk_success");
     } else {
         snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed),
-            "midpoint_present_failed", g_width, g_height, "fallback_real_frame_presented");
+            "midpoint_present_failed", g_width, g_height, "generation_or_wsi_present_not_accepted_fallback_used");
     }
 }
 
