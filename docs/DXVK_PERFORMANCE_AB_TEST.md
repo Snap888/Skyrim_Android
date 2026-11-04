@@ -16,14 +16,14 @@ It points to the exact `snap-patch-3` HEAD that existed before benchmark instrum
 
 ## Log
 
-The launcher now exposes a **DXVK Performance A/B test** section. Enable **Write separate DXVK benchmark log**, select pass A or B, then press Play:
+The launcher exposes a **DXVK Performance A/B test** section. Enable **Write separate DXVK benchmark log**, select pass A or B, then press Play. Benchmark passes force LSFG OFF/ON respectively and set `DXVK_PERF_DISABLE_SNAPFRAME=1` so SnapFrame capture, analysis and fallback generation are bypassed for a clean LSFG comparison:
 
 - Pass A forces LSFG off for that launch and writes `port/dxvk_perf_off.csv` inside the selected Skyrim game folder.
 - Pass B forces LSFG on for that launch and writes `port/dxvk_perf_on.csv` inside the selected Skyrim game folder. A valid Lossless.dll is required.
 - The launcher creates the `port` directory if needed, removes the previous file for the selected pass, and sets `DXVK_PERF_LOG` and `DXVK_PERF_RUN` in the app process before SDL/DXVK starts.
 - Disable the benchmark checkbox for ordinary launches; the launcher then unsets both benchmark variables and leaves the normal LSFG checkbox in control.
 
-The benchmark logger writes independently of the regular DXVK log:
+The benchmark logger writes independently of the regular DXVK log. Its header marks the LSFG pass as a requested label rather than pretending to observe the effective mode, and records `snapframe_bypassed=1` for the isolated A/B mode:
 
 - Preferred: set `DXVK_PERF_LOG` to an absolute writable file path.
 - Fallback: if `DXVK_PERF_LOG` is unset, it writes `dxvk_perf.log` into `DXVK_LOG_PATH`.
@@ -141,3 +141,22 @@ delta from this run. Repeat both passes in the same scene with identical
 duration, resolution, VSync, graphics settings and LSFG settings; disable GPU
 timestamp profiling for both CPU benchmark passes. Keep the separate ON-only
 GPU-profiled run for shader-stage diagnosis.
+
+
+## Latest uploaded stutter-scene capture — 2026-11-04
+
+The new pair contains 48 windows per file (frames 120–5760, 2448x1080, VSync=1).
+
+| Metric | Pass A label (LSFG OFF) | Pass B label (LSFG ON) |
+|---|---:|---:|
+| Mean of 120-frame CPU-present averages | 24.22 ms | 18.52 ms |
+| Median | 26.72 ms | 18.73 ms |
+| P95 | 45.65 ms | 31.40 ms |
+| Largest window average | 55.13 ms | 34.08 ms |
+| Largest single PresentImage sample in a window | 678.35 ms | 499.06 ms |
+
+These are not evidence that LSFG ON is faster: the captures do not include per-pass runtime generator-state counters, and the configuration/log snapshot uploaded alongside them reports LSFG disabled while SnapFrame is enabled. The CSV's prior `lsfg_mode_is_runtime_observed=true` header was hard-coded and was not a real observation. The generated-request/queued columns could include SnapFrame fallback generation when LSFG is unavailable. Therefore this pair cannot isolate LSFG's contribution and must not be used as a valid LSFG A/B result.
+
+The latest SnapFrame GPU profile contains 130 samples at 75% flow scale. Mean total chain is 10.65 ms, P95 11.80 ms, maximum 14.24 ms. Mean forward/backward flow stages are 4.09/4.13 ms; midpoint warp is 1.55 ms. This is substantial GPU work alongside the game's own rendering. The flow aggregate contains 32 samples; 25 have forward mean confidence below 0.15, and the mean number of forward vectors saturated at the +/-10-pixel search boundary is about 616 of 5600 cells. This indicates poor confidence and search-boundary pressure in many moving intervals, not a reason to enlarge the current V1 search radius blindly.
+
+The current A/B implementation now bypasses SnapFrame during explicit benchmark passes and appends `lsfg_active_frames` and `snapframe_active_frames` counters to each 120-frame window. The header uses `lsfg_mode_is_runtime_observed=false` and reports `snapframe_bypassed`. Repeat both passes with the updated build before comparing them. Test SnapFrame separately with LSFG disabled.
