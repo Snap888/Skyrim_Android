@@ -73,14 +73,11 @@ The single vector dump at frame 601 has mean confidence ~0.105 in both direction
 
 The event log is now sparse and contains sampled progress events rather than per-frame successes. This is consistent with the new event sampling policy; however, compare file sizes only against runs with similar duration and event configuration.
 
-The LSFG log is a separate, longer counter stream than the 840-frame SnapFrame capture: LSFG reports present progress up to frame 5400 while SnapFrame stops at frame 840. Do not correlate their frame IDs or assume they cover identical intervals. LSFG starts with `enabled=1 mult=2`, records real WSI images, history copies and generate dispatch commands, then logs a live settings change to `multiplier=1`; the final `lsfg.conf` also contains multiplier=1. `dxvk_perf_on.csv` reports 31 CPU-present samples through frame 3720, with mean `avg_cpu_present_ms` ~30.32 ms and mean requested/queued generated counts ~0.978. These counters indicate generation requests were queued, but the log set does not provide a confirmed generated-image WSI-present/acceptance counter or a measured displayed-FPS result. Therefore, real LSFG output cadence and FPS uplift remain unverified.
 
 The current diagnostic readback still copies flow images for sparse analysis. It is not suitable for Snap AI. The next implementation should prioritize the V2 coarse-to-fine pyramid and a GPU-side scalar reduction with frame ID/timestamp, followed by asynchronous readback. Do not lower the V1 search radius based on this sample and do not enable AI decisions from these metrics yet.
 
 
-## LSFG GPU profile and runtime log audit — 2026-11-04
 
-The uploaded `dxvk_lsfg_gpu.csv` contains 215,881 lines: one session marker and 215,880 successful stage samples across 76 stage names. There are 2,843 frame IDs (0–2842); 2,840 samples each for `Generate` and `GammaDelta_L6`. All measurement rows have `status=ok`.
 
 The sum of all recorded stage durations per frame averages approximately 8.558 ms; P95 is approximately 9.944 ms. This is a derived sum of the stage timestamp intervals, not a displayed-FPS measurement. Highest average individual stages:
 - `GammaDelta_L6`: 1.446 ms
@@ -91,7 +88,6 @@ The sum of all recorded stage durations per frame averages approximately 8.558 m
 - `GammaDelta_L5`: 0.528 ms
 - `GammaDelta_L4`: 0.320 ms
 
-These stages are the current LSFG GPU optimization targets. Do not combine this 0–2842 LSFG GPU counter stream with SnapFrame's 1–840 capture stream or the DXVK CPU-present sample stream; their counters and captured durations differ.
 
 The Android `log.txt` has 6,133 lines and no observed `SIGSEGV`, `SIGABRT`, `VK_ERROR_DEVICE_LOST`, fatal exception or abnormal process termination. It ends with `ExitProcess(0)`. Audio telemetry repeatedly reports source-level `empty_queue` counters, but the output mixer reports `queue_low=0`, `enqueue_fail=0`, `slow_mix=0` and `max_mix` no higher than 1 ms. One 34 ms refill gap is marked `eos=1`. This log does not show an output-mixer underrun; no audio changes are justified by this run.
 
@@ -104,16 +100,13 @@ SnapFrame GPU CSV: 23 samples per stage while the flow grid was 112x50 (75%) and
 
 The aggregate flow samples confirm strong scene dependence. At 75%, frames 121/241/361 have mean confidence ~0.088–0.109 and consistency ~0.0045–0.0142; frame 481 is intermediate (~0.253 confidence / 0.252 consistency); frame 601 is largely static/high-confidence (~0.885 / 0.906). At 25%, frames 826/946/1066 have confidence ~0.100–0.137 and consistency ~0.013–0.040. The 5,600-cell vector dump for frame 601 independently gives mean forward confidence 0.88464, mean consistency 0.90590, 4.625% of cells below confidence 0.1, 6.95% exactly zero consistency, and 0.5% forward vectors at the +/-10 boundary. This corrects the prior second-upload note that attributed ~0.105 confidence and ~0.023 consistency to frame 601; those values do not describe the current uploaded vector file. Do not reduce V1 search radius based on the old mistaken interpretation.
 
-LSFG GPU CSV is a separate run with frame IDs 0–1219 and 1,217 samples each for Generate and GammaDelta_L6. All recorded samples are `ok`. Highest mean stage costs: GammaDelta_L6 ~1.093 ms, Generate ~0.988 ms, Alpha ~0.642 ms, Mipmaps ~0.607 ms, Beta ~0.460 ms, GammaDelta_L5 ~0.395 ms, GammaDelta_L4 ~0.238 ms. These are not directly comparable with the previous longer LSFG run because frame coverage and likely capture conditions differ.
 
 Android config records Turnip Gen8 V38. `runtime_tuning.conf` has diagnostics enabled, while CPU affinity and worker spin-wait are explicitly not implemented. The Android log ends with `ExitProcess(0)`; audio output mixer samples retain `queue_low=0`, `enqueue_fail=0`, `slow_mix=0`, and max_mix no higher than 5 ms. Source-level `empty_queue` counters are present, but there is no output-mixer underrun signal. Preserve the current audio code.
 
 The present path previously incremented SnapFrame's generated counter after the generated image had been recorded/submitted, not after the asynchronous WSI present result completed. The runtime now defers the result callback and HUD generated-frame count until the existing `SynchronizePresent` wait observes `VK_SUCCESS` or the Android-accepted `VK_SUBOPTIMAL_KHR`. This adds no new wait; it reuses the synchronization already required by DXVK. The event is now `midpoint_present_accepted`, which means WSI present completion succeeded, not compositor scanout or displayed-FPS proof. A failed result is reported as failure. Device validation of this new event is still required.
 
 
-### LSFG configuration and DXVK CPU-present samples in the third upload
 
-The final uploaded configs report SnapFrame `enabled=0`, `flow_scale_percent=25`; LSFG `enabled=1`, `multiplier=2`. The LSFG runtime log records live settings changing first to 1x and later back to 2x, so the run includes more than one multiplier interval. The LSFG GPU CSV covers frame IDs 0–1219; the independent DXVK CPU-present CSV covers frames 120–5760 and is marked `run=lsfg_on`. Across its 48 rows, `avg_cpu_present_ms` averages 18.52 ms (median 19.93 ms, P95 32.96 ms). Average requested and queued generated counts are both 0.407 per sample; 17 of 48 rows report 1.0 queued. These are sampled CPU-side intervals and queued-request counts, not displayed FPS or confirmed generated-image acceptance. No matched LSFG-OFF baseline is included.
 
 ## Fourth upload — stutter-scene analysis (2026-11-04)
 
@@ -121,6 +114,11 @@ The latest SnapFrame capture is configured at 2448x1080 with `enabled=1`, `flow_
 
 The 32 aggregate flow samples include many low-confidence moving intervals: 25/32 have forward mean confidence below 0.15. The mean count of forward vectors at the +/-10-pixel search boundary is 616/5600. Some later static intervals have confidence above 0.9, so this is scene-dependent. Do not expand the V1 search radius based on these data; coarse-to-fine pyramid search remains the intended solution for larger motion.
 
-The paired DXVK files each contain 48 120-frame windows. Pass A (label `lsfg_off`) has mean/median/P95 CPU PresentImage averages of 24.22/26.72/45.65 ms; Pass B (label `lsfg_on`) has 18.52/18.73/31.40 ms. Maximum single PresentImage samples are 678.35 and 499.06 ms respectively. These figures cannot establish an LSFG performance delta: the companion `lsfg.conf` and `lsfg.log` report LSFG disabled, while SnapFrame is enabled and generates fallback images. The prior `lsfg_mode_is_runtime_observed=true` CSV header was hard-coded, not observed runtime state. The A/B pair is therefore not a clean isolated comparison.
 
-The benchmark has been corrected: explicit LSFG A/B passes now set `DXVK_PERF_DISABLE_SNAPFRAME=1`, bypassing SnapFrame capture/analysis and fallback generation. DXVK benchmark headers now identify the LSFG mode as requested (not observed) and report `snapframe_bypassed`; each 120-frame row includes actual LSFG-ready and SnapFrame-ready frame counts. Re-run the isolated A/B with the new build, then test SnapFrame independently with LSFG disabled. Queue counters still do not prove compositor scanout or displayed FPS.
+
+
+## Active telemetry contract — SnapFrame only
+
+The active runtime records SnapFrame GPU stages, frame-tagged flow quality samples, DXVK CPU Present timing and WSI acceptance events. These streams must be correlated by session and source-frame identity; a GPU dispatch or queued blit is not proof of a displayed generated frame. The legacy backend-specific CSV/log stream has been removed from this branch.
+
+For AI control, use a compact GPU-reduced scalar record tagged with source frame ID and timestamp. Do not feed the AI controller full flow-vector readbacks, do not block Present for telemetry, and reject stale or low-coverage samples. Keep adaptive decisions in bypass until those validity conditions are met.
