@@ -123,3 +123,14 @@ Do not treat a successful portable/mock test as proof of GPU frame generation. D
 ### V2 shader coverage update
 
 The upstream V2 shader set now includes luma, downsample, coarse/fine search, refinement, forward/backward validation, static-region mask and bidirectional interpolation with gamut clamp. These are still isolated source assets. The Skyrim branch does not yet compile or dispatch them, and the external engine dependency remains pinned to the previously validated commit until the DXVK adapter contract and GPU resources are implemented.
+
+
+## SnapMotionV2 quality and telemetry shader progress — 2026-11-04
+
+- Added V2-only refinement (3x3 median, subpixel refinement and local confidence), separate forward/backward round-trip validation, static-region mask, and time-parametric interpolation with confidence fallback and neighborhood gamut clamp.
+- Added two-stage GPU metrics reduction: workgroup partials followed by one compact frame-tagged record. Metrics include mean motion magnitude, normalized local motion complexity, mean confidence, low-confidence ratio, occlusion ratio, static ratio, artifact-risk heuristic and photometric scene-cut candidate.
+- Reduction is designed to asynchronously read back only a small scalar record. It does not read back full flow vectors and does not insert a GPU wait. The record carries frame ID, timestamp and extent; less than 90% valid flow-cell coverage marks telemetry invalid.
+- The full-resolution static mask is sampled by normalized flow UV when reduced to the lower-resolution flow grid.
+- Latest upstream CI run [#41810959946](https://github.com/Snap888/Snap_AI_Engine/actions/runs/41810959946) passed, including portable builds/tests and Vulkan 1.1 SPIR-V compile/validation for the complete current V2 shader set.
+- The reduction's artifact-risk and scene-cut outputs are provisional heuristics. They are not yet connected to Snap AI and must not be used for adaptive decisions before device calibration and frame/history validation.
+- Skyrim still runs V1 only. V2 shaders are not yet wired to DXVK resources, dispatch, synchronization or Present. The pinned external Snap AI Engine commit remains unchanged.
