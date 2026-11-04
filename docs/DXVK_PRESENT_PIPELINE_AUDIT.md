@@ -75,6 +75,25 @@ Revisit frame-latency accounting for two WSI submissions per source frame. The l
 - The generated present acceptance callback continues to use the actual generated WSI result, not enqueue success.
 - No `vkQueueWaitIdle` or `vkDeviceWaitIdle` was added to the steady-state frame path. `waitForIdle` remains in swapchain recreation/invalidation paths as before.
 
+## WSI acquire-ticket safety correction — 2026-11-04
+
+Commit: `8702981ed6bdb41390f44f236652d8f733161056`.
+
+A follow-up review found that the previous removal of the source-to-generated wait was not safe with the current `Presenter` API:
+
+- `Presenter::acquireNextImage()` returns the single mutable `m_imageIndex`, `m_frameIndex`, and `m_acquireStatus` state.
+- `Presenter::presentImage()` is executed asynchronously on the DXVK CS thread; it advances the frame index and pre-acquires the next WSI image.
+- The application thread could request the generated image before the queued source present advanced that state. The second acquire could therefore observe the source acquire token/image again.
+- Independent `DxvkSubmitStatus` objects do not make WSI acquire state independent.
+
+For correctness, `PresentImage()` now calls `SynchronizePresent()` before generated-frame acquisition again. This intentionally restores the CPU wait until Presenter is redesigned around explicit per-acquire tickets carrying the acquired image index, semaphore pair, and generation. Do not remove this barrier until source and generated acquire tickets are independently reserved and consumed exactly once.
+
+Consequences:
+- The previous host-side overlap optimization is temporarily disabled.
+- The independent status objects remain useful for explicit submission result tracking and safe teardown.
+- No FPS improvement is claimed from the previous change.
+- The next implementation must first add ticket-based acquire/present APIs and validate semaphore reuse, swapchain recreation, and CS-thread ordering; only then may the barrier be removed.
+
 ## Validation status
 
 - Android Java compilation: passed in workflow run [41874788768](https://github.com/Snap888/Skyrim_Android/actions/runs/41874788768).
