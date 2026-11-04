@@ -121,9 +121,12 @@ frame ID does not exactly match, AI bypasses that sample. The current implementa
 consumes only `decision.flow_scale`; search radius, refinement pass count, flow reuse,
 bidirectional-flow selection and artifact-check decisions remain advisory.
 
-Decisions are staged atomically by the completion callback and applied on the next
-serialized DXVK copy/present callback. The completion callback never releases history,
-mutates Vulkan resources, blocks on GPU completion, or waits for WSI. Runtime scale
+Validated scalar metrics are staged by the completion callback. The next serialized
+DXVK copy/present callback pairs them with the exact-frame total-chain GPU timestamp,
+calls the AI controller, and applies any Flow Scale update there. The completion
+callback never releases history, mutates Vulkan resources, blocks on GPU completion,
+or waits for WSI. Sparse total-chain timestamps are collected every 30 frames even
+when verbose GPU profiling and CSV logging are disabled. Runtime scale
 is clamped to 50..75%, warmup is 8 valid frames, target budget is 6 ms, and scale
 hysteresis is 8 percentage points. These are conservative initial values, not
 device-calibrated optima.
