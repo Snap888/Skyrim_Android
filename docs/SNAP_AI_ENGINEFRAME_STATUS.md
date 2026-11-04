@@ -209,3 +209,13 @@ The latest uploaded scene is 2448x1080, SnapFrame enabled at 75% flow scale. Acr
 - Removed legacy backend source, build target, historical backend-specific logs, and backend-specific documentation/tools from this branch. The Git history and pre-change backup branch remain available for audit/rollback.
 - No change was made to `SyncFrameLatency()` or the normal WSI submission order. The old backend-specific game-FPS sleep limiter was removed; pacing optimization will be implemented as SnapFrame/DXVK policy only after frame-interval telemetry.
 - Next: finish ARM64 compile/CI, then connect frame-tagged MotionV2 GPU metrics to Snap AI adaptive control. V2 remains disabled in runtime until dispatch/resource lifecycle and output parity pass device validation.
+
+
+## Post-LSFG consolidation and AI implementation checkpoint — 2026-11-04
+
+- Active branch head before this documentation checkpoint: `bd28e9d5977443f9adf0b97443ff5396c92cae68`. LSFG has been removed from the active branch; SnapFrame is the only frame-generation path.
+- Commit `cbfb9f5c74fa61a90f4cca3f97c81b1f79a1b5d9` adds `docs/SNAP_AI_GPU_METRICS_IMPLEMENTATION.md`, defining the V1-compatible two-pass GPU reduction, frame-tagged asynchronous readback, MotionV2 publication, AI metric mapping and validation gates.
+- CI run [#41861458011](https://github.com/Snap888/Skyrim_Android/actions/runs/41861458011): Java compilation, portable Snap AI/SnapFrame ARM64 build, portable API tests and DXVK SnapFrame host compilation all completed their build steps successfully. The DXVK job/run conclusion was still reported as in progress by GitHub at the time of this checkpoint. The full APK job was skipped.
+- Runtime status is unchanged: SnapAI is not yet active in Skyrim. V1 flow vectors are still read back only for sparse diagnostics; they are not AI inputs. V2 shader SPIR-V compilation does not mean V2 resources or dispatch are active.
+- The next code milestone is Phase A in `docs/SNAP_AI_GPU_METRICS_IMPLEMENTATION.md`: implement V1-compatible GPU-side partial/final reduction and an asynchronous scalar readback ring. Only after frame-tagged metrics pass validation should MotionV2 publication and SnapAI decisions be connected.
+- Do not advertise adaptive AI, AI-controlled Flow Scale, V2 motion estimation or FPS improvement as implemented until runtime/device validation confirms them.
