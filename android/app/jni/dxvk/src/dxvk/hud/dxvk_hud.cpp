@@ -40,7 +40,7 @@ namespace dxvk::hud {
 
     addItem<HudVersionItem>("version", -1);
     addItem<HudDeviceInfoItem>("devinfo", -1, m_device);
-    addItem<HudLsfgFpsItem>("fps", -1,
+    addItem<HudSnapFrameFpsItem>("fps", -1,
       m_hudItems.getOption<float>("game", 1.0f) > 0.5f,
       m_hudItems.getOption<float>("fg", 1.0f) > 0.5f,
       m_hudItems.getOption<float>("output", 1.0f) > 0.5f);
@@ -117,7 +117,7 @@ namespace dxvk::hud {
     const float height = float(m_renderer.surfaceSize().height) / m_renderer.scale();
     HudPos position = { 8.0f, 8.0f };
 
-    // The LSFG block is approximately 220 logical pixels wide and 76 high.
+    // Reserve enough room for the three-line SnapFrame FPS block.
     if (m_hudAlign == "center")
       position.x = std::max(8.0f, (width - 220.0f) * 0.5f);
     else if (m_hudAlign == "right")
