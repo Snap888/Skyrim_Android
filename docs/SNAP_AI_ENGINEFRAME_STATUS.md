@@ -195,3 +195,11 @@ The active Skyrim runtime remains V1. The portable MotionV2 core is linked, and 
 - `snapframe.conf`: disabled, flow scale 25% (the run itself includes an enabled 75% interval and an enabled 25% interval before final disable).
 - `lsfg.conf`: enabled, multiplier 2. The LSFG runtime log records a temporary 1x setting followed by a return to 2x.
 - `dxvk_perf_on.csv`: 48 samples through frame 5760; mean CPU-present interval 18.52 ms, P95 32.96 ms; mean generated requested/queued count 0.407. This is not a displayed-FPS or generated-present-acceptance measurement.
+
+## Stutter-scene upload — 2026-11-04
+
+The latest uploaded scene is 2448x1080, SnapFrame enabled at 75% flow scale. Across 130 GPU timestamp samples, total SnapFrame chain mean is 10.646 ms (P95 11.802 ms, max 14.243 ms); bidirectional flow accounts for about 8.22 ms mean. This is enough additional GPU work to be a serious performance suspect, but the CSV does not time-align the GPU samples to the observed game slowdowns. Flow confidence is low in 25 of 32 aggregate samples (<0.15 forward mean); mean boundary-saturated vectors are 616/5600. Keep the V1 search radius unchanged; implement coarse-to-fine V2 rather than blindly increasing the V1 radius.
+
+The DXVK pass files show CPU PresentImage window-average mean/median/P95 of 24.22/26.72/45.65 ms for the OFF-labelled file and 18.52/18.73/31.40 ms for the ON-labelled file. Maximum single samples are 678.35/499.06 ms. Do not infer LSFG uplift: the uploaded config/log snapshot says LSFG disabled, SnapFrame is enabled, and the old CSV header falsely claimed runtime observation. The old queued-generated counter conflates LSFG and SnapFrame fallback output.
+
+The LSFG A/B harness is now corrected to bypass SnapFrame capture and generation for both explicit passes. New DXVK CSV rows include per-window LSFG-ready and SnapFrame-ready frame counts, and the header reports the requested pass label without claiming to observe LSFG mode. Re-run A/B using the updated build; run a separate SnapFrame test with LSFG disabled. No device-side performance improvement is claimed yet.
