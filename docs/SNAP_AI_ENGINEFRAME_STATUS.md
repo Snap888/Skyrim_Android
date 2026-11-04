@@ -219,3 +219,14 @@ The latest uploaded scene is 2448x1080, SnapFrame enabled at 75% flow scale. Acr
 - Runtime status is unchanged: SnapAI is not yet active in Skyrim. V1 flow vectors are still read back only for sparse diagnostics; they are not AI inputs. V2 shader SPIR-V compilation does not mean V2 resources or dispatch are active.
 - The next code milestone is Phase A in `docs/SNAP_AI_GPU_METRICS_IMPLEMENTATION.md`: implement V1-compatible GPU-side partial/final reduction and an asynchronous scalar readback ring. Only after frame-tagged metrics pass validation should MotionV2 publication and SnapAI decisions be connected.
 - Do not advertise adaptive AI, AI-controlled Flow Scale, V2 motion estimation or FPS improvement as implemented until runtime/device validation confirms them.
+
+
+## V1 GPU metrics runtime implementation — 2026-11-04
+
+- Added local V1-compatible partial/final reduction shaders under `android/app/jni/snapframe/shaders/` and included them in `tools/compile_snapframe_shaders.py`.
+- Added DXVK context methods for the two-stage metrics dispatch while preserving/restoring the game's compute pipeline state and descriptor slots.
+- Added host-side GPU buffers, three-slot asynchronous scalar readback ring, frame/timestamp/extent validation and MotionV2 metric publication on command-list completion.
+- Metrics are sampled every 30 captured source frames. The output contains motion magnitude, local flow complexity, bidirectional confidence, low-confidence ratio, inconsistency ratio, search-boundary ratio, artifact-risk heuristic and valid-cell coverage. The readback record is 80 bytes.
+- No static mask or calibrated scene-cut detector exists in the active V1 path. Static ratio is set to zero and scene_cut is not asserted; V2-only resources are not bound to V1.
+- No SnapAI controller decisions are applied yet. Same-frame GPU-time correlation, device calibration, and quality/pacing validation remain required before any adaptive settings are enabled.
+- The implementation is not yet CI/device validated. The latest branch commits have triggered Android CI runs; inspect the newest run before treating the code as buildable.
