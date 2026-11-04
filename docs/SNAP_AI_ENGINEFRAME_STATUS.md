@@ -72,3 +72,10 @@ The portable SnapFrame core now drives the DXVK frame callback through the concr
 - APK and physical-device GPU validation: not run.
 
 Do not treat a successful portable/mock test as proof of GPU frame generation. Do not claim performance gains until same-device, same-scene GPU timings and output quality have been compared.
+
+## Latest device-log audit — 2026-11-04
+- The uploaded log set records 7,650 captured frames at 2448x1080 with zero skipped frames.
+- `snapframe_gpu.csv` contains 255 samples for each of seven stages (1,785 rows total); all rows report `status=ok`. Mean / median / P95 total_chain GPU time is 11.44 / 11.48 / 14.56 ms. Forward and backward flow average 4.39 and 4.43 ms respectively and dominate the measured SnapFrame GPU chain.
+- `snapframe_flow.csv` and `snapframe_flow_vectors.csv` contained headers only. The root cause was found in `recordFlowReadback`: it was gated by `diagnostic_suite`, although the user's configuration had `motion_analysis=1` and `diagnostic_suite=0`. The gate now follows `motion_analysis`; device confirmation is pending.
+- LSFG was disabled in the uploaded `lsfg.log`; this run is not an LSFG-on comparison.
+- The GPU timing results describe the SnapFrame GPU chain, not full game frame time or measured FPS uplift.
