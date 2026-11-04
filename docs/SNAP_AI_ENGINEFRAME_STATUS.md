@@ -158,3 +158,12 @@ The upstream V2 shader set now includes luma, downsample, coarse/fine search, re
 - A safety backup was created before this follow-up work: [backup/Snap-AI-EngineFrame-pre-2026-11-04-logs2](https://github.com/Snap888/Skyrim_Android/tree/backup/Snap-AI-EngineFrame-pre-2026-11-04-logs2).
 
 The active Skyrim runtime remains V1. The portable MotionV2 core is linked, but its shaders/resources/dispatch are not yet connected to DXVK; Snap AI adaptive control remains unavailable. Do not treat shader compile validation or queued generate commands as proof of actual frame generation.
+
+
+## Full DXVK/LSFG and audio log audit — 2026-11-04
+
+- `dxvk_lsfg_gpu.csv` was parsed in full: 215,880 stage samples, 76 stage names, all `status=ok`, covering frame IDs 0–2842. Derived sum of stage durations averages ~8.558 ms/frame, P95 ~9.944 ms.
+- Highest LSFG GPU costs: GammaDelta_L6 ~1.446 ms, Generate ~1.166 ms, Alpha ~0.838 ms, Mipmaps ~0.732 ms, Beta ~0.594 ms. These are separate from SnapFrame's GPU measurements and should be optimized as a distinct path.
+- The LSFG GPU, LSFG present, DXVK CPU-present and SnapFrame frame counters do not cover identical ranges. Do not align or combine their timings as one frame.
+- Full Android `log.txt` has 6,133 lines and no observed fatal signal, Vulkan device loss, fatal exception or abnormal process exit; it ends with `ExitProcess(0)`.
+- Audio diagnostics show repeated per-source empty-queue counters, but output mixer telemetry remains `queue_low=0`, `enqueue_fail=0`, `slow_mix=0`, maximum mix time 1 ms. One 34 ms refill gap is explicitly marked end-of-stream. No output mixer underrun is evidenced; audio code was left untouched.
