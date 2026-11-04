@@ -35,3 +35,6 @@ Do not copy full pixel or flow images to CPU for AI. Do not insert queue-idle wa
 - Snap AI metric submission and adaptive decision loop: not implemented.
 
 The Snap AI controller must remain disabled/unavailable until valid GPU-derived metrics are connected and tested. Do not claim performance gains from the current telemetry alone.
+
+### Configuration/logging correction — 2026-11-04
+The uploaded `Logs/snapframe.conf` contained literal backslash-n separators instead of real line breaks. The settings writer in `runtime/main.c` used double-escaped newline sequences, so multiple key/value pairs could be serialized as one physical line and later keys (including Flow Scale) could be ignored by the line-based parser. This is now corrected. The same escaped-newline issue was fixed in host/bootstrap diagnostic strings. Verify the next runtime-generated config contains one key per physical line and that Flow Scale survives restart.
