@@ -122,3 +122,13 @@ The 32 aggregate flow samples include many low-confidence moving intervals: 25/3
 The active runtime records SnapFrame GPU stages, frame-tagged flow quality samples, DXVK CPU Present timing and WSI acceptance events. These streams must be correlated by session and source-frame identity; a GPU dispatch or queued blit is not proof of a displayed generated frame. The legacy backend-specific CSV/log stream has been removed from this branch.
 
 For AI control, use a compact GPU-reduced scalar record tagged with source frame ID and timestamp. Do not feed the AI controller full flow-vector readbacks, do not block Present for telemetry, and reject stale or low-coverage samples. Keep adaptive decisions in bypass until those validity conditions are met.
+
+
+## V1 GPU scalar reduction implementation — 2026-11-04
+
+- Added Skyrim-local V1-compatible partial and final reduction compute shaders. They consume the active V1 forward/backward RGBA16F flow images and R16F consistency mask; they do not bind the separate MotionV2 shader inputs.
+- Added DXVK context dispatch helpers that preserve the game's compute state and resource bindings while dispatching the two reduction stages.
+- The host now allocates a device-local partial/result buffer and a three-slot host-visible readback ring. On sampled frames it reduces flow metrics on GPU, copies only the 80-byte tagged result record, and publishes validated scalar samples through SnapMotionV2 from the command-list completion callback.
+- Readback is asynchronous and bounded. Ring exhaustion, dispatch failure, stale resource generations, out-of-order frame IDs, identity/extent mismatch, non-finite values and coverage below 90% are rejected. No full flow-vector readback, queue idle or device wait is used by this AI telemetry path.
+- V1 has no static-region mask or calibrated scene-cut detector. The telemetry explicitly reports no static ratio and does not assert scene cuts. These fields must not be inferred from the V2-only shaders.
+- This code is awaiting Android CI compile/shader validation and real-device validation. SnapAI decision-making remains disabled; these metrics are not yet evidence of a performance improvement.
