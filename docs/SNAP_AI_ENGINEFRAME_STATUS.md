@@ -277,3 +277,13 @@ The latest uploaded scene is 2448x1080, SnapFrame enabled at 75% flow scale. Acr
 - The design document specifies a move-only generation-tagged acquire ticket, exact ticket propagation through the CS-thread closure, single-consume semantics, image-owned present semaphore retirement, acquire-slot retirement, safe cancellation, and swapchain teardown/recreate rules.
 - **No ticket API or overlap optimization is claimed as implemented.** This change is a correctness specification to prevent an unsafe partial refactor. Keep the current barrier until the staged implementation and Android validation gates pass.
 - Next code stage: inventory all Presenter callers and queue/thread ownership, then implement ticket plumbing while retaining the barrier. Only after ticket/semaphore retirement is proven should a controlled overlap experiment be enabled.
+
+
+## Presenter acquire-ticket design review — 2026-11-04
+
+- Re-read the active Presenter and D3D9 present implementation. `acquireNextImage()` and `presentImage()` share mutable frame/image/acquire state; `presentImage()` also pre-acquires the next image on the DXVK CS thread.
+- Confirmed that waiting for the CS submission status only waits for the queued `vkQueuePresentKHR` call to return. It does not establish that the presentation engine has consumed the binary present-wait semaphore.
+- A ticket that merely copies image/semaphore handles is not sufficient. Independent outstanding acquisitions, one-time ticket consumption, swapchain-generation checks, and Vulkan-guaranteed present-semaphore retirement are all required.
+- Added the detailed state model, implementation sequence and acceptance criteria to `docs/DXVK_PRESENT_PIPELINE_AUDIT.md`.
+- No risky Presenter API or semaphore-lifetime rewrite was committed in this step. The temporary source-to-generated `SynchronizePresent()` barrier remains enabled. Do not remove it until the ticket implementation passes compile, ownership and device validation.
+- This step is a correctness/documentation checkpoint, not a runtime optimization. CI/device validation and FPS improvement are not claimed.
