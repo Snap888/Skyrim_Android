@@ -680,7 +680,7 @@ public class LauncherActivity extends Activity {
 
     private void removeLegacyFrameGenArtifacts(File game) throws Exception {
         File port = new File(game, "port");
-        String[] names = {"lsfg.conf", "lsfg_gpu_profile.conf", "dxvk_lsfg_gpu.csv"};
+        String[] names = {"lsfg.conf", "lsfg_gpu_profile.conf", "dxvk_lsfg_gpu.csv", "dxvk_perf_on.csv", "dxvk_perf_off.csv"};
         for (String name : names) {
             File artifact = new File(port, name);
             if (artifact.exists() && !artifact.delete())
