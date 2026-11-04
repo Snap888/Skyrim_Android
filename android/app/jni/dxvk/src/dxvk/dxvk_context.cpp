@@ -1828,13 +1828,18 @@ namespace dxvk {
      || !bindingCount || bindingCount > MaxSnapFrameV2Bindings
      || !groupsX || !groupsY
      || !pushConstantSize || pushConstantSize > 128u
+     || (pushConstantSize & 3u) != 0u
      || !pushConstantData)
       return false;
 
+    bool hasImageBinding = false;
     for (uint32_t i = 0; i < bindingCount; i++) {
       if (samplers[i] != nullptr && imageViews[i] == nullptr)
         return false;
+      hasImageBinding |= imageViews[i] != nullptr;
     }
+    if (!hasImageBinding)
+      return false;
 
     const DxvkComputePipelineState previousComputeState = m_state.cp;
     const DxvkContextFlags previousFlags = m_flags;
