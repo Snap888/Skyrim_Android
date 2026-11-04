@@ -37,3 +37,14 @@ Do not perform synchronous GPU readback or pixel transfer to feed AI. Prefer asy
 ## Remaining work
 
 Implement a per-device runtime owner, connect scalar telemetry, clamp/apply decisions through the DXVK adapter, add bounded decision logging and test hot enable/profile changes during gameplay.
+
+
+## Performance/Ai implementation status — 2026-11-04
+
+The current measured user A/B indicates SnapFrame's additional compute cost reduces source FPS from 20–24 to 10–12, while generated FPS adds 10–12 and output remains 20–24. The immediate priority is preserving source FPS, not maximizing generated count.
+
+Fresh configurations now default to flow scale 50% and profiling disabled. This reduces flow-grid work relative to 75% and avoids diagnostic query/readback overhead in normal gameplay. Existing per-game config overrides these defaults.
+
+The GPU scalar metrics path exists, but the Snap AI Engine controller is not yet instantiated in the live runtime. The next step is a bounded, frame-ID-matched AI policy loop that adjusts only controls actually supported by the V1 backend, beginning with flow scale and conservative hysteresis. AI must bypass on invalid/stale telemetry and must not block Present.
+
+x3/x4 is not yet exposed. Current code generates one t=0.5 midpoint per real frame; true x3/x4 needs phase-parameterized warps, multiple output resources and safe multiple WSI presents. A multiplier-only UI/config change would duplicate the same midpoint and is explicitly rejected.
