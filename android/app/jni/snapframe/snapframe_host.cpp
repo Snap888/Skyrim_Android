@@ -1404,11 +1404,24 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                             g_v2RefinedFlowView[direction] = device->createImageView(
                                 g_v2RefinedFlowImage[direction], flowViewInfo);
                     }
-                    DxvkImageCreateInfo validationInfo = v2Info;
+                    DxvkImageCreateInfo validationInfo{};
+                    validationInfo.type = VK_IMAGE_TYPE_2D;
+                    validationInfo.format = VK_FORMAT_R16_SFLOAT;
+                    validationInfo.flags = 0;
+                    validationInfo.sampleCount = VK_SAMPLE_COUNT_1_BIT;
                     validationInfo.extent = {
                         v2FlowGridExtent(v2LumaWidths[0]),
                         v2FlowGridExtent(v2LumaHeights[0]), 1
                     };
+                    validationInfo.numLayers = 1;
+                    validationInfo.mipLevels = 1;
+                    validationInfo.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+                    validationInfo.stages = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+                    validationInfo.access = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
+                    validationInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+                    validationInfo.layout = VK_IMAGE_LAYOUT_GENERAL;
+                    validationInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                    validationInfo.shared = VK_FALSE;
                     g_v2ValidationImage = device->createImage(
                         validationInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
                     if (g_v2ValidationImage != nullptr)
@@ -2080,6 +2093,85 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                 snapframeLog("SnapFrame: V2 coarse-to-fine flow pair accepted count=%llu frame=%llu levels=L2,L1,L0 directions=2\n",
                     static_cast<unsigned long long>(g_v2FlowDispatchCount),
                     static_cast<unsigned long long>(nextCapturedFrame));
+        }
+
+        if (directionsOk && g_v2RefinementAvailable) {
+            struct alignas(16) V2RefinePush {
+                float dims[4]; float tune[4];
+            };
+            static_assert(sizeof(V2RefinePush) == 32, "V2 refine push ABI");
+            const uint32_t blocksX = v2FlowGridExtent(l0Width);
+            const uint32_t blocksY = v2FlowGridExtent(l0Height);
+            bool refinementOk = true;
+            for (unsigned direction = 0; direction < 2; ++direction) {
+                const unsigned currentSlot = direction == 0 ? slot : previousSlot;
+                const unsigned referenceSlot = direction == 0 ? previousSlot : slot;
+                V2RefinePush push{};
+                push.dims[0] = float(l0Width);
+                push.dims[1] = float(l0Height);
+                push.dims[2] = float(blocksX);
+                push.dims[3] = float(blocksY);
+                push.tune[0] = 4.0f;
+                push.tune[1] = 2.0f;
+                Rc<DxvkImageView> views[5];
+                Rc<DxvkSampler> samplers[5];
+                views[0] = g_v2FlowView[direction][0];
+                views[1] = g_v2PyramidView[currentSlot][0];
+                views[2] = g_v2PyramidView[referenceSlot][0];
+                views[4] = g_v2RefinedFlowView[direction];
+                samplers[0] = g_lumaSampler;
+                samplers[1] = g_lumaSampler;
+                samplers[2] = g_lumaSampler;
+                const bool dispatched = context->dispatchSnapFrameV2(
+                    g_v2RefineShader, views, samplers, 5u,
+                    (blocksX + 7u) / 8u, (blocksY + 7u) / 8u,
+                    sizeof(push), &push);
+                if (!dispatched) {
+                    refinementOk = false;
+                    snapframeEvent(nextCapturedFrame, "v2_refinement_failed",
+                        width, height, direction == 0 ? "backward_refine_rejected" : "forward_refine_rejected");
+                    break;
+                }
+                context->flushComputeBarriers();
+            }
+            if (refinementOk) {
+                struct alignas(16) V2ValidationPush {
+                    float dims[4]; float tune[4];
+                };
+                static_assert(sizeof(V2ValidationPush) == 32, "V2 validation push ABI");
+                V2ValidationPush validationPush{};
+                validationPush.dims[0] = float(l0Width);
+                validationPush.dims[1] = float(l0Height);
+                validationPush.dims[2] = float(blocksX);
+                validationPush.dims[3] = float(blocksY);
+                validationPush.tune[0] = 1.5f;
+                validationPush.tune[1] = 4.0f;
+                Rc<DxvkImageView> validationViews[5];
+                Rc<DxvkSampler> validationSamplers[5];
+                validationViews[0] = g_v2RefinedFlowView[0]; // current -> previous
+                validationViews[1] = g_v2RefinedFlowView[1]; // previous -> current
+                validationViews[4] = g_v2ValidationView;
+                validationSamplers[0] = g_lumaSampler;
+                validationSamplers[1] = g_lumaSampler;
+                const bool validationOk = context->dispatchSnapFrameV2(
+                    g_v2ValidationShader, validationViews, validationSamplers, 5u,
+                    (blocksX + 7u) / 8u, (blocksY + 7u) / 8u,
+                    sizeof(validationPush), &validationPush);
+                if (validationOk) {
+                    context->flushComputeBarriers();
+                    ++g_v2RefinementDispatchCount;
+                    snapframeEvent(nextCapturedFrame, "v2_occlusion_mask_ok",
+                        width, height, "refined_bidirectional_round_trip_confidence");
+                    if (g_v2RefinementDispatchCount == 1u
+                        || (g_v2RefinementDispatchCount % 120u) == 0u)
+                        snapframeLog("SnapFrame: V2 refinement+validation accepted count=%llu frame=%llu grid=%ux%u thresholds=1.5/4.0px\n",
+                            static_cast<unsigned long long>(g_v2RefinementDispatchCount),
+                            static_cast<unsigned long long>(nextCapturedFrame), blocksX, blocksY);
+                } else {
+                    snapframeEvent(nextCapturedFrame, "v2_occlusion_mask_failed",
+                        width, height, "forward_backward_validation_dispatch_rejected");
+                }
+            }
         }
     }
 
