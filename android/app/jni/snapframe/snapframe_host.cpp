@@ -718,6 +718,9 @@ bool recordV1GpuMetrics(
                                     width, height, flowWidth, flowHeight,
                                     timestampNs](VkResult completion) {
         bool accepted = false;
+        float loggedConfidence = 0.0f;
+        float loggedComplexity = 0.0f;
+        float loggedArtifactRisk = 0.0f;
         const char* rejectReason = "command_list_completion_error";
         const bool currentGeneration = generation == g_metricsReadbackGeneration.load(
             std::memory_order_acquire);
@@ -731,6 +734,9 @@ bool recordV1GpuMetrics(
                     | (uint64_t(gpu->identity[1]) << 32);
                 const uint64_t gpuTimestamp = uint64_t(gpu->identity[2])
                     | (uint64_t(gpu->identity[3]) << 32);
+                loggedConfidence = gpu->motion[2];
+                loggedComplexity = gpu->motion[1];
+                loggedArtifactRisk = gpu->quality[2];
                 const bool finite = std::isfinite(gpu->motion[0])
                     && std::isfinite(gpu->motion[1])
                     && std::isfinite(gpu->motion[2])
@@ -798,9 +804,7 @@ bool recordV1GpuMetrics(
             if (frame == 1u || (frame % 120u) == 0u)
                 snapframeLog("SnapFrame: GPU metrics published frame=%llu confidence=%.3f complexity=%.3f artifact=%.3f\n",
                     static_cast<unsigned long long>(frame),
-                    reinterpret_cast<const SnapFrameMetricsGpuResult*>(readback->mapPtr(0))->motion[2],
-                    reinterpret_cast<const SnapFrameMetricsGpuResult*>(readback->mapPtr(0))->motion[1],
-                    reinterpret_cast<const SnapFrameMetricsGpuResult*>(readback->mapPtr(0))->quality[2]);
+                    loggedConfidence, loggedComplexity, loggedArtifactRisk);
             snapframeEvent(frame, "gpu_metrics_published", width, height,
                 "v1_scalar_record_validated_and_motion_v2_accepted");
         } else {
