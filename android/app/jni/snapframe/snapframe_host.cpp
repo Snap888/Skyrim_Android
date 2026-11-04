@@ -1910,6 +1910,14 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
     if (validated.diagnostic_phase_frames < 300) validated.diagnostic_phase_frames = 300;
     if (validated.diagnostic_phase_frames > 36000) validated.diagnostic_phase_frames = 36000;
     g_flowScalePercent.store(static_cast<uint32_t>(validated.flow_scale_percent), std::memory_order_release);
+    {
+        std::lock_guard<std::mutex> lock(g_motionV2Mutex);
+        if (!g_motionV2) {
+            SnapMotionV2Config motionConfig{};
+            snap_motion_v2_default_config(&motionConfig);
+            g_motionV2 = snap_motion_v2_create(&motionConfig);
+        }
+    }
     g_motionAnalysisEnabled = validated.motion_analysis != 0;
     g_diagnosticSuiteEnabled = validated.diagnostic_suite != 0 && g_motionAnalysisEnabled;
     if (validated.diagnostic_suite != 0 && !g_motionAnalysisEnabled)
@@ -1919,6 +1927,8 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
     g_diagnosticPhase = UINT32_MAX;
     g_profilingEnabled = validated.profiling_enabled != 0;
     g_flowReadbackFailureLogged = false;
+    snapframeLog("SnapFrame: MotionV2 telemetry store %s\n",
+        g_motionV2 ? "ready" : "unavailable");
     snapframeLog("SnapFrame: flow readback %s (motion_analysis=%d profiling=%d diagnostic_suite=%d interval=120 frames)\n",
         (g_motionAnalysisEnabled && g_profilingEnabled) ? "enabled" : "disabled",
         g_motionAnalysisEnabled ? 1 : 0, g_profilingEnabled ? 1 : 0,
@@ -1967,6 +1977,13 @@ extern "C" void snapframe_host_shutdown(void) {
     snapframe_dxvk_set_copy_hook(nullptr);
     snapframe_dxvk_set_generation_hooks(nullptr, nullptr, nullptr);
     snapframe_engine_adapter_shutdown();
+    {
+        std::lock_guard<std::mutex> lock(g_motionV2Mutex);
+        if (g_motionV2) {
+            snap_motion_v2_destroy(g_motionV2);
+            g_motionV2 = nullptr;
+        }
+    }
     g_midpointFrameReady.store(0, std::memory_order_release);
     /* Keep the device-destroy hook registered so owned images are released
      * before DXVK tears down the device allocator. */
