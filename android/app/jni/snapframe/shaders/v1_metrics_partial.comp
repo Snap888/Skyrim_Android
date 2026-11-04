@@ -43,7 +43,7 @@ void main() {
         qualitySums.w = 1.0;
         if (valid) {
             vec2 meanFlow = 0.5 * (forward.xy - backward.xy);
-            float magnitude = length(meanFlow);
+            // Flow vectors are in half-resolution luma texels; publish source pixels.\n            float magnitude = 2.0 * length(meanFlow);
             float confidence = clamp(min(forward.z, backward.z), 0.0, 1.0);
             float fbValidity = clamp(consistency, 0.0, 1.0);
 
