@@ -305,3 +305,32 @@ The latest uploaded scene is 2448x1080, SnapFrame enabled at 75% flow scale. Acr
 - Fixed the HUD's zero FPS counters: the old HUD counter functions had no callers after backend consolidation. Source FPS now counts only source WSI presents accepted by Vulkan; generated FPS counts only generated WSI presents accepted by Vulkan; output FPS is their sum. HUD symbols and labels now use SnapFrame terminology.
 - The HUD values represent accepted Vulkan WSI present operations, not compositor scanout or physical display FPS.
 - Updated Android settings and SnapFrame integration documentation. Android CI and device validation for these changes are pending. No FPS gain is claimed.
+
+
+## Performance optimization and Snap AI wiring — 2026-11-04
+
+### Implemented in this pass
+
+- Block-matching flow refinement was reduced from a 5x5 to a 3x3 neighborhood around the coarse winner. Worst-case candidate evaluations fall from 49 to 33 per flow cell and direction (about 33% fewer candidates), while the coarse +/-8 search lattice remains. This is a measured operation-count reduction, not a measured FPS gain; sub-grid precision is lower and needs Skyrim scene validation.
+- Midpoint warp now avoids the two displaced color fetches when confidence is effectively zero and writes the current real frame directly. This saves memory sampling in low-confidence/occluded regions; actual GPU gain depends on scene coverage and branch coherence.
+- Snap AI is now instantiated in the Android host and linked through `SnapAI::Engine`.
+- Validated frame-tagged flow metrics are staged asynchronously. On the next serialized render callback, the host combines them only with an exact-frame GPU total-chain timestamp and invokes `snap_ai_update()`.
+- Sparse total-chain timestamps are collected every 30 frames even when verbose GPU profiling is disabled. Runtime timing publication no longer depends on the optional GPU CSV being open.
+- Only AI `flow_scale` is currently applied, clamped to 50..75%, with 8-frame warmup, 6 ms target budget and 8 percentage-point hysteresis. Other decision fields remain advisory.
+- AI changes are applied on the serialized DXVK callback; history reset is requested there. No Vulkan resource mutation or WSI wait occurs in the asynchronous metrics callback.
+
+### Not yet implemented / safety gates
+
+- Multi-level luma pyramid and coarse-to-fine flow propagation are not yet integrated into the live dispatch path. Current flow still operates on a single half-resolution luma level.
+- Existing forward/backward consistency mask is an occlusion-confidence proxy, not a dedicated CronyFG-style disocclusion mask. Dedicated mask generation and warp compositing are not yet implemented.
+- x3/x4 temporal phase generation is not implemented. The live backend still owns one midpoint image and queues one generated present per source frame.
+- WSI ticket ownership and semaphore retirement are not implemented. Keep `SynchronizePresent()` enabled; do not increase generated present count or remove the barrier until ticket ownership and retirement are validated.
+- No source FPS improvement or output FPS improvement is claimed. Compare matched device captures after the ARM64 build and test.
+
+### Next implementation order
+
+1. Verify this AI wiring compiles and that exact-frame timing + metrics pairs appear in logs.
+2. Add a three-level luma pyramid with explicit per-mip image views, then coarse-to-fine vector propagation (coarse field seeds finer search).
+3. Split forward/backward consistency into a validated occlusion/disocclusion mask and make warp avoid blending across invalid regions.
+4. Add phase-parametric warp outputs for t=k/M (M=3,4), then implement multiple output image lifetimes and one-shot WSI tickets.
+5. Convert Presenter to generation-bound acquire tickets and per-image present semaphore retirement. Only then allow multiple generated WSI presents and test source FPS/frame pacing.
