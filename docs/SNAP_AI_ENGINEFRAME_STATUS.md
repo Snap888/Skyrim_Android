@@ -122,7 +122,7 @@ Do not treat a successful portable/mock test as proof of GPU frame generation. D
 
 ### V2 shader coverage update
 
-The upstream V2 shader set now includes luma, downsample, coarse/fine search, refinement, forward/backward validation, static-region mask and bidirectional interpolation with gamut clamp. These are still isolated source assets. The Skyrim branch does not yet compile or dispatch them, and the external engine dependency remains pinned to the previously validated commit until the DXVK adapter contract and GPU resources are implemented.
+The upstream V2 shader set now includes luma, downsample, coarse/fine search, refinement, forward/backward validation, static-region mask and bidirectional interpolation with gamut clamp. These are still isolated source assets. The Skyrim build compiles and validates these sources into its generated SPIR-V header from the pinned external engine tree, but it does not yet create V2 DXVK resources or dispatch them. The external engine dependency remains pinned until the DXVK adapter contract and GPU resources are implemented.
 
 
 ## SnapMotionV2 quality and telemetry shader progress — 2026-11-04
@@ -157,7 +157,7 @@ The upstream V2 shader set now includes luma, downsample, coarse/fine search, re
 - Latest Android CI run [#41817208666](https://github.com/Snap888/Skyrim_Android/actions/runs/41817208666) passed portable API tests, Snap AI/SnapFrame ARM64 shared-library build, DXVK SnapFrame host ARM64 compile and Java compilation. The full APK job was skipped because `build_apk` was not requested.
 - A safety backup was created before this follow-up work: [backup/Snap-AI-EngineFrame-pre-2026-11-04-logs2](https://github.com/Snap888/Skyrim_Android/tree/backup/Snap-AI-EngineFrame-pre-2026-11-04-logs2).
 
-The active Skyrim runtime remains V1. The portable MotionV2 core is linked, but its shaders/resources/dispatch are not yet connected to DXVK; Snap AI adaptive control remains unavailable. Do not treat shader compile validation or queued generate commands as proof of actual frame generation.
+The active Skyrim runtime remains V1. The portable MotionV2 core is linked, and its V2 shader sources are compiled into the generated shader header and validated by CI. The V2 GPU resources, descriptor bindings, dispatch sequence and async readback are not yet connected to DXVK; Snap AI adaptive control remains unavailable. Do not treat shader compile validation or queued generate commands as proof of actual frame generation.
 
 
 ## Full DXVK/LSFG and audio log audit — 2026-11-04
