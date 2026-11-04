@@ -1465,7 +1465,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             snapframeLog("SnapFrame: luma compute resource creation failed; capture remains active\n");
         }
         if (g_flowAvailable) {
-            snapframeLog("SnapFrame: bidirectional block-matching flow ready outputs=2 extent=%ux%u format=RGBA16F search=coarse5x5-step4+refine5x5 range=+/-10 patch=3x3 candidates_max=49 flow_scale=%u%% block_stride=%u luma_texels\n",
+            snapframeLog("SnapFrame: bidirectional block-matching flow ready outputs=2 extent=%ux%u format=RGBA16F search=coarse5x5-step4+refine3x3 range=+/-9 patch=3x3 candidates_max=33 flow_scale=%u%% block_stride=%u luma_texels\n",
                 flowExtent(width / 2u + width % 2u),
                 flowExtent(height / 2u + height % 2u),
                 flowScalePercent(), flowBlockStride());
