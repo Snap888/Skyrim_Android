@@ -1780,6 +1780,7 @@ namespace dxvk {
 
     const DxvkComputePipelineState previousComputeState = m_state.cp;
     const DxvkContextFlags previousFlags = m_flags;
+    const DxvkPushConstantState previousPushConstants = m_state.pc;
     const VkPipeline previousComputePipeline = m_cpActivePipeline;
     const VkDescriptorSet previousComputeSet = m_cpSet;
     const DxvkShaderResourceSlot previousResources[2] = {
@@ -1800,10 +1801,12 @@ namespace dxvk {
       if (previousTracked[i]) m_rcTracked.set(i); else m_rcTracked.clr(i);
     }
     m_state.cp = previousComputeState;
+    m_state.pc = previousPushConstants;
     m_cpActivePipeline = previousComputePipeline;
     m_cpSet = previousComputeSet;
     m_flags = previousFlags;
-    m_flags.set(DxvkContextFlag::CpDirtyPipeline,
+    m_flags.set(DxvkContextFlag::DirtyPushConstants,
+                DxvkContextFlag::CpDirtyPipeline,
                 DxvkContextFlag::CpDirtyPipelineState,
                 DxvkContextFlag::CpDirtyResources,
                 DxvkContextFlag::CpDirtyDescriptorBinding);
@@ -1835,6 +1838,7 @@ namespace dxvk {
 
     const DxvkComputePipelineState previousComputeState = m_state.cp;
     const DxvkContextFlags previousFlags = m_flags;
+    const DxvkPushConstantState previousPushConstants = m_state.pc;
     const VkPipeline previousComputePipeline = m_cpActivePipeline;
     const VkDescriptorSet previousComputeSet = m_cpSet;
     DxvkShaderResourceSlot previousResources[MaxSnapFrameV2Bindings];
@@ -1859,10 +1863,12 @@ namespace dxvk {
       if (previousTracked[i]) m_rcTracked.set(i); else m_rcTracked.clr(i);
     }
     m_state.cp = previousComputeState;
+    m_state.pc = previousPushConstants;
     m_cpActivePipeline = previousComputePipeline;
     m_cpSet = previousComputeSet;
     m_flags = previousFlags;
-    m_flags.set(DxvkContextFlag::CpDirtyPipeline,
+    m_flags.set(DxvkContextFlag::DirtyPushConstants,
+                DxvkContextFlag::CpDirtyPipeline,
                 DxvkContextFlag::CpDirtyPipelineState,
                 DxvkContextFlag::CpDirtyResources,
                 DxvkContextFlag::CpDirtyDescriptorBinding);
