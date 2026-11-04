@@ -172,6 +172,8 @@ struct SnapAIPendingMetrics {
 };
 SnapAIPendingMetrics g_snapAiPendingMetrics;
 std::atomic<uint64_t> g_aiDecisionCount{0};
+uint64_t g_aiLastScaleChangeFrame = 0;
+static constexpr uint64_t kAiScaleChangeCooldownFrames = 120;
 
 struct alignas(16) SnapFrameMetricsGpuResult {
     uint32_t identity[4];
@@ -1533,9 +1535,20 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
             && std::isfinite(decision.flow_scale)) {
             const int requestedScale = std::max(50, std::min(75,
                 static_cast<int>(std::lround(decision.flow_scale * 100.0f))));
-            if (static_cast<uint32_t>(requestedScale) != flowScalePercent()) {
-                snapframe_host_apply_backend_config(
-                    g_enabled.load(std::memory_order_acquire), requestedScale);
+            const bool scaleDiffers =
+                static_cast<uint32_t>(requestedScale) != flowScalePercent();
+            const bool scaleChangeCooldownElapsed =
+                aiMetrics.frame_id >= g_aiLastScaleChangeFrame
+                && (aiMetrics.frame_id - g_aiLastScaleChangeFrame)
+                    >= kAiScaleChangeCooldownFrames;
+            if (scaleDiffers && scaleChangeCooldownElapsed) {
+                if (snapframe_host_apply_backend_config(
+                        g_enabled.load(std::memory_order_acquire), requestedScale)) {
+                    g_aiLastScaleChangeFrame = aiMetrics.frame_id;
+                    snapframeLog("SnapFrame AI: applied Flow Scale=%d%% at frame=%llu; resource rebuild scheduled\\n",
+                        requestedScale,
+                        static_cast<unsigned long long>(aiMetrics.frame_id));
+                }
             }
             const uint64_t decisions = g_aiDecisionCount.fetch_add(
                 1, std::memory_order_relaxed) + 1;
@@ -2057,6 +2070,7 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
         g_snapAiPendingMetrics = SnapAIPendingMetrics{};
     }
     g_aiDecisionCount.store(0, std::memory_order_relaxed);
+    g_aiLastScaleChangeFrame = 0;
     g_motionAnalysisEnabled = validated.motion_analysis != 0;
     g_diagnosticSuiteEnabled = validated.diagnostic_suite != 0 && g_motionAnalysisEnabled;
     if (validated.diagnostic_suite != 0 && !g_motionAnalysisEnabled)
