@@ -107,3 +107,9 @@ The Skyrim project now pins Snap AI Engine revision `ccf4589ca19d5f788adc56c7248
 - Final config files show LSFG enabled at multiplier 2 and SnapFrame disabled at 25% flow scale. The LSFG runtime log shows a temporary switch to 1x followed by 2x.
 - The LSFG GPU CSV (frames 0–1219) and DXVK CPU-present CSV (frames 120–5760) are separate counter streams.
 - The 48 DXVK CPU-present samples average 18.52 ms (P95 32.96 ms); requested/queued generated counts average 0.407. No matched LSFG-OFF baseline or confirmed generated-image WSI acceptance is present in this log set.
+
+## Stutter-scene benchmark follow-up — 2026-11-04
+
+For a valid LSFG A/B, enable the launcher's DXVK benchmark and run pass A then pass B on the same save, scene, camera path, resolution, VSync and duration. The updated launcher sets `DXVK_PERF_DISABLE_SNAPFRAME=1` during both passes, so SnapFrame's capture, motion analysis and fallback generation are bypassed. Verify each CSV header contains `snapframe_bypassed=1`; verify `snapframe_active_frames=0` in all rows. Pass B should show nonzero `lsfg_active_frames` in windows where LSFG can generate. If it remains zero, the LSFG pass did not become generation-ready and the A/B is invalid.
+
+Test SnapFrame separately: disable LSFG, disable the DXVK A/B benchmark, enable SnapFrame, and compare 25%, 50% and 75% flow scale in the same scene. Keep other settings fixed. Capture `snapframe_gpu.csv`, `snapframe_flow.csv`, `snapframe_events.csv`, `dxvk_perf` only if needed, and the runtime config/log files. Record visible slowdown timing and whether it occurs with SnapFrame disabled. Do not compare captures from different scenes as controlled A/B results.
