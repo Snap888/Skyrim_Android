@@ -29,7 +29,6 @@ void platform_init(void) {
     user32_set_screen(w, h);
     LOG("platform: window %dx%d", w, h);
     load_key_script();
-    { extern void lsfg_bootstrap(void); lsfg_bootstrap(); }
     { extern void snapframe_bootstrap(void); snapframe_bootstrap(); }
 }
 
@@ -281,7 +280,6 @@ static void poll_key_fifo(void) {
 }
 
 void platform_present_hook(void) {
-    { extern void lsfg_bootstrap_frame(void); lsfg_bootstrap_frame(); }
     SDL_Event e;
     poll_key_fifo();
     while (SDL_PollEvent(&e)) {
