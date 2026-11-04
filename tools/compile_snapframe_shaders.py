@@ -22,6 +22,8 @@ SHADERS = [
     ("block_match_flow", SHADER_DIR / "block_match_flow.comp"),
     ("flow_consistency", SHADER_DIR / "flow_consistency.comp"),
     ("midpoint_warp", SHADER_DIR / "midpoint_warp.comp"),
+    ("v1_metrics_partial", SHADER_DIR / "v1_metrics_partial.comp"),
+    ("v1_metrics_final", SHADER_DIR / "v1_metrics_final.comp"),
 ]
 
 
