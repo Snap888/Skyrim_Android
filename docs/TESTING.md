@@ -52,3 +52,10 @@ Collect real FPS, generated FPS, stage GPU timings, total GPU time, dropped/gene
 - Change Flow Scale in the in-game menu, then inspect `port/snapframe.conf`: each key must occupy its own physical line (no literal `\\n` characters).
 - Restart the game and confirm the selected Flow Scale is restored rather than silently falling back to the default.
 - Confirm the host log uses separate physical lines for backend status and config summary.
+
+
+## Event logging performance regression test
+- Run the same scene and frame count with profiling enabled before/after the event logger change.
+- Confirm failure/rejection events are retained immediately and stage-success samples appear at the configured 120-frame cadence.
+- Confirm `frame_complete` progress appears at frame 1 and every 300 frames thereafter.
+- Compare `snapframe_events.csv` size and verify no per-frame flush regression; GPU timings and skipped-frame counts should remain comparable under the same scene/device conditions.
