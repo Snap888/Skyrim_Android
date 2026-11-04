@@ -1422,11 +1422,20 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                     validationInfo.layout = VK_IMAGE_LAYOUT_GENERAL;
                     validationInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
                     validationInfo.shared = VK_FALSE;
+                    DxvkImageViewCreateInfo validationViewInfo{};
+                    validationViewInfo.type = VK_IMAGE_VIEW_TYPE_2D;
+                    validationViewInfo.format = VK_FORMAT_R16_SFLOAT;
+                    validationViewInfo.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+                    validationViewInfo.aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+                    validationViewInfo.minLevel = 0;
+                    validationViewInfo.numLevels = 1;
+                    validationViewInfo.minLayer = 0;
+                    validationViewInfo.numLayers = 1;
                     g_v2ValidationImage = device->createImage(
                         validationInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
                     if (g_v2ValidationImage != nullptr)
                         g_v2ValidationView = device->createImageView(
-                            g_v2ValidationImage, v2ViewInfo);
+                            g_v2ValidationImage, validationViewInfo);
                     g_v2RefinementAvailable =
                         g_v2RefinedFlowView[0] != nullptr
                         && g_v2RefinedFlowView[1] != nullptr
