@@ -50,7 +50,7 @@ target_compile_options(snapframe_host PRIVATE
     "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include cstdint>"
     -Wno-everything
 )
-target_link_libraries(snapframe_host PUBLIC dxvk_d3d9 SnapFrame::Engine)
+target_link_libraries(snapframe_host PUBLIC dxvk_d3d9 SnapFrame::Engine SnapFrame::MotionV2)
 if(ANDROID)
   target_link_libraries(snapframe_host PUBLIC log vulkan)
 endif()
