@@ -16,6 +16,7 @@ if(Python3_Interpreter_FOUND AND SNAPFRAME_GLSLANG_VALIDATOR AND SNAPFRAME_SPIRV
       "${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/compile_snapframe_shaders.py"
       --glslang "${SNAPFRAME_GLSLANG_VALIDATOR}"
       --spirv-val "${SNAPFRAME_SPIRV_VAL}"
+      --motion-v2-dir "${snap_ai_engine_SOURCE_DIR}/framegen/backends/dxvk/shaders/motion_v2"
     RESULT_VARIABLE SNAPFRAME_SHADER_RESULT
     OUTPUT_VARIABLE SNAPFRAME_SHADER_OUTPUT
     ERROR_VARIABLE SNAPFRAME_SHADER_ERROR
