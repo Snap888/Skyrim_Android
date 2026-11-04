@@ -1349,7 +1349,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
      * DXVK callback, before either the portable core or legacy fallback runs. */
     if (g_resetHistoryRequested.exchange(0, std::memory_order_acq_rel)) {
         clearHistory();
-        snapframeLog("SnapFrame: queued history reset consumed on render callback\\n");
+        snapframeLog("SnapFrame: queued history reset consumed on render callback\n");
     }
     g_midpointFrameReady.store(0, std::memory_order_release);
 
@@ -1363,7 +1363,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
     } else if (adapterResult < 0) {
         if (g_skippedFrames.load(std::memory_order_relaxed) == skippedBefore)
             g_skippedFrames.fetch_add(1, std::memory_order_relaxed);
-        snapframeLog("SnapFrame: portable backend failed; presenting real frame only\\n");
+        snapframeLog("SnapFrame: portable backend failed; presenting real frame only\n");
     }
 }
 
@@ -1586,7 +1586,7 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
             validated.enabled, validated.quality, validated.flow_scale_percent,
             g_motionAnalysisEnabled ? 1 : 0,
             g_motionAnalysisEnabled ? "capture+luma+bidirectional-flow+fb-consistency+midpoint-warp" : "capture-only");
-    snapframeLog("SnapFrame: portable SnapFrameBackendV1 %s\\n",
+    snapframeLog("SnapFrame: portable SnapFrameBackendV1 %s\n",
         portableReady ? "active (DXVK GPU pipeline adapter)" : "unavailable; legacy fallback active");
     return 1;
 }
@@ -1638,7 +1638,7 @@ extern "C" int snapframe_host_update_settings(int enabled, int flow_scale_percen
     if (snapframe_engine_adapter_available()) {
         if (!snapframe_engine_adapter_update_settings(enabled ? 1 : 0, flow_scale_percent))
             return 0;
-        snapframeLog("SnapFrame: portable config update queued enabled=%d flow_scale=%d%%\\n",
+        snapframeLog("SnapFrame: portable config update queued enabled=%d flow_scale=%d%%\n",
             enabled ? 1 : 0, flow_scale_percent);
         return 1;
     }
@@ -1652,7 +1652,7 @@ extern "C" int snapframe_host_update_settings(int enabled, int flow_scale_percen
         requestedEnabled, std::memory_order_acq_rel);
     if (previousScale != requestedScale || previousEnabled != requestedEnabled) {
         g_resetHistoryRequested.store(1, std::memory_order_release);
-        snapframeLog("SnapFrame: legacy live settings queued enabled=%d flow_scale=%u%%\\n",
+        snapframeLog("SnapFrame: legacy live settings queued enabled=%d flow_scale=%u%%\n",
             requestedEnabled, requestedScale);
     }
     return 1;
