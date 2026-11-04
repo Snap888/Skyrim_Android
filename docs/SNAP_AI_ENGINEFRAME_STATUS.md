@@ -258,3 +258,12 @@ The latest uploaded scene is 2448x1080, SnapFrame enabled at 75% flow scale. Acr
 - Independent source/generated submission status objects remain in place, but must not be confused with independent WSI acquire ownership.
 - The current status checks endpoint returned no checks for the documentation checkpoint; the safety correction is not yet compile-validated or device-validated. Do not claim an FPS improvement.
 - Next engineering task: redesign Presenter around an explicit acquire ticket containing swapchain generation, image index, acquire semaphore and present semaphore. Ensure the ticket is consumed exactly once by the matching queued present operation; reset/recreate must invalidate outstanding tickets only after submission retirement. Then test WSI semaphore reuse and queue ordering before removing the temporary barrier.
+
+
+## Bounded WSI acquire recovery — 2026-11-04
+
+- Code commit `241d00525003de96d4c2ba4f2eadd83519d8e910` replaces unbounded source/generated acquire retry loops with at most three attempts, logging each VkResult and recreating the swapchain between attempts.
+- Persistent source acquire failure exits PresentImage without submitting work against an unacquired image. Persistent generated acquire failure reports FG rejection and skips the generated submission.
+- This is a WSI failure-path reliability improvement only; no FPS gain is claimed.
+- The temporary source-to-generated synchronization barrier remains required with the current single mutable Presenter acquire state. Ticket-based acquire/present ownership is still future work.
+- CI and physical-device validation are pending for this code.
