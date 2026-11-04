@@ -55,3 +55,6 @@ Not yet completed: concrete DXVK `SnapFrameBackendV1` adapter, live AI telemetry
 - Corrected SnapFrame generated-frame accounting: defer the result callback and HUD output-frame count until the existing DXVK present-status wait completes; accept VK_SUCCESS and Android's accepted VK_SUBOPTIMAL_KHR. No additional synchronization wait was added.
 - Renamed the success event to `midpoint_present_accepted` to distinguish completed WSI present from dispatch/queue. This still does not establish compositor scanout or displayed FPS.
 - Audited third device upload: 75% vs 25% flow-grid costs, scene-dependent confidence, corrected frame-601 vector statistics, Turnip Gen8 V38 config, latest LSFG GPU profile and audio mixer health. See GPU_TELEMETRY.md.
+
+
+- Third-upload LSFG configuration audit: final multiplier 2 with an intervening 1x live setting; DXVK CPU-present profile is 48 samples (mean 18.52 ms, P95 32.96 ms), not a measured displayed-FPS result.
