@@ -182,6 +182,8 @@ bool g_lumaAvailable = false;
 bool g_flowAvailable = false;
 bool g_consistencyAvailable = false;
 bool g_midpointAvailable = false;
+bool g_metricsAvailable = false;
+uint32_t g_metricsPartialCount = 0;
 uint64_t g_midpointDispatchCount = 0;
 uint64_t g_midpointFailureCount = 0;
 std::atomic<uint32_t> g_flowScalePercent{50};
@@ -668,6 +670,11 @@ void clearHistory() {
     g_metricsReadbackGeneration.fetch_add(1, std::memory_order_acq_rel);
     g_metricsPublishedFrame.store(0, std::memory_order_release);
     g_midpointAvailable = false;
+    g_metricsAvailable = false;
+    g_metricsPartialCount = 0;
+    g_metricsPartialShader = Rc<DxvkShader>();
+    g_metricsFinalShader = Rc<DxvkShader>();
+    g_metricsShaderDevice = nullptr;
     g_midpointDispatchCount = 0;
     g_midpointFailureCount = 0;
     g_lumaSampler = Rc<DxvkSampler>();
@@ -1069,6 +1076,120 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                         snapframeLog("SnapFrame: midpoint output format unsupported or consistency unavailable result=%d features=0x%x; warp disabled\n",
                             int(midpointImageResult), unsigned(midpointProperties.optimalTilingFeatures));
                     }
+                    // Metrics use the live V1 flow and consistency images only.
+                    // They are independent of midpoint reconstruction availability.
+                    try {
+                        const bool needMetricsShaderRegistration =
+                            g_metricsShaderDevice != device
+                            || g_metricsPartialShader == nullptr
+                            || g_metricsFinalShader == nullptr;
+                        if (needMetricsShaderRegistration) {
+                            g_metricsPartialShader = Rc<DxvkShader>();
+                            g_metricsFinalShader = Rc<DxvkShader>();
+                            g_metricsShaderDevice = nullptr;
+                            const DxvkResourceSlot partialSlots[] = {
+                                { 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
+                                { 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
+                                { 2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
+                                { 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_WRITE_BIT },
+                            };
+                            DxvkInterfaceSlots partialIface{};
+                            SpirvCodeBuffer partialCode(
+                                snapframe::shaders::k_v1_metrics_partial_word_count,
+                                snapframe::shaders::k_v1_metrics_partial);
+                            g_metricsPartialShader = device->createShader(
+                                VK_SHADER_STAGE_COMPUTE_BIT, 4, partialSlots,
+                                partialIface, partialCode);
+
+                            const DxvkResourceSlot finalSlots[] = {
+                                { 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
+                                { 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_WRITE_BIT },
+                            };
+                            DxvkInterfaceSlots finalIface{};
+                            finalIface.pushConstOffset = 0;
+                            finalIface.pushConstSize = sizeof(SnapFrameMetricsPush);
+                            SpirvCodeBuffer finalCode(
+                                snapframe::shaders::k_v1_metrics_final_word_count,
+                                snapframe::shaders::k_v1_metrics_final);
+                            g_metricsFinalShader = device->createShader(
+                                VK_SHADER_STAGE_COMPUTE_BIT, 2, finalSlots,
+                                finalIface, finalCode);
+                        }
+
+                        if (g_metricsPartialShader != nullptr
+                            && g_metricsFinalShader != nullptr
+                            && needMetricsShaderRegistration) {
+                            device->registerShader(g_metricsPartialShader);
+                            device->registerShader(g_metricsFinalShader);
+                            g_metricsShaderDevice = device;
+                        }
+
+                        const uint32_t metricsGroupsX = (flowWidth + 7u) / 8u;
+                        const uint32_t metricsGroupsY = (flowHeight + 7u) / 8u;
+                        g_metricsPartialCount = metricsGroupsX * metricsGroupsY;
+                        const VkDeviceSize partialBytes =
+                            VkDeviceSize(g_metricsPartialCount) * 32u;
+                        DxvkBufferCreateInfo partialInfo{};
+                        partialInfo.size = partialBytes;
+                        partialInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+                        partialInfo.stages = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+                        partialInfo.access = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+                        g_metricsPartialBuffer = device->createBuffer(
+                            partialInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+                        DxvkBufferCreateInfo resultInfo{};
+                        resultInfo.size = sizeof(SnapFrameMetricsGpuResult);
+                        resultInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+                                         | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+                        resultInfo.stages = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+                                          | VK_PIPELINE_STAGE_TRANSFER_BIT;
+                        resultInfo.access = VK_ACCESS_SHADER_WRITE_BIT
+                                          | VK_ACCESS_TRANSFER_READ_BIT;
+                        g_metricsResultBuffer = device->createBuffer(
+                            resultInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+                        bool readbackReady = true;
+                        for (uint32_t slot = 0; slot < kMetricsReadbackSlots; ++slot) {
+                            DxvkBufferCreateInfo readbackInfo{};
+                            readbackInfo.size = sizeof(SnapFrameMetricsGpuResult);
+                            readbackInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+                            readbackInfo.stages = VK_PIPELINE_STAGE_HOST_BIT;
+                            readbackInfo.access = VK_ACCESS_HOST_READ_BIT;
+                            g_metricsReadbackBuffers[slot] = device->createBuffer(
+                                readbackInfo,
+                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+                                | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+                            if (g_metricsReadbackBuffers[slot] == nullptr
+                                || g_metricsReadbackBuffers[slot]->mapPtr(0) == nullptr) {
+                                readbackReady = false;
+                                break;
+                            }
+                            g_metricsReadbackBusy[slot].store(0, std::memory_order_release);
+                        }
+                        g_metricsAvailable = g_metricsPartialShader != nullptr
+                            && g_metricsFinalShader != nullptr
+                            && g_metricsPartialBuffer != nullptr
+                            && g_metricsResultBuffer != nullptr
+                            && readbackReady;
+                        if (!g_metricsAvailable) {
+                            g_metricsPartialBuffer = Rc<DxvkBuffer>();
+                            g_metricsResultBuffer = Rc<DxvkBuffer>();
+                            for (uint32_t slot = 0; slot < kMetricsReadbackSlots; ++slot)
+                                g_metricsReadbackBuffers[slot] = Rc<DxvkBuffer>();
+                        }
+                        snapframeLog("SnapFrame: V1 GPU scalar metrics %s grid=%ux%u partials=%u readback_slots=%u\n",
+                            g_metricsAvailable ? "ready" : "unavailable",
+                            flowWidth, flowHeight, g_metricsPartialCount,
+                            kMetricsReadbackSlots);
+                    } catch (...) {
+                        g_metricsAvailable = false;
+                        g_metricsPartialBuffer = Rc<DxvkBuffer>();
+                        g_metricsResultBuffer = Rc<DxvkBuffer>();
+                        for (uint32_t slot = 0; slot < kMetricsReadbackSlots; ++slot)
+                            g_metricsReadbackBuffers[slot] = Rc<DxvkBuffer>();
+                        snapframeLog("SnapFrame: V1 GPU scalar metrics allocation failed; frame generation remains active\n");
+                    }
+
                     snapframeLog("SnapFrame: midpoint reconstruction resources %s output=RGBA16F extent=%ux%u\n",
                         g_midpointAvailable ? "ready" : "unavailable", width, height);
                     snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed) + 1u,
