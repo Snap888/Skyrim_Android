@@ -2,9 +2,9 @@
 
 ## Status
 
-The portable Snap AI/SnapFrame shared libraries, concrete DXVK adapter, JNI settings bridge and scalar timing telemetry have passed Android ARM64 compile CI in earlier runs. Portable upstream API tests have passed. A full APK build and physical-device GPU validation have not yet been completed. The latest CI run for the event-logger change is still pending/in progress; do not treat it as passed until every job completes.
+The portable Snap AI/SnapFrame shared libraries, concrete DXVK adapter, JNI settings bridge and scalar timing telemetry have passed Android ARM64 compile CI in earlier runs. Portable upstream API tests have passed. A full APK build and physical-device GPU validation have not yet been completed. The latest CI run #41817208666 passed portable API tests, portable ARM64 libraries, DXVK host ARM64 compile and Java compilation; the full APK job was skipped.
 
-The earlier 2026-11-04 baseline run reported 7,650 captured frames and 255 successful GPU timing samples. The newest uploaded run at 2448x1080 contains 206 successful GPU timing samples per stage (1,442 rows), 51 sparse flow-stat rows, and vector-dump completion messages every 600 flow frames. The corrected flow readback gate is now confirmed operational with `motion_analysis=1` and `diagnostic_suite=0`. The newest log does not provide a final whole-session skipped-frame summary. LSFG was disabled in this run.
+The earlier 2026-11-04 baseline run reported 7,650 captured frames and 255 successful GPU timing samples. The newest uploaded run at 2448x1080 contains 206 successful GPU timing samples per stage (1,442 rows), 51 sparse flow-stat rows, and vector-dump completion messages every 600 flow frames. The corrected flow readback gate is confirmed operational with `motion_analysis=1` and `diagnostic_suite=0`. The second log upload has a separate, longer LSFG counter stream; generated WSI-present acceptance and displayed FPS remain unconfirmed.
 
 ## Portable API tests
 
