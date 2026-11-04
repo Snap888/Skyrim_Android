@@ -1983,6 +1983,8 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
     const uint32_t l1Height = l0Height / 2u + l0Height % 2u;
     const uint32_t l2Width = l1Width / 2u + l1Width % 2u;
     const uint32_t l2Height = l1Height / 2u + l1Height % 2u;
+    const SnapFrameGpuTimer v2PyramidTimer = beginGpuTimer(
+        context, device, "v2_pyramid", nextCapturedFrame, width, height, profileThisFrame);
     if (g_v2PyramidAvailable) {
         g_v2PyramidValid[slot] = false;
         struct alignas(16) V2DimsPush { float dims[4]; };
@@ -2048,6 +2050,10 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
         }
     }
 
+    endGpuTimer(context, v2PyramidTimer);
+
+    const SnapFrameGpuTimer v2SearchTimer = beginGpuTimer(
+        context, device, "v2_search", nextCapturedFrame, width, height, profileThisFrame);
     if (g_v2FlowAvailable && g_v2PyramidValid[slot]
         && g_v2PyramidValid[slot ^ 1u]) {
         const unsigned previousSlot = slot ^ 1u;
@@ -2104,6 +2110,11 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                     static_cast<unsigned long long>(nextCapturedFrame));
         }
 
+        endGpuTimer(context, v2SearchTimer);
+
+        const SnapFrameGpuTimer v2RefineTimer = beginGpuTimer(
+            context, device, "v2_refine_validation", nextCapturedFrame,
+            width, height, profileThisFrame);
         if (directionsOk && g_v2RefinementAvailable) {
             struct alignas(16) V2RefinePush {
                 float dims[4]; float tune[4];
@@ -2182,6 +2193,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                 }
             }
         }
+        endGpuTimer(context, v2RefineTimer);
     }
 
     if (g_lumaAvailable) {
