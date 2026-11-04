@@ -242,6 +242,11 @@ uint32_t flowExtent(uint32_t lumaExtent) {
     const uint32_t stride = flowBlockStride();
     return (lumaExtent + stride - 1u) / stride;
 }
+uint32_t v2FlowGridExtent(uint32_t lumaExtent) {
+    // snap_motion_v2_search.comp uses a fixed 8x8 luma block.
+    // Do not reuse flowExtent(): that helper applies the adaptive V1 stride.
+    return (lumaExtent + 7u) / 8u;
+}
 bool g_lumaValid[2] = { false, false };
 uint64_t g_lumaDispatchCount = 0;
 uint64_t g_lumaFailureCount = 0;
@@ -1316,8 +1321,8 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                     for (unsigned level = 0; level < 3; ++level) {
                         DxvkImageCreateInfo v2FlowInfo = flowInfo;
                         v2FlowInfo.extent = {
-                            flowExtent(v2LumaWidths[level]),
-                            flowExtent(v2LumaHeights[level]), 1
+                            v2FlowGridExtent(v2LumaWidths[level]),
+                            v2FlowGridExtent(v2LumaHeights[level]), 1
                         };
                         g_v2FlowImage[direction][level] = device->createImage(
                             v2FlowInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -1333,9 +1338,9 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                     && g_v2SearchShader != nullptr && g_lumaSampler != nullptr;
                 if (g_v2FlowAvailable)
                     snapframeLog("SnapFrame: V2 flow grids ready L0=%ux%u L1=%ux%u L2=%ux%u directions=2 format=RGBA16F\n",
-                        flowExtent(v2LumaWidths[0]), flowExtent(v2LumaHeights[0]),
-                        flowExtent(v2LumaWidths[1]), flowExtent(v2LumaHeights[1]),
-                        flowExtent(v2LumaWidths[2]), flowExtent(v2LumaHeights[2]));
+                        v2FlowGridExtent(v2LumaWidths[0]), v2FlowGridExtent(v2LumaHeights[0]),
+                        v2FlowGridExtent(v2LumaWidths[1]), v2FlowGridExtent(v2LumaHeights[1]),
+                        v2FlowGridExtent(v2LumaWidths[2]), v2FlowGridExtent(v2LumaHeights[2]));
 
                 for (unsigned i = 0; i < 2; ++i) {
                     g_flowImage[i] = device->createImage(flowInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -1951,8 +1956,8 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
             for (int level = 2; level >= 0; --level) {
                 const uint32_t levelWidth = level == 0 ? l0Width : (level == 1 ? l1Width : l2Width);
                 const uint32_t levelHeight = level == 0 ? l0Height : (level == 1 ? l1Height : l2Height);
-                const uint32_t blocksX = flowExtent(levelWidth);
-                const uint32_t blocksY = flowExtent(levelHeight);
+                const uint32_t blocksX = v2FlowGridExtent(levelWidth);
+                const uint32_t blocksY = v2FlowGridExtent(levelHeight);
                 V2SearchPush push{};
                 push.dims[0] = float(levelWidth); push.dims[1] = float(levelHeight);
                 push.dims[2] = float(blocksX); push.dims[3] = float(blocksY);
