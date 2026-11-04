@@ -1983,9 +1983,9 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
     const uint32_t l1Height = l0Height / 2u + l0Height % 2u;
     const uint32_t l2Width = l1Width / 2u + l1Width % 2u;
     const uint32_t l2Height = l1Height / 2u + l1Height % 2u;
-    const SnapFrameGpuTimer v2PyramidTimer = beginGpuTimer(
-        context, device, "v2_pyramid", nextCapturedFrame, width, height, profileThisFrame);
     if (g_v2PyramidAvailable) {
+        const SnapFrameGpuTimer v2PyramidTimer = beginGpuTimer(
+            context, device, "v2_pyramid", nextCapturedFrame, width, height, profileThisFrame);
         g_v2PyramidValid[slot] = false;
         struct alignas(16) V2DimsPush { float dims[4]; };
         static_assert(sizeof(V2DimsPush) == 16, "V2 luma/downsample push ABI");
@@ -2048,14 +2048,13 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
             snapframeEvent(nextCapturedFrame, "v2_luma_failed",
                 width, height, "v2_luma_dispatch_rejected");
         }
+        endGpuTimer(context, v2PyramidTimer);
     }
 
-    endGpuTimer(context, v2PyramidTimer);
-
-    const SnapFrameGpuTimer v2SearchTimer = beginGpuTimer(
-        context, device, "v2_search", nextCapturedFrame, width, height, profileThisFrame);
     if (g_v2FlowAvailable && g_v2PyramidValid[slot]
         && g_v2PyramidValid[slot ^ 1u]) {
+        const SnapFrameGpuTimer v2SearchTimer = beginGpuTimer(
+            context, device, "v2_search", nextCapturedFrame, width, height, profileThisFrame);
         const unsigned previousSlot = slot ^ 1u;
         struct alignas(16) V2SearchPush {
             float dims[4]; float geom[4]; float flags[4];
