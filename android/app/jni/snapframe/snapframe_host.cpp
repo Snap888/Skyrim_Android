@@ -458,11 +458,11 @@ void endGpuTimer(DxvkContext* context, const SnapFrameGpuTimer& timer) {
         std::lock_guard<std::mutex> lock(g_gpuLogMutex);
         if (!g_gpuLogFile) return;
         if (valid) {
-            fprintf(g_gpuLogFile, "%llu,%s,%.6f,%u,%u,ok\\n",
+            fprintf(g_gpuLogFile, "%llu,%s,%.6f,%u,%u,ok\n",
                 static_cast<unsigned long long>(timer.frame), timer.stage.c_str(),
                 gpuMs, timer.width, timer.height);
         } else {
-            fprintf(g_gpuLogFile, "%llu,%s,0,%u,%u,unavailable:%d:%d:%d\\n",
+            fprintf(g_gpuLogFile, "%llu,%s,0,%u,%u,unavailable:%d:%d:%d\n",
                 static_cast<unsigned long long>(timer.frame), timer.stage.c_str(),
                 timer.width, timer.height, int(result), int(beginStatus), int(endStatus));
         }
@@ -1891,7 +1891,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                 if (snapframe_host_apply_backend_config(
                         g_enabled.load(std::memory_order_acquire), requestedScale)) {
                     g_aiLastScaleChangeFrame = aiMetrics.frame_id;
-                    snapframeLog("SnapFrame AI: applied Flow Scale=%d%% at frame=%llu; resource rebuild scheduled\\n",
+                    snapframeLog("SnapFrame AI: applied Flow Scale=%d%% at frame=%llu; resource rebuild scheduled\n",
                         requestedScale,
                         static_cast<unsigned long long>(aiMetrics.frame_id));
                 }
@@ -1899,7 +1899,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
             const uint64_t decisions = g_aiDecisionCount.fetch_add(
                 1, std::memory_order_relaxed) + 1;
             if (decisions == 1 || (decisions % 30u) == 0u)
-                snapframeLog("SnapFrame AI: frame=%llu mode=%u flow_scale=%d%% gpu=%.3fms pressure=%.3f confidence=%.3f complexity=%.3f artifact=%.3f\\n",
+                snapframeLog("SnapFrame AI: frame=%llu mode=%u flow_scale=%d%% gpu=%.3fms pressure=%.3f confidence=%.3f complexity=%.3f artifact=%.3f\n",
                     static_cast<unsigned long long>(aiMetrics.frame_id),
                     static_cast<unsigned>(decision.mode), requestedScale,
                     aiMetrics.gpu_time_ms, aiMetrics.gpu_pressure,
@@ -2002,7 +2002,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
         g_v2SearchIntervalFrames.load(std::memory_order_acquire);
     if (currentV2SearchInterval != g_v2SearchIntervalLogged) {
         g_v2SearchIntervalLogged = currentV2SearchInterval;
-        snapframeLog("SnapFrame AI budget: V2 motion search interval=%u source frames (GPU budget target=6ms)\\n",
+        snapframeLog("SnapFrame AI budget: V2 motion search interval=%u source frames (GPU budget target=6ms)\n",
             currentV2SearchInterval);
     }
     bool totalTimerEnded = false;
