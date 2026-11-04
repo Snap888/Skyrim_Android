@@ -648,9 +648,10 @@ bool recordV1GpuMetrics(
     DxvkContext* context, uint64_t frame,
     uint32_t width, uint32_t height,
     uint32_t flowWidth, uint32_t flowHeight) {
-    if (!g_metricsAvailable || !context || !g_metricsPartialBuffer
-        || !g_metricsResultBuffer || !g_flowView[0] || !g_flowView[1]
-        || !g_consistencyView || !g_lumaSampler || !g_metricsPartialCount)
+    if (!g_metricsAvailable || !context || g_metricsPartialBuffer == nullptr
+        || g_metricsResultBuffer == nullptr || g_flowView[0] == nullptr
+        || g_flowView[1] == nullptr || g_consistencyView == nullptr
+        || g_lumaSampler == nullptr || !g_metricsPartialCount)
         return false;
 
     uint32_t slot = kMetricsReadbackSlots;
