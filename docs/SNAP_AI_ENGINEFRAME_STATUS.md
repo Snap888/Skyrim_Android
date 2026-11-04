@@ -375,3 +375,14 @@ This validates compilation of the generic V2 dispatch API and push-constant stat
 - This is the first V2 shader execution path wired into the DXVK runtime, but CI and device execution still need to confirm descriptor reflection, image layout transitions and output values. Do not call it device-validated yet.
 - Not implemented in this commit: L2/L1/L0 coarse-to-fine motion search, inter-level vector upscaling/seeding, refinement/forward-backward occlusion confidence, V2 interpolation, and ×3/×4 Present scheduling.
 - ×3/×4 phase contract for the next stage: for multiplier M, generate exactly M−1 intermediate time samples t=i/M for i=1..M−1 between two real frames. Each generated frame must consume the same frame-pair identity/history and its own time value; no generated frame may become a source-history frame. Present acceptance and pacing must remain separate from dispatch completion. ×3/×4 stays disabled until those conditions and WSI semaphore ownership are proven.
+
+
+## SnapMotionV2 coarse-to-fine flow — 2026-11-04
+
+- Added independent RGBA16F flow images/views for two motion directions and three pyramid levels.
+- Registered the V2 search compute shader with a 48-byte push-constant ABI.
+- After both real-frame pyramids are valid, the host dispatches bidirectional L2 → L1 → L0 search. L2 starts without a seed; L1 uses the same direction's L2 field; L0 uses its L1 field. Motion vectors stay in L0 pixel units and `pixelScale` (4, 2, 1) adjusts sampling for each level.
+- Compute barriers separate dependent levels. V2 failures remain non-fatal; the V1 flow/warp path remains authoritative.
+- V2 grid dimensions use ceil(level extent / 8), matching the shader's fixed 8×8 block. The V1 adaptive `flowExtent()` must not be reused because it applies Flow Scale and would leave V2 image regions unprocessed.
+- Previous-frame temporal seeding, refinement, forward/backward confidence/occlusion mask, V2 interpolation, AI-controlled V2 search density and ×3/×4 presentation are not implemented yet. V2 search is experimental and may cost more than V1; measure on device before enabling broadly.
+- Validation required: shader compile, ARM64 host build, Vulkan descriptor/layout validation, and device logs confirming `v2_flow_pair_ok` with correct image coverage.
