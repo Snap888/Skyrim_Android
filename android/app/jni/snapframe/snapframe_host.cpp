@@ -2111,9 +2111,6 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
 
         endGpuTimer(context, v2SearchTimer);
 
-        const SnapFrameGpuTimer v2RefineTimer = beginGpuTimer(
-            context, device, "v2_refine_validation", nextCapturedFrame,
-            width, height, profileThisFrame);
         if (directionsOk && g_v2RefinementAvailable) {
             struct alignas(16) V2RefinePush {
                 float dims[4]; float tune[4];
@@ -2121,6 +2118,9 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
             static_assert(sizeof(V2RefinePush) == 32, "V2 refine push ABI");
             const uint32_t blocksX = v2FlowGridExtent(l0Width);
             const uint32_t blocksY = v2FlowGridExtent(l0Height);
+            const SnapFrameGpuTimer v2RefineTimer = beginGpuTimer(
+                context, device, "v2_refine", nextCapturedFrame,
+                width, height, profileThisFrame);
             bool refinementOk = true;
             for (unsigned direction = 0; direction < 2; ++direction) {
                 const unsigned currentSlot = direction == 0 ? slot : previousSlot;
@@ -2153,6 +2153,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                 }
                 context->flushComputeBarriers();
             }
+            endGpuTimer(context, v2RefineTimer);
             if (refinementOk) {
                 struct alignas(16) V2ValidationPush {
                     float dims[4]; float tune[4];
@@ -2172,10 +2173,14 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                 validationViews[4] = g_v2ValidationView;
                 validationSamplers[0] = g_lumaSampler;
                 validationSamplers[1] = g_lumaSampler;
+                const SnapFrameGpuTimer v2ValidationTimer = beginGpuTimer(
+                    context, device, "v2_validation", nextCapturedFrame,
+                    width, height, profileThisFrame);
                 const bool validationOk = context->dispatchSnapFrameV2(
                     g_v2ValidationShader, validationViews, validationSamplers, 5u,
                     (blocksX + 7u) / 8u, (blocksY + 7u) / 8u,
                     sizeof(validationPush), &validationPush);
+                endGpuTimer(context, v2ValidationTimer);
                 if (validationOk) {
                     context->flushComputeBarriers();
                     ++g_v2RefinementDispatchCount;
@@ -2192,7 +2197,6 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                 }
             }
         }
-        endGpuTimer(context, v2RefineTimer);
     }
 
     if (g_lumaAvailable) {
