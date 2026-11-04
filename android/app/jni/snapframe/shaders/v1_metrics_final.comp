@@ -1,0 +1,76 @@
+#version 450
+
+// SnapFrame V1-compatible final reduction. Produces one frame-tagged scalar
+// record in a storage buffer. Host copies only this record asynchronously.
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+struct SnapFrameMetricsPartial {
+    vec4 motion;
+    vec4 quality;
+};
+layout(set = 0, binding = 0, std430) readonly buffer PartialBuffer {
+    SnapFrameMetricsPartial values[];
+} inputPartials;
+
+struct SnapFrameMetricsResult {
+    uvec4 identity; // frame ID low/high, timestamp ns low/high
+    uvec4 extent;   // source width/height, flow width/height
+    uvec4 flags;    // valid, partial count, total cells, reserved
+    vec4 motion;    // mean magnitude, normalized complexity, mean confidence, low-confidence ratio
+    vec4 quality;   // inconsistency ratio, boundary ratio, artifact-risk heuristic, valid coverage
+};
+layout(set = 0, binding = 1, std430) writeonly buffer ResultBuffer {
+    SnapFrameMetricsResult value;
+} outputResult;
+
+layout(push_constant) uniform MetricsPush {
+    uvec4 identity;
+    uvec4 extent;
+    uvec4 counts; // partial count, total flow cells, reserved, reserved
+} pc;
+
+shared vec4 sharedMotion[64];
+shared vec4 sharedQuality[64];
+
+void main() {
+    uint lane = gl_LocalInvocationIndex;
+    vec4 motion = vec4(0.0);
+    vec4 quality = vec4(0.0);
+    for (uint i = lane; i < pc.counts.x; i += 64u) {
+        motion += inputPartials.values[i].motion;
+        quality += inputPartials.values[i].quality;
+    }
+    sharedMotion[lane] = motion;
+    sharedQuality[lane] = quality;
+    barrier();
+
+    for (uint stride = 32u; stride > 0u; stride >>= 1u) {
+        if (lane < stride) {
+            sharedMotion[lane] += sharedMotion[lane + stride];
+            sharedQuality[lane] += sharedQuality[lane + stride];
+        }
+        barrier();
+    }
+
+    if (lane == 0u) {
+        float totalCells = max(float(pc.counts.y), 1.0);
+        float validCells = max(quality.z, 0.0);
+        float validCoverage = validCells / totalCells;
+        bool valid = validCells > 0.0 && validCoverage >= 0.90;
+        float divisor = max(validCells, 1.0);
+
+        vec4 meanMotion = motion / divisor;
+        vec4 meanQuality = quality / divisor;
+        float artifactRisk = clamp(0.50 * meanMotion.w
+                                  + 0.35 * meanQuality.x
+                                  + 0.15 * meanQuality.y, 0.0, 1.0);
+
+        outputResult.value.identity = pc.identity;
+        outputResult.value.extent = pc.extent;
+        outputResult.value.flags = uvec4(valid ? 1u : 0u,
+                                         pc.counts.x, pc.counts.y, 0u);
+        outputResult.value.motion = meanMotion;
+        outputResult.value.quality = vec4(meanQuality.x, meanQuality.y,
+                                          artifactRisk, validCoverage);
+    }
+}
