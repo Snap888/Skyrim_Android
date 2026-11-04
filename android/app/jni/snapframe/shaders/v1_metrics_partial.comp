@@ -1,0 +1,93 @@
+#version 450
+
+// SnapFrame V1-compatible first-stage metrics reduction.
+// Inputs are the currently dispatched V1 RGBA16F bidirectional flow fields
+// (xy=motion, z=best/second-best confidence) and R16F FB-consistency mask.
+// One 8x8 workgroup emits one compact partial record. No atomics/readback.
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+layout(set = 0, binding = 0) uniform sampler2D flowForward;
+layout(set = 0, binding = 1) uniform sampler2D flowBackward;
+layout(set = 0, binding = 2) uniform sampler2D consistencyMask;
+
+struct SnapFrameMetricsPartial {
+    vec4 motion;  // magnitude sum, complexity sum, confidence sum, low-confidence count
+    vec4 quality; // inconsistency sum, boundary count, valid count, total count
+};
+
+layout(set = 0, binding = 3, std430) writeonly buffer PartialBuffer {
+    SnapFrameMetricsPartial values[];
+} outputPartials;
+
+shared vec4 sharedMotion[64];
+shared vec4 sharedQuality[64];
+
+bool finite2(vec2 value) {
+    return !any(isnan(value)) && !any(isinf(value));
+}
+
+void main() {
+    uint lane = gl_LocalInvocationIndex;
+    ivec2 p = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 extent = textureSize(flowForward, 0);
+
+    vec4 motionSums = vec4(0.0);
+    vec4 qualitySums = vec4(0.0);
+    if (all(lessThan(p, extent))) {
+        vec4 forward = texelFetch(flowForward, p, 0);
+        vec4 backward = texelFetch(flowBackward, p, 0);
+        float consistency = texelFetch(consistencyMask, p, 0).r;
+        bool valid = finite2(forward.xy) && finite2(backward.xy)
+                  && !isnan(forward.z) && !isinf(forward.z)
+                  && !isnan(backward.z) && !isinf(backward.z)
+                  && !isnan(consistency) && !isinf(consistency);
+        qualitySums.w = 1.0;
+        if (valid) {
+            vec2 meanFlow = 0.5 * (forward.xy - backward.xy);
+            float magnitude = length(meanFlow);
+            float confidence = clamp(min(forward.z, backward.z), 0.0, 1.0);
+            float fbValidity = clamp(consistency, 0.0, 1.0);
+
+            ivec2 leftPos = max(p + ivec2(-1, 0), ivec2(0));
+            ivec2 rightPos = min(p + ivec2(1, 0), extent - ivec2(1));
+            ivec2 upPos = max(p + ivec2(0, -1), ivec2(0));
+            ivec2 downPos = min(p + ivec2(0, 1), extent - ivec2(1));
+            vec2 left = 0.5 * (texelFetch(flowForward, leftPos, 0).xy
+                             - texelFetch(flowBackward, leftPos, 0).xy);
+            vec2 right = 0.5 * (texelFetch(flowForward, rightPos, 0).xy
+                              - texelFetch(flowBackward, rightPos, 0).xy);
+            vec2 up = 0.5 * (texelFetch(flowForward, upPos, 0).xy
+                           - texelFetch(flowBackward, upPos, 0).xy);
+            vec2 down = 0.5 * (texelFetch(flowForward, downPos, 0).xy
+                             - texelFetch(flowBackward, downPos, 0).xy);
+            float variation = 0.0;
+            if (finite2(left) && finite2(right) && finite2(up) && finite2(down)) {
+                variation = 0.25 * (length(meanFlow - left) + length(meanFlow - right)
+                                  + length(meanFlow - up) + length(meanFlow - down));
+            }
+            bool boundary = any(greaterThanEqual(abs(forward.xy), vec2(9.5)))
+                         || any(greaterThanEqual(abs(backward.xy), vec2(9.5)));
+
+            motionSums = vec4(magnitude, variation / (1.0 + variation),
+                              confidence, confidence < 0.1 ? 1.0 : 0.0);
+            qualitySums = vec4(1.0 - fbValidity, boundary ? 1.0 : 0.0, 1.0, 1.0);
+        }
+    }
+
+    sharedMotion[lane] = motionSums;
+    sharedQuality[lane] = qualitySums;
+    barrier();
+
+    for (uint stride = 32u; stride > 0u; stride >>= 1u) {
+        if (lane < stride) {
+            sharedMotion[lane] += sharedMotion[lane + stride];
+            sharedQuality[lane] += sharedQuality[lane + stride];
+        }
+        barrier();
+    }
+
+    if (lane == 0u) {
+        uint groupIndex = gl_WorkGroupID.y * gl_NumWorkGroups.x + gl_WorkGroupID.x;
+        outputPartials.values[groupIndex].motion = sharedMotion[0];
+        outputPartials.values[groupIndex].quality = sharedQuality[0];
+    }
+}
