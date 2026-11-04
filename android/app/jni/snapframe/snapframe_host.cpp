@@ -1871,14 +1871,16 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
     endGpuTimer(context, captureTimer);
     snapframeEvent(nextCapturedFrame, "capture_copy_recorded", width, height, "history_image_copy_recorded_on_present_command_list");
 
+    // Shared level extents are needed by both pyramid construction and the
+    // subsequent flow-search dispatch. Keep them in the capture-frame scope.
+    const uint32_t l0Width = width / 2u + width % 2u;
+    const uint32_t l0Height = height / 2u + height % 2u;
+    const uint32_t l1Width = l0Width / 2u + l0Width % 2u;
+    const uint32_t l1Height = l0Height / 2u + l0Height % 2u;
+    const uint32_t l2Width = l1Width / 2u + l1Width % 2u;
+    const uint32_t l2Height = l1Height / 2u + l1Height % 2u;
     if (g_v2PyramidAvailable) {
         g_v2PyramidValid[slot] = false;
-        const uint32_t l0Width = width / 2u + width % 2u;
-        const uint32_t l0Height = height / 2u + height % 2u;
-        const uint32_t l1Width = l0Width / 2u + l0Width % 2u;
-        const uint32_t l1Height = l0Height / 2u + l0Height % 2u;
-        const uint32_t l2Width = l1Width / 2u + l1Width % 2u;
-        const uint32_t l2Height = l1Height / 2u + l1Height % 2u;
         struct alignas(16) V2DimsPush { float dims[4]; };
         static_assert(sizeof(V2DimsPush) == 16, "V2 luma/downsample push ABI");
         V2DimsPush lumaPush{{float(width), float(height), float(l0Width), float(l0Height)}};
