@@ -356,7 +356,7 @@ namespace dxvk {
     wsi::restoreDisplayMode(m_monitor);
     NotifyDisplayRefreshRate(0.0);
 
-    m_device->waitForSubmission(&m_presentStatus);
+    WaitForPresentSubmissions();
     m_device->waitForIdle();
   }
 
@@ -875,7 +875,7 @@ namespace dxvk {
     if (m_presentParams.hDeviceWindow == hWindow) {
       m_presenter = nullptr;
 
-      m_device->waitForSubmission(&m_presentStatus);
+      WaitForPresentSubmissions();
       m_device->waitForIdle();
     }
   }
@@ -1023,7 +1023,7 @@ namespace dxvk {
       if (i + 1 >= SyncInterval)
         m_context->signal(m_frameLatencySignal, m_frameId);
 
-      SubmitPresent(sync, i);
+      SubmitPresent(sync, i, m_sourcePresentStatus);
     }
 
     /* SnapFrame is the only frame-generation backend. */
@@ -1039,8 +1039,8 @@ namespace dxvk {
     perfRequested = generationCount;
     if (generationCount) {
       for (uint32_t generation = 0; generation < generationCount; generation++) {
-        SynchronizePresent();
-
+        /* Queue order preserves source -> generated presentation. Independent
+         * status slots remove the CPU wait between the two submissions. */
         vk::PresenterInfo generatedInfo = m_presenter->info();
         vk::PresenterSync generatedSync;
         uint32_t generatedImageIndex = 0;
@@ -1092,7 +1092,7 @@ namespace dxvk {
         if (m_hud != nullptr)
           m_hud->render(m_context, generatedInfo.format, generatedInfo.imageExtent);
 
-        SubmitPresent(generatedSync, generation + 1);
+        SubmitPresent(generatedSync, generation + 1, m_generatedPresentStatus);
         if (snapFrameGeneration) {
           if (generationFailed) {
             const SnapFramePresentResultHook resultHook =
@@ -1130,16 +1130,21 @@ namespace dxvk {
 
   }
 
-  void D3D9SwapChainEx::SubmitPresent(const vk::PresenterSync& Sync, uint32_t FrameId) {
+  void D3D9SwapChainEx::SubmitPresent(const vk::PresenterSync& Sync, uint32_t FrameId, DxvkSubmitStatus& Status) {
     // Present from CS thread so that we don't
     // have to synchronize with it first.
-    m_presentStatus.result = VK_NOT_READY;
+    Status.result = VK_NOT_READY;
+    if (&Status == &m_sourcePresentStatus)
+      m_sourcePresentPending = true;
+    else if (&Status == &m_generatedPresentStatus)
+      m_generatedPresentPending = true;
 
     m_parent->EmitCs([this,
       cFrameId     = FrameId,
       cSync        = Sync,
       cHud         = m_hud,
-      cCommandList = m_context->endRecording()
+      cCommandList = m_context->endRecording(),
+      cStatus      = &Status
     ] (DxvkContext* ctx) {
       m_device->submitCommandList(cCommandList,
         cSync.acquire, cSync.present);
@@ -1147,22 +1152,34 @@ namespace dxvk {
       if (cHud != nullptr && !cFrameId)
         cHud->update();
 
-      m_device->presentImage(m_presenter, &m_presentStatus);
+      m_device->presentImage(m_presenter, cStatus);
     });
 
     m_parent->FlushCsChunk();
   }
 
 
-  void D3D9SwapChainEx::SynchronizePresent() {
-    // Recreate swap chain if the previous present call failed
-    VkResult status = m_device->waitForSubmission(&m_presentStatus);
+  void D3D9SwapChainEx::WaitForPresentSubmissions() {
+    if (m_sourcePresentPending) {
+      m_device->waitForSubmission(&m_sourcePresentStatus);
+      m_sourcePresentPending = false;
+    }
+    if (m_generatedPresentPending) {
+      m_device->waitForSubmission(&m_generatedPresentStatus);
+      m_generatedPresentPending = false;
+    }
+  }
 
-    // SnapFrame acceptance is a completed WSI present, not a successful
-    // midpoint dispatch or an enqueued command list. This wait already exists
-    // in the normal present path, so resolving the counter adds no new stall.
+
+  void D3D9SwapChainEx::SynchronizePresent() {
+    WaitForPresentSubmissions();
+
+    const VkResult sourceStatus = m_sourcePresentStatus.result.load();
+    const VkResult generatedStatus = m_generatedPresentStatus.result.load();
+
     if (m_snapFramePresentPending) {
-      const bool accepted = status == VK_SUCCESS || status == VK_SUBOPTIMAL_KHR;
+      const bool accepted = generatedStatus == VK_SUCCESS
+                         || generatedStatus == VK_SUBOPTIMAL_KHR;
       const SnapFramePresentResultHook resultHook =
         g_snapFramePresentResultHook.load(std::memory_order_acquire);
       if (resultHook)
@@ -1170,19 +1187,22 @@ namespace dxvk {
       m_snapFramePresentPending = false;
     }
 
-    // Port: Android reports SUBOPTIMAL for every present on a rotated display
-    // (the compositor applies the rotation); the swap chain is still usable.
-    if (status != VK_SUCCESS && status != VK_SUBOPTIMAL_KHR)
+    const bool sourceFailed = sourceStatus != VK_SUCCESS
+                           && sourceStatus != VK_SUBOPTIMAL_KHR;
+    const bool generatedFailed = generatedStatus != VK_SUCCESS
+                              && generatedStatus != VK_SUBOPTIMAL_KHR;
+    if (sourceFailed || generatedFailed)
       RecreateSwapChain(m_vsync);
   }
 
 
   void D3D9SwapChainEx::RecreateSwapChain(BOOL Vsync) {
     // Ensure that we can safely destroy the swap chain
-    m_device->waitForSubmission(&m_presentStatus);
+    WaitForPresentSubmissions();
     m_device->waitForIdle();
 
-    m_presentStatus.result = VK_SUCCESS;
+    m_sourcePresentStatus.result = VK_SUCCESS;
+    m_generatedPresentStatus.result = VK_SUCCESS;
 
     vk::PresenterDesc presenterDesc;
     presenterDesc.imageExtent     = GetPresentExtent();
@@ -1200,10 +1220,11 @@ namespace dxvk {
 
   void D3D9SwapChainEx::CreatePresenter() {
     // Ensure that we can safely destroy the swap chain
-    m_device->waitForSubmission(&m_presentStatus);
+    WaitForPresentSubmissions();
     m_device->waitForIdle();
 
-    m_presentStatus.result = VK_SUCCESS;
+    m_sourcePresentStatus.result = VK_SUCCESS;
+    m_generatedPresentStatus.result = VK_SUCCESS;
 
     DxvkDeviceQueue graphicsQueue = m_device->queues().graphics;
 
