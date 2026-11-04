@@ -105,7 +105,10 @@ namespace dxvk {
     RECT                      m_srcRect;
     RECT                      m_dstRect;
 
-    DxvkSubmitStatus          m_presentStatus;
+    DxvkSubmitStatus          m_sourcePresentStatus;
+    DxvkSubmitStatus          m_generatedPresentStatus;
+    bool                      m_sourcePresentPending = false;
+    bool                      m_generatedPresentPending = false;
 
     std::vector<Rc<DxvkImageView>> m_imageViews;
 
@@ -130,7 +133,9 @@ namespace dxvk {
 
     void PresentImage(UINT PresentInterval);
 
-    void SubmitPresent(const vk::PresenterSync& Sync, uint32_t FrameId);
+    void SubmitPresent(const vk::PresenterSync& Sync, uint32_t FrameId, DxvkSubmitStatus& Status);
+
+    void WaitForPresentSubmissions();
 
     void SynchronizePresent();
 
