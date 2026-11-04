@@ -134,3 +134,43 @@ device-calibrated optima.
 AI bypasses when GPU timestamp telemetry is missing/stale, scalar validation fails,
 or the Snap AI API returns an error. The host logs frame, mode, scale, GPU time,
 pressure, confidence, complexity and artifact risk.
+
+
+
+## Runtime A/B investigation and adaptive V2 budget — 2026-11-05
+
+### Build comparison
+
+- Run [41915429838](https://github.com/Snap888/Skyrim_Android/actions/runs/41915429838) completed successfully on `2b30fcd6ec30b0bd26add8e617bc70e31c635f9c` (older V2 integration state).
+- Run [41923694837](https://github.com/Snap888/Skyrim_Android/actions/runs/41923694837) completed successfully on `b4d22fdb96594d13a07b6409c5497193cc10a75a` (newer V2 pyramid/search/refinement/validation and timing instrumentation).
+- Both are successful APK builds, but they are different source revisions. GitHub build success does not establish runtime FPS or visual quality.
+
+### Uploaded runtime log findings
+
+The current uploaded `snapframe_perf_on.csv` contains 32 measurement windows. It reports `avg_generated_queued` close to 1.0, but `avg_cpu_present_ms` rises from 2.7 ms to 94.9 ms, and `avg_retire_wait_ms` accounts for nearly all of that delay (2.3–94.2 ms in the shown windows). This points to a severe WSI/frame-retirement wait or pacing bottleneck, not simply CPU cost in the optical-flow shader. A queued generated present is not proof of scan-out.
+
+The same upload has `profiling_enabled=0` and an empty `snapframe_gpu.csv` (header only). The V2 dispatch counters show pyramid/search/refinement/validation work was accepted, but no per-stage GPU cost can be inferred from dispatch acceptance. The event log repeatedly reports `gpu_metrics_rejected: low_valid_flow_coverage`. Therefore the scalar motion telemetry is not currently accepted and the SnapAI flow-scale decision loop receives no valid motion sample in this test. This also means the observed FPS difference between the two APKs cannot yet be attributed to a specific V2 kernel.
+
+### Runtime corrections committed
+
+1. Sparse `total_chain` timestamp queries now run every 30 captured frames even when verbose profiling is disabled. Previously `beginGpuTimer` returned early whenever `profiling_enabled=0`, so the supposedly always-on AI timing sample was never created.
+2. The total-chain completion callback now updates the frame-matched timing atomics independently of whether the CSV file is open. CSV output remains optional; AI timing no longer depends on a logging file handle.
+3. A bounded GPU-budget guard now adjusts the V2 motion-search cadence using completed total-chain GPU timing:
+   - above 6 ms for two consecutive samples: run V2 search/refine/validation once per four source frames;
+   - below 4 ms for three consecutive samples: restore every-frame V2 analysis;
+   - between thresholds: retain the current interval.
+4. This decimation is safe for the current architecture because V2 flow/refinement/validation remain diagnostic-only and do not feed the V1 midpoint warp. The V1 source-frame and midpoint output path is unchanged. It reduces experimental V2 work, not the V1 flow or WSI wait.
+5. The guard is a conservative host-side budget governor, not yet the full `SnapAI::Engine` policy loop. The full AI loop still bypasses while GPU scalar coverage is rejected. Do not describe Flow Scale as AI-adaptive until the metrics validity problem is fixed and an accepted AI decision is logged.
+
+### Next required validation
+
+- Rebuild the exact new HEAD and run the same scene with the same settings.
+- Keep `profiling_enabled=0` for normal gameplay; confirm `snapframe_gpu.csv` now receives sparse `total_chain` rows. For one controlled diagnostic run, set profiling on to collect `v2_pyramid`, `v2_search`, `v2_refine` and `v2_validation` stage timings.
+- Confirm logs show interval transitions 1 → 4 under sustained pressure and 4 → 1 after sustained recovery.
+- Compare `avg_retire_wait_ms` separately from `avg_generate_record_ms` and the V2 GPU stage times. If retire wait remains dominant, optimize WSI retirement/semaphore pacing before changing optical-flow quality.
+- Fix the scalar metrics coverage rejection with a CPU-reference test of the reduction shader and a dump of per-field valid counts. Do not lower the 90% validity threshold merely to force AI activation.
+- Only after coverage is accepted and timing is frame-matched should the full SnapAI policy make adaptive Flow Scale/search decisions.
+
+### Deferred
+
+Confidence-mask consumption by the warp remains gated on proving vector direction, mask format/extent and measured GPU cost. The current V2 validation mask is not yet wired into midpoint reconstruction. x3/x4 temporal phases remain deferred until x2 pacing and Presenter acquire/present ownership are stable.
