@@ -1205,10 +1205,9 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                     }
                 }
 
-                const bool needV2ShaderRegistration =
-                    g_v2ShaderDevice != device || g_v2LumaShader == nullptr
-                    || g_v2DownsampleShader == nullptr || g_v2SearchShader == nullptr
-                    || g_v2RefineShader == nullptr || g_v2ValidationShader == nullptr;
+                /* Initialize shader objects once per device. A failed optional
+                 * stage must not trigger repeated shader creation on every Present. */
+                const bool needV2ShaderRegistration = g_v2ShaderDevice != device;
                 if (needV2ShaderRegistration) {
                     g_v2LumaShader = Rc<DxvkShader>();
                     g_v2DownsampleShader = Rc<DxvkShader>();
@@ -1294,20 +1293,20 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                 g_v2PyramidAvailable = v2ImagesCreated
                     && g_lumaSampler != nullptr
                     && g_v2LumaShader != nullptr
-                    && g_v2DownsampleShader != nullptr
-                    && g_v2SearchShader != nullptr
-                    && g_v2RefineShader != nullptr
-                    && g_v2ValidationShader != nullptr;
-                if (g_v2PyramidAvailable && needV2ShaderRegistration) {
-                    device->registerShader(g_v2LumaShader);
-                    device->registerShader(g_v2DownsampleShader);
-                    device->registerShader(g_v2SearchShader);
-                    device->registerShader(g_v2RefineShader);
-                    device->registerShader(g_v2ValidationShader);
+                    && g_v2DownsampleShader != nullptr;
+                if (needV2ShaderRegistration) {
+                    if (g_v2LumaShader != nullptr) device->registerShader(g_v2LumaShader);
+                    if (g_v2DownsampleShader != nullptr) device->registerShader(g_v2DownsampleShader);
+                    if (g_v2SearchShader != nullptr) device->registerShader(g_v2SearchShader);
+                    if (g_v2RefineShader != nullptr) device->registerShader(g_v2RefineShader);
+                    if (g_v2ValidationShader != nullptr) device->registerShader(g_v2ValidationShader);
+                    /* Remember this device even if an optional shader failed. */
                     g_v2ShaderDevice = device;
                 }
                 if (!g_v2PyramidAvailable) {
-                    snapframeLog("SnapFrame: V2 pyramid resources unavailable; V1 path remains active\n");
+                    snapframeLog("SnapFrame: V2 pyramid unavailable (images=%u luma=%u downsample=%u sampler=%u); V1 path remains active\\n",
+                        unsigned(v2ImagesCreated), unsigned(g_v2LumaShader != nullptr),
+                        unsigned(g_v2DownsampleShader != nullptr), unsigned(g_lumaSampler != nullptr));
                 } else {
                     snapframeLog("SnapFrame: V2 pyramid resources ready L0=%ux%u L1=%ux%u L2=%ux%u slots=2 format=R16F\n",
                         v2Widths[0], v2Heights[0], v2Widths[1], v2Heights[1],
