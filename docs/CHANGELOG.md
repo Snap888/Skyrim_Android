@@ -29,3 +29,8 @@ Not yet completed: concrete DXVK `SnapFrameBackendV1` adapter, live AI telemetry
 - Identified that sparse flow diagnostics were incorrectly gated by the optional diagnostic suite rather than the motion-analysis setting.
 - Corrected the flow-readback gate so `motion_analysis=1` can collect aggregate flow diagnostics even when the seven-phase diagnostic suite is off.
 - Updated GPU telemetry and testing documentation with measured timing distributions and the required device retest.
+
+## 2026-11-04 — configuration persistence and diagnostics
+- Fixed double-escaped newline literals in the SnapFrame settings writer so config keys are written as separate lines and can be parsed after restart.
+- Corrected host/bootstrap diagnostic strings that emitted literal backslash-n text.
+- Added config persistence and sparse flow-readback regression checks to the Android test plan.
