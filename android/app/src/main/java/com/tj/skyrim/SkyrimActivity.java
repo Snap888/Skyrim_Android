@@ -34,7 +34,7 @@ import org.libsdl.app.SDLActivity;
 public class SkyrimActivity extends SDLActivity implements InputManager.InputDeviceListener {
     @Override
     protected String[] getLibraries() {
-        return new String[] { "SDL2", "dxvk_d3d9", "snap_frame_engine", "snap_ai_engine", "main" };
+        return new String[] { "SDL2", "dxvk_d3d9", "snap_frame_engine", "snap_ai_engine", "snap_motion_v2", "main" };
     }
 
     /* argv[1] = game folder, argv[2] = save folder, from the launcher. */
