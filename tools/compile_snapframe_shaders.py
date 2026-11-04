@@ -83,16 +83,29 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--glslang", help="path to glslangValidator")
     parser.add_argument("--spirv-val", help="path to spirv-val")
+    parser.add_argument("--motion-v2-dir", type=pathlib.Path,
+                        help="optional SnapMotionV2 shader directory from the pinned Snap_AI_Engine source")
     parser.add_argument("--output", type=pathlib.Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args()
 
     compiler = find_tool(args.glslang, "GLSLANG_VALIDATOR", "glslangValidator")
     validator = find_tool(args.spirv_val, "SPIRV_VAL", "spirv-val")
 
+    shader_sources = list(SHADERS)
+    if args.motion_v2_dir:
+        v2_names = [
+            "snap_motion_v2_luma", "snap_motion_v2_downsample",
+            "snap_motion_v2_search", "snap_motion_v2_refine",
+            "snap_motion_v2_validation", "snap_motion_v2_static_mask",
+            "snap_motion_v2_interpolation", "snap_motion_v2_metrics_partial",
+            "snap_motion_v2_metrics_final",
+        ]
+        shader_sources.extend((name, args.motion_v2_dir / f"{name}.comp") for name in v2_names)
+
     compiled = []
     with tempfile.TemporaryDirectory(prefix="snapframe-spv-") as temp:
         temp_dir = pathlib.Path(temp)
-        for name, source in SHADERS:
+        for name, source in shader_sources:
             if not source.is_file():
                 raise RuntimeError(f"shader source missing: {source}")
             output = temp_dir / f"{name}.spv"
