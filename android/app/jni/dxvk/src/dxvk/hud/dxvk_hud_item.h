@@ -221,14 +221,17 @@ namespace dxvk::hud {
   };
 
 
+  void addSnapFrameGameFrame();
+  void addSnapFrameGeneratedFrame();
+
   /**
    * \brief HUD item to display the frame rate
    */
-  class HudLsfgFpsItem : public HudItem {
+  class HudSnapFrameFpsItem : public HudItem {
     constexpr static int64_t UpdateInterval = 500'000;
   public:
-    HudLsfgFpsItem(bool showGame = true, bool showGenerated = true, bool showOutput = true);
-    ~HudLsfgFpsItem();
+    HudSnapFrameFpsItem(bool showGame = true, bool showGenerated = true, bool showOutput = true);
+    ~HudSnapFrameFpsItem();
     void update(dxvk::high_resolution_clock::time_point time);
     HudPos render(HudRenderer& renderer, HudPos position);
   private:
