@@ -59,6 +59,8 @@ disabling SnapFrame releases cached GPU images and the sampler on the next
 DXVK present callback. The same messages are also mirrored to the normal stderr log. This
 makes it possible to send `snapframe.log` without the large general game log.
 
+When `profiling_enabled=1`, `snapframe_gpu.csv` now includes sparse V2 GPU timestamp stages alongside the existing V1 stages: `v2_pyramid` (source-to-L0 luma plus L0→L1→L2 downsample), `v2_search` (both directions across L2→L1→L0), and `v2_refine_validation` (both L0 refinements plus round-trip confidence validation). These are timestamp-query measurements recorded every 30 frames under the existing profiling cadence; they are GPU execution intervals, not CPU dispatch time or whole-game frame time. A stage row is emitted only when that V2 stage is actually eligible to run. Compare medians and high-percentile samples against `total_chain`; do not infer a performance win until the same scene is measured on-device with V2 enabled and disabled.
+
 When enabled, the diagnostic sequence is:
 
 1. `host initialized` — runtime config was loaded.
