@@ -110,3 +110,24 @@ A real x3/x4 implementation requires:
 - x3/x4 visual tests on motion boundaries and HUD composition.
 
 Do not expose x3/x4 as selectable runtime modes until this pipeline exists. The current shared Presenter acquire state and temporary source/generated synchronization barrier are still a hard safety gate. x3/x4 is an experimental engineering target, not yet implemented.
+
+
+## Live Snap AI controller connection (2026-11-04)
+
+The Android DXVK host now links `SnapAI::Engine` and creates a per-runtime
+`SnapAIHandle`. Only a frame-matched asynchronous GPU timestamp and the matching
+validated scalar flow record are submitted to `snap_ai_update()`. If the timestamp
+frame ID does not exactly match, AI bypasses that sample. The current implementation
+consumes only `decision.flow_scale`; search radius, refinement pass count, flow reuse,
+bidirectional-flow selection and artifact-check decisions remain advisory.
+
+Decisions are staged atomically by the completion callback and applied on the next
+serialized DXVK copy/present callback. The completion callback never releases history,
+mutates Vulkan resources, blocks on GPU completion, or waits for WSI. Runtime scale
+is clamped to 50..75%, warmup is 8 valid frames, target budget is 6 ms, and scale
+hysteresis is 8 percentage points. These are conservative initial values, not
+device-calibrated optima.
+
+AI bypasses when GPU timestamp telemetry is missing/stale, scalar validation fails,
+or the Snap AI API returns an error. The host logs frame, mode, scale, GPU time,
+pressure, confidence, complexity and artifact risk.
