@@ -12,8 +12,8 @@
 
 namespace dxvk::hud {
 
-  void addLsfgGameFrame();
-  void addLsfgGeneratedFrame();
+  void addSnapFrameGameFrame();
+  void addSnapFrameGeneratedFrame();
 
 
   /**
