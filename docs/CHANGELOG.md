@@ -48,3 +48,10 @@ Not yet completed: concrete DXVK `SnapFrameBackendV1` adapter, live AI telemetry
 - Parsed the full 215,880-row LSFG GPU timing stream and runtime/audio log; recorded stage optimization targets and confirmed no fatal process/Vulkan failure in the supplied run.
 - Found and corrected L0-pixel to normalized-UV conversion in MotionV2 validation/interpolation shaders.
 - Updated Skyrim's pinned Snap AI Engine revision and CI to the upstream coordinate-corrected commit. V2 remains compile-validated but not dispatched; V1 remains the runtime path.
+
+
+## 2026-11-04 — WSI acceptance accounting and third log review
+
+- Corrected SnapFrame generated-frame accounting: defer the result callback and HUD output-frame count until the existing DXVK present-status wait completes; accept VK_SUCCESS and Android's accepted VK_SUBOPTIMAL_KHR. No additional synchronization wait was added.
+- Renamed the success event to `midpoint_present_accepted` to distinguish completed WSI present from dispatch/queue. This still does not establish compositor scanout or displayed FPS.
+- Audited third device upload: 75% vs 25% flow-grid costs, scene-dependent confidence, corrected frame-601 vector statistics, Turnip Gen8 V38 config, latest LSFG GPU profile and audio mixer health. See GPU_TELEMETRY.md.
