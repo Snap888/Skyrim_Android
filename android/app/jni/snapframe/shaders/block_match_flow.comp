@@ -94,13 +94,13 @@ void main() {
                        extent - ivec2(2));
 
     // Search a +/-8 luma-texel window on a 4-texel lattice (5x5), then
-    // refine the best coarse location over its complete +/-2 neighborhood
-    // (5x5). The two stages cover every integer displacement in the selected
-    // local window while evaluating at most 49 candidates instead of 89.
-    // This reduces SAD work by ~45% without reducing the +/-10 search span.
+    // refine the coarse winner over a +/-1 neighborhood (3x3). This evaluates
+    // at most 33 candidates rather than 49 per output cell while retaining the
+    // coarse search span. This performance-first tradeoff reduces local
+    // precision; validate thin foliage and fast motion on device.
     const int coarseRadius = 8;
     const int coarseStep = 4;
-    const int refineRadius = 2;
+    const int refineRadius = 1;
 
     float bestCost = 1.0e20;
     float secondCost = 1.0e20;
