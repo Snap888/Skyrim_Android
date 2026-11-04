@@ -73,7 +73,7 @@ bool snapframeEventIsRoutineSuccess(const char* event) {
     static const char* const routineEvents[] = {
         "capture_copy_recorded", "luma_dispatch_ok", "flow_pair_ok",
         "consistency_dispatch_ok", "midpoint_warp_ok",
-        "midpoint_present_requested", "midpoint_present_queued"
+        "midpoint_present_requested", "midpoint_present_accepted"
     };
     for (const char* name : routineEvents)
         if (strcmp(event, name) == 0) return true;
