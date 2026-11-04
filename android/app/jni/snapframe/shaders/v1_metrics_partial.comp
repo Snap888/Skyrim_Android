@@ -62,7 +62,7 @@ void main() {
                              - texelFetch(flowBackward, downPos, 0).xy);
             float variation = 0.0;
             if (finite2(left) && finite2(right) && finite2(up) && finite2(down)) {
-                variation = 0.25 * (length(meanFlow - left) + length(meanFlow - right)
+                variation = 0.50 * (length(meanFlow - left) + length(meanFlow - right)
                                   + length(meanFlow - up) + length(meanFlow - down));
             }
             bool boundary = any(greaterThanEqual(abs(forward.xy), vec2(9.5)))
