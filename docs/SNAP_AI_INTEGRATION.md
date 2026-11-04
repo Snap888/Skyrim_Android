@@ -55,7 +55,8 @@ x3/x4 is not yet exposed. Current code generates one t=0.5 midpoint per real fra
 The `SnapAI::Engine` controller is instantiated in the Skyrim DXVK SnapFrame host.
 Frame-tagged GPU scalar readback and exact-frame GPU timestamp are combined into
 `SnapAIFrameMetrics`. Only the controller's flow-scale decision is currently applied.
-It is queued from the asynchronous completion callback and consumed on the serialized
-render callback, where history reset is requested safely. AI bypasses when telemetry
+Validated scalar metrics are staged by the asynchronous completion callback; the
+controller is called on the serialized render callback, where any scale update and
+history reset are applied safely. AI bypasses when telemetry
 is not exact-frame valid. The initial policy is clamped to 50..75% with 8-frame warmup
 and hysteresis. Other decision fields are not yet wired to shader dispatch.
