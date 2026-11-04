@@ -1631,8 +1631,13 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
     const bool profileThisFrame = g_profilingEnabled
         && (!g_diagnosticSuiteEnabled || !g_diagnosticSuiteComplete)
         && (nextCapturedFrame % 30u) == 0u;
+    /* AI needs sparse GPU timing even when verbose profiling is disabled.
+     * Keep the total-chain timestamp at the same 30-frame cadence as the
+     * validated scalar readback; per-stage timers remain profiling-only. */
+    const bool collectAiTiming = (nextCapturedFrame % 30u) == 0u;
     const SnapFrameGpuTimer totalTimer = beginGpuTimer(
-        context, device, "total_chain", nextCapturedFrame, width, height, profileThisFrame);
+        context, device, "total_chain", nextCapturedFrame, width, height,
+        profileThisFrame || collectAiTiming);
     bool totalTimerEnded = false;
     const SnapFrameGpuTimer captureTimer = beginGpuTimer(
         context, device, "capture_copy", nextCapturedFrame, width, height, profileThisFrame);
