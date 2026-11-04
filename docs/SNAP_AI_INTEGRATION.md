@@ -48,3 +48,14 @@ Fresh configurations now default to flow scale 50% and profiling disabled. This 
 The GPU scalar metrics path exists, but the Snap AI Engine controller is not yet instantiated in the live runtime. The next step is a bounded, frame-ID-matched AI policy loop that adjusts only controls actually supported by the V1 backend, beginning with flow scale and conservative hysteresis. AI must bypass on invalid/stale telemetry and must not block Present.
 
 x3/x4 is not yet exposed. Current code generates one t=0.5 midpoint per real frame; true x3/x4 needs phase-parameterized warps, multiple output resources and safe multiple WSI presents. A multiplier-only UI/config change would duplicate the same midpoint and is explicitly rejected.
+
+
+## Live Android wiring status (2026-11-04)
+
+The `SnapAI::Engine` controller is instantiated in the Skyrim DXVK SnapFrame host.
+Frame-tagged GPU scalar readback and exact-frame GPU timestamp are combined into
+`SnapAIFrameMetrics`. Only the controller's flow-scale decision is currently applied.
+It is queued from the asynchronous completion callback and consumed on the serialized
+render callback, where history reset is requested safely. AI bypasses when telemetry
+is not exact-frame valid. The initial policy is clamped to 50..75% with 8-frame warmup
+and hysteresis. Other decision fields are not yet wired to shader dispatch.
