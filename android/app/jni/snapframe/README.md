@@ -411,3 +411,20 @@ consistency percentage, and boundary-saturated cells. If distortion remains,
 the next algorithm step is a true coarse-to-fine image pyramid plus
 occlusion-aware two-sided warping; simply increasing search radius is not
 sufficient.
+
+
+## Performance and AI runtime notes (2026-11-04)
+
+- Flow block matcher refinement changed from 5x5 to 3x3 around the coarse winner:
+  worst-case candidates drop from 49 to 33 per direction/cell while retaining
+  the coarse +/-8, step-4 search lattice. This trades local precision for cost.
+- Warp skips displaced previous/current color fetches when motion confidence is
+  effectively zero and writes the sharp current-frame fallback directly.
+- Snap AI is linked into the Android host. It consumes validated frame-matched
+  GPU scalar metrics and exact-frame GPU timing, then stages a bounded Flow Scale
+  update for the next serialized DXVK callback. Other AI decisions remain advisory.
+- Multi-level pyramid and explicit disocclusion masks are not yet in the runtime.
+  The current block matcher remains single-resolution half-res luma.
+- x3/x4 is not enabled: one midpoint output and one generated WSI present remain
+  the current backend contract. Multiple phases require separate output lifetimes
+  and Presenter acquire tickets; shared mutable Presenter state remains a safety gate.
