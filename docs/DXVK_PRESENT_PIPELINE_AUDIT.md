@@ -188,3 +188,12 @@ Copying `imageIndex` and the two semaphore handles into a struct, without changi
 - Source and generated presents remain ordered.
 - The temporary synchronization barrier stays enabled until all above criteria pass.
 - No FPS improvement is claimed until matched on-device A/B testing demonstrates it.
+
+
+## Current optimization state after Snap AI wiring — 2026-11-04
+
+The Snap AI controller is now called on the serialized render callback using a staged, validated flow-metrics record and exact-frame total-chain GPU timestamp. Sparse total-chain timestamps are generated every 30 frames independently of verbose profiling. This avoids the earlier dependency on the optional GPU CSV file.
+
+The flow matcher now uses a 3x3 fine refinement neighborhood (33 maximum candidates including the coarse grid, versus 49 previously), and the warp bypasses displaced source sampling in near-zero-confidence cells. These changes are compute-cost reductions only; on-device timing is required to quantify them.
+
+The WSI ownership design remains unchanged: one mutable acquire token and pre-acquire state in Presenter. `SynchronizePresent()` remains a mandatory correctness barrier for the current source/generated sequence. Do not add x3/x4 presents or remove the barrier before move-only generation-bound tickets and present semaphore retirement are implemented.
