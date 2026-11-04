@@ -188,3 +188,10 @@ The active Skyrim runtime remains V1. The portable MotionV2 core is linked, and 
 - The current LSFG profile covers frame IDs 0–1219; the highest mean GPU stages are GammaDelta_L6 1.093 ms, Generate 0.988 ms, Alpha 0.642 ms, Mipmaps 0.607 ms and Beta 0.460 ms. Do not compare its absolute totals directly with the earlier longer LSFG session.
 - Audio output mixer remains healthy in the log: queue_low=0, enqueue_fail=0, slow_mix=0, max_mix <=5 ms. Source empty_queue counters alone do not prove output underrun. Keep audio unchanged.
 - Corrected DXVK generated-present accounting: SnapFrame's result callback and HUD generated-frame counter now wait for the existing asynchronous WSI result in SynchronizePresent. This distinguishes a generated image being dispatched/queued from a completed successful WSI present. It does not prove compositor scanout or FPS uplift; verify the new `midpoint_present_accepted` event on device.
+
+
+### Final runtime configuration from third upload
+
+- `snapframe.conf`: disabled, flow scale 25% (the run itself includes an enabled 75% interval and an enabled 25% interval before final disable).
+- `lsfg.conf`: enabled, multiplier 2. The LSFG runtime log records a temporary 1x setting followed by a return to 2x.
+- `dxvk_perf_on.csv`: 48 samples through frame 5760; mean CPU-present interval 18.52 ms, P95 32.96 ms; mean generated requested/queued count 0.407. This is not a displayed-FPS or generated-present-acceptance measurement.
