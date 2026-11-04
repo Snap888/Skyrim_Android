@@ -1620,6 +1620,10 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                         width, height, consistencyDispatched ? "dispatch_accepted" : "dispatch_rejected");
                     if (consistencyDispatched) {
                         ++g_consistencyDispatchCount;
+                        if (g_metricsAvailable && (nextCapturedFrame % 30u) == 0u) {
+                            recordV1GpuMetrics(context, nextCapturedFrame,
+                                width, height, flowWidth, flowHeight);
+                        }
                         if (g_midpointAvailable) {
                             const SnapFrameGpuTimer midpointTimer = beginGpuTimer(
                                 context, device, "midpoint_warp", nextCapturedFrame,
