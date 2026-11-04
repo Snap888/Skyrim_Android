@@ -93,3 +93,21 @@ Revisit frame-latency accounting for two WSI submissions per source frame. The l
 - Removed the intermediate `SynchronizePresent()` before generated-frame acquisition/recording. The submission queue still serializes Vulkan queue operations in source-before-generated order.
 - This removes a CPU wait point but does not guarantee hardware overlap: source and FG still use the same Vulkan queue. Actual benefit, pacing, and device compatibility must be measured on Android.
 - CI for this commit is queued as run [41878691981](https://github.com/Snap888/Skyrim_Android/actions/runs/41878691981); no compile or device validation claim is made yet.
+
+
+## CPU timing instrumentation — 2026-11-04
+
+Commit: `aa5a5e08ebeb675a5bd75bb98240e0d4c012ff2a`.
+
+The existing 120-frame `dxvk_perf.log` sampler now records these additional per-frame CPU wall-clock averages:
+
+- `avg_source_acquire_ms`: source WSI image acquire duration, including any retry/recreate loop.
+- `avg_generated_acquire_ms`: generated WSI image acquire duration, including any retry/recreate loop.
+- `avg_submit_enqueue_ms`: CPU duration of source + generated `SubmitPresent` calls, including command-list handoff and `FlushCsChunk`; not GPU execution time.
+- `avg_generate_record_ms`: CPU duration spent in generated-frame hook, command recording, output blit and HUD recording; not GPU execution time.
+- `avg_retire_wait_ms`: time spent resolving previous present submission statuses at the source-frame boundary.
+- `avg_frame_latency_wait_ms`: CPU time spent in `SyncFrameLatency()`.
+
+The existing `avg_cpu_present_ms` remains whole-call wall time. These values are sampled and accumulated without adding GPU waits or device/queue idle. A zero generated-acquire value in an OFF run is expected. Values are averages over 120 calls and should be compared using repeated ON/OFF runs in the same scene and with identical resolution/VSync settings.
+
+This instrumentation does not provide GPU timestamps. GPU capture/flow/warp timings must be taken from SnapFrame's existing GPU timing path and correlated by frame ID before drawing conclusions about actual overlap or bottlenecks.
