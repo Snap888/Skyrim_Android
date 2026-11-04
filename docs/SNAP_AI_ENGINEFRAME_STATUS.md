@@ -239,3 +239,12 @@ The latest uploaded scene is 2448x1080, SnapFrame enabled at 75% flow scale. Acr
 - Queue order remains source command list → source WSI present → generated command list → generated WSI present. Pending statuses are drained at the next frame boundary and before swapchain teardown/recreation.
 - This is a scheduling change, not proof of GPU overlap or higher FPS. Source and generated work still share the graphics queue; measure WSI acquire duration, submit/present wait duration, FG GPU time, frame-latency wait and source FPS on device.
 - CI for the change is queued (run [41878691981](https://github.com/Snap888/Skyrim_Android/actions/runs/41878691981)); do not treat it as compile-validated until the job completes. No physical-device validation has been performed.
+
+
+## DXVK CPU present timing instrumentation — 2026-11-04
+
+- Commit `aa5a5e08ebeb675a5bd75bb98240e0d4c012ff2a` extends the existing 120-frame `dxvk_perf.log` record with source/generated WSI acquire, submit enqueue, generated command-recording, previous-present retirement wait, and frame-latency wait averages.
+- All new measurements are CPU wall-clock durations. They do not insert queue/device idle or GPU completion waits. Submit enqueue and generated record values must not be interpreted as GPU execution time.
+- The log still uses the existing DXVK performance log path selection (`DXVK_PERF_LOG` or `DXVK_LOG_PATH/dxvk_perf.log`); no new runtime environment variable is required if the app already configures its DXVK log directory.
+- Workflow run [41880070147](https://github.com/Snap888/Skyrim_Android/actions/runs/41880070147) for this instrumentation is queued. Earlier run [41877312213](https://github.com/Snap888/Skyrim_Android/actions/runs/41877312213) passed Android Java, portable ARM64, API tests, and DXVK host ARM64 compile, but predates the latest present-slot and timing commits. Full APK remains skipped in those validation workflows.
+- No device A/B results exist yet. Collect at least 3 matched 120-frame windows with SnapFrame OFF and ON in the same scene, resolution, refresh/VSync and camera path. Compare median/average source FPS and the new CPU timing columns; correlate SnapFrame GPU timings separately by frame ID.
