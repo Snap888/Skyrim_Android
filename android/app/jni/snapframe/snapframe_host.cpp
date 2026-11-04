@@ -155,6 +155,7 @@ Rc<DxvkBuffer> g_metricsReadbackBuffers[kMetricsReadbackSlots];
 std::atomic<int> g_metricsReadbackBusy[kMetricsReadbackSlots] = {};
 std::atomic<uint64_t> g_metricsReadbackGeneration{1};
 std::atomic<uint64_t> g_metricsPublishedFrame{0};
+std::mutex g_motionV2Mutex;
 SnapMotionV2* g_motionV2 = nullptr;
 
 struct alignas(16) SnapFrameMetricsGpuResult {
@@ -642,6 +643,172 @@ void recordFlowReadback(
         }
     });
 }
+
+bool recordV1GpuMetrics(
+    DxvkContext* context, uint64_t frame,
+    uint32_t width, uint32_t height,
+    uint32_t flowWidth, uint32_t flowHeight) {
+    if (!g_metricsAvailable || !context || !g_metricsPartialBuffer
+        || !g_metricsResultBuffer || !g_flowView[0] || !g_flowView[1]
+        || !g_consistencyView || !g_lumaSampler || !g_metricsPartialCount)
+        return false;
+
+    uint32_t slot = kMetricsReadbackSlots;
+    for (uint32_t i = 0; i < kMetricsReadbackSlots; ++i) {
+        int expected = 0;
+        if (g_metricsReadbackBuffers[i] != nullptr
+            && g_metricsReadbackBusy[i].compare_exchange_strong(
+                expected, 1, std::memory_order_acq_rel)) {
+            slot = i;
+            break;
+        }
+    }
+    if (slot == kMetricsReadbackSlots) {
+        snapframeEvent(frame, "gpu_metrics_skipped", width, height,
+            "readback_ring_busy");
+        return false;
+    }
+
+    const uint64_t generation =
+        g_metricsReadbackGeneration.load(std::memory_order_acquire);
+    const uint64_t timestampNs = static_cast<uint64_t>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()).count());
+    SnapFrameMetricsPush push{};
+    push.identity[0] = static_cast<uint32_t>(frame & 0xffffffffu);
+    push.identity[1] = static_cast<uint32_t>(frame >> 32);
+    push.identity[2] = static_cast<uint32_t>(timestampNs & 0xffffffffu);
+    push.identity[3] = static_cast<uint32_t>(timestampNs >> 32);
+    push.extent[0] = width;
+    push.extent[1] = height;
+    push.extent[2] = flowWidth;
+    push.extent[3] = flowHeight;
+    push.counts[0] = g_metricsPartialCount;
+    push.counts[1] = flowWidth * flowHeight;
+
+    const uint32_t groupsX = (flowWidth + 7u) / 8u;
+    const uint32_t groupsY = (flowHeight + 7u) / 8u;
+    const bool partialDispatched = context->dispatchSnapFrameMetricsPartial(
+        g_metricsPartialShader, g_flowView[0], g_flowView[1],
+        g_consistencyView, g_lumaSampler,
+        DxvkBufferSlice(g_metricsPartialBuffer), groupsX, groupsY);
+    if (!partialDispatched) {
+        g_metricsReadbackBusy[slot].store(0, std::memory_order_release);
+        snapframeEvent(frame, "gpu_metrics_partial_failed", width, height,
+            "v1_partial_reduction_dispatch_rejected");
+        return false;
+    }
+
+    context->flushComputeBarriers();
+    const bool finalDispatched = context->dispatchSnapFrameMetricsFinal(
+        g_metricsFinalShader, DxvkBufferSlice(g_metricsPartialBuffer),
+        DxvkBufferSlice(g_metricsResultBuffer), sizeof(push), &push);
+    if (!finalDispatched) {
+        g_metricsReadbackBusy[slot].store(0, std::memory_order_release);
+        snapframeEvent(frame, "gpu_metrics_final_failed", width, height,
+            "v1_final_reduction_dispatch_rejected");
+        return false;
+    }
+
+    Rc<DxvkBuffer> readback = g_metricsReadbackBuffers[slot];
+    context->copyBuffer(readback, 0, g_metricsResultBuffer, 0,
+        sizeof(SnapFrameMetricsGpuResult));
+    context->addCompletionCallback([readback, slot, generation, frame,
+                                    width, height, flowWidth, flowHeight,
+                                    timestampNs](VkResult completion) {
+        bool accepted = false;
+        const char* rejectReason = "command_list_completion_error";
+        if (completion == VK_SUCCESS && readback != nullptr) {
+            const auto* gpu = reinterpret_cast<const SnapFrameMetricsGpuResult*>(
+                readback->mapPtr(0));
+            if (gpu != nullptr) {
+                const uint64_t gpuFrame = uint64_t(gpu->identity[0])
+                    | (uint64_t(gpu->identity[1]) << 32);
+                const uint64_t gpuTimestamp = uint64_t(gpu->identity[2])
+                    | (uint64_t(gpu->identity[3]) << 32);
+                const bool finite = std::isfinite(gpu->motion[0])
+                    && std::isfinite(gpu->motion[1])
+                    && std::isfinite(gpu->motion[2])
+                    && std::isfinite(gpu->motion[3])
+                    && std::isfinite(gpu->quality[0])
+                    && std::isfinite(gpu->quality[1])
+                    && std::isfinite(gpu->quality[2])
+                    && std::isfinite(gpu->quality[3]);
+                const bool identityValid = gpuFrame == frame
+                    && gpuTimestamp == timestampNs
+                    && gpu->extent[0] == width && gpu->extent[1] == height
+                    && gpu->extent[2] == flowWidth && gpu->extent[3] == flowHeight;
+                const bool coverageValid = gpu->quality[3] >= 0.90f
+                    && gpu->quality[3] <= 1.001f;
+                if (finite && identityValid && coverageValid
+                    && gpu->flags[0] == 1u) {
+                    const uint64_t previous = g_metricsPublishedFrame.load(
+                        std::memory_order_acquire);
+                    if (frame > previous) {
+                        SnapMotionV2Metrics metrics{};
+                        metrics.struct_size = sizeof(metrics);
+                        metrics.frame_id = frame;
+                        metrics.timestamp_ns = timestampNs;
+                        metrics.width = width;
+                        metrics.height = height;
+                        metrics.motion_magnitude_px = gpu->motion[0];
+                        metrics.motion_complexity = gpu->motion[1];
+                        metrics.flow_confidence = gpu->motion[2];
+                        metrics.low_confidence_ratio = gpu->motion[3];
+                        metrics.occlusion_ratio = gpu->quality[0];
+                        metrics.static_ratio = 0.0f; // V1 has no static-region mask.
+                        metrics.artifact_risk = gpu->quality[2];
+                        metrics.scene_cut = 0; // No calibrated scene-cut detector yet.
+                        metrics.telemetry_valid = 1;
+                        std::lock_guard<std::mutex> lock(g_motionV2Mutex);
+                        if (g_motionV2 != nullptr
+                            && snap_motion_v2_publish_metrics(g_motionV2, &metrics)
+                                == SNAP_MOTION_V2_OK) {
+                            g_metricsPublishedFrame.store(frame,
+                                std::memory_order_release);
+                            accepted = true;
+                            rejectReason = nullptr;
+                        } else {
+                            rejectReason = "motion_v2_publish_rejected";
+                        }
+                    } else {
+                        rejectReason = "out_of_order_frame";
+                    }
+                } else if (!finite) {
+                    rejectReason = "non_finite_metrics";
+                } else if (!identityValid) {
+                    rejectReason = "frame_identity_or_extent_mismatch";
+                } else if (!coverageValid || gpu->flags[0] != 1u) {
+                    rejectReason = "low_valid_flow_coverage";
+                }
+            } else {
+                rejectReason = "readback_map_failed";
+            }
+        }
+
+        if (generation == g_metricsReadbackGeneration.load(
+                std::memory_order_acquire)) {
+            g_metricsReadbackBusy[slot].store(0, std::memory_order_release);
+        }
+        if (accepted) {
+            if (frame == 1u || (frame % 120u) == 0u)
+                snapframeLog("SnapFrame: GPU metrics published frame=%llu confidence=%.3f complexity=%.3f artifact=%.3f\n",
+                    static_cast<unsigned long long>(frame),
+                    reinterpret_cast<const SnapFrameMetricsGpuResult*>(readback->mapPtr(0))->motion[2],
+                    reinterpret_cast<const SnapFrameMetricsGpuResult*>(readback->mapPtr(0))->motion[1],
+                    reinterpret_cast<const SnapFrameMetricsGpuResult*>(readback->mapPtr(0))->quality[2]);
+            snapframeEvent(frame, "gpu_metrics_published", width, height,
+                "v1_scalar_record_validated_and_motion_v2_accepted");
+        } else {
+            snapframeEvent(frame, "gpu_metrics_rejected", width, height,
+                rejectReason ? rejectReason : "unknown");
+        }
+    });
+    snapframeEvent(frame, "gpu_metrics_copy_recorded", width, height,
+        "80_byte_frame_tagged_scalar_record_async_readback");
+    return true;
+}
+
 
 void clearHistory() {
     g_midpointFrameReady.store(0, std::memory_order_release);
