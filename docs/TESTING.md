@@ -47,3 +47,8 @@ Collect real FPS, generated FPS, stage GPU timings, total GPU time, dropped/gene
 - AI recommendations demonstrably alter supported dispatch parameters and remain within backend limits.
 - All fallback, device recreation and hot-setting tests pass.
 - APK is produced by a successful full CI job and installed/tested on a real device.
+
+## Configuration persistence regression test
+- Change Flow Scale in the in-game menu, then inspect `port/snapframe.conf`: each key must occupy its own physical line (no literal `\\n` characters).
+- Restart the game and confirm the selected Flow Scale is restored rather than silently falling back to the default.
+- Confirm the host log uses separate physical lines for backend status and config summary.
