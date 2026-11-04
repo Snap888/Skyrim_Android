@@ -47,6 +47,7 @@ std::mutex g_vectorLogMutex;
 FILE* g_vectorLogFile = nullptr;
 std::mutex g_eventLogMutex;
 FILE* g_eventLogFile = nullptr;
+uint64_t g_eventLogWriteCount = 0;
 bool g_profilingEnabled = false;
 bool g_motionAnalysisEnabled = false;
 bool g_flowReadbackFailureLogged = false;
@@ -67,17 +68,53 @@ void snapframeLog(const char* format, ...) {
     va_end(args);
 }
 
+bool snapframeEventIsRoutineSuccess(const char* event) {
+    if (!event) return false;
+    static const char* const routineEvents[] = {
+        "capture_copy_recorded", "luma_dispatch_ok", "flow_pair_ok",
+        "consistency_dispatch_ok", "midpoint_warp_ok",
+        "midpoint_present_requested", "midpoint_present_queued"
+    };
+    for (const char* name : routineEvents)
+        if (strcmp(event, name) == 0) return true;
+    return false;
+}
+
+bool snapframeEventIsCritical(const char* event) {
+    if (!event) return false;
+    return strstr(event, "failed") != nullptr
+        || strstr(event, "rejected") != nullptr
+        || strcmp(event, "host_init") == 0
+        || strstr(event, "test_phase") != nullptr;
+}
+
 void snapframeEvent(uint64_t frame, const char* event, uint32_t width,
                     uint32_t height, const char* detail) {
+    /* Per-frame success events used to fflush the CSV on the render path.
+     * Keep sparse progress samples, but always preserve failures and lifecycle
+     * events. A 64 KiB stdio buffer plus bounded flush cadence avoids turning
+     * diagnostic logging into a per-frame storage-I/O bottleneck. */
+    const bool routineSuccess = snapframeEventIsRoutineSuccess(event);
+    if (routineSuccess && frame != 1u && (frame % 120u) != 0u)
+        return;
+    if (event && strcmp(event, "frame_complete") == 0
+        && frame != 1u && (frame % 300u) != 0u)
+        return;
+
     std::lock_guard<std::mutex> lock(g_eventLogMutex);
     if (!g_eventLogFile) return;
-    fprintf(g_eventLogFile, "%llu,%s,%u,%u,\"%s\"\n",
+    const int written = fprintf(g_eventLogFile, "%llu,%s,%u,%u,\"%s\"\n",
         static_cast<unsigned long long>(frame), event ? event : "unknown",
         width, height, detail ? detail : "");
-    fflush(g_eventLogFile);
-    if (ferror(g_eventLogFile))
-        snapframeLog("SnapFrame: event CSV write failed event=%s frame=%llu\n",
-            event ? event : "unknown", static_cast<unsigned long long>(frame));
+    ++g_eventLogWriteCount;
+    const bool flushNow = snapframeEventIsCritical(event)
+        || (g_eventLogWriteCount % 64u) == 0u;
+    if (flushNow) {
+        fflush(g_eventLogFile);
+        if (written < 0 || ferror(g_eventLogFile))
+            snapframeLog("SnapFrame: event CSV write failed event=%s frame=%llu\n",
+                event ? event : "unknown", static_cast<unsigned long long>(frame));
+    }
 }
 
 std::atomic<int> g_initialized{0};
@@ -1474,6 +1511,8 @@ extern "C" int snapframe_host_set_event_log_path(const char *path) {
         fprintf(stderr, "SnapFrame: cannot open event CSV: %s\n", path);
         return 0;
     }
+    setvbuf(g_eventLogFile, nullptr, _IOFBF, 64u * 1024u);
+    g_eventLogWriteCount = 0;
     fprintf(g_eventLogFile, "frame,event,width,height,detail\n");
     fflush(g_eventLogFile);
     return 1;
