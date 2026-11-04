@@ -1304,7 +1304,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                     g_v2ShaderDevice = device;
                 }
                 if (!g_v2PyramidAvailable) {
-                    snapframeLog("SnapFrame: V2 pyramid unavailable (images=%u luma=%u downsample=%u sampler=%u); V1 path remains active\\n",
+                    snapframeLog("SnapFrame: V2 pyramid unavailable (images=%u luma=%u downsample=%u sampler=%u); V1 path remains active\n",
                         unsigned(v2ImagesCreated), unsigned(g_v2LumaShader != nullptr),
                         unsigned(g_v2DownsampleShader != nullptr), unsigned(g_lumaSampler != nullptr));
                 } else {
