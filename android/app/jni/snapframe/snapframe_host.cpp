@@ -20,6 +20,7 @@
 #include "dxvk_shader.h"
 #include "spirv_code_buffer.h"
 #include "snap_frame/motion_v2.h"
+#include "snap_ai/snap_ai.h"
 
 #if __has_include("generated/snapframe_shaders.h")
   #include "generated/snapframe_shaders.h"
@@ -30,6 +31,7 @@
 
 using namespace dxvk;
 
+extern "C" int snapframe_host_apply_backend_config(int, int);
 extern "C" int snapframe_engine_adapter_init(const SnapFrameConfig*);
 extern "C" void snapframe_engine_adapter_shutdown(void);
 extern "C" int snapframe_engine_adapter_update_settings(int, int);
@@ -157,6 +159,10 @@ std::atomic<uint64_t> g_metricsReadbackGeneration{1};
 std::atomic<uint64_t> g_metricsPublishedFrame{0};
 std::mutex g_motionV2Mutex;
 SnapMotionV2* g_motionV2 = nullptr;
+std::mutex g_snapAiMutex;
+SnapAIHandle* g_snapAi = nullptr;
+std::atomic<int> g_aiPendingFlowScalePercent{0};
+std::atomic<uint64_t> g_aiDecisionCount{0};
 
 struct alignas(16) SnapFrameMetricsGpuResult {
     uint32_t identity[4];
@@ -771,6 +777,61 @@ bool recordV1GpuMetrics(
                         metrics.artifact_risk = gpu->quality[2];
                         metrics.scene_cut = 0; // No calibrated scene-cut detector yet.
                         metrics.telemetry_valid = 1;
+
+                        /* Consume only frame-matched GPU timing and validated
+                         * flow metrics. Stage decisions atomically; apply them
+                         * later on the serialized DXVK callback, never here. */
+                        const uint64_t timingFrame = g_lastGpuTimingFrame.load(
+                            std::memory_order_acquire);
+                        const bool timingValid =
+                            g_lastGpuTimingValid.load(std::memory_order_acquire)
+                            && timingFrame == frame;
+                        if (timingValid) {
+                            SnapAIFrameMetrics aiMetrics{};
+                            aiMetrics.struct_size = sizeof(aiMetrics);
+                            aiMetrics.frame_id = frame;
+                            aiMetrics.frame_time_ms =
+                                g_lastGpuFrameIntervalMs.load(std::memory_order_acquire);
+                            aiMetrics.gpu_time_ms =
+                                g_lastGpuTimingMs.load(std::memory_order_acquire);
+                            aiMetrics.motion_magnitude = gpu->motion[0];
+                            aiMetrics.motion_complexity = gpu->motion[1];
+                            aiMetrics.flow_confidence = gpu->motion[2];
+                            aiMetrics.gpu_pressure = aiMetrics.gpu_time_ms / 6.0f;
+                            aiMetrics.artifact_risk = gpu->quality[2];
+                            aiMetrics.scene_cut = 0;
+                            aiMetrics.telemetry_valid = 1;
+                            SnapAIDecision decision{};
+                            decision.struct_size = sizeof(decision);
+                            SnapAIStatus aiStatus = SNAP_AI_ERROR_INTERNAL;
+                            {
+                                std::lock_guard<std::mutex> aiLock(g_snapAiMutex);
+                                if (g_snapAi)
+                                    aiStatus = snap_ai_update(g_snapAi, &aiMetrics, &decision);
+                            }
+                            if (aiStatus == SNAP_AI_OK
+                                && decision.mode != SNAP_AI_MODE_BYPASS
+                                && std::isfinite(decision.flow_scale)) {
+                                const int requestedScale = std::max(50, std::min(75,
+                                    static_cast<int>(std::lround(
+                                        decision.flow_scale * 100.0f))));
+                                g_aiPendingFlowScalePercent.store(
+                                    requestedScale, std::memory_order_release);
+                                const uint64_t decisions = g_aiDecisionCount.fetch_add(
+                                    1, std::memory_order_relaxed) + 1;
+                                if (decisions == 1 || (decisions % 30u) == 0u)
+                                    snapframeLog("SnapFrame AI: frame=%llu mode=%u flow_scale=%d%% gpu=%.3fms pressure=%.3f confidence=%.3f complexity=%.3f artifact=%.3f\\n",
+                                        static_cast<unsigned long long>(frame),
+                                        static_cast<unsigned>(decision.mode),
+                                        requestedScale, aiMetrics.gpu_time_ms,
+                                        aiMetrics.gpu_pressure, aiMetrics.flow_confidence,
+                                        aiMetrics.motion_complexity, aiMetrics.artifact_risk);
+                            }
+                        } else {
+                            snapframeEvent(frame, "ai_bypass", width, height,
+                                "frame_matched_gpu_timestamp_not_available");
+                        }
+
                         std::lock_guard<std::mutex> lock(g_motionV2Mutex);
                         if (g_motionV2 != nullptr
                             && snap_motion_v2_publish_metrics(g_motionV2, &metrics)
@@ -1464,6 +1525,13 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                         uint32_t width, uint32_t height, uint32_t formatValue) {
     if (!g_initialized.load(std::memory_order_acquire))
         return;
+    const int aiScale = g_aiPendingFlowScalePercent.exchange(
+        0, std::memory_order_acq_rel);
+    if (aiScale >= 50 && aiScale <= 75
+        && static_cast<uint32_t>(aiScale) != flowScalePercent()) {
+        snapframe_host_apply_backend_config(
+            g_enabled.load(std::memory_order_acquire), aiScale);
+    }
     // Consume pending resets before checking enabled. This lets the next
     // present callback release GPU history immediately after the feature is
     // switched off, rather than retaining it until a later re-enable/device
@@ -1940,6 +2008,27 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
             g_motionV2 = snap_motion_v2_create(&motionConfig);
         }
     }
+    {
+        std::lock_guard<std::mutex> aiLock(g_snapAiMutex);
+        if (g_snapAi) {
+            snap_ai_destroy(g_snapAi);
+            g_snapAi = nullptr;
+        }
+        SnapAIConfig aiConfig{};
+        snap_ai_default_config(&aiConfig);
+        aiConfig.enabled = 1;
+        aiConfig.profile = SNAP_AI_PROFILE_BALANCED;
+        aiConfig.target_gpu_budget_ms = 6.0f;
+        aiConfig.min_flow_scale = 0.50f;
+        aiConfig.max_flow_scale = 0.75f;
+        aiConfig.min_refinement_passes = 1;
+        aiConfig.max_refinement_passes = 2;
+        aiConfig.hysteresis = 0.08f;
+        aiConfig.warmup_frames = 8;
+        g_snapAi = snap_ai_create(&aiConfig);
+    }
+    g_aiPendingFlowScalePercent.store(0, std::memory_order_release);
+    g_aiDecisionCount.store(0, std::memory_order_relaxed);
     g_motionAnalysisEnabled = validated.motion_analysis != 0;
     g_diagnosticSuiteEnabled = validated.diagnostic_suite != 0 && g_motionAnalysisEnabled;
     if (validated.diagnostic_suite != 0 && !g_motionAnalysisEnabled)
@@ -1999,6 +2088,14 @@ extern "C" void snapframe_host_shutdown(void) {
     snapframe_dxvk_set_copy_hook(nullptr);
     snapframe_dxvk_set_generation_hooks(nullptr, nullptr, nullptr);
     snapframe_engine_adapter_shutdown();
+    {
+        std::lock_guard<std::mutex> aiLock(g_snapAiMutex);
+        if (g_snapAi) {
+            snap_ai_destroy(g_snapAi);
+            g_snapAi = nullptr;
+        }
+    }
+    g_aiPendingFlowScalePercent.store(0, std::memory_order_release);
     {
         std::lock_guard<std::mutex> lock(g_motionV2Mutex);
         if (g_motionV2) {
