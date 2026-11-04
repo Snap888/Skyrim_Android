@@ -41,3 +41,10 @@ Not yet completed: concrete DXVK `SnapFrameBackendV1` adapter, live AI telemetry
 - Removed per-event `fflush` from the render path; critical failures/rejections and lifecycle/test-phase events flush immediately, other records flush every 64 writes.
 - Rate-limited repetitive successful stage/present events to one sample per 120 frames and frame-complete progress to one per 300 frames; first-frame samples and all failures are retained.
 - No GPU algorithm, generated-frame decision or audio/input code changed. Device validation is still required.
+
+
+## 2026-11-04 — second device-log audit and MotionV2 coordinate fix
+- Audited the 840-frame SnapFrame capture, all 196 GPU timing rows, seven flow samples and the 5,600-cell frame-601 vector dump.
+- Parsed the full 215,880-row LSFG GPU timing stream and runtime/audio log; recorded stage optimization targets and confirmed no fatal process/Vulkan failure in the supplied run.
+- Found and corrected L0-pixel to normalized-UV conversion in MotionV2 validation/interpolation shaders.
+- Updated Skyrim's pinned Snap AI Engine revision and CI to the upstream coordinate-corrected commit. V2 remains compile-validated but not dispatched; V1 remains the runtime path.
