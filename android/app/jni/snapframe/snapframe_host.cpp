@@ -141,12 +141,20 @@ Rc<DxvkImage> g_v2PyramidImage[2][3];
 Rc<DxvkImageView> g_v2PyramidView[2][3];
 Rc<DxvkImage> g_v2FlowImage[2][3];
 Rc<DxvkImageView> g_v2FlowView[2][3];
+Rc<DxvkImage> g_v2RefinedFlowImage[2];
+Rc<DxvkImageView> g_v2RefinedFlowView[2];
+Rc<DxvkImage> g_v2ValidationImage;
+Rc<DxvkImageView> g_v2ValidationView;
 bool g_v2PyramidValid[2] = { false, false };
 bool g_v2FlowAvailable = false;
+bool g_v2RefinementAvailable = false;
 uint64_t g_v2FlowDispatchCount = 0;
+uint64_t g_v2RefinementDispatchCount = 0;
 Rc<DxvkShader> g_v2LumaShader;
 Rc<DxvkShader> g_v2DownsampleShader;
 Rc<DxvkShader> g_v2SearchShader;
+Rc<DxvkShader> g_v2RefineShader;
+Rc<DxvkShader> g_v2ValidationShader;
 DxvkDevice* g_v2ShaderDevice = nullptr;
 bool g_v2PyramidAvailable = false;
 uint64_t g_v2LumaDispatchCount = 0;
@@ -893,11 +901,18 @@ void clearHistory() {
     g_v2PyramidValid[0] = g_v2PyramidValid[1] = false;
     g_v2FlowAvailable = false;
     g_v2FlowDispatchCount = 0;
-    for (unsigned direction = 0; direction < 2; ++direction)
+    g_v2RefinementAvailable = false;
+    g_v2RefinementDispatchCount = 0;
+    g_v2ValidationView = Rc<DxvkImageView>();
+    g_v2ValidationImage = Rc<DxvkImage>();
+    for (unsigned direction = 0; direction < 2; ++direction) {
+        g_v2RefinedFlowView[direction] = Rc<DxvkImageView>();
+        g_v2RefinedFlowImage[direction] = Rc<DxvkImage>();
         for (unsigned level = 0; level < 3; ++level) {
             g_v2FlowView[direction][level] = Rc<DxvkImageView>();
             g_v2FlowImage[direction][level] = Rc<DxvkImage>();
         }
+    }
     g_v2LumaDispatchCount = 0;
     g_v2DownsampleDispatchCount = 0;
     g_flowView[0] = Rc<DxvkImageView>();
@@ -1192,11 +1207,14 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
 
                 const bool needV2ShaderRegistration =
                     g_v2ShaderDevice != device || g_v2LumaShader == nullptr
-                    || g_v2DownsampleShader == nullptr || g_v2SearchShader == nullptr;
+                    || g_v2DownsampleShader == nullptr || g_v2SearchShader == nullptr
+                    || g_v2RefineShader == nullptr || g_v2ValidationShader == nullptr;
                 if (needV2ShaderRegistration) {
                     g_v2LumaShader = Rc<DxvkShader>();
                     g_v2DownsampleShader = Rc<DxvkShader>();
                     g_v2SearchShader = Rc<DxvkShader>();
+                    g_v2RefineShader = Rc<DxvkShader>();
+                    g_v2ValidationShader = Rc<DxvkShader>();
                     g_v2ShaderDevice = nullptr;
                     const DxvkResourceSlot v2LumaSlots[] = {
                         { 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -1243,16 +1261,49 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                     g_v2SearchShader = device->createShader(
                         VK_SHADER_STAGE_COMPUTE_BIT, 4, v2SearchSlots,
                         v2SearchIface, v2SearchCode);
+                    const DxvkResourceSlot v2RefineSlots[] = {
+                        { 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
+                        { 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
+                        { 2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
+                        { 4, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_WRITE_BIT },
+                    };
+                    DxvkInterfaceSlots v2RefineIface{};
+                    v2RefineIface.pushConstOffset = 0;
+                    v2RefineIface.pushConstSize = 32;
+                    SpirvCodeBuffer v2RefineCode(
+                        snapframe::shaders::k_snap_motion_v2_refine_word_count,
+                        snapframe::shaders::k_snap_motion_v2_refine);
+                    g_v2RefineShader = device->createShader(
+                        VK_SHADER_STAGE_COMPUTE_BIT, 4, v2RefineSlots,
+                        v2RefineIface, v2RefineCode);
+                    const DxvkResourceSlot v2ValidationSlots[] = {
+                        { 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
+                        { 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
+                        { 4, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_WRITE_BIT },
+                    };
+                    DxvkInterfaceSlots v2ValidationIface{};
+                    v2ValidationIface.pushConstOffset = 0;
+                    v2ValidationIface.pushConstSize = 32;
+                    SpirvCodeBuffer v2ValidationCode(
+                        snapframe::shaders::k_snap_motion_v2_validation_word_count,
+                        snapframe::shaders::k_snap_motion_v2_validation);
+                    g_v2ValidationShader = device->createShader(
+                        VK_SHADER_STAGE_COMPUTE_BIT, 3, v2ValidationSlots,
+                        v2ValidationIface, v2ValidationCode);
                 }
                 g_v2PyramidAvailable = v2ImagesCreated
                     && g_lumaSampler != nullptr
                     && g_v2LumaShader != nullptr
                     && g_v2DownsampleShader != nullptr
-                    && g_v2SearchShader != nullptr;
+                    && g_v2SearchShader != nullptr
+                    && g_v2RefineShader != nullptr
+                    && g_v2ValidationShader != nullptr;
                 if (g_v2PyramidAvailable && needV2ShaderRegistration) {
                     device->registerShader(g_v2LumaShader);
                     device->registerShader(g_v2DownsampleShader);
                     device->registerShader(g_v2SearchShader);
+                    device->registerShader(g_v2RefineShader);
+                    device->registerShader(g_v2ValidationShader);
                     g_v2ShaderDevice = device;
                 }
                 if (!g_v2PyramidAvailable) {
@@ -1336,11 +1387,42 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                 }
                 g_v2FlowAvailable = v2FlowImagesCreated
                     && g_v2SearchShader != nullptr && g_lumaSampler != nullptr;
-                if (g_v2FlowAvailable)
+                if (g_v2FlowAvailable) {
                     snapframeLog("SnapFrame: V2 flow grids ready L0=%ux%u L1=%ux%u L2=%ux%u directions=2 format=RGBA16F\n",
                         v2FlowGridExtent(v2LumaWidths[0]), v2FlowGridExtent(v2LumaHeights[0]),
                         v2FlowGridExtent(v2LumaWidths[1]), v2FlowGridExtent(v2LumaHeights[1]),
                         v2FlowGridExtent(v2LumaWidths[2]), v2FlowGridExtent(v2LumaHeights[2]));
+                    for (unsigned direction = 0; direction < 2; ++direction) {
+                        DxvkImageCreateInfo refinedInfo = flowInfo;
+                        refinedInfo.extent = {
+                            v2FlowGridExtent(v2LumaWidths[0]),
+                            v2FlowGridExtent(v2LumaHeights[0]), 1
+                        };
+                        g_v2RefinedFlowImage[direction] = device->createImage(
+                            refinedInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                        if (g_v2RefinedFlowImage[direction] != nullptr)
+                            g_v2RefinedFlowView[direction] = device->createImageView(
+                                g_v2RefinedFlowImage[direction], flowViewInfo);
+                    }
+                    DxvkImageCreateInfo validationInfo = v2Info;
+                    validationInfo.extent = {
+                        v2FlowGridExtent(v2LumaWidths[0]),
+                        v2FlowGridExtent(v2LumaHeights[0]), 1
+                    };
+                    g_v2ValidationImage = device->createImage(
+                        validationInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                    if (g_v2ValidationImage != nullptr)
+                        g_v2ValidationView = device->createImageView(
+                            g_v2ValidationImage, v2ViewInfo);
+                    g_v2RefinementAvailable =
+                        g_v2RefinedFlowView[0] != nullptr
+                        && g_v2RefinedFlowView[1] != nullptr
+                        && g_v2ValidationView != nullptr
+                        && g_v2RefineShader != nullptr
+                        && g_v2ValidationShader != nullptr;
+                    if (!g_v2RefinementAvailable)
+                        snapframeLog("SnapFrame: V2 refinement/validation resources unavailable; coarse flow retained for diagnostics only\n");
+                }
 
                 for (unsigned i = 0; i < 2; ++i) {
                     g_flowImage[i] = device->createImage(flowInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
