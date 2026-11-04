@@ -392,7 +392,12 @@ SnapFrameFlowStats summarizeFlow(const uint16_t* values, uint64_t count) {
 void recordFlowReadback(
     DxvkContext* context, DxvkDevice* device, uint64_t frame,
     uint32_t flowWidth, uint32_t flowHeight, bool dumpVectors) {
-    if (!g_profilingEnabled || !g_diagnosticSuiteEnabled || g_diagnosticSuiteComplete
+    /* Motion readback is controlled by motion_analysis, not by the optional
+     * seven-phase diagnostic suite. Keeping these switches independent lets
+     * normal profiling collect sparse flow statistics without starting a
+     * scripted test run. This remains a low-frequency diagnostic readback;
+     * Snap AI must consume GPU-reduced scalars, never these pixel buffers. */
+    if (!g_profilingEnabled || !g_motionAnalysisEnabled
         || !context || !device || g_flowImage[0] == nullptr
         || g_flowImage[1] == nullptr || g_consistencyImage == nullptr)
         return;
@@ -1545,6 +1550,10 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
     g_diagnosticPhase = UINT32_MAX;
     g_profilingEnabled = validated.profiling_enabled != 0;
     g_flowReadbackFailureLogged = false;
+    snapframeLog("SnapFrame: flow readback %s (motion_analysis=%d profiling=%d diagnostic_suite=%d interval=120 frames)\\n",
+        (g_motionAnalysisEnabled && g_profilingEnabled) ? "enabled" : "disabled",
+        g_motionAnalysisEnabled ? 1 : 0, g_profilingEnabled ? 1 : 0,
+        g_diagnosticSuiteEnabled ? 1 : 0);
 
     g_enabled.store(validated.enabled ? 1 : 0, std::memory_order_release);
     const int portableReady = snapframe_engine_adapter_init(&validated);
