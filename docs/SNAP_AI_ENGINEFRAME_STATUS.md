@@ -143,3 +143,18 @@ The upstream V2 shader set now includes luma, downsample, coarse/fine search, re
 - Android CI now builds/tests the updated pinned engine revision in both portable jobs and compiles the Skyrim ARM64 DXVK host against the new target.
 - This is the portable core linkage milestone only. The current host does not yet call snap_motion_v2_*; V2 shaders are not part of Skyrim runtime shader dispatch, and the active rendering path remains V1.
 - Latest Skyrim CI run #41811189312 (https://github.com/Snap888/Skyrim_Android/actions/runs/41811189312) is pending; no build result is claimed yet.
+
+
+## Second device log audit — 2026-11-04
+
+- The uploaded branch head containing the logs is `d20835e8e6588ba7a6cbd5c205693b54b8ca5fe0`.
+- SnapFrame ran at 2448x1080 and reached frame 840. The DXVK present hook, portable V1 adapter, history capture, Luma, bidirectional block matching, consistency, midpoint warp and additional WSI-present queue path are visible in the log. The event CSV now contains sparse samples at frame 1 and 120-frame/300-frame progress intervals rather than per-frame routine success rows.
+- `snapframe_gpu.csv`: 28 successful samples per stage. Mean/P95 total chain is 12.389/16.106 ms; forward/backward flow average 4.754/4.824 ms. Flow consumes about 77% of the measured chain.
+- `snapframe_flow.csv`: seven samples at frames 121–841. Mean confidence and consistency vary strongly by scene; this is not a uniformly reliable motion field.
+- `snapframe_flow_vectors.csv`: 5,600 vectors for frame 601. Mean forward/backward confidence ~0.105; ~62.5% below 0.1; ~12% at the search boundary; mean consistency ~0.023 and ~91.7% zero. This is one difficult-motion snapshot, not the whole session.
+- GPU stage times increase around frame 720 while resolution remains 2448x1080. No temperature/frequency data is present, so thermal throttling is only one possible explanation.
+- LSFG's own log runs to present frame 5400 and must not be frame-correlated with SnapFrame's 840-frame stream. It starts enabled at multiplier 2, then records a runtime change to multiplier 1. The final config is multiplier 1. Generate dispatch commands and requested/queued counters exist, but actual generated WSI-present acceptance and displayed FPS are not proven by these files.
+- Latest Android CI run [#41817208666](https://github.com/Snap888/Skyrim_Android/actions/runs/41817208666) passed portable API tests, Snap AI/SnapFrame ARM64 shared-library build, DXVK SnapFrame host ARM64 compile and Java compilation. The full APK job was skipped because `build_apk` was not requested.
+- A safety backup was created before this follow-up work: [backup/Snap-AI-EngineFrame-pre-2026-11-04-logs2](https://github.com/Snap888/Skyrim_Android/tree/backup/Snap-AI-EngineFrame-pre-2026-11-04-logs2).
+
+The active Skyrim runtime remains V1. The portable MotionV2 core is linked, but its shaders/resources/dispatch are not yet connected to DXVK; Snap AI adaptive control remains unavailable. Do not treat shader compile validation or queued generate commands as proof of actual frame generation.
