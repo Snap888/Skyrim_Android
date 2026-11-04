@@ -248,3 +248,13 @@ The latest uploaded scene is 2448x1080, SnapFrame enabled at 75% flow scale. Acr
 - The log still uses the existing DXVK performance log path selection (`DXVK_PERF_LOG` or `DXVK_LOG_PATH/dxvk_perf.log`); no new runtime environment variable is required if the app already configures its DXVK log directory.
 - Workflow run [41880070147](https://github.com/Snap888/Skyrim_Android/actions/runs/41880070147) for this instrumentation is queued. Earlier run [41877312213](https://github.com/Snap888/Skyrim_Android/actions/runs/41877312213) passed Android Java, portable ARM64, API tests, and DXVK host ARM64 compile, but predates the latest present-slot and timing commits. Full APK remains skipped in those validation workflows.
 - No device A/B results exist yet. Collect at least 3 matched 120-frame windows with SnapFrame OFF and ON in the same scene, resolution, refresh/VSync and camera path. Compare median/average source FPS and the new CPU timing columns; correlate SnapFrame GPU timings separately by frame ID.
+
+
+## WSI acquire-ticket safety correction — 2026-11-04
+
+- Code commit: `8702981ed6bdb41390f44f236652d8f733161056`.
+- Review found that the current Vulkan Presenter exposes a single mutable acquire token (`m_acquireStatus`, `m_imageIndex`, `m_frameIndex`). Since source `presentImage()` advances this state asynchronously on the DXVK CS thread, the generated acquire could race and reuse the source token/image.
+- Restored `SynchronizePresent()` immediately before generated WSI acquisition. This is a temporary correctness barrier; it deliberately gives up the previous attempted CPU-side overlap until explicit per-acquire tickets are implemented.
+- Independent source/generated submission status objects remain in place, but must not be confused with independent WSI acquire ownership.
+- The current status checks endpoint returned no checks for the documentation checkpoint; the safety correction is not yet compile-validated or device-validated. Do not claim an FPS improvement.
+- Next engineering task: redesign Presenter around an explicit acquire ticket containing swapchain generation, image index, acquire semaphore and present semaphore. Ensure the ticket is consumed exactly once by the matching queued present operation; reset/recreate must invalidate outstanding tickets only after submission retirement. Then test WSI semaphore reuse and queue ordering before removing the temporary barrier.
