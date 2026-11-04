@@ -74,7 +74,8 @@ void snapframeLog(const char* format, ...) {
 bool snapframeEventIsRoutineSuccess(const char* event) {
     if (!event) return false;
     static const char* const routineEvents[] = {
-        "capture_copy_recorded", "luma_dispatch_ok", "flow_pair_ok",
+        "capture_copy_recorded", "luma_dispatch_ok", "v2_luma_dispatch_ok",
+        "v2_downsample_dispatch_ok", "flow_pair_ok",
         "consistency_dispatch_ok", "midpoint_warp_ok",
         "midpoint_present_requested", "midpoint_present_accepted"
     };
@@ -1813,6 +1814,8 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
             sizeof(lumaPush), &lumaPush);
         if (lumaOk) {
             ++g_v2LumaDispatchCount;
+            snapframeEvent(nextCapturedFrame, "v2_luma_dispatch_ok",
+                width, height, "source_to_L0_R16F");
             context->flushComputeBarriers();
             V2DimsPush l1Push{{float(l0Width), float(l0Height), float(l1Width), float(l1Height)}};
             Rc<DxvkImageView> downsampleViews[5];
@@ -1835,6 +1838,8 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                     sizeof(l2Push), &l2Push);
                 if (l2Ok) {
                     ++g_v2DownsampleDispatchCount;
+                    snapframeEvent(nextCapturedFrame, "v2_downsample_dispatch_ok",
+                        width, height, "L0_to_L1_to_L2");
                     context->flushComputeBarriers();
                 }
                 if (!l2Ok || !l1Ok) {
