@@ -998,15 +998,26 @@ namespace dxvk {
       uint32_t imageIndex = 0;
 
       auto sourceAcquireStart = std::chrono::steady_clock::now();
-      VkResult status = m_presenter->acquireNextImage(sync, imageIndex);
+      VkResult status = VK_NOT_READY;
+      bool sourceAcquired = false;
+      for (uint32_t attempt = 0; attempt < 3; attempt++) {
+        status = m_presenter->acquireNextImage(sync, imageIndex);
+        if (status == VK_SUCCESS || status == VK_SUBOPTIMAL_KHR) {
+          sourceAcquired = true;
+          break;
+        }
 
-      while (status != VK_SUCCESS && status != VK_SUBOPTIMAL_KHR) {
+        Logger::warn(str::format("DXVK: source WSI acquire failed (",
+          status, "), recreating swap chain; attempt ", attempt + 1, "/3"));
         RecreateSwapChain(m_vsync);
         info = m_presenter->info();
-        status = m_presenter->acquireNextImage(sync, imageIndex);
       }
       perfSourceAcquireMs += std::chrono::duration<double, std::milli>(
         std::chrono::steady_clock::now() - sourceAcquireStart).count();
+      if (!sourceAcquired) {
+        Logger::err(str::format("DXVK: source WSI acquire failed after retries: ", status));
+        return;
+      }
 
       m_context->beginRecording(
         m_device->createCommandList());
@@ -1106,14 +1117,30 @@ namespace dxvk {
         vk::PresenterSync generatedSync;
         uint32_t generatedImageIndex = 0;
         const auto generatedAcquireStart = std::chrono::steady_clock::now();
-        VkResult generatedStatus = m_presenter->acquireNextImage(generatedSync, generatedImageIndex);
-        while (generatedStatus != VK_SUCCESS && generatedStatus != VK_SUBOPTIMAL_KHR) {
+        VkResult generatedStatus = VK_NOT_READY;
+        bool generatedAcquired = false;
+        for (uint32_t attempt = 0; attempt < 3; attempt++) {
+          generatedStatus = m_presenter->acquireNextImage(generatedSync, generatedImageIndex);
+          if (generatedStatus == VK_SUCCESS || generatedStatus == VK_SUBOPTIMAL_KHR) {
+            generatedAcquired = true;
+            break;
+          }
+
+          Logger::warn(str::format("DXVK: generated WSI acquire failed (",
+            generatedStatus, "), recreating swap chain; attempt ", attempt + 1, "/3"));
           RecreateSwapChain(m_vsync);
           generatedInfo = m_presenter->info();
-          generatedStatus = m_presenter->acquireNextImage(generatedSync, generatedImageIndex);
         }
         perfGeneratedAcquireMs += std::chrono::duration<double, std::milli>(
           std::chrono::steady_clock::now() - generatedAcquireStart).count();
+        if (!generatedAcquired) {
+          Logger::warn(str::format("SnapFrame: generated WSI acquire failed after retries: ",
+            generatedStatus, "; skipping generated frame"));
+          const SnapFramePresentResultHook resultHook =
+            g_snapFramePresentResultHook.load(std::memory_order_acquire);
+          if (resultHook) resultHook(0);
+          break;
+        }
 
         const auto generateRecordStart = std::chrono::steady_clock::now();
         m_context->beginRecording(m_device->createCommandList());
