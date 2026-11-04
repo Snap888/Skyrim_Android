@@ -19,6 +19,7 @@
 #include "dxvk_sampler.h"
 #include "dxvk_shader.h"
 #include "spirv_code_buffer.h"
+#include "snap_frame/motion_v2.h"
 
 #if __has_include("generated/snapframe_shaders.h")
   #include "generated/snapframe_shaders.h"
@@ -144,6 +145,35 @@ Rc<DxvkShader> g_lumaShader;
 Rc<DxvkShader> g_flowShader;
 Rc<DxvkShader> g_consistencyShader;
 Rc<DxvkShader> g_midpointShader;
+Rc<DxvkShader> g_metricsPartialShader;
+Rc<DxvkShader> g_metricsFinalShader;
+DxvkDevice* g_metricsShaderDevice = nullptr;
+Rc<DxvkBuffer> g_metricsPartialBuffer;
+Rc<DxvkBuffer> g_metricsResultBuffer;
+static constexpr uint32_t kMetricsReadbackSlots = 3;
+Rc<DxvkBuffer> g_metricsReadbackBuffers[kMetricsReadbackSlots];
+std::atomic<int> g_metricsReadbackBusy[kMetricsReadbackSlots] = {};
+std::atomic<uint64_t> g_metricsReadbackGeneration{1};
+std::atomic<uint64_t> g_metricsPublishedFrame{0};
+SnapMotionV2* g_motionV2 = nullptr;
+
+struct alignas(16) SnapFrameMetricsGpuResult {
+    uint32_t identity[4];
+    uint32_t extent[4];
+    uint32_t flags[4];
+    float motion[4];
+    float quality[4];
+};
+static_assert(sizeof(SnapFrameMetricsGpuResult) == 80,
+    "SnapFrame metrics result ABI must remain 80 bytes");
+
+struct alignas(16) SnapFrameMetricsPush {
+    uint32_t identity[4];
+    uint32_t extent[4];
+    uint32_t counts[4];
+};
+static_assert(sizeof(SnapFrameMetricsPush) == 48,
+    "SnapFrame metrics push-constant ABI must remain 48 bytes");
 DxvkDevice* g_lumaShaderDevice = nullptr;
 DxvkDevice* g_flowShaderDevice = nullptr;
 DxvkDevice* g_consistencyShaderDevice = nullptr;
@@ -629,6 +659,14 @@ void clearHistory() {
     g_consistencyImage = Rc<DxvkImage>();
     g_midpointView = Rc<DxvkImageView>();
     g_midpointImage = Rc<DxvkImage>();
+    g_metricsPartialBuffer = Rc<DxvkBuffer>();
+    g_metricsResultBuffer = Rc<DxvkBuffer>();
+    for (uint32_t i = 0; i < kMetricsReadbackSlots; ++i) {
+        g_metricsReadbackBuffers[i] = Rc<DxvkBuffer>();
+        g_metricsReadbackBusy[i].store(0, std::memory_order_release);
+    }
+    g_metricsReadbackGeneration.fetch_add(1, std::memory_order_acq_rel);
+    g_metricsPublishedFrame.store(0, std::memory_order_release);
     g_midpointAvailable = false;
     g_midpointDispatchCount = 0;
     g_midpointFailureCount = 0;
