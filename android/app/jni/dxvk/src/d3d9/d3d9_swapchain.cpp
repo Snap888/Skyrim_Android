@@ -51,6 +51,14 @@ using SnapFramePresentResultHook = void (*)(int);
 static std::atomic<SnapFrameCanGenerateHook> g_snapFrameCanGenerateHook{nullptr};
 static std::atomic<SnapFrameGenerateHook> g_snapFrameGenerateHook{nullptr};
 static std::atomic<SnapFramePresentResultHook> g_snapFramePresentResultHook{nullptr};
+
+/* The DXVK LSFG A/B benchmark must isolate LSFG from the independent
+ * SnapFrame fallback. The launcher sets this only for explicit A/B passes. */
+static bool snapFramePerfBypassEnabled() {
+  const char* value = std::getenv("DXVK_PERF_DISABLE_SNAPFRAME");
+  return value && std::string(value) == "1";
+}
+
 extern "C" void snapframe_dxvk_set_generation_hooks(
     SnapFrameCanGenerateHook canGenerateHook,
     SnapFrameGenerateHook generateHook,
@@ -88,10 +96,12 @@ namespace dxvk {
       double maxMs = 0.0;
       uint64_t requestedTotal = 0;
       uint64_t generatedTotal = 0;
+      uint64_t lsfgActiveFrames = 0;
+      uint64_t snapFrameActiveFrames = 0;
       std::string run;
       bool initialized = false;
 
-      void init() {
+      void init(bool snapFrameBypassed) {
         if (initialized)
           return;
         initialized = true;
@@ -110,18 +120,21 @@ namespace dxvk {
           stream.open(filePath.c_str(), std::ios::out | std::ios::app);
           if (stream) {
             stream << "=== DXVK_PERF_START run=" << run
-                   << " lsfg_mode_is_runtime_observed=true ===\n";
+                   << " lsfg_mode_is_runtime_observed=false"
+                   << " snapframe_bypassed=" << (snapFrameBypassed ? 1 : 0) << " ===\n";
             stream << "columns: frame,avg_cpu_present_ms,min_cpu_present_ms,max_cpu_present_ms,"
-                      "avg_generated_requested,avg_generated_queued,width,height,vsync\n";
+                      "avg_generated_requested,avg_generated_queued,width,height,vsync,"
+                      "lsfg_active_frames,snapframe_active_frames\n";
             stream.flush();
           }
         }
       }
 
       void record(double ms, uint32_t requested, uint32_t generated,
-                  uint32_t width, uint32_t height, bool vsync) {
+                  uint32_t width, uint32_t height, bool vsync,
+                  bool lsfgActive, bool snapFrameActive, bool snapFrameBypassed) {
         std::lock_guard<std::mutex> lock(mutex);
-        init();
+        init(snapFrameBypassed);
         if (!stream)
           return;
 
@@ -131,6 +144,8 @@ namespace dxvk {
         maxMs = std::max(maxMs, ms);
         requestedTotal += requested;
         generatedTotal += generated;
+        lsfgActiveFrames += lsfgActive ? 1 : 0;
+        snapFrameActiveFrames += snapFrameActive ? 1 : 0;
         if ((frames % 120) == 0) {
           stream << frames << ','
                  << (totalMs / 120.0) << ','
@@ -138,13 +153,16 @@ namespace dxvk {
                  << (double(requestedTotal) / 120.0) << ','
                  << (double(generatedTotal) / 120.0) << ','
                  << width << ',' << height << ','
-                 << (vsync ? 1 : 0) << '\n';
+                 << (vsync ? 1 : 0) << ','
+                 << lsfgActiveFrames << ',' << snapFrameActiveFrames << '\n';
           stream.flush();
           totalMs = 0.0;
           minMs = 1.0e30;
           maxMs = 0.0;
           requestedTotal = 0;
           generatedTotal = 0;
+          lsfgActiveFrames = 0;
+          snapFrameActiveFrames = 0;
         }
       }
     };
@@ -956,6 +974,7 @@ namespace dxvk {
     if (presentEntryCount == 1)
       snapframeEmitLog("SnapFrame: entered D3D9SwapChainEx::PresentImage");
     const auto perfStart = std::chrono::steady_clock::now();
+    const bool perfBypassSnapFrame = snapFramePerfBypassEnabled();
     uint32_t perfGenerated = 0;
     uint32_t perfRequested = 0;
     m_parent->Flush();
@@ -1018,7 +1037,7 @@ namespace dxvk {
             copyHook != nullptr);
           snapframeEmitLog(snapframeMessage);
         }
-        if (copyHook) {
+        if (copyHook && !perfBypassSnapFrame) {
           const uint64_t dispatchCount =
             g_snapFrameCallbackDispatchCount.fetch_add(1, std::memory_order_relaxed) + 1;
           if (dispatchCount == 1)
@@ -1082,7 +1101,7 @@ namespace dxvk {
       g_snapFrameCanGenerateHook.load(std::memory_order_acquire);
     const SnapFrameGenerateHook snapFrameGenerateHook =
       g_snapFrameGenerateHook.load(std::memory_order_acquire);
-    const bool snapFrameCanGenerate = !lsfgCanGenerate
+    const bool snapFrameCanGenerate = !perfBypassSnapFrame && !lsfgCanGenerate
       && snapFrameCanGenerateHook && snapFrameGenerateHook
       && snapFrameCanGenerateHook();
     const uint32_t generationCount = lsfgCanGenerate ? lsfgGenerations
@@ -1183,7 +1202,8 @@ namespace dxvk {
       perfEnd - perfStart).count();
     const auto perfInfo = m_presenter->info();
     dxvkPerfSample().record(perfMs, perfRequested, perfGenerated,
-      perfInfo.imageExtent.width, perfInfo.imageExtent.height, m_vsync);
+      perfInfo.imageExtent.width, perfInfo.imageExtent.height, m_vsync,
+      lsfgCanGenerate, snapFrameCanGenerate, perfBypassSnapFrame);
 
     // Experimental game-only pacing, once per D3D9 Present after LSFG outputs.
     // This throttles the next game frame, not individual generated presents.
