@@ -34,3 +34,10 @@ Not yet completed: concrete DXVK `SnapFrameBackendV1` adapter, live AI telemetry
 - Fixed double-escaped newline literals in the SnapFrame settings writer so config keys are written as separate lines and can be parsed after restart.
 - Corrected host/bootstrap diagnostic strings that emitted literal backslash-n text.
 - Added config persistence and sparse flow-readback regression checks to the Android test plan.
+
+
+### Event telemetry I/O optimization — 2026-11-04
+- Buffered the SnapFrame event CSV with a 64 KiB stdio buffer.
+- Removed per-event `fflush` from the render path; critical failures/rejections and lifecycle/test-phase events flush immediately, other records flush every 64 writes.
+- Rate-limited repetitive successful stage/present events to one sample per 120 frames and frame-complete progress to one per 300 frames; first-frame samples and all failures are retained.
+- No GPU algorithm, generated-frame decision or audio/input code changed. Device validation is still required.
