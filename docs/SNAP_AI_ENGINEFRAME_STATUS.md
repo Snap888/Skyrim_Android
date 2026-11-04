@@ -287,3 +287,11 @@ The latest uploaded scene is 2448x1080, SnapFrame enabled at 75% flow scale. Acr
 - Added the detailed state model, implementation sequence and acceptance criteria to `docs/DXVK_PRESENT_PIPELINE_AUDIT.md`.
 - No risky Presenter API or semaphore-lifetime rewrite was committed in this step. The temporary source-to-generated `SynchronizePresent()` barrier remains enabled. Do not remove it until the ticket implementation passes compile, ownership and device validation.
 - This step is a correctness/documentation checkpoint, not a runtime optimization. CI/device validation and FPS improvement are not claimed.
+
+
+## Bounded WSI acquire recovery — CI result update (2026-11-04)
+
+- Android CI run [#41881351878](https://github.com/Snap888/Skyrim_Android/actions/runs/41881351878), on descendant commit `dddc8453a7d77ac095ba07a0f57cebc17977ccb5` containing the bounded-acquire code commit `241d00525003de96d4c2ba4f2eadd83519d8e910), completed successfully.
+- Confirmed successful jobs: DXVK SnapFrame host ARM64 compile, portable Snap AI/SnapFrame ARM64 build, portable API tests, and Android Java compilation.
+- Full ARM64 APK job was skipped; this run validates the native host compilation and portable targets, not a distributable APK.
+- The later acquire-ticket review commits are documentation-only and do not change runtime code. No physical-device WSI validation or FPS A/B result is available.
