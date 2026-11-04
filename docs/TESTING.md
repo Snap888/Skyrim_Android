@@ -91,3 +91,12 @@ Collect real FPS, generated FPS, stage GPU timings, total GPU time, dropped/gene
 ## MotionV2 dependency revision — 2026-11-04
 
 The Skyrim project now pins Snap AI Engine revision `ccf4589ca19d5f788adc56c7248d94f83ca0a506`, which includes the corrected L0-coordinate normalization in V2 validation and interpolation. Upstream shader compile/validation CI passed. The next Skyrim ARM64 CI run must confirm the new FetchContent pin and regenerated SPIR-V header compile in the DXVK host. This still does not test V2 dispatch or runtime image quality.
+
+
+## Third uploaded device run — 2026-11-04
+
+- SnapFrame was disabled at startup, enabled at 75%, changed to 25%, then disabled. Do not pool these intervals into one fixed-setting test.
+- At 75% flow scale (112x50), average forward/backward flow is 4.460/4.470 ms and total chain 11.508 ms. At 25% (39x17), 0.592/0.638 ms and 3.933 ms. Different scene intervals prevent a controlled A/B conclusion.
+- Frame 601 vector dump is high-confidence/static: mean confidence 0.88464, consistency 0.90590; this supersedes the prior incorrect frame-601 note in the second-upload section.
+- New generated-present acceptance is resolved after the existing WSI completion wait. Verify `midpoint_present_accepted`/failure events on the next device run. This must not introduce a new queue/device wait.
+- Full APK and physical-device validation of the updated present-result accounting remain outstanding.
