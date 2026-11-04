@@ -1152,16 +1152,18 @@ namespace dxvk {
 
         SubmitPresent(generatedSync, generation + 1);
         if (snapFrameGeneration) {
-          const SnapFramePresentResultHook resultHook =
-            g_snapFramePresentResultHook.load(std::memory_order_acquire);
-          if (resultHook) resultHook(generationFailed ? 0 : 1);
+          if (generationFailed) {
+            const SnapFramePresentResultHook resultHook =
+              g_snapFramePresentResultHook.load(std::memory_order_acquire);
+            if (resultHook) resultHook(0);
+          } else {
+            // SubmitPresent is asynchronous. Resolve acceptance only after
+            // SynchronizePresent observes the actual VkPresent result.
+            m_snapFramePresentPending = true;
+          }
         }
-        if (!generationFailed) {
-          // The existing FG HUD counter represents generated output FPS;
-          // include SnapFrame as well as LSFG (the paths are mutually exclusive).
-          hud::addLsfgGeneratedFrame();
+        if (!generationFailed)
           ++perfGenerated;
-        }
         if (generationFailed)
           break;
       }
@@ -1227,6 +1229,20 @@ namespace dxvk {
   void D3D9SwapChainEx::SynchronizePresent() {
     // Recreate swap chain if the previous present call failed
     VkResult status = m_device->waitForSubmission(&m_presentStatus);
+
+    // SnapFrame acceptance is a completed WSI present, not a successful
+    // midpoint dispatch or an enqueued command list. This wait already exists
+    // in the normal present path, so resolving the counter adds no new stall.
+    if (m_snapFramePresentPending) {
+      const bool accepted = status == VK_SUCCESS || status == VK_SUBOPTIMAL_KHR;
+      const SnapFramePresentResultHook resultHook =
+        g_snapFramePresentResultHook.load(std::memory_order_acquire);
+      if (resultHook)
+        resultHook(accepted ? 1 : 0);
+      if (accepted)
+        hud::addLsfgGeneratedFrame();
+      m_snapFramePresentPending = false;
+    }
 
     // Port: Android reports SUBOPTIMAL for every present on a rotated display
     // (the compositor applies the rotation); the swap chain is still usable.
