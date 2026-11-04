@@ -295,3 +295,13 @@ The latest uploaded scene is 2448x1080, SnapFrame enabled at 75% flow scale. Acr
 - Confirmed successful jobs: DXVK SnapFrame host ARM64 compile, portable Snap AI/SnapFrame ARM64 build, portable API tests, and Android Java compilation.
 - Full ARM64 APK job was skipped; this run validates the native host compilation and portable targets, not a distributable APK.
 - The later acquire-ticket review commits are documentation-only and do not change runtime code. No physical-device WSI validation or FPS A/B result is available.
+
+
+## External LSFG removal and SnapFrame HUD repair — 2026-11-04
+
+- Removed the external Lossless Scaling UI from the Android launcher: DLL selection/import, multiplier/quality/mode controls, LSFG enable toggle, LSFG-specific GPU profiler and LSFG-labelled A/B pass.
+- Replaced the old A/B test with a real SnapFrame OFF/ON DXVK benchmark. OFF sets the explicit SnapFrame bypass; ON clears it and exercises the active SnapFrame pipeline. Output files are `port/snapframe_perf_off.csv` and `port/snapframe_perf_on.csv`.
+- Removed the old LSFG configuration writer and profiler setup. Before launching the game, the launcher deletes only retired generated artifacts (`lsfg.conf`, `lsfg_gpu_profile.conf`, `dxvk_lsfg_gpu.csv`) from the selected game's `port/` directory and unsets the old LSFG profiler environment variables. It does not delete arbitrary files or user data.
+- Fixed the HUD's zero FPS counters: the old HUD counter functions had no callers after backend consolidation. Source FPS now counts only source WSI presents accepted by Vulkan; generated FPS counts only generated WSI presents accepted by Vulkan; output FPS is their sum. HUD symbols and labels now use SnapFrame terminology.
+- The HUD values represent accepted Vulkan WSI present operations, not compositor scanout or physical display FPS.
+- Updated Android settings and SnapFrame integration documentation. Android CI and device validation for these changes are pending. No FPS gain is claimed.
