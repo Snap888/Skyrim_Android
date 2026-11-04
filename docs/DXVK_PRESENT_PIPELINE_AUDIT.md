@@ -21,7 +21,7 @@ This audit follows the Skyrim D3D9 Present path through DXVK, SnapFrame, Vulkan 
 
 - `PresentImage()` calls `SynchronizePresent()` before each source WSI acquisition.
 - After source submission, the generated-frame path calls `SynchronizePresent()` again before acquiring/recording the generated image.
-- `SynchronizePresent()` calls `m_device->waitForSubmission(&m_presentStatus)`.
+- `SynchronizePresent()` drains the independently tracked source/generated submission slots through `WaitForPresentSubmissions()`. This retires the queued CS operations, but does not prove presentation-engine semaphore retirement.
 - `SubmitPresent()` now uses separate source and generated `DxvkSubmitStatus` slots. These track queued submission results only; they do not provide independent WSI image/acquire ownership.
 - `SubmitPresent()` also calls `FlushCsChunk()` after queuing the command-list/present work.
 - `SyncFrameLatency()` waits on `m_frameLatencySignal` using source `m_frameId` and `GetActualFrameLatency()`.
