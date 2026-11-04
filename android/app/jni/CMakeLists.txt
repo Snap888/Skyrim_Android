@@ -20,7 +20,7 @@ set(SNAP_FRAME_BUILD_DXVK_LEGACY OFF CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS ON CACHE BOOL "Build Snap AI and SnapFrame as separate shared libraries" FORCE)
 FetchContent_Declare(snap_ai_engine
     GIT_REPOSITORY https://github.com/Snap888/Snap_AI_Engine.git
-    GIT_TAG f60acfcb7b09722d5927215957c46045b11f7897
+    GIT_TAG bc040d08b021b63d3d437455663be014a1e9f383
     GIT_SHALLOW FALSE
 )
 FetchContent_MakeAvailable(snap_ai_engine)
