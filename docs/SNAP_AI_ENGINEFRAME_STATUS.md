@@ -177,3 +177,14 @@ The active Skyrim runtime remains V1. The portable MotionV2 core is linked, and 
 - Upstream corrected revision: [ccf4589ca19d5f788adc56c7248d94f83ca0a506](https://github.com/Snap888/Snap_AI_Engine/commit/ccf4589ca19d5f788adc56c7248d94f83ca0a506). Shader compile/validation CI passed on the corrected shader commit and the subsequent documentation commit.
 - Skyrim CMake and Android CI are now pinned to the corrected upstream revision. This only updates the compiled V2 shader assets and portable core revision; no V2 shader is dispatched at runtime.
 - Keep V1 as default. The V2 GPU resource/descriptor/dispatch chain, asynchronous reduction readback and device visual validation remain incomplete.
+
+
+## Third device log audit and present-acceptance correction — 2026-11-04
+
+- Latest log upload commit: `b126917c7221c23f85b58df94f167dcb072e1fd5`, based on the previous source head; new files include `runtime_tuning.conf` and `gpu-driver.conf`.
+- Test configuration changed during the run: SnapFrame started disabled, was enabled at 75%, changed to 25%, then disabled. The custom ICD is Turnip Gen8 V38. CPU affinity and worker spin-wait settings are explicitly marked not implemented.
+- At 75% (112x50 flow grid), mean forward/backward flow cost is 4.460/4.470 ms and total chain 11.508 ms. At 25% (39x17), these are 0.592/0.638 ms and 3.933 ms. Different scene intervals mean this is not a controlled A/B test.
+- Flow quality is scene-dependent. Frames 121/241/361 and 826/946/1066 have low confidence; frame 601 is mostly static and high-confidence. Its full 5,600-cell vector dump gives confidence 0.88464, consistency 0.90590, 4.625% below confidence 0.1 and 0.5% at the +/-10 search boundary. This explicitly supersedes the previous incorrect frame-601 interpretation in this document.
+- The current LSFG profile covers frame IDs 0–1219; the highest mean GPU stages are GammaDelta_L6 1.093 ms, Generate 0.988 ms, Alpha 0.642 ms, Mipmaps 0.607 ms and Beta 0.460 ms. Do not compare its absolute totals directly with the earlier longer LSFG session.
+- Audio output mixer remains healthy in the log: queue_low=0, enqueue_fail=0, slow_mix=0, max_mix <=5 ms. Source empty_queue counters alone do not prove output underrun. Keep audio unchanged.
+- Corrected DXVK generated-present accounting: SnapFrame's result callback and HUD generated-frame counter now wait for the existing asynchronous WSI result in SynchronizePresent. This distinguishes a generated image being dispatched/queued from a completed successful WSI present. It does not prove compositor scanout or FPS uplift; verify the new `midpoint_present_accepted` event on device.
