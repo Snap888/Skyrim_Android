@@ -43,3 +43,10 @@ The uploaded `Logs/snapframe.conf` contained literal backslash-n separators inst
 ## Event log overhead control — 2026-11-04
 
 The event CSV previously flushed after every event, while the render callback emitted several successful stage events plus `frame_complete` for every captured frame. That caused synchronous stdio flushes on the frame path and unnecessarily large event logs. The logger now uses a 64 KiB stdio buffer, flushes critical failures/rejections and lifecycle/test-phase events immediately, and otherwise flushes every 64 accepted event records. Routine successful stage/present events are sampled every 120 frames; `frame_complete` progress is sampled every 300 frames (the first event is retained). Failures are never rate-limited. This reduces diagnostic I/O pressure without changing the GPU pipeline or its dispatch cadence. Validate event ordering, failure retention and log size on the next device run.
+
+
+## Latest device measurements — 2026-11-04
+
+The latest uploaded run contains 206 successful timestamp samples per stage at 2448x1080. Average/P95 milliseconds: capture/copy 0.568/0.739; luma 0.404/0.403; forward flow 4.456/5.722; backward flow 4.450/5.485; consistency 0.012/0.014; midpoint warp 1.612/1.565; total chain 11.508/14.270. The small P95 values below averages for luma/warp reflect highly clustered samples with a few outliers; use the full CSV when comparing builds. Total chain remains the SnapFrame GPU chain only.
+
+The sparse flow CSV contains 51 samples. Mean per-sample confidence is approximately 0.230 forward and 0.230 backward. Across the 285,600 vector observations represented by those 51 grids, about 53.7% of forward and 53.8% of backward vectors have confidence below 0.1; about 9.9%/9.8% are pinned to the search boundary. Confidence and consistency vary substantially by scene. Do not reduce search coverage until the vectors are validated against repeatable scene captures and image quality.
