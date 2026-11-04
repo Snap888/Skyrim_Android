@@ -79,3 +79,9 @@ Do not treat a successful portable/mock test as proof of GPU frame generation. D
 - `snapframe_flow.csv` and `snapframe_flow_vectors.csv` contained headers only. The root cause was found in `recordFlowReadback`: it was gated by `diagnostic_suite`, although the user's configuration had `motion_analysis=1` and `diagnostic_suite=0`. The gate now follows `motion_analysis`; device confirmation is pending.
 - LSFG was disabled in the uploaded `lsfg.log`; this run is not an LSFG-on comparison.
 - The GPU timing results describe the SnapFrame GPU chain, not full game frame time or measured FPS uplift.
+
+## Configuration and diagnostic fixes — 2026-11-04
+- The uploaded `Logs/snapframe.conf` exposed literal `\\n` separators. Fixed double-escaped newline literals in `runtime/main.c`, which could serialize multiple settings on one physical line and prevent later keys from being parsed.
+- Fixed the same newline escaping in host/bootstrap diagnostics.
+- Fixed sparse flow diagnostics to follow `motion_analysis` independently of the optional diagnostic suite.
+- Both fixes are committed on `Snap-AI-EngineFrame`; Android CI/device verification is pending.
