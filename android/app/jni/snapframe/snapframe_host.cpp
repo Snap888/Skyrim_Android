@@ -74,7 +74,7 @@ void snapframeLog(const char* format, ...) {
 bool snapframeEventIsRoutineSuccess(const char* event) {
     if (!event) return false;
     static const char* const routineEvents[] = {
-        "capture_copy_recorded", "luma_dispatch_ok", "v2_luma_dispatch_ok",
+        "capture_copy_recorded", "luma_dispatch_ok", "v2_luma_dispatch_ok", "v2_flow_pair_ok",
         "v2_downsample_dispatch_ok", "flow_pair_ok",
         "consistency_dispatch_ok", "midpoint_warp_ok",
         "midpoint_present_requested", "midpoint_present_accepted"
@@ -139,8 +139,14 @@ Rc<DxvkImageView> g_lumaView[2];
 // L0 is half source resolution; L1/L2 are successive ceil-divided halves.
 Rc<DxvkImage> g_v2PyramidImage[2][3];
 Rc<DxvkImageView> g_v2PyramidView[2][3];
+Rc<DxvkImage> g_v2FlowImage[2][3];
+Rc<DxvkImageView> g_v2FlowView[2][3];
+bool g_v2PyramidValid[2] = { false, false };
+bool g_v2FlowAvailable = false;
+uint64_t g_v2FlowDispatchCount = 0;
 Rc<DxvkShader> g_v2LumaShader;
 Rc<DxvkShader> g_v2DownsampleShader;
+Rc<DxvkShader> g_v2SearchShader;
 DxvkDevice* g_v2ShaderDevice = nullptr;
 bool g_v2PyramidAvailable = false;
 uint64_t g_v2LumaDispatchCount = 0;
@@ -879,6 +885,14 @@ void clearHistory() {
         }
     }
     g_v2PyramidAvailable = false;
+    g_v2PyramidValid[0] = g_v2PyramidValid[1] = false;
+    g_v2FlowAvailable = false;
+    g_v2FlowDispatchCount = 0;
+    for (unsigned direction = 0; direction < 2; ++direction)
+        for (unsigned level = 0; level < 3; ++level) {
+            g_v2FlowView[direction][level] = Rc<DxvkImageView>();
+            g_v2FlowImage[direction][level] = Rc<DxvkImage>();
+        }
     g_v2LumaDispatchCount = 0;
     g_v2DownsampleDispatchCount = 0;
     g_flowView[0] = Rc<DxvkImageView>();
@@ -1173,10 +1187,11 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
 
                 const bool needV2ShaderRegistration =
                     g_v2ShaderDevice != device || g_v2LumaShader == nullptr
-                    || g_v2DownsampleShader == nullptr;
+                    || g_v2DownsampleShader == nullptr || g_v2SearchShader == nullptr;
                 if (needV2ShaderRegistration) {
                     g_v2LumaShader = Rc<DxvkShader>();
                     g_v2DownsampleShader = Rc<DxvkShader>();
+                    g_v2SearchShader = Rc<DxvkShader>();
                     g_v2ShaderDevice = nullptr;
                     const DxvkResourceSlot v2LumaSlots[] = {
                         { 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -1208,14 +1223,31 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                     g_v2DownsampleShader = device->createShader(
                         VK_SHADER_STAGE_COMPUTE_BIT, 2, v2DownsampleSlots,
                         v2DownsampleIface, v2DownsampleCode);
+                    const DxvkResourceSlot v2SearchSlots[] = {
+                        { 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
+                        { 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
+                        { 2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_READ_BIT },
+                        { 4, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_IMAGE_VIEW_TYPE_2D, VK_ACCESS_SHADER_WRITE_BIT },
+                    };
+                    DxvkInterfaceSlots v2SearchIface{};
+                    v2SearchIface.pushConstOffset = 0;
+                    v2SearchIface.pushConstSize = 48;
+                    SpirvCodeBuffer v2SearchCode(
+                        snapframe::shaders::k_snap_motion_v2_search_word_count,
+                        snapframe::shaders::k_snap_motion_v2_search);
+                    g_v2SearchShader = device->createShader(
+                        VK_SHADER_STAGE_COMPUTE_BIT, 4, v2SearchSlots,
+                        v2SearchIface, v2SearchCode);
                 }
                 g_v2PyramidAvailable = v2ImagesCreated
                     && g_lumaSampler != nullptr
                     && g_v2LumaShader != nullptr
-                    && g_v2DownsampleShader != nullptr;
+                    && g_v2DownsampleShader != nullptr
+                    && g_v2SearchShader != nullptr;
                 if (g_v2PyramidAvailable && needV2ShaderRegistration) {
                     device->registerShader(g_v2LumaShader);
                     device->registerShader(g_v2DownsampleShader);
+                    device->registerShader(g_v2SearchShader);
                     g_v2ShaderDevice = device;
                 }
                 if (!g_v2PyramidAvailable) {
@@ -1268,6 +1300,43 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                 flowViewInfo.numLevels = 1;
                 flowViewInfo.minLayer = 0;
                 flowViewInfo.numLayers = 1;
+
+                bool v2FlowImagesCreated = true;
+                const uint32_t v2LumaWidths[3] = {
+                    lumaWidth, lumaWidth / 2u + lumaWidth % 2u,
+                    (lumaWidth / 2u + lumaWidth % 2u) / 2u
+                        + ((lumaWidth / 2u + lumaWidth % 2u) % 2u)
+                };
+                const uint32_t v2LumaHeights[3] = {
+                    lumaHeight, lumaHeight / 2u + lumaHeight % 2u,
+                    (lumaHeight / 2u + lumaHeight % 2u) / 2u
+                        + ((lumaHeight / 2u + lumaHeight % 2u) % 2u)
+                };
+                for (unsigned direction = 0; direction < 2; ++direction) {
+                    for (unsigned level = 0; level < 3; ++level) {
+                        DxvkImageCreateInfo v2FlowInfo = flowInfo;
+                        v2FlowInfo.extent = {
+                            flowExtent(v2LumaWidths[level]),
+                            flowExtent(v2LumaHeights[level]), 1
+                        };
+                        g_v2FlowImage[direction][level] = device->createImage(
+                            v2FlowInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                        if (g_v2FlowImage[direction][level] != nullptr)
+                            g_v2FlowView[direction][level] = device->createImageView(
+                                g_v2FlowImage[direction][level], flowViewInfo);
+                        v2FlowImagesCreated = v2FlowImagesCreated
+                            && g_v2FlowImage[direction][level] != nullptr
+                            && g_v2FlowView[direction][level] != nullptr;
+                    }
+                }
+                g_v2FlowAvailable = v2FlowImagesCreated
+                    && g_v2SearchShader != nullptr && g_lumaSampler != nullptr;
+                if (g_v2FlowAvailable)
+                    snapframeLog("SnapFrame: V2 flow grids ready L0=%ux%u L1=%ux%u L2=%ux%u directions=2 format=RGBA16F\n",
+                        flowExtent(v2LumaWidths[0]), flowExtent(v2LumaHeights[0]),
+                        flowExtent(v2LumaWidths[1]), flowExtent(v2LumaHeights[1]),
+                        flowExtent(v2LumaWidths[2]), flowExtent(v2LumaHeights[2]));
+
                 for (unsigned i = 0; i < 2; ++i) {
                     g_flowImage[i] = device->createImage(flowInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
                     if (g_flowImage[i] != nullptr)
@@ -1798,6 +1867,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
     snapframeEvent(nextCapturedFrame, "capture_copy_recorded", width, height, "history_image_copy_recorded_on_present_command_list");
 
     if (g_v2PyramidAvailable) {
+        g_v2PyramidValid[slot] = false;
         const uint32_t l0Width = width / 2u + width % 2u;
         const uint32_t l0Height = height / 2u + height % 2u;
         const uint32_t l1Width = l0Width / 2u + l0Width % 2u;
@@ -1841,6 +1911,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                     (l2Width + 7u) / 8u, (l2Height + 7u) / 8u,
                     sizeof(l2Push), &l2Push);
                 if (l2Ok) {
+                    g_v2PyramidValid[slot] = true;
                     ++g_v2DownsampleDispatchCount;
                     snapframeEvent(nextCapturedFrame, "v2_downsample_dispatch_ok",
                         width, height, "L0_to_L1_to_L2");
@@ -1863,6 +1934,63 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
         } else {
             snapframeEvent(nextCapturedFrame, "v2_luma_failed",
                 width, height, "v2_luma_dispatch_rejected");
+        }
+    }
+
+    if (g_v2FlowAvailable && g_v2PyramidValid[slot]
+        && g_v2PyramidValid[slot ^ 1u]) {
+        const unsigned previousSlot = slot ^ 1u;
+        struct alignas(16) V2SearchPush {
+            float dims[4]; float geom[4]; float flags[4];
+        };
+        static_assert(sizeof(V2SearchPush) == 48, "V2 search push ABI");
+        bool directionsOk = true;
+        for (unsigned direction = 0; direction < 2 && directionsOk; ++direction) {
+            const unsigned currentSlot = direction == 0 ? slot : previousSlot;
+            const unsigned referenceSlot = direction == 0 ? previousSlot : slot;
+            for (int level = 2; level >= 0; --level) {
+                const uint32_t levelWidth = level == 0 ? l0Width : (level == 1 ? l1Width : l2Width);
+                const uint32_t levelHeight = level == 0 ? l0Height : (level == 1 ? l1Height : l2Height);
+                const uint32_t blocksX = flowExtent(levelWidth);
+                const uint32_t blocksY = flowExtent(levelHeight);
+                V2SearchPush push{};
+                push.dims[0] = float(levelWidth); push.dims[1] = float(levelHeight);
+                push.dims[2] = float(blocksX); push.dims[3] = float(blocksY);
+                push.geom[0] = level == 2 ? 4.0f : (level == 1 ? 2.0f : 1.0f);
+                push.geom[1] = level == 2 ? 16.0f : (level == 1 ? 8.0f : 4.0f);
+                push.geom[2] = 1.0f; push.geom[3] = level == 2 ? 0.0f : 1.0f;
+                push.flags[0] = level == 2 ? 0.0f : 1.0f;
+                Rc<DxvkImageView> views[5];
+                Rc<DxvkSampler> samplers[5];
+                views[0] = g_v2PyramidView[currentSlot][level];
+                views[1] = g_v2PyramidView[referenceSlot][level];
+                views[2] = level == 2 ? g_v2FlowView[direction ^ 1u][2]
+                                      : g_v2FlowView[direction][level + 1];
+                views[4] = g_v2FlowView[direction][level];
+                samplers[0] = g_lumaSampler; samplers[1] = g_lumaSampler;
+                samplers[2] = g_lumaSampler;
+                const bool dispatched = context->dispatchSnapFrameV2(
+                    g_v2SearchShader, views, samplers, 5u,
+                    (blocksX + 7u) / 8u, (blocksY + 7u) / 8u,
+                    sizeof(push), &push);
+                if (!dispatched) {
+                    directionsOk = false;
+                    snapframeEvent(nextCapturedFrame, "v2_flow_search_failed", width, height,
+                        level == 2 ? "L2_search_dispatch_rejected"
+                            : (level == 1 ? "L1_search_dispatch_rejected" : "L0_search_dispatch_rejected"));
+                    break;
+                }
+                context->flushComputeBarriers();
+            }
+        }
+        if (directionsOk) {
+            ++g_v2FlowDispatchCount;
+            snapframeEvent(nextCapturedFrame, "v2_flow_pair_ok", width, height,
+                "bidirectional_L2_to_L1_to_L0_search");
+            if (g_v2FlowDispatchCount == 1u || (g_v2FlowDispatchCount % 120u) == 0u)
+                snapframeLog("SnapFrame: V2 coarse-to-fine flow pair accepted count=%llu frame=%llu levels=L2,L1,L0 directions=2\n",
+                    static_cast<unsigned long long>(g_v2FlowDispatchCount),
+                    static_cast<unsigned long long>(nextCapturedFrame));
         }
     }
 
@@ -2070,6 +2198,7 @@ void snapframeDeviceDestroyed(void* devicePtr) {
         g_midpointShaderDevice = nullptr;
         g_v2LumaShader = Rc<DxvkShader>();
         g_v2DownsampleShader = Rc<DxvkShader>();
+        g_v2SearchShader = Rc<DxvkShader>();
         g_v2ShaderDevice = nullptr;
     }
 }
