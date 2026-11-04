@@ -3,6 +3,7 @@
 #include <functional>
 
 #include "dxvk_barrier.h"
+#include "dxvk_buffer.h"
 #include "dxvk_bind_mask.h"
 #include "dxvk_cmdlist.h"
 #include "dxvk_context_state.h"
@@ -595,6 +596,23 @@ namespace dxvk {
       const Rc<DxvkImageView>&    outputView,
             uint32_t              groupsX,
             uint32_t              groupsY);
+    /* Runs the V1-compatible first-stage scalar metrics reduction. */
+    bool dispatchSnapFrameMetricsPartial(
+      const Rc<DxvkShader>&       shader,
+      const Rc<DxvkImageView>&    flowForwardView,
+      const Rc<DxvkImageView>&    flowBackwardView,
+      const Rc<DxvkImageView>&    consistencyView,
+      const Rc<DxvkSampler>&      sourceSampler,
+      const DxvkBufferSlice&      partialBuffer,
+            uint32_t              groupsX,
+            uint32_t              groupsY);
+    /* Reduces partial metrics to one record, with caller-supplied push constants. */
+    bool dispatchSnapFrameMetricsFinal(
+      const Rc<DxvkShader>&       shader,
+      const DxvkBufferSlice&      partialBuffer,
+      const DxvkBufferSlice&      resultBuffer,
+            uint32_t              pushConstantSize,
+      const void*                 pushConstantData);
 
 
     /**
