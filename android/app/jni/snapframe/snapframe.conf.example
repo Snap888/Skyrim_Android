@@ -26,12 +26,7 @@ diagnostic_phase_frames=1800
 # Use 75 for a denser field when GPU headroom allows; 100 is a quality experiment.
 # profiling_enabled=1 is for diagnostics only; keep it OFF for normal gameplay.
 
-
-# Snap AI adaptive controller
-# Uses frame-matched GPU timestamps and validated flow metrics. Decisions are
-# applied on the serialized DXVK callback; missing/stale telemetry bypasses AI.
-ai_enabled=1
-ai_min_flow_scale_percent=50
-ai_max_flow_scale_percent=75
-ai_target_gpu_budget_ms=6.0
-ai_hysteresis_percent=8
+ 
+# Snap AI controller policy is currently host-managed (not user-configurable):
+# 50..75% flow scale, 6 ms target GPU budget, 8-frame warmup and 8% hysteresis.
+# It uses only exact-frame GPU timestamps + validated flow scalar telemetry.
