@@ -304,7 +304,7 @@ public class LauncherActivity extends Activity {
         text(root, "DXVK Performance A/B test", 20, true);
         check(root, "dxvkPerfEnabled", "Write separate DXVK benchmark log", false);
         spinner(root, "dxvkPerfRun", "Test pass", new String[] {"A — LSFG OFF", "B — LSFG ON"}, 0);
-        text(root, "The CSV log is saved in the selected Skyrim folder under port/dxvk_perf_off.csv or port/dxvk_perf_on.csv. The selected pass also forces LSFG OFF/ON for this run.", 13, false);
+        text(root, "The CSV log is saved under port/dxvk_perf_off.csv or port/dxvk_perf_on.csv. The selected pass forces LSFG OFF/ON and bypasses SnapFrame capture/generation, so the A/B isolates the LSFG path.", 13, false);
 
         text(root, "Experimental runtime tuning", 20, true);
         check(root, "runtimeSyncPipelines", "Synchronous shader pipeline compilation (noasync.txt)", false);
@@ -745,6 +745,7 @@ public class LauncherActivity extends Activity {
         if (!enabled) {
             Os.unsetenv("DXVK_PERF_LOG");
             Os.unsetenv("DXVK_PERF_RUN");
+            Os.unsetenv("DXVK_PERF_DISABLE_SNAPFRAME");
             return;
         }
         File port = new File(game, "port");
@@ -756,6 +757,7 @@ public class LauncherActivity extends Activity {
         if (!log.delete()) throw new java.io.IOException("cannot prepare benchmark log: " + log);
         Os.setenv("DXVK_PERF_RUN", run, true);
         Os.setenv("DXVK_PERF_LOG", log.getAbsolutePath(), true);
+        Os.setenv("DXVK_PERF_DISABLE_SNAPFRAME", "1", true);
     }
 
     /* DXVK reads dxvk.conf beside the game executable. Preserve unrelated
