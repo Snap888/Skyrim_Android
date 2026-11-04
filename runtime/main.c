@@ -80,18 +80,18 @@ static int persist_snapframe_settings(int enabled, int flow_percent) {
         char *key = line;
         while (*key == ' ' || *key == '\\t') ++key;
         if (!strncmp(key, "enabled=", 8)) {
-            fprintf(output, "enabled=%d\\n", enabled ? 1 : 0);
+            fprintf(output, "enabled=%d\n", enabled ? 1 : 0);
             wrote_enabled = 1;
         } else if (!strncmp(key, "flow_scale_percent=", 19)) {
-            fprintf(output, "flow_scale_percent=%d\\n", flow_percent);
+            fprintf(output, "flow_scale_percent=%d\n", flow_percent);
             wrote_flow = 1;
         } else {
             fputs(line, output);
         }
     }
     if (input) fclose(input);
-    if (!wrote_enabled) fprintf(output, "enabled=%d\\n", enabled ? 1 : 0);
-    if (!wrote_flow) fprintf(output, "flow_scale_percent=%d\\n", flow_percent);
+    if (!wrote_enabled) fprintf(output, "enabled=%d\n", enabled ? 1 : 0);
+    if (!wrote_flow) fprintf(output, "flow_scale_percent=%d\n", flow_percent);
 
     int ok = fflush(output) == 0;
     if (fclose(output) != 0) ok = 0;
@@ -124,7 +124,7 @@ Java_com_tj_skyrim_SkyrimActivity_nativeSetSnapFrameSettings(
     if (!snapframe_host_update_settings(enabled ? 1 : 0, flow_percent))
         return JNI_FALSE;
     if (!persist_snapframe_settings(enabled ? 1 : 0, flow_percent))
-        fprintf(stderr, "SnapFrame: live settings applied but config persistence failed\\n");
+        fprintf(stderr, "SnapFrame: live settings applied but config persistence failed\n");
     return JNI_TRUE;
 }
 #endif
