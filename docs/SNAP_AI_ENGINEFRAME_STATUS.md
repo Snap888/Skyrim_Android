@@ -339,3 +339,10 @@ The latest uploaded scene is 2448x1080, SnapFrame enabled at 75% flow scale. Acr
 ### AI Flow Scale transition pacing — 2026-11-04
 
 Adaptive Flow Scale changes force SnapFrame history/resource recreation because the flow-grid dimensions depend on the selected scale. The host now enforces a 120-source-frame cooldown between applied AI scale changes. This avoids rapid controller oscillation repeatedly destroying/reallocating the luma/flow resources and resetting temporal history. The new scale is applied at the start of the serialized frame callback; the pending reset is consumed before capture/dispatch, so the current frame does not dispatch against images allocated for the previous scale. The cooldown is a stability guard, not a measured performance gain.
+
+
+### AI resource-transition pacing — 2026-11-04
+
+A Flow Scale update changes the flow-grid extent and therefore requires history/flow resource recreation. Adaptive scale changes are now rate-limited to one per 120 source frames. The scale update is staged/applied at the beginning of the serialized host callback; its pending history reset is consumed before that callback allocates or dispatches resources, avoiding dispatch against the previous scale's image extent. This cooldown is a stability measure; it has not yet been shown to improve average FPS.
+
+The V2 shader sources are available in the pinned Snap AI Engine dependency and are compiled/validated by the shader generation script. They include L0→L1 downsample, coarse/fine search, refinement, forward/backward validation, static-region mask and time-parametric interpolation. However, source compilation is not runtime integration: Skyrim's live host still allocates and dispatches the V1 single-level luma/flow/consistency/one-midpoint path. The next implementation task is to add DXVK descriptor/push-constant dispatch wrappers and generation-safe per-level image resources before enabling the V2 kernels.
