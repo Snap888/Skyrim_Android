@@ -2053,7 +2053,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
 
 void snapframeDeviceDestroyed(void* devicePtr) {
     auto* device = reinterpret_cast<DxvkDevice*>(devicePtr);
-    if (g_device == device || g_lumaShaderDevice == device) {
+    if (g_device == device || g_lumaShaderDevice == device || g_v2ShaderDevice == device) {
         snapframeLog("SnapFrame: DXVK device destroyed; releasing history and shader state\n");
         clearHistory();
         g_lumaShader = Rc<DxvkShader>();
