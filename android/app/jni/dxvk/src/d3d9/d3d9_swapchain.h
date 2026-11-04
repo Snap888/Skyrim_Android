@@ -116,6 +116,7 @@ namespace dxvk {
 
     bool                      m_dirty    = true;
     bool                      m_vsync    = true;
+    bool                      m_snapFramePresentPending = false;
 
     bool                      m_dialog;
     bool                      m_lastDialog = false;
