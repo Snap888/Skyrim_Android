@@ -116,4 +116,10 @@ Do not treat a successful portable/mock test as proof of GPU frame generation. D
 - In upstream [Snap_AI_Engine/feature/snap-motion-v2](https://github.com/Snap888/Snap_AI_Engine/tree/feature/snap-motion-v2), added an isolated V2 shader namespace containing L0 luma, L0-to-L1 downsample and a shared coarse/fine block-search kernel. The shader compiler now validates these in addition to the existing V1 shaders.
 - Search shader explicitly rejects out-of-frame previous-image samples and clamps spatial seed coordinates. Motion vectors remain expressed in L0 pixels at both pyramid levels.
 - These shaders are currently compile-validated source only. They are not dispatched by Skyrim, have no DXVK resource bindings yet, and do not change the V1 rendering path.
-- Upstream CI run [#41810214015](https://github.com/Snap888/Snap_AI_Engine/actions/runs/41810214015) is validating the new shader set; result pending at the time of this update.
+- Upstream shader CI run [#41810539818](https://github.com/Snap888/Snap_AI_Engine/actions/runs/41810539818) completed successfully. It built the portable libraries, passed all 3 portable unit-test suites, compiled and validated the V1 + V2 shader set as Vulkan 1.1 SPIR-V, and passed the standalone SnapFrame build/tests.
+- Upstream V2 branch head at this audit: `9c278d55ecb47a90cca2259ec043494f624f45ec`.
+
+
+### V2 shader coverage update
+
+The upstream V2 shader set now includes luma, downsample, coarse/fine search, refinement, forward/backward validation, static-region mask and bidirectional interpolation with gamut clamp. These are still isolated source assets. The Skyrim branch does not yet compile or dispatch them, and the external engine dependency remains pinned to the previously validated commit until the DXVK adapter contract and GPU resources are implemented.
