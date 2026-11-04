@@ -230,3 +230,12 @@ The latest uploaded scene is 2448x1080, SnapFrame enabled at 75% flow scale. Acr
 - No static mask or calibrated scene-cut detector exists in the active V1 path. Static ratio is set to zero and scene_cut is not asserted; V2-only resources are not bound to V1.
 - No SnapAI controller decisions are applied yet. Same-frame GPU-time correlation, device calibration, and quality/pacing validation remain required before any adaptive settings are enabled.
 - The implementation is not yet CI/device validated. The latest branch commits have triggered Android CI runs; inspect the newest run before treating the code as buildable.
+
+
+## DXVK / Vulkan present scheduling — 2026-11-04
+
+- Audited SDL window/event integration versus the actual DXVK → Vulkan WSI image-present path. SDL is not the final image presenter; D3D9SwapChainEx and Vulkan Presenter own image acquisition, blit, queue submission and WSI presentation.
+- Commit `b9a9c6ffd233e5957db0a3c9052ce6bc83f09018` introduces independent source/generated `DxvkSubmitStatus` objects and removes the intermediate CPU `SynchronizePresent()` wait before generated-frame recording/submission.
+- Queue order remains source command list → source WSI present → generated command list → generated WSI present. Pending statuses are drained at the next frame boundary and before swapchain teardown/recreation.
+- This is a scheduling change, not proof of GPU overlap or higher FPS. Source and generated work still share the graphics queue; measure WSI acquire duration, submit/present wait duration, FG GPU time, frame-latency wait and source FPS on device.
+- CI for the change is queued (run [41878691981](https://github.com/Snap888/Skyrim_Android/actions/runs/41878691981)); do not treat it as compile-validated until the job completes. No physical-device validation has been performed.
