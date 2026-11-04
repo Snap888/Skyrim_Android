@@ -353,3 +353,15 @@ The V2 shader sources are available in the pinned Snap AI Engine dependency and 
 Added `DxvkContext::dispatchSnapFrameV2`, a bounded generic set-0 image/sampler compute dispatch entry point for the V2 shader family. Binding-array indices map directly to descriptor binding numbers; null sampler entries represent storage-image bindings. The helper validates binding count (maximum six, matching the current V2 kernels), workgroup dimensions and push-constant payload (maximum 128 bytes), records push constants before dispatch, reports dispatch acceptance, and restores the touched DXVK resource slots plus cached compute state exactly like the V1 wrappers.
 
 This is an API foundation only. No V2 shader is dispatched by the live host yet, and no new pyramid images/views have been allocated. Runtime activation remains gated on adding per-level resources, explicit image barriers/layout validation, per-kernel push-constant structs, and device testing. The helper must pass ARM64 DXVK compilation before it is used by the host.
+
+
+### DXVK V2 dispatch validation — 2026-11-04
+
+GitHub Actions run `41902453483` for commit `255750b2b0d5868686a4a1ce5fc94e9739706f5c` completed successfully:
+- Skyrim DXVK SnapFrame host ARM64 compile: success
+- Snap AI and SnapFrame portable API tests: success
+- Android Java compilation: success
+- Snap AI + SnapFrame portable ARM64 build: success
+- Full arm64 APK build: skipped by workflow
+
+This validates compilation of the generic V2 dispatch API and push-constant state isolation, but does not validate runtime execution of V2 shaders or produce a tested APK.
