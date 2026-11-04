@@ -334,3 +334,8 @@ The latest uploaded scene is 2448x1080, SnapFrame enabled at 75% flow scale. Acr
 3. Split forward/backward consistency into a validated occlusion/disocclusion mask and make warp avoid blending across invalid regions.
 4. Add phase-parametric warp outputs for t=k/M (M=3,4), then implement multiple output image lifetimes and one-shot WSI tickets.
 5. Convert Presenter to generation-bound acquire tickets and per-image present semaphore retirement. Only then allow multiple generated WSI presents and test source FPS/frame pacing.
+
+
+### AI Flow Scale transition pacing — 2026-11-04
+
+Adaptive Flow Scale changes force SnapFrame history/resource recreation because the flow-grid dimensions depend on the selected scale. The host now enforces a 120-source-frame cooldown between applied AI scale changes. This avoids rapid controller oscillation repeatedly destroying/reallocating the luma/flow resources and resetting temporal history. The new scale is applied at the start of the serialized frame callback; the pending reset is consumed before capture/dispatch, so the current frame does not dispatch against images allocated for the previous scale. The cooldown is a stability guard, not a measured performance gain.
