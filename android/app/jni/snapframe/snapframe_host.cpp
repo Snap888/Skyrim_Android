@@ -1550,7 +1550,7 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
     g_diagnosticPhase = UINT32_MAX;
     g_profilingEnabled = validated.profiling_enabled != 0;
     g_flowReadbackFailureLogged = false;
-    snapframeLog("SnapFrame: flow readback %s (motion_analysis=%d profiling=%d diagnostic_suite=%d interval=120 frames)\\n",
+    snapframeLog("SnapFrame: flow readback %s (motion_analysis=%d profiling=%d diagnostic_suite=%d interval=120 frames)\n",
         (g_motionAnalysisEnabled && g_profilingEnabled) ? "enabled" : "disabled",
         g_motionAnalysisEnabled ? 1 : 0, g_profilingEnabled ? 1 : 0,
         g_diagnosticSuiteEnabled ? 1 : 0);
