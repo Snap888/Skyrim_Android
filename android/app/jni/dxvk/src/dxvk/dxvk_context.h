@@ -614,6 +614,20 @@ namespace dxvk {
             uint32_t              pushConstantSize,
       const void*                 pushConstantData);
 
+    /* Generic image/sampler dispatch for SnapMotion V2 kernels. Descriptor
+     * array indices map directly to set-0 binding numbers. Null sampler entries
+     * denote storage-image bindings. Push constants are copied into the command
+     * stream before dispatch; all touched DXVK resource slots are restored. */
+    bool dispatchSnapFrameV2(
+      const Rc<DxvkShader>&       shader,
+      const Rc<DxvkImageView>*    imageViews,
+      const Rc<DxvkSampler>*      samplers,
+            uint32_t              bindingCount,
+            uint32_t              groupsX,
+            uint32_t              groupsY,
+            uint32_t              pushConstantSize,
+      const void*                 pushConstantData);
+
 
     /**
      * rief Flushes pending resource hazards after compute work
