@@ -167,3 +167,13 @@ The active Skyrim runtime remains V1. The portable MotionV2 core is linked, and 
 - The LSFG GPU, LSFG present, DXVK CPU-present and SnapFrame frame counters do not cover identical ranges. Do not align or combine their timings as one frame.
 - Full Android `log.txt` has 6,133 lines and no observed fatal signal, Vulkan device loss, fatal exception or abnormal process exit; it ends with `ExitProcess(0)`.
 - Audio diagnostics show repeated per-source empty-queue counters, but output mixer telemetry remains `queue_low=0`, `enqueue_fail=0`, `slow_mix=0`, maximum mix time 1 ms. One 34 ms refill gap is explicitly marked end-of-stream. No output mixer underrun is evidenced; audio code was left untouched.
+ 
+
+## SnapMotionV2 coordinate correction and pin update — 2026-11-04
+
+- During shader-contract review, found that V2 validation and interpolation converted L0-pixel motion vectors to normalized UV using flow-grid dimensions. This would over-scale motion by the flow block stride.
+- Corrected both shaders to normalize with L0 luma width/height; updated the documented push-constant contract.
+- Upstream backup: [backup/feature-snap-motion-v2-pre-coordinate-fix-2026-11-04](https://github.com/Snap888/Snap_AI_Engine/tree/backup/feature-snap-motion-v2-pre-coordinate-fix-2026-11-04).
+- Upstream corrected revision: [ccf4589ca19d5f788adc56c7248d94f83ca0a506](https://github.com/Snap888/Snap_AI_Engine/commit/ccf4589ca19d5f788adc56c7248d94f83ca0a506). Shader compile/validation CI passed on the corrected shader commit and the subsequent documentation commit.
+- Skyrim CMake and Android CI are now pinned to the corrected upstream revision. This only updates the compiled V2 shader assets and portable core revision; no V2 shader is dispatched at runtime.
+- Keep V1 as default. The V2 GPU resource/descriptor/dispatch chain, asynchronous reduction readback and device visual validation remain incomplete.
