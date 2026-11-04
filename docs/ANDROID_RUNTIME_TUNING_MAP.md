@@ -116,7 +116,7 @@ The DXVK log must be collected separately from its configured file destination. 
 
 ## 7. Validation matrix
 
-Run the same save, location, camera direction, graphics settings, resolution, refresh rate, and LSFG configuration for each pass. Warm up the device and avoid thermal throttling.
+Run the same save, location, camera direction, graphics settings, resolution, refresh rate, and SnapFrame configuration for each pass. Warm up the device and avoid thermal throttling.
 
 | Pass | Sync pipelines | Thread logs | Surface logs | Purpose |
 |---|---:|---:|---:|---|
@@ -125,7 +125,7 @@ Run the same save, location, camera direction, graphics settings, resolution, re
 | C | Off | On | On | Repeat after cache warm-up |
 | D | Off | On | On | Background/foreground and rotation lifecycle |
 
-Record average FPS, 1%/0.1% lows, frame-time trace, first-use stalls, CPU core placement, clocks, temperature, and whether objects appear late. Compare original game FPS separately from LSFG output FPS.
+Record average FPS, 1%/0.1% lows, frame-time trace, first-use stalls, CPU core placement, clocks, temperature, and whether objects appear late. Compare source-game FPS separately from accepted SnapFrame output FPS.
 
 ### Acceptance criteria
 
@@ -133,7 +133,7 @@ Record average FPS, 1%/0.1% lows, frame-time trace, first-use stalls, CPU core p
 - Synchronous mode does not create compiler workers and logs each first-use batch duration.
 - Cache writer still shuts down cleanly and cache files remain readable.
 - Surface diagnostics report coherent dimensions and state transitions without changing normal lifecycle behavior.
-- No LSFG command recording, queue synchronization, or generation resource lifetime is changed by these options.
+- No SnapFrame command recording, queue synchronization, or generation resource lifetime is changed by these options.
 - NDK build and real-device tests pass before enabling any mode by default.
 
 ## 8. Current implementation status

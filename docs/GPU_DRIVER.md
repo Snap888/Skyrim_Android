@@ -19,7 +19,7 @@ If the custom driver cannot be opened, DXVK logs the error and falls back to the
 
 ## On-screen driver status
 
-In the launcher's **LSFG FPS HUD** section, enable **Show Vulkan driver information**. With the FPS HUD enabled, the overlay shows the Vulkan physical-device name, driver version, Vulkan API version, and ICD selection status:
+In the launcher's **Performance HUD** section, enable **Show Vulkan driver information**. With the FPS HUD enabled, the overlay shows the Vulkan physical-device name, driver version, Vulkan API version, and ICD selection status:
 
 - `Custom Vulkan ICD: ACTIVE` means AdrenoTools returned a custom driver's `vkGetInstanceProcAddr` and DXVK is using that loader entry point.
 - `Custom Vulkan ICD: NOT ACTIVE` means a custom driver was requested but DXVK fell back to the system Vulkan loader.
