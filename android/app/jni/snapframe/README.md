@@ -3,7 +3,7 @@
 Experimental, independent frame-generation engine for Skyrim_Android.
 
 **Status: the capture → luma → bidirectional flow → consistency → midpoint warp → additional WSI-present path has been exercised on the target device. The latest user test reports no black frames and approximately 2× HUD output FPS, but visible geometry distortion remains unacceptable during fast camera motion and animated foliage. The latest shader/grid changes below are source-only and still need a new APK/device test.**
-This module is compiled as a separate host target and uses an independent DXVK callback to copy the completed game image into a two-image GPU history ring. The active development path is SnapFrame + Snap AI; LSFG is not a runtime backend or fallback in this project. The current V2 experimental path builds a three-level R16F luma pyramid, estimates bidirectional coarse flow at L2→L1→L0, refines both L0 flow fields, and writes a forward/backward round-trip confidence mask. V2 refinement/validation is diagnostic only: it is not yet consumed by the V1 midpoint warp, and GPU cost and visual quality still require device validation.
+This module is compiled as a separate host target and uses an independent DXVK callback to copy the completed game image into a two-image GPU history ring. The active development path is SnapFrame + Snap AI; LSFG is not a runtime backend or fallback in this project. The current V2 experimental path builds a three-level R16F luma pyramid, estimates bidirectional coarse flow at L2→L1→L0, refines both L0 flow fields, and writes a forward/backward round-trip confidence mask. V2 stage availability is independent: pyramid/luma requires only its images and two shaders; flow search additionally requires its flow images and search shader; refinement/validation additionally requires its own images and shaders. A missing optional search or refinement shader must not disable a valid pyramid. V2 refinement/validation is diagnostic only: it is not yet consumed by the V1 midpoint warp, and GPU cost and visual quality still require device validation.
 
 ## Goals
 
@@ -16,14 +16,14 @@ This module is compiled as a separate host target and uses an independent DXVK c
 ## Initial algorithm direction
 
 1. Build reduced-resolution luminance pyramids for two consecutive real frames.
-2. Estimate forward and backward motion using coarse-to-fine block matching. The initial coarse bidirectional pass is implemented; pyramid refinement is pending.
+2. Estimate forward and backward motion using coarse-to-fine block matching. The experimental V2 bidirectional L2→L1→L0 search is dispatched; its measured quality and GPU cost still need device validation.
 3. Refine motion locally and calculate forward/backward consistency confidence.
 4. Detect likely disocclusion/occlusion regions and low-confidence vectors.
 5. Warp both source frames toward the requested intermediate timestamp.
 6. Blend valid samples; use conservative spatial fallback where motion is uncertain.
 7. Add temporal stabilization only after the basic pipeline is validated.
 
-This is the target algorithm. Capture, V1 luma/flow/consistency/midpoint warp and an additional WSI-present path are implemented as GPU dispatches. The experimental V2 pyramid, bidirectional coarse search, L0 refinement and forward/backward validation mask are also dispatched, but remain a diagnostic side path and do not feed V1 interpolation. The mask is a round-trip confidence estimate, not a complete spatial occlusion classifier. Flow diagnostics are read back sparsely; output quality, stage GPU timings and WSI pacing still require device validation. See [DESIGN.md](DESIGN.md) for the staged integration plan.
+This is the target algorithm. Capture, V1 luma/flow/consistency/midpoint warp and an additional WSI-present path are implemented as GPU dispatches. The experimental V2 pyramid, bidirectional coarse search, L0 refinement and forward/backward validation mask are also dispatched, but remain a diagnostic side path and do not feed V1 interpolation. The mask is a round-trip confidence estimate, not a complete spatial occlusion classifier. With `profiling_enabled=1`, `snapframe_gpu.csv` reports sparse GPU timestamp stages `v2_pyramid`, `v2_search`, `v2_refine`, and `v2_validation` at the existing 30-frame profiling cadence. These stages are recorded only when their corresponding capability is available and eligible to run. Flow diagnostics are read back sparsely; output quality, stage GPU timings and WSI pacing still require device validation. See [DESIGN.md](DESIGN.md) for the staged integration plan.
 
 ## Current GPU reconstruction and presentation prototype
 
