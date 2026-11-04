@@ -167,7 +167,7 @@ namespace dxvk::vk {
     if (caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
       swapInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     m_info.imageUsage = swapInfo.imageUsage;
-    Logger::info(str::format("LSFG: swapchain transfer-src copy ",
+    Logger::info(str::format("SnapFrame: swapchain transfer-src usage ",
       (swapInfo.imageUsage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) ? "enabled" : "unavailable"));
     swapInfo.imageSharingMode       = VK_SHARING_MODE_EXCLUSIVE;
     swapInfo.queueFamilyIndexCount  = 0;
