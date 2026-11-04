@@ -58,3 +58,10 @@ Not yet completed: concrete DXVK `SnapFrameBackendV1` adapter, live AI telemetry
 
 
 - Third-upload LSFG configuration audit: final multiplier 2 with an intervening 1x live setting; DXVK CPU-present profile is 48 samples (mean 18.52 ms, P95 32.96 ms), not a measured displayed-FPS result.
+
+## 2026-11-04 — Stutter-scene diagnosis and LSFG A/B isolation
+
+- Audited the new stutter-scene logs. SnapFrame at 75% flow scale adds a mean 10.646 ms GPU chain; bidirectional flow costs about 8.22 ms. Motion confidence is low in most moving aggregate samples and vectors often hit the V1 search boundary.
+- Corrected the DXVK LSFG A/B harness: both explicit passes now bypass SnapFrame capture, analysis and fallback generation so SnapFrame cannot contaminate the LSFG comparison.
+- DXVK benchmark header no longer falsely claims that LSFG runtime mode is observed. Added per-window LSFG-ready and SnapFrame-ready frame counters and a SnapFrame-bypass marker.
+- No FPS uplift or device-side fix is claimed pending a new isolated A/B run and separate SnapFrame scale tests.
