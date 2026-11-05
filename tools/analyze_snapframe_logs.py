@@ -32,7 +32,8 @@ def stats(values):
 
 def analyze(root):
     events,perf,flow,gpu=[read_csv(root/x) for x in FILES[:4]]
-    log="\\n".join((root/name).read_text(encoding="utf-8",errors="replace") for name in FILES[4:6] if (root/name).is_file())\n    config=(root/FILES[6]).read_text(encoding="utf-8",errors="replace") if (root/FILES[6]).is_file() else ""
+    log="\n".join((root/name).read_text(encoding="utf-8",errors="replace") for name in FILES[4:6] if (root/name).is_file())
+    config=(root/FILES[6]).read_text(encoding="utf-8",errors="replace") if (root/FILES[6]).is_file() else ""
     counts=Counter(x.get("event","unknown") for x in events); results=Counter(); reasons=Counter()
     for row in events:
         if row.get("event")=="midpoint_present_failed":
