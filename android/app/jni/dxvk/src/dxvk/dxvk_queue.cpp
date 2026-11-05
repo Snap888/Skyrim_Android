@@ -113,17 +113,46 @@ namespace dxvk {
       // Submit command buffer to device
       VkResult status = VK_NOT_READY;
 
-      if (m_lastError != VK_ERROR_DEVICE_LOST) {
-        std::lock_guard<dxvk::mutex> lock(m_mutexQueue);
+      uint64_t queueLockWaitUs = 0;
+      uint64_t presentCallUs = 0;
 
-        if (entry.submit.cmdList != nullptr) {
-          status = entry.submit.cmdList->submit(
-            entry.submit.waitSync,
-            entry.submit.wakeSync);
-        } else if (entry.present.presenter != nullptr) {
-          status = entry.present.presenter->presentImage(
-            entry.present.applyFrameRateLimit);
+      if (m_lastError != VK_ERROR_DEVICE_LOST) {
+        auto queueLockStart = dxvk::high_resolution_clock::now();
+        {
+          std::unique_lock<dxvk::mutex> queueLock(m_mutexQueue);
+          auto queueLockAcquired = dxvk::high_resolution_clock::now();
+          queueLockWaitUs = std::chrono::duration_cast<std::chrono::microseconds>(
+            queueLockAcquired - queueLockStart).count();
+
+          if (entry.submit.cmdList != nullptr) {
+            status = entry.submit.cmdList->submit(
+              entry.submit.waitSync,
+              entry.submit.wakeSync);
+          } else if (entry.present.presenter != nullptr) {
+            auto presentStart = dxvk::high_resolution_clock::now();
+            status = entry.present.presenter->presentImage(
+              entry.present.applyFrameRateLimit);
+            auto presentEnd = dxvk::high_resolution_clock::now();
+            presentCallUs = std::chrono::duration_cast<std::chrono::microseconds>(
+              presentEnd - presentStart).count();
+          }
         }
+
+#ifdef __ANDROID__
+        static const bool presentDiagnosticsEnabled =
+          env::getEnvVar("DXVK_PRESENT_DIAGNOSTICS") == "1";
+        static std::atomic<uint32_t> presentDiagnosticCount = { 0u };
+        if (presentDiagnosticsEnabled
+            && entry.present.presenter != nullptr
+            && (queueLockWaitUs >= 8000 || presentCallUs >= 8000)
+            && presentDiagnosticCount.fetch_add(1) < 64) {
+          Logger::warn(str::format(
+            "DXVK-PRESENT: queue_lock_wait_us=", queueLockWaitUs,
+            " present_call_us=", presentCallUs,
+            " result=", status,
+            " diagnostic_count=", presentDiagnosticCount.load()));
+        }
+#endif
       } else {
         // Don't submit anything after device loss
         // so that drivers get a chance to recover
