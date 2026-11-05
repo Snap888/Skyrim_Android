@@ -9,6 +9,21 @@ def dual = project.hasProperty('dual') && project.property('dual') == 'true'
 // -Pffmpeg=true|false forces LB_HAS_FFMPEG (default: auto if libs present)
 def ffmpegProp = project.hasProperty('ffmpeg') ? project.property('ffmpeg').toString() : null
 
+// CI supplies a monotonically increasing repository-wide versionCode and a
+// human-readable versionName. Local builds retain the checked-in fallback.
+def appVersionCode = project.hasProperty('versionCode')
+    ? project.property('versionCode').toString().toInteger() : 23
+def appVersionName = project.hasProperty('versionName')
+    ? project.property('versionName').toString() : "0.21"
+
+def ciSigningValues = [
+    System.getenv("ANDROID_SIGNING_KEYSTORE"),
+    System.getenv("ANDROID_SIGNING_STORE_PASSWORD"),
+    System.getenv("ANDROID_SIGNING_KEY_ALIAS"),
+    System.getenv("ANDROID_SIGNING_KEY_PASSWORD")
+]
+def ciSigningConfigured = ciSigningValues.every { it != null && !it.isEmpty() }
+
 android {
     namespace "com.tj.skyrim"
     compileSdkVersion 34
@@ -19,8 +34,8 @@ android {
         buildConfigField "boolean", "DUAL", dual ? "true" : "false"
         minSdkVersion 28
         targetSdkVersion 29  // legacy storage: plain file access with the normal storage prompt
-        versionCode 23
-        versionName dual ? "0.21-dual" : "0.21"
+        versionCode appVersionCode
+        versionName dual ? "${appVersionName}-dual" : appVersionName
         externalNativeBuild {
             cmake {
                 arguments "-DANDROID_STL=c++_shared", "-DANDROID_PLATFORM=android-28"
@@ -33,16 +48,29 @@ android {
             }
         }
     }
+    signingConfigs {
+        if (ciSigningConfigured) {
+            ci {
+                storeFile file(System.getenv("ANDROID_SIGNING_KEYSTORE"))
+                storePassword System.getenv("ANDROID_SIGNING_STORE_PASSWORD")
+                keyAlias System.getenv("ANDROID_SIGNING_KEY_ALIAS")
+                keyPassword System.getenv("ANDROID_SIGNING_KEY_PASSWORD")
+            }
+        }
+    }
     buildTypes {
         // The recompiled game is large; debug builds would be unusably slow.
+        // CI uses one persistent keystore for every build so Android can update
+        // an installed APK. Local builds keep the standard debug key.
         debug {
             externalNativeBuild { cmake { arguments "-DCMAKE_BUILD_TYPE=Release" } }
             debuggable true
             jniDebuggable false
+            if (ciSigningConfigured) signingConfig signingConfigs.ci
         }
         release {
             minifyEnabled false
-            signingConfig signingConfigs.debug
+            signingConfig ciSigningConfigured ? signingConfigs.ci : signingConfigs.debug
         }
     }
     externalNativeBuild {
