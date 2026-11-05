@@ -244,15 +244,72 @@ jobs:
             "cmake;${{ env.CMAKE_VERSION }}" \
             "ndk;${{ env.NDK_VERSION }}"
 
+      - name: Determine APK version
+        id: ver
+        run: |
+          set -euo pipefail
+          VERSION_CODE=$((1000000000 + (GITHUB_RUN_ID % 1000000000)))
+          VERSION_NAME="0.21.${GITHUB_RUN_NUMBER}"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "APK versionName=$VERSION_NAME versionCode=$VERSION_CODE"
+
+      - name: Configure persistent APK signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_SIGNING_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$KEYSTORE_BASE64" || -z "$STORE_PASSWORD" || -z "$KEY_ALIAS" || -z "$KEY_PASSWORD" ]]; then
+            echo "::error::Persistent APK signing is not configured."
+            echo "Add repository Actions secrets: ANDROID_SIGNING_KEYSTORE_BASE64, ANDROID_SIGNING_STORE_PASSWORD, ANDROID_SIGNING_KEY_ALIAS, ANDROID_SIGNING_KEY_PASSWORD."
+            exit 1
+          fi
+          KEYSTORE_PATH="$RUNNER_TEMP/skyrim-upload.jks"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          test -s "$KEYSTORE_PATH"
+          {
+            echo "ANDROID_SIGNING_KEYSTORE=$KEYSTORE_PATH"
+            echo "ANDROID_SIGNING_STORE_PASSWORD=$STORE_PASSWORD"
+            echo "ANDROID_SIGNING_KEY_ALIAS=$KEY_ALIAS"
+            echo "ANDROID_SIGNING_KEY_PASSWORD=$KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+
       - name: Build APK
         working-directory: android
         env:
           GRADLE_OPTS: "-Dorg.gradle.logging.stacktrace=all"
+          VERSION_CODE: ${{ steps.ver.outputs.version_code }}
+          VERSION_NAME: ${{ steps.ver.outputs.version_name }}
         run: |
+          set -euo pipefail
           chmod +x ./gradlew
           ./gradlew assembleDebug \
             -PndkVersion=${{ env.NDK_VERSION }} \
+            -PversionCode="$VERSION_CODE" \
+            -PversionName="$VERSION_NAME" \
             --no-daemon --stacktrace --info --console=plain
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          AAPT="$ANDROID_HOME/build-tools/34.0.0/aapt"
+          APK_SIGNER="$ANDROID_HOME/build-tools/34.0.0/apksigner"
+          BADGING=$("$AAPT" dump badging "$APK" | head -n 1)
+          echo "$BADGING"
+          [[ "$BADGING" == *"name='com.tj.skyrim'"* ]]
+          [[ "$BADGING" == *"versionCode='$VERSION_CODE'"* ]]
+          [[ "$BADGING" == *"versionName='$VERSION_NAME'"* ]]
+          "$APK_SIGNER" verify --verbose "$APK"
+          "$APK_SIGNER" verify --print-certs "$APK" | grep "Signer #1 certificate SHA-256 digest:"
+          mkdir -p ../dist
+          cp "$APK" "../dist/Skyrim-$VERSION_NAME.apk"
+          {
+            echo "commit=$GITHUB_SHA"
+            echo "versionName=$VERSION_NAME"
+            echo "versionCode=$VERSION_CODE"
+            echo "applicationId=com.tj.skyrim"
+          } > ../dist/build-info.txt
 
       - name: Upload APK and native build diagnostics
         if: always()
@@ -260,7 +317,8 @@ jobs:
         with:
           name: Skyrim-Android-${{ github.sha }}
           path: |
-            android/app/build/outputs/apk/debug/*.apk
+            dist/*.apk
+            dist/build-info.txt
             android/app/.cxx/**/CMakeFiles/CMakeError.log
             android/app/.cxx/**/CMakeFiles/CMakeOutput.log
           if-no-files-found: warn
