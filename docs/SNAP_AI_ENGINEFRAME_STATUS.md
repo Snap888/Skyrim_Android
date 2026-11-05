@@ -437,3 +437,12 @@ with exactly-once consumption and safe retirement.
 The next run should confirm the numeric failure reasons and compare source
 FPS, generated queued rate and presenter handoff wait. Build and device
 validation of the result-code instrumentation are pending.
+
+
+### Follow-up WSI timing split
+
+The performance CSV now separates the two serialized waits:
+- `avg_source_handoff_wait_ms`: wait before acquiring/submitting the next real source frame; it can include completion of the previous generated present.
+- `avg_generated_handoff_wait_ms`: wait after the current source present is queued and before attempting its generated frame; this isolates the source-present-to-generated handoff.
+  
+This replaces the combined `avg_presenter_handoff_wait_ms` field. It is instrumentation only and preserves the existing synchronization and semaphore ownership. Use both columns with the per-event Vulkan result code to decide whether the dominant cost is prior generated completion or the current source present.
