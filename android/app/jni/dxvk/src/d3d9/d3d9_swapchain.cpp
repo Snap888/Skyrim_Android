@@ -71,7 +71,8 @@ namespace dxvk {
       double generatedAcquireMs = 0.0;
       double submitEnqueueMs = 0.0;
       double generateRecordMs = 0.0;
-      double retireWaitMs = 0.0;
+      double sourceHandoffWaitMs = 0.0;
+      double generatedHandoffWaitMs = 0.0;
       double frameLatencyWaitMs = 0.0;
       std::string run;
       bool initialized = false;
@@ -99,8 +100,8 @@ namespace dxvk {
             stream << "columns: frame,avg_cpu_present_ms,min_cpu_present_ms,max_cpu_present_ms,"
                       "avg_generated_requested,avg_generated_queued,width,height,vsync,"
                       "snapframe_active_frames,avg_source_acquire_ms,avg_generated_acquire_ms,"
-                      "avg_submit_enqueue_ms,avg_generate_record_ms,avg_presenter_handoff_wait_ms,"
-                      "avg_frame_latency_wait_ms\n";
+                      "avg_submit_enqueue_ms,avg_generate_record_ms,avg_source_handoff_wait_ms,"
+                      "avg_generated_handoff_wait_ms,avg_frame_latency_wait_ms\n";
             stream.flush();
           }
         }
@@ -111,7 +112,8 @@ namespace dxvk {
                   bool snapFrameActive, bool snapFrameBypassed,
                   double sourceAcquire, double generatedAcquire,
                   double submitEnqueue, double generateRecord,
-                  double retireWait, double frameLatencyWait) {
+                  double sourceHandoffWait, double generatedHandoffWait,
+                  double frameLatencyWait) {
         std::lock_guard<std::mutex> lock(mutex);
         init(snapFrameBypassed);
         if (!stream)
@@ -128,7 +130,8 @@ namespace dxvk {
         generatedAcquireMs += generatedAcquire;
         submitEnqueueMs += submitEnqueue;
         generateRecordMs += generateRecord;
-        retireWaitMs += retireWait;
+        sourceHandoffWaitMs += sourceHandoffWait;
+        generatedHandoffWaitMs += generatedHandoffWait;
         frameLatencyWaitMs += frameLatencyWait;
         if ((frames % 120) == 0) {
           stream << frames << ','
@@ -143,7 +146,8 @@ namespace dxvk {
                  << (generatedAcquireMs / 120.0) << ','
                  << (submitEnqueueMs / 120.0) << ','
                  << (generateRecordMs / 120.0) << ','
-                 << (retireWaitMs / 120.0) << ','
+                 << (sourceHandoffWaitMs / 120.0) << ','
+                 << (generatedHandoffWaitMs / 120.0) << ','
                  << (frameLatencyWaitMs / 120.0) << '\n';
           stream.flush();
           totalMs = 0.0;
@@ -153,7 +157,8 @@ namespace dxvk {
           generatedTotal = 0;
           snapFrameActiveFrames = 0;
           sourceAcquireMs = generatedAcquireMs = submitEnqueueMs = 0.0;
-          generateRecordMs = retireWaitMs = frameLatencyWaitMs = 0.0;
+          generateRecordMs = sourceHandoffWaitMs = 0.0;
+          generatedHandoffWaitMs = frameLatencyWaitMs = 0.0;
         }
       }
     };
@@ -972,7 +977,8 @@ namespace dxvk {
     double perfGeneratedAcquireMs = 0.0;
     double perfSubmitEnqueueMs = 0.0;
     double perfGenerateRecordMs = 0.0;
-    double perfPresenterHandoffWaitMs = 0.0;
+    double perfSourceHandoffWaitMs = 0.0;
+    double perfGeneratedHandoffWaitMs = 0.0;
     double perfFrameLatencyWaitMs = 0.0;
     m_parent->Flush();
 
@@ -987,7 +993,7 @@ namespace dxvk {
       {
         const auto waitStart = std::chrono::steady_clock::now();
         SynchronizePresent();
-        perfPresenterHandoffWaitMs += std::chrono::duration<double, std::milli>(
+        perfSourceHandoffWaitMs += std::chrono::duration<double, std::milli>(
           std::chrono::steady_clock::now() - waitStart).count();
       }
 
@@ -1103,7 +1109,7 @@ namespace dxvk {
       {
         const auto waitStart = std::chrono::steady_clock::now();
         SynchronizePresent();
-        perfPresenterHandoffWaitMs += std::chrono::duration<double, std::milli>(
+        perfGeneratedHandoffWaitMs += std::chrono::duration<double, std::milli>(
           std::chrono::steady_clock::now() - waitStart).count();
       }
 
@@ -1241,7 +1247,8 @@ namespace dxvk {
       snapFrameCanGenerate, perfBypassSnapFrame,
       perfSourceAcquireMs, perfGeneratedAcquireMs,
       perfSubmitEnqueueMs, perfGenerateRecordMs,
-      perfPresenterHandoffWaitMs, perfFrameLatencyWaitMs);
+      perfSourceHandoffWaitMs, perfGeneratedHandoffWaitMs,
+      perfFrameLatencyWaitMs);
 
   }
 
