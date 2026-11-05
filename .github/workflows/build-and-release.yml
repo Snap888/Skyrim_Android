@@ -234,6 +234,7 @@ jobs:
           VERSION_CODE: ${{ steps.ver.outputs.version_code }}
           VERSION_NAME: ${{ steps.ver.outputs.version }}
         run: |
+          set -euo pipefail
           ./gradlew assembleDebug \
             -PndkVersion=${{ env.NDK_VERSION }} \
             -PversionCode="$VERSION_CODE" \
@@ -260,7 +261,8 @@ jobs:
             local expected_package="$2"
             local expected_name="$3"
             local badging
-            badging=$("$AAPT" dump badging "$apk" | head -n 1)
+            badging_output=$("$AAPT" dump badging "$apk")
+            badging=$(printf '%s\\n' "$badging_output" | sed -n '1p')
             echo "$badging"
             [[ "$badging" == *"name='$expected_package'"* ]] || {
               echo "::error::Unexpected applicationId in $apk"
@@ -275,7 +277,9 @@ jobs:
               exit 1
             }
             "$APK_SIGNER" verify --verbose "$apk"
-            "$APK_SIGNER" verify --print-certs "$apk" | grep "Signer #1 certificate SHA-256 digest:"
+            cert_output=$("$APK_SIGNER" verify --print-certs "$apk")
+            [[ "$cert_output" == *"Signer #1 certificate SHA-256 digest:"* ]]
+            printf '%s\\n' "$cert_output" | sed -n '/Signer #1 certificate SHA-256 digest:/p'
           }
           verify_apk "dist/Skyrim-$VERSION_NAME.apk" "com.tj.skyrim" "$VERSION_NAME"
           if [[ -f "dist/Skyrim-$VERSION_NAME-dual.apk" ]]; then
@@ -295,7 +299,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Skyrim-APK-${{ steps.ver.outputs.version }}
-          path: dist/*.apk
+          path: |
+            dist/*.apk
+            dist/build-info.txt
           retention-days: 30
           if-no-files-found: error
 
