@@ -1442,6 +1442,14 @@ namespace dxvk {
 
   void D3D9SwapChainEx::CreateRenderTargetViews() {
     vk::PresenterInfo info = m_presenter->info();
+    const char* actualMode =
+      info.presentMode == VK_PRESENT_MODE_FIFO_KHR ? "FIFO" :
+      info.presentMode == VK_PRESENT_MODE_MAILBOX_KHR ? "MAILBOX" :
+      info.presentMode == VK_PRESENT_MODE_IMMEDIATE_KHR ? "IMMEDIATE" :
+      info.presentMode == VK_PRESENT_MODE_FIFO_RELAXED_KHR ? "FIFO_RELAXED" : "OTHER";
+    Logger::info(str::format("SnapFrame: actual present mode=", actualMode,
+      " image_count=", info.imageCount, " extent=",
+      info.imageExtent.width, "x", info.imageExtent.height));
 
     m_imageViews.clear();
     m_imageViews.resize(info.imageCount);
@@ -1680,7 +1688,16 @@ namespace dxvk {
   uint32_t D3D9SwapChainEx::PickImageCount(
           UINT                      Preferred) {
     int32_t option = m_parent->GetOptions()->numBackBuffers;
-    return option > 0 ? uint32_t(option) : uint32_t(Preferred);
+    const uint32_t requested = option > 0
+      ? uint32_t(option) : uint32_t(Preferred);
+
+    /* SnapFrame can submit a source image and one generated image in the
+     * same presentation cycle. FIFO/IMMEDIATE commonly expose only two
+     * images when the game's preferred count is BackBufferCount + 1; one
+     * image may still be scanned out while the source is queued, leaving
+     * no image for the generated present. Keep a third WSI image available
+     * across modes. Presenter clamps this to the surface's supported range. */
+    return std::max(requested, 3u);
   }
 
 
