@@ -52,3 +52,20 @@ The launcher and in-game overlay write `present_mode=0..3` to `port/snapframe.co
 The choice is made by DXVK when creating the shared swapchain. Game and generated frames therefore use the same Vulkan present mode; independent source/generated present modes are not supported by this integration. The DXVK D3D9 library obtains the setting through a function-pointer callback registered by SnapFrame Host at initialization and cleared during shutdown. The overlay sends the new value through JNI to a host atomic. At the next serialized DXVK present boundary, DXVK drains outstanding source/generated submissions, waits for device idle, recreates the shared swapchain and refreshes its image views before continuing. No Vulkan object is mutated from the Android UI thread. This can cause a one-time frame-time spike. The UI displays the requested mode; actual mode/fallback must be confirmed from DXVK WSI logs.
 
 For A/B testing, use Auto first, then FIFO/MAILBOX/IMMEDIATE with the same scene and VSync setting. Record the selected/actual present mode and compare source FPS, source frame times, generated-frame acceptance and pacing. Do not treat queued/present-submission FPS as measured panel scanout.
+
+## Compact local log analysis
+
+The repository includes `tools/analyze_snapframe_logs.py`, a standard-library-only Python analyzer for the SnapFrame log bundle. Run it on the device in Termux or on a PC after copying the log directory:
+
+```sh
+python3 tools/analyze_snapframe_logs.py --log-dir /path/to/port --output snapframe_diagnostic_report.md
+```
+
+For machine-readable output:
+
+```sh
+python3 tools/analyze_snapframe_logs.py --log-dir /path/to/port --format json --output snapframe_diagnostic_report.json
+```
+
+The report aggregates event counts, generated-present VkResult failures, performance mean/median/p95/p99/max, flow telemetry availability, GPU-stage sample availability, observed present modes, and prioritized findings. It reads the event/performance/flow/GPU CSV files, SnapFrame log, DXVK log and config when present. Source logs are read-only and remain on the device; the analyzer performs no network requests and does not upload anything. Share the Markdown report first; attach full logs only when a finding requires deeper tracing. The report is a triage aid, not a replacement for source-level investigation. Tests run in Android CI.
+
