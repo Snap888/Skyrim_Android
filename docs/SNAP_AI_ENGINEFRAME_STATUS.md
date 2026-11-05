@@ -386,3 +386,54 @@ This validates compilation of the generic V2 dispatch API and push-constant stat
 - V2 grid dimensions use ceil(level extent / 8), matching the shader's fixed 8×8 block. The V1 adaptive `flowExtent()` must not be reused because it applies Flow Scale and would leave V2 image regions unprocessed.
 - Previous-frame temporal seeding, refinement, forward/backward confidence/occlusion mask, V2 interpolation, AI-controlled V2 search density and ×3/×4 presentation are not implemented yet. V2 search is experimental and may cost more than V1; measure on device before enabling broadly.
 - Validation required: shader compile, ARM64 host build, Vulkan descriptor/layout validation, and device logs confirming `v2_flow_pair_ok` with correct image coverage.
+
+
+## Latest WSI device run — 2026-11-05 (zero-timeout acquire)
+
+The latest uploaded device logs use 2448x1080, flow scale 75% (112x50 V1
+motion grid), motion analysis enabled, profiling disabled and diagnostic
+suite disabled. V2 diagnostic work is therefore not expected to contribute
+to the production GPU load.
+
+The user reports a small increase in clean/source game FPS after the
+non-blocking WSI pre-acquire change. The performance CSV is consistent with
+a partial improvement, but not a complete fix:
+
+- The presenter handoff average starts near 1 ms and later rises to roughly
+  13–18 ms. The source-to-generated synchronization remains a material cost.
+- Generated presents are initially accepted, but the event stream records
+  repeated `midpoint_present_failed` events from around frame 287 onward.
+  This indicates that the generated path frequently falls back to the source
+  frame when an additional WSI present is not accepted.
+- Generated queue averages decline in later windows (about 0.72–0.75 in the
+  final samples). Requested count remains close to 1, so this is not a
+  reduction in generation demand; it is WSI admission/back-pressure.
+- GPU stage CSV contains only its header because profiling is disabled.
+  No optical-flow or warp GPU cost should be inferred from this run.
+- Scalar reduction telemetry remains invalid: logs report
+  `valid_cells=128`, `expected_cells=5600`, but `coverage=1.000`.
+  Keep the Snap AI 90% valid-coverage gate; do not use these samples for
+  adaptive Flow Scale decisions.
+
+### Instrumentation added after this upload
+
+The SnapFrame present-result callback now carries the actual Vulkan
+`VkResult` in addition to the accepted flag. Event details will include
+`result=<numeric VkResult>`, distinguishing a zero-timeout acquire miss
+(`VK_NOT_READY`/`VK_TIMEOUT`), a present failure, and a generation failure
+(`VK_ERROR_UNKNOWN`). This is diagnostic instrumentation only; it does not
+change the WSI retry or semaphore policy.
+
+### Engineering decision
+
+The zero-timeout policy appears to improve source-frame throughput at the
+cost of skipped generated frames. Do not restore infinite-timeout generated
+acquire: that would reintroduce source-thread stalls. Do not remove
+`SynchronizePresent()` while Presenter still has one mutable outstanding
+acquire state. Continue toward per-acquire tickets carrying swapchain
+generation, frame slot, image index, acquire semaphore and present semaphore,
+with exactly-once consumption and safe retirement.
+
+The next run should confirm the numeric failure reasons and compare source
+FPS, generated queued rate and presenter handoff wait. Build and device
+validation of the result-code instrumentation are pending.
