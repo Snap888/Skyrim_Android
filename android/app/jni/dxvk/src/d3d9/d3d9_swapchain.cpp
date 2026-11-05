@@ -73,6 +73,8 @@ namespace dxvk {
       double generateRecordMs = 0.0;
       double sourceHandoffWaitMs = 0.0;
       double generatedHandoffWaitMs = 0.0;
+      double sourceSubmissionWaitMs = 0.0;
+      double generatedSubmissionWaitMs = 0.0;
       double frameLatencyWaitMs = 0.0;
       std::string run;
       bool initialized = false;
@@ -101,7 +103,8 @@ namespace dxvk {
                       "avg_generated_requested,avg_generated_queued,width,height,vsync,"
                       "snapframe_active_frames,avg_source_acquire_ms,avg_generated_acquire_ms,"
                       "avg_submit_enqueue_ms,avg_generate_record_ms,avg_source_handoff_wait_ms,"
-                      "avg_generated_handoff_wait_ms,avg_frame_latency_wait_ms\n";
+                      "avg_generated_handoff_wait_ms,avg_source_submission_wait_ms,"
+                      "avg_generated_submission_wait_ms,avg_frame_latency_wait_ms\n";
             stream.flush();
           }
         }
@@ -113,6 +116,7 @@ namespace dxvk {
                   double sourceAcquire, double generatedAcquire,
                   double submitEnqueue, double generateRecord,
                   double sourceHandoffWait, double generatedHandoffWait,
+                  double sourceSubmissionWait, double generatedSubmissionWait,
                   double frameLatencyWait) {
         std::lock_guard<std::mutex> lock(mutex);
         init(snapFrameBypassed);
@@ -132,6 +136,8 @@ namespace dxvk {
         generateRecordMs += generateRecord;
         sourceHandoffWaitMs += sourceHandoffWait;
         generatedHandoffWaitMs += generatedHandoffWait;
+        sourceSubmissionWaitMs += sourceSubmissionWait;
+        generatedSubmissionWaitMs += generatedSubmissionWait;
         frameLatencyWaitMs += frameLatencyWait;
         if ((frames % 120) == 0) {
           stream << frames << ','
@@ -148,6 +154,8 @@ namespace dxvk {
                  << (generateRecordMs / 120.0) << ','
                  << (sourceHandoffWaitMs / 120.0) << ','
                  << (generatedHandoffWaitMs / 120.0) << ','
+                 << (sourceSubmissionWaitMs / 120.0) << ','
+                 << (generatedSubmissionWaitMs / 120.0) << ','
                  << (frameLatencyWaitMs / 120.0) << '\n';
           stream.flush();
           totalMs = 0.0;
@@ -158,7 +166,8 @@ namespace dxvk {
           snapFrameActiveFrames = 0;
           sourceAcquireMs = generatedAcquireMs = submitEnqueueMs = 0.0;
           generateRecordMs = sourceHandoffWaitMs = 0.0;
-          generatedHandoffWaitMs = frameLatencyWaitMs = 0.0;
+          generatedHandoffWaitMs = sourceSubmissionWaitMs = 0.0;
+          generatedSubmissionWaitMs = frameLatencyWaitMs = 0.0;
         }
       }
     };
@@ -979,6 +988,8 @@ namespace dxvk {
     double perfGenerateRecordMs = 0.0;
     double perfSourceHandoffWaitMs = 0.0;
     double perfGeneratedHandoffWaitMs = 0.0;
+    double perfSourceSubmissionWaitMs = 0.0;
+    double perfGeneratedSubmissionWaitMs = 0.0;
     double perfFrameLatencyWaitMs = 0.0;
     m_parent->Flush();
 
@@ -992,7 +1003,8 @@ namespace dxvk {
     for (uint32_t i = 0; i < SyncInterval || i < 1; i++) {
       {
         const auto waitStart = std::chrono::steady_clock::now();
-        SynchronizePresent();
+        SynchronizePresent(&perfSourceSubmissionWaitMs,
+          &perfGeneratedSubmissionWaitMs);
         perfSourceHandoffWaitMs += std::chrono::duration<double, std::milli>(
           std::chrono::steady_clock::now() - waitStart).count();
       }
@@ -1108,7 +1120,8 @@ namespace dxvk {
        */
       {
         const auto waitStart = std::chrono::steady_clock::now();
-        SynchronizePresent();
+        SynchronizePresent(&perfSourceSubmissionWaitMs,
+          &perfGeneratedSubmissionWaitMs);
         perfGeneratedHandoffWaitMs += std::chrono::duration<double, std::milli>(
           std::chrono::steady_clock::now() - waitStart).count();
       }
@@ -1248,6 +1261,7 @@ namespace dxvk {
       perfSourceAcquireMs, perfGeneratedAcquireMs,
       perfSubmitEnqueueMs, perfGenerateRecordMs,
       perfSourceHandoffWaitMs, perfGeneratedHandoffWaitMs,
+      perfSourceSubmissionWaitMs, perfGeneratedSubmissionWaitMs,
       perfFrameLatencyWaitMs);
 
   }
@@ -1281,21 +1295,31 @@ namespace dxvk {
   }
 
 
-  void D3D9SwapChainEx::WaitForPresentSubmissions() {
+  void D3D9SwapChainEx::WaitForPresentSubmissions(
+      double* sourceWaitMs, double* generatedWaitMs) {
     if (m_sourcePresentPending) {
+      const auto waitStart = std::chrono::steady_clock::now();
       m_device->waitForSubmission(&m_sourcePresentStatus);
+      if (sourceWaitMs)
+        *sourceWaitMs += std::chrono::duration<double, std::milli>(
+          std::chrono::steady_clock::now() - waitStart).count();
       m_sourcePresentPending = false;
     }
     if (m_generatedPresentPending) {
+      const auto waitStart = std::chrono::steady_clock::now();
       m_device->waitForSubmission(&m_generatedPresentStatus);
+      if (generatedWaitMs)
+        *generatedWaitMs += std::chrono::duration<double, std::milli>(
+          std::chrono::steady_clock::now() - waitStart).count();
       m_generatedPresentPending = false;
     }
   }
 
 
-  void D3D9SwapChainEx::SynchronizePresent() {
+  void D3D9SwapChainEx::SynchronizePresent(
+      double* sourceWaitMs, double* generatedWaitMs) {
     const bool sourceWasPending = m_sourcePresentPending;
-    WaitForPresentSubmissions();
+    WaitForPresentSubmissions(sourceWaitMs, generatedWaitMs);
 
     const VkResult sourceStatus = m_sourcePresentStatus.result.load();
     const VkResult generatedStatus = m_generatedPresentStatus.result.load();
