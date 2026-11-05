@@ -446,3 +446,54 @@ The performance CSV now separates the two serialized waits:
 - `avg_generated_handoff_wait_ms`: wait after the current source present is queued and before attempting its generated frame; this isolates the source-present-to-generated handoff.
   
 This replaces the combined `avg_presenter_handoff_wait_ms` field. It is instrumentation only and preserves the existing synchronization and semaphore ownership. Use both columns with the per-event Vulkan result code to decide whether the dominant cost is prior generated completion or the current source present.
+
+
+## WSI regression investigation — 2026-11-05 latest run
+
+The latest uploaded run is on 2448x1080, V1 flow grid 112x50
+(`flow_scale_percent=75`), VSync enabled, profiling disabled.
+
+Observed performance:
+- CPU Present rises from about 1 ms in the first 120-frame window to
+  27–32 ms in windows 1200–2400.
+- The previously added combined source handoff metric is similarly high
+  (about 25.7–30.5 ms) in those windows.
+- Source acquire itself remains near 0.0008 ms in the affected windows.
+- Generated handoff is around 0.64–0.75 ms in the same windows.
+- Generated queue acceptance later collapses in other windows (about
+  0.07–0.17 average), with repeated midpoint present failures.
+- The event's numeric result 1 maps to `VK_NOT_READY`. It must not be
+  described as a shader/flow failure. The generated present is not being
+  accepted by the current WSI path.
+
+The old `avg_source_handoff_wait_ms` was an aggregate timer around
+`SynchronizePresent()`, which calls `WaitForPresentSubmissions()` and can
+wait for both source and generated submissions. Its name therefore did not
+identify which queue entry caused the stall.
+
+### New instrumentation
+
+The performance CSV now adds:
+- `avg_source_submission_wait_ms`: time spent waiting for the source
+  submission status to resolve.
+- `avg_generated_submission_wait_ms`: time spent waiting for the generated
+  submission status to resolve.
+
+The aggregate handoff columns remain for continuity. This is diagnostic-only;
+it does not change WSI scheduling, acquire state, semaphores or present order.
+
+### Current engineering direction
+
+Do not remove the source/generated synchronization based on aggregate timing.
+The Presenter still has one mutable acquire slot (`m_frameIndex`,
+`m_imageIndex`, `m_acquireStatus`) and a shared semaphore ring. The safe
+next step remains per-acquire tickets, but first use the new split wait
+measurements to establish whether the 25–30 ms stall is the source submission
+or generated submission. If the generated submission dominates, a ticketed
+handoff can remove that wait from the source-frame critical path without
+reusing the present/acquire semaphore prematurely.
+
+The current log has no GPU stage timings because profiling is disabled.
+The scalar telemetry mismatch also remains unresolved
+(`valid_cells=128`, `expected_cells=5600`, `coverage=1.000`); keep it
+out of AI tuning until its reduction contract is fixed.
