@@ -174,3 +174,12 @@ The same upload has `profiling_enabled=0` and an empty `snapframe_gpu.csv` (head
 ### Deferred
 
 Confidence-mask consumption by the warp remains gated on proving vector direction, mask format/extent and measured GPU cost. The current V2 validation mask is not yet wired into midpoint reconstruction. x3/x4 temporal phases remain deferred until x2 pacing and Presenter acquire/present ownership are stable.
+
+
+## 2026-11-05 runtime regression: V2 diagnostic work gated
+
+The latest uploaded device run uses `profiling=0` and `diagnostic_suite=0`, but the previous implementation still built the V2 R16F pyramid on every captured frame. V2 search/refinement/validation were diagnostic-only and were not consumed by V1 midpoint reconstruction, so this imposed avoidable GPU work in ordinary gameplay. The accompanying `snapframe_gpu.csv` also showed sparse `total_chain` intervals alternating between roughly 5–7 ms and 25–84 ms, while `snapframe_perf_on.csv` showed retirement wait dominating CPU Present. These timestamp intervals cover the command sequence between the GPU timestamp markers; they are not isolated per-stage costs and must not be interpreted as pure shader execution time.
+
+**Change:** V2 pyramid/search/refinement/validation now run only when `profiling_enabled=1` or `diagnostic_suite=1`. With both disabled, V1 capture/flow/consistency/midpoint warp and WSI presentation remain active, while the V2 diagnostic workload and its sparse budget-governor timestamp samples are omitted. The V2 search interval governor remains useful only in diagnostic mode. No WSI semaphore/acquire synchronization was removed.
+
+**Validation required:** build the new branch HEAD, then repeat the same scene with the same configuration and compare source/game FPS, generated FPS, retirement wait, and GPU timestamps. The older 41915429838 and newer 41923694837 APKs were built from different commits, so their runtime FPS comparison is not a controlled shader-only A/B. Current telemetry still rejects scalar metrics with `low_valid_flow_coverage`; do not claim full Snap AI adaptation until the coverage/reduction bug is fixed and metrics are accepted.
