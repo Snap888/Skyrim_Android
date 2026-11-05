@@ -14,7 +14,7 @@
 
 /* SnapFrame owns source capture and midpoint generation in this DXVK path. */
 using SnapFrameCopyHook = void (*)(void*, void*, void*, uint32_t, uint32_t, uint32_t);
-extern "C" int snapframe_host_get_present_mode(int* presentMode);
+using SnapFramePresentModeHook = int (*)(int*);\nstatic std::atomic<SnapFramePresentModeHook> g_snapFramePresentModeHook{nullptr};\nextern "C" void snapframe_dxvk_set_present_mode_hook(SnapFramePresentModeHook hook) {\n  g_snapFramePresentModeHook.store(hook, std::memory_order_release);\n}
 static std::atomic<SnapFrameCopyHook> g_snapFrameCopyHook{nullptr};
 using SnapFrameLogHook = void (*)(const char*);
 static std::atomic<SnapFrameLogHook> g_snapFrameLogHook{nullptr};
@@ -1608,7 +1608,7 @@ namespace dxvk {
           BOOL                      Vsync,
           VkPresentModeKHR*         pDstModes) {
     int requestedMode = 0;
-    snapframe_host_get_present_mode(&requestedMode);
+    SnapFramePresentModeHook presentModeHook = g_snapFramePresentModeHook.load(std::memory_order_acquire);\n    if (presentModeHook)\n      presentModeHook(&requestedMode);
 
     uint32_t n = 0;
     switch (requestedMode) {
