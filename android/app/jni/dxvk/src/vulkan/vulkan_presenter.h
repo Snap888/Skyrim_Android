@@ -132,7 +132,8 @@ namespace dxvk::vk {
      */
     VkResult acquireNextImage(
             PresenterSync&  sync,
-            uint32_t&       index);
+            uint32_t&       index,
+            uint64_t        timeout = ~uint64_t(0));
     
     /**
      * \brief Presents current image
