@@ -1141,8 +1141,9 @@ namespace dxvk {
         perfGeneratedAcquireMs += std::chrono::duration<double, std::milli>(
           std::chrono::steady_clock::now() - generatedAcquireStart).count();
         if (!generatedAcquired) {
-          Logger::warn(str::format("SnapFrame: generated WSI acquire failed after retries: ",
-            generatedStatus, "; skipping generated frame"));
+          if (generatedStatus != VK_NOT_READY && generatedStatus != VK_TIMEOUT)
+            Logger::warn(str::format("SnapFrame: generated WSI acquire failed: ",
+              generatedStatus, "; skipping generated frame"));
           const SnapFramePresentResultHook resultHook =
             g_snapFramePresentResultHook.load(std::memory_order_acquire);
           if (resultHook) resultHook(0);
