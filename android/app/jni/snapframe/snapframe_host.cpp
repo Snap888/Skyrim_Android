@@ -1935,18 +1935,19 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                 && aiMetrics.frame_time_ms <= 20.0f
                 && aiMetrics.flow_confidence >= 0.45f
                 && aiMetrics.artifact_risk <= 0.25f;
+            const bool wsiCooldownActive =
+                g_aiWsiThrottleFrames.load(std::memory_order_acquire) != 0;
             const uint32_t stableHeadroomSamples = increaseHasHeadroom
+                && !wsiCooldownActive
                 ? g_aiQualityHeadroomSamples.fetch_add(1, std::memory_order_relaxed) + 1u
                 : (g_aiQualityHeadroomSamples.store(0, std::memory_order_relaxed), 0u);
-            const bool pressureSample =
-                aiMetrics.gpu_pressure >= 0.75f
+            const bool pressureSample = !wsiCooldownActive
+                && aiMetrics.gpu_pressure >= 0.75f
                 && aiMetrics.frame_time_ms > 0.0f
                 && aiMetrics.frame_time_ms <= 20.0f;
             const uint32_t stablePressureSamples = pressureSample
                 ? g_aiLoadPressureSamples.fetch_add(1, std::memory_order_relaxed) + 1u
                 : (g_aiLoadPressureSamples.store(0, std::memory_order_relaxed), 0u);
-            const bool wsiCooldownActive =
-                g_aiWsiThrottleFrames.load(std::memory_order_acquire) != 0;
             const bool scaleChangeAllowed = !wsiCooldownActive
                 && (reducingLoad
                     ? stablePressureSamples >= kAiStablePressureSamples
