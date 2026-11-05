@@ -11,87 +11,83 @@ SnapFrame: entered D3D9SwapChainEx::PresentImage
 SnapFrame: DXVK present path reached extent=2448x1080 format=0x25 usage=0x13 copy_hook=1
 SnapFrame: dispatching first DXVK copy callback
 SnapFrame: queued history reset consumed on render callback
-SnapFrame: portable config update queued enabled=1 flow_scale=50%
+SnapFrame: portable config update queued enabled=1 flow_scale=75%
 SnapFrame: queued history reset consumed on render callback
 SnapFrame: host copy callback entered
 SnapFrame: R16F luma output supported (features=0x1fd83 imageResult=0 extendedFormats=1)
 SnapFrame: V2 pyramid resources ready L0=1224x540 L1=612x270 L2=306x135 slots=2 format=R16F
 SnapFrame: V2 flow grids ready L0=153x68 L1=77x34 L2=39x17 directions=2 format=RGBA16F
-SnapFrame: forward/backward consistency resources ready format=R16_SFLOAT extent=77x34
-SnapFrame: V1 GPU scalar metrics ready grid=77x34 partials=50 readback_slots=3
+SnapFrame: forward/backward consistency resources ready format=R16_SFLOAT extent=112x50
+SnapFrame: V1 GPU scalar metrics ready grid=112x50 partials=98 readback_slots=3
 SnapFrame: midpoint reconstruction resources ready output=RGBA16F extent=2448x1080
 SnapFrame: luma compute resources ready outputs=2 extent=1224x540 format=R16_SFLOAT
-SnapFrame: bidirectional block-matching flow ready outputs=2 extent=77x34 format=RGBA16F search=coarse5x5-step4+refine3x3 range=+/-9 patch=3x3 candidates_max=33 flow_scale=50% block_stride=16 luma_texels
+SnapFrame: bidirectional block-matching flow ready outputs=2 extent=112x50 format=RGBA16F search=coarse5x5-step4+refine3x3 range=+/-9 patch=3x3 candidates_max=33 flow_scale=75% block_stride=11 luma_texels
 SnapFrame: allocated two-frame history 2448x1080 format=0x25
-SnapFrame: V2 pyramid dispatch accepted count=1 frame=1 L0=1224x540 L1=612x270 L2=306x135
 SnapFrame: luma dispatch accepted count=1 groups=153x68
 SnapFrame: captured=1 skipped=0 extent=2448x1080
-SnapFrame: V2 coarse-to-fine flow pair accepted count=1 frame=2 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=1 frame=2 grid=153x68 thresholds=1.5/4.0px
-SnapFrame: bidirectional flow pair accepted count=1 groups=10x5
+SnapFrame: bidirectional flow pair accepted count=1 groups=14x7
 SnapFrame: midpoint warp accepted count=1 extent=2448x1080 output=RGBA16F
 SnapFrame: forward/backward consistency accepted count=1
 SnapFrame: two real frames captured; history ring valid
+SnapFrame: GPU metrics rejected frame=30 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=0.000
 SnapFrame: captured=60 skipped=0 extent=2448x1080
-SnapFrame AI budget: V2 motion search interval=4 source frames (GPU budget target=6ms)
-SnapFrame: bidirectional flow pair accepted count=120 groups=10x5
+SnapFrame: bidirectional flow pair accepted count=120 groups=14x7
 SnapFrame: forward/backward consistency accepted count=120
-SnapFrame: bidirectional flow pair accepted count=240 groups=10x5
+SnapFrame: bidirectional flow pair accepted count=240 groups=14x7
 SnapFrame: forward/backward consistency accepted count=240
-SnapFrame: V2 pyramid dispatch accepted count=300 frame=300 L0=1224x540 L1=612x270 L2=306x135
 SnapFrame: luma dispatch accepted count=300 groups=153x68
+SnapFrame: GPU metrics rejected frame=300 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=0.000
 SnapFrame: midpoint warp accepted count=300 extent=2448x1080 output=RGBA16F
-SnapFrame: V2 coarse-to-fine flow pair accepted count=120 frame=304 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=120 frame=304 grid=153x68 thresholds=1.5/4.0px
-SnapFrame: bidirectional flow pair accepted count=360 groups=10x5
+SnapFrame: bidirectional flow pair accepted count=360 groups=14x7
 SnapFrame: forward/backward consistency accepted count=360
-SnapFrame: bidirectional flow pair accepted count=480 groups=10x5
+SnapFrame: bidirectional flow pair accepted count=480 groups=14x7
 SnapFrame: forward/backward consistency accepted count=480
-SnapFrame: V2 pyramid dispatch accepted count=600 frame=600 L0=1224x540 L1=612x270 L2=306x135
 SnapFrame: luma dispatch accepted count=600 groups=153x68
-SnapFrame: bidirectional flow pair accepted count=600 groups=10x5
+SnapFrame: GPU metrics rejected frame=600 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=0.188
+SnapFrame: bidirectional flow pair accepted count=600 groups=14x7
 SnapFrame: midpoint warp accepted count=600 extent=2448x1080 output=RGBA16F
 SnapFrame: forward/backward consistency accepted count=600
-SnapFrame: bidirectional flow pair accepted count=720 groups=10x5
+SnapFrame: bidirectional flow pair accepted count=720 groups=14x7
 SnapFrame: forward/backward consistency accepted count=720
-SnapFrame: V2 coarse-to-fine flow pair accepted count=240 frame=784 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=240 frame=784 grid=153x68 thresholds=1.5/4.0px
-SnapFrame: bidirectional flow pair accepted count=840 groups=10x5
+SnapFrame: bidirectional flow pair accepted count=840 groups=14x7
 SnapFrame: forward/backward consistency accepted count=840
-SnapFrame: V2 pyramid dispatch accepted count=900 frame=900 L0=1224x540 L1=612x270 L2=306x135
 SnapFrame: luma dispatch accepted count=900 groups=153x68
+SnapFrame: GPU metrics rejected frame=900 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=0.016
 SnapFrame: midpoint warp accepted count=900 extent=2448x1080 output=RGBA16F
-SnapFrame: bidirectional flow pair accepted count=960 groups=10x5
+SnapFrame: bidirectional flow pair accepted count=960 groups=14x7
 SnapFrame: forward/backward consistency accepted count=960
-SnapFrame: bidirectional flow pair accepted count=1080 groups=10x5
+SnapFrame: bidirectional flow pair accepted count=1080 groups=14x7
 SnapFrame: forward/backward consistency accepted count=1080
-SnapFrame: V2 pyramid dispatch accepted count=1200 frame=1200 L0=1224x540 L1=612x270 L2=306x135
 SnapFrame: luma dispatch accepted count=1200 groups=153x68
-SnapFrame: bidirectional flow pair accepted count=1200 groups=10x5
+SnapFrame: GPU metrics rejected frame=1200 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=0.020
+SnapFrame: bidirectional flow pair accepted count=1200 groups=14x7
 SnapFrame: midpoint warp accepted count=1200 extent=2448x1080 output=RGBA16F
 SnapFrame: forward/backward consistency accepted count=1200
-SnapFrame: V2 coarse-to-fine flow pair accepted count=360 frame=1264 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=360 frame=1264 grid=153x68 thresholds=1.5/4.0px
-SnapFrame: bidirectional flow pair accepted count=1320 groups=10x5
+SnapFrame: bidirectional flow pair accepted count=1320 groups=14x7
 SnapFrame: forward/backward consistency accepted count=1320
-SnapFrame: bidirectional flow pair accepted count=1440 groups=10x5
+SnapFrame: bidirectional flow pair accepted count=1440 groups=14x7
 SnapFrame: forward/backward consistency accepted count=1440
-SnapFrame: V2 pyramid dispatch accepted count=1500 frame=1500 L0=1224x540 L1=612x270 L2=306x135
 SnapFrame: luma dispatch accepted count=1500 groups=153x68
+SnapFrame: GPU metrics rejected frame=1500 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=0.033
 SnapFrame: midpoint warp accepted count=1500 extent=2448x1080 output=RGBA16F
-SnapFrame: bidirectional flow pair accepted count=1560 groups=10x5
+SnapFrame: bidirectional flow pair accepted count=1560 groups=14x7
 SnapFrame: forward/backward consistency accepted count=1560
-SnapFrame: bidirectional flow pair accepted count=1680 groups=10x5
+SnapFrame: bidirectional flow pair accepted count=1680 groups=14x7
 SnapFrame: forward/backward consistency accepted count=1680
-SnapFrame: V2 coarse-to-fine flow pair accepted count=480 frame=1744 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=480 frame=1744 grid=153x68 thresholds=1.5/4.0px
-SnapFrame: V2 pyramid dispatch accepted count=1800 frame=1800 L0=1224x540 L1=612x270 L2=306x135
 SnapFrame: luma dispatch accepted count=1800 groups=153x68
 SnapFrame: captured=1800 skipped=0 extent=2448x1080
-SnapFrame: bidirectional flow pair accepted count=1800 groups=10x5
+SnapFrame: GPU metrics rejected frame=1800 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=0.020
+SnapFrame: bidirectional flow pair accepted count=1800 groups=14x7
 SnapFrame: midpoint warp accepted count=1800 extent=2448x1080 output=RGBA16F
 SnapFrame: forward/backward consistency accepted count=1800
-SnapFrame: bidirectional flow pair accepted count=1920 groups=10x5
+SnapFrame: bidirectional flow pair accepted count=1920 groups=14x7
 SnapFrame: forward/backward consistency accepted count=1920
-SnapFrame: bidirectional flow pair accepted count=2040 groups=10x5
+SnapFrame: bidirectional flow pair accepted count=2040 groups=14x7
 SnapFrame: forward/backward consistency accepted count=2040
+SnapFrame: luma dispatch accepted count=2100 groups=153x68
+SnapFrame: GPU metrics rejected frame=2100 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=0.500
+SnapFrame: midpoint warp accepted count=2100 extent=2448x1080 output=RGBA16F
+SnapFrame: bidirectional flow pair accepted count=2160 groups=14x7
+SnapFrame: forward/backward consistency accepted count=2160
+SnapFrame: bidirectional flow pair accepted count=2280 groups=14x7
+SnapFrame: forward/backward consistency accepted count=2280
