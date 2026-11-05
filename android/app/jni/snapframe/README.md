@@ -539,3 +539,21 @@ DXVK now requests at least three swapchain images for the SnapFrame shared prese
 ### WSI image-count diagnostics
 
 The local log analyzer extracts `SnapFrame: actual present mode=... image_count=... extent=...` records and flags surfaces that clamp the requested three-image swapchain below three images. This is a diagnostic finding, not proof that image count alone causes generated-frame drops. Correlate it with `VK_NOT_READY` generated acquire events and Game FPS for each actual present mode.
+
+
+### WSI backpressure vs. generated-frame errors
+
+SnapFrame records a non-blocking generated-image acquire that returns
+`VK_NOT_READY` or `VK_TIMEOUT` as
+`midpoint_present_skipped_backpressure`. This is an expected WSI availability
+outcome: the generated frame is skipped and the source/game frame remains
+non-blocking. It is not counted as an interpolation or swapchain failure.
+Other unsuccessful generated-present results remain
+`midpoint_present_failed` and should be investigated as actual errors.
+
+The local log analyzer keeps compatibility with older logs, where
+`VK_NOT_READY` and `VK_TIMEOUT` were included in
+`midpoint_present_failed`. It reports these separately as skipped
+backpressure. GPU telemetry remains disabled for AI decisions until the
+partial-reduction count and valid/expected cell totals are internally
+consistent; diagnostic logs now include the partial-workgroup count.
