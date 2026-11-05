@@ -42,13 +42,13 @@ Portable API tests do not validate Vulkan dispatch. The concrete adapter compile
 
 ## Shared-swapchain present mode
 
-The launcher writes `present_mode=0..3` to `port/snapframe.conf` and applies it at the next launch:
+The launcher and in-game overlay write `present_mode=0..3` to `port/snapframe.conf`. The in-game overlay can request a live change:
 
 - `0` — Auto; preserve DXVK's current VSync/tear-free selection.
 - `1` — FIFO.
 - `2` — MAILBOX, then FIFO fallback if unsupported.
 - `3` — IMMEDIATE, then FIFO fallback if unsupported.
 
-The choice is made by DXVK when creating the shared swapchain. Game and generated frames therefore use the same Vulkan present mode; independent source/generated present modes are not supported by this integration. The DXVK D3D9 library obtains the setting through a function-pointer callback registered by SnapFrame Host at initialization and cleared during shutdown. This keeps the shared-library boundary free of a direct unresolved reference to `snapframe_host_get_present_mode`.
+The choice is made by DXVK when creating the shared swapchain. Game and generated frames therefore use the same Vulkan present mode; independent source/generated present modes are not supported by this integration. The DXVK D3D9 library obtains the setting through a function-pointer callback registered by SnapFrame Host at initialization and cleared during shutdown. The overlay sends the new value through JNI to a host atomic. At the next serialized DXVK present boundary, DXVK drains outstanding source/generated submissions, waits for device idle, recreates the shared swapchain and refreshes its image views before continuing. No Vulkan object is mutated from the Android UI thread. This can cause a one-time frame-time spike. The UI displays the requested mode; actual mode/fallback must be confirmed from DXVK WSI logs.
 
 For A/B testing, use Auto first, then FIFO/MAILBOX/IMMEDIATE with the same scene and VSync setting. Record the selected/actual present mode and compare source FPS, source frame times, generated-frame acceptance and pacing. Do not treat queued/present-submission FPS as measured panel scanout.
