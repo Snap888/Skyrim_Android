@@ -561,3 +561,21 @@ consistent; diagnostic logs now include the partial-workgroup count.
 ### Metrics reduction buffer hygiene
 
 The V1 GPU telemetry partial-reduction buffer is device-local and reused between samples. Before each sampled reduction, the host clears the full `partial_count * 32` byte range with `vkCmdFillBuffer` through DXVK's `DxvkContext::clearBuffer`, then dispatches the 8x8 partial reduction. This prevents unwritten workgroup records from inheriting values from an earlier sample. The buffer therefore includes `VK_BUFFER_USAGE_TRANSFER_DST_BIT` in addition to storage usage. This is a correctness/diagnostic safeguard, not a fix for the currently observed `valid_cells=64` versus `expected_cells=2618` mismatch; AI adaptation remains gated until full-grid telemetry validates.
+
+
+### Metrics partial-dispatch diagnostics
+
+The final V1 metrics reduction now reports four additional GPU-side counters in
+its frame-tagged readback: non-empty partial records, minimum and maximum
+observed cells per partial record, and the expected partial-record count.
+These counters are reduced on the GPU and add only a small shared-memory
+reduction to the existing 30-frame telemetry sample. They do not read the
+partial buffer back to the CPU and do not relax the AI coverage gate.
+
+For the 77×34 flow grid, the expected geometry is 10×5 = 50 partial records.
+A healthy edge-aware dispatch should report 50 active records, with per-record
+cell counts between 1 and 64 (interior groups contain 64). If only one record
+is active, the next investigation target is partial-dispatch execution or
+storage-buffer writes; if all records are active but the sum/readback remains
+wrong, inspect final reduction and result-buffer ABI/barriers. This is
+diagnostic evidence, not a claim that the telemetry issue is already fixed.
