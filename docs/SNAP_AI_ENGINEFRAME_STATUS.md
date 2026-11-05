@@ -578,3 +578,7 @@ mode for both source and generated frames. It does not independently pace FG.
 Changing the preference requires restarting the game / recreating the swapchain.
 No automatic runtime switching is enabled. Runtime A/B measurements and device
 validation are still required; output submit FPS is not physical scanout FPS.
+Initial Presenter creation was also corrected to pass the current `m_vsync`
+state into `PickPresentModes` instead of hard-coding `false`. This matters
+for Auto mode: the initial swapchain now follows the same VSync/tear-free
+policy as later swapchain recreations.
