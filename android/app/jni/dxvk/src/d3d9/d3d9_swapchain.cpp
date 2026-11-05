@@ -34,7 +34,7 @@ extern "C" void snapframe_dxvk_set_log_hook(SnapFrameLogHook hook) {
 
 using SnapFrameCanGenerateHook = bool (*)(void);
 using SnapFrameGenerateHook = void* (*)(void*, void*, uint32_t, uint32_t, uint32_t);
-using SnapFramePresentResultHook = void (*)(int);
+using SnapFramePresentResultHook = void (*)(int, int);
 static std::atomic<SnapFrameCanGenerateHook> g_snapFrameCanGenerateHook{nullptr};
 static std::atomic<SnapFrameGenerateHook> g_snapFrameGenerateHook{nullptr};
 static std::atomic<SnapFramePresentResultHook> g_snapFramePresentResultHook{nullptr};
@@ -1146,7 +1146,7 @@ namespace dxvk {
               generatedStatus, "; skipping generated frame"));
           const SnapFramePresentResultHook resultHook =
             g_snapFramePresentResultHook.load(std::memory_order_acquire);
-          if (resultHook) resultHook(0);
+          if (resultHook) resultHook(0, static_cast<int>(generatedStatus));
           break;
         }
 
@@ -1204,7 +1204,7 @@ namespace dxvk {
           if (generationFailed) {
             const SnapFramePresentResultHook resultHook =
               g_snapFramePresentResultHook.load(std::memory_order_acquire);
-            if (resultHook) resultHook(0);
+            if (resultHook) resultHook(0, static_cast<int>(VK_ERROR_UNKNOWN));
           } else {
             // SubmitPresent is asynchronous. Resolve acceptance only after
             // SynchronizePresent observes the actual VkPresent result.
@@ -1303,7 +1303,7 @@ namespace dxvk {
       const SnapFramePresentResultHook resultHook =
         g_snapFramePresentResultHook.load(std::memory_order_acquire);
       if (resultHook)
-        resultHook(accepted ? 1 : 0);
+        resultHook(accepted ? 1 : 0, static_cast<int>(generatedStatus));
       if (accepted)
         hud::addSnapFrameGeneratedFrame();
       m_snapFramePresentPending = false;
