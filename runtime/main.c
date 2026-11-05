@@ -74,6 +74,7 @@ static int persist_snapframe_settings(int enabled, int flow_percent, int present
     if (input) fclose(input);
     if (!wrote_enabled) fprintf(output, "enabled=%d\n", enabled ? 1 : 0);
     if (!wrote_flow) fprintf(output, "flow_scale_percent=%d\n", flow_percent);
+    if (!wrote_present_mode) fprintf(output, "present_mode=%d\\n", present_mode);
 
     int ok = fflush(output) == 0;
     if (fclose(output) != 0) ok = 0;
