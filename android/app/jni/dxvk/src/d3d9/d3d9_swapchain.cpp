@@ -1303,10 +1303,11 @@ namespace dxvk {
         + perfFrameLatencyWaitMs;
       char spikeMessage[768];
       snprintf(spikeMessage, sizeof(spikeMessage),
-        "SnapFrame: DXVK present spike frame=%llu total=%.3fms flush=%.3fms source_acquire=%.3fms source_handoff=%.3fms generated_handoff=%.3fms generated_acquire=%.3fms generate_record=%.3fms submit_enqueue=%.3fms frame_latency=%.3fms untracked=%.3fms fg_requested=%u fg_queued=%u",
+        "SnapFrame: DXVK present spike frame=%llu total=%.3fms flush=%.3fms source_acquire=%.3fms source_handoff=%.3fms source_submission_wait=%.3fms generated_handoff=%.3fms generated_submission_wait=%.3fms generated_acquire=%.3fms generate_record=%.3fms submit_enqueue=%.3fms frame_latency=%.3fms untracked=%.3fms fg_requested=%u fg_queued=%u",
         static_cast<unsigned long long>(m_frameId), perfMs,
         perfCommandFlushMs, perfSourceAcquireMs, perfSourceHandoffWaitMs,
-        perfGeneratedHandoffWaitMs, perfGeneratedAcquireMs,
+        perfSourceSubmissionWaitMs, perfGeneratedHandoffWaitMs,
+        perfGeneratedSubmissionWaitMs, perfGeneratedAcquireMs,
         perfGenerateRecordMs, perfSubmitEnqueueMs, perfFrameLatencyWaitMs,
         std::max(0.0, perfMs - trackedMs), perfRequested, perfGenerated);
       snapframeEmitLog(spikeMessage);
