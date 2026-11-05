@@ -1,6 +1,7 @@
 #pragma once
 
 #include <condition_variable>
+#include <chrono>
 #include <mutex>
 #include <queue>
 
@@ -54,6 +55,7 @@ namespace dxvk {
    * \brief Submission queue entry
    */
   struct DxvkSubmitEntry {
+    std::chrono::steady_clock::time_point enqueuedAt;
     DxvkSubmitStatus*   status;
     DxvkSubmitInfo      submit;
     DxvkPresentInfo     present;
