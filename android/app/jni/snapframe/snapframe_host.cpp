@@ -2792,7 +2792,7 @@ extern "C" int snapframe_host_update_present_mode(int present_mode) {
         return 0;
     const int previous = g_presentMode.exchange(present_mode, std::memory_order_acq_rel);
     if (previous != present_mode)
-        snapframeLog("SnapFrame: live present mode change queued; DXVK will recreate the shared swapchain at the next present boundary\\n");
+        snapframeLog("SnapFrame: live present mode change queued; DXVK will recreate the shared swapchain at the next present boundary\n");
     return 1;
 }
 
