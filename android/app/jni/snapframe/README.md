@@ -494,3 +494,19 @@ Changing the setting requires a game restart so the swapchain is created with
 the selected mode. Compare source Game FPS, generated submit FPS, output submit
 FPS, source/generated submission wait, and visual tearing/stutter. Submit FPS
 does not prove physical scanout.
+
+
+## WSI presentation mode selection
+
+The Android launcher exposes **Auto**, **FIFO**, **MAILBOX**, and **IMMEDIATE** under SnapFrame Frame Generation. The selection is persisted as `present_mode` in `<game-directory>/port/snapframe.conf`:
+
+| Value | Request | Fallback |
+|---:|---|---|
+| 0 | Auto; retain DXVK's existing VSync/tear-free policy | Existing DXVK preference order |
+| 1 | FIFO | None needed; FIFO is Vulkan's guaranteed mode |
+| 2 | MAILBOX | FIFO |
+| 3 | IMMEDIATE | FIFO |
+
+The mode is selected when DXVK creates the game's shared output swapchain. Both real and generated frames use that same swapchain; this is not an independent generated-frame mode. A requested MAILBOX or IMMEDIATE mode is only selected when the surface advertises it, otherwise DXVK proceeds to FIFO. The setting is applied on the next game launch. The DXVK host reads it through a registered callback, avoiding a direct link from the DXVK D3D9 shared library to the SnapFrame host library.
+
+**Tuning guidance:** start with Auto as the baseline. FIFO is the stable pacing option; MAILBOX is a useful low-latency option when supported; IMMEDIATE may tear and should be evaluated only when tearing is acceptable. Compare source/game FPS and frame-time consistency, not just generated-present submission counts. A higher output-submit rate is not proof of higher physical display scanout.
