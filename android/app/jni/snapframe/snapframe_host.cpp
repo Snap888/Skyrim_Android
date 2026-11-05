@@ -199,7 +199,11 @@ struct SnapAIPendingMetrics {
 SnapAIPendingMetrics g_snapAiPendingMetrics;
 std::atomic<uint64_t> g_aiDecisionCount{0};
 uint64_t g_aiLastScaleChangeFrame = 0;
-static constexpr uint64_t kAiScaleChangeCooldownFrames = 120;
+std::atomic<uint32_t> g_aiQualityHeadroomSamples{0};
+std::atomic<uint32_t> g_aiLoadPressureSamples{0};
+static constexpr uint32_t kAiStableHeadroomSamples = 4;
+static constexpr uint32_t kAiStablePressureSamples = 3;
+static constexpr uint64_t kAiScaleChangeCooldownFrames = 600;
 
 struct alignas(16) SnapFrameMetricsGpuResult {
     uint32_t identity[4];
@@ -1928,12 +1932,19 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                 && aiMetrics.frame_time_ms <= 20.0f
                 && aiMetrics.flow_confidence >= 0.45f
                 && aiMetrics.artifact_risk <= 0.25f;
-            const bool decreaseIsNeeded =
+            const uint32_t stableHeadroomSamples = increaseHasHeadroom
+                ? g_aiQualityHeadroomSamples.fetch_add(1, std::memory_order_relaxed) + 1u
+                : (g_aiQualityHeadroomSamples.store(0, std::memory_order_relaxed), 0u);
+            const bool pressureSample =
                 aiMetrics.gpu_pressure >= 0.75f
                 && aiMetrics.frame_time_ms > 0.0f
                 && aiMetrics.frame_time_ms <= 20.0f;
+            const uint32_t stablePressureSamples = pressureSample
+                ? g_aiLoadPressureSamples.fetch_add(1, std::memory_order_relaxed) + 1u
+                : (g_aiLoadPressureSamples.store(0, std::memory_order_relaxed), 0u);
             const bool scaleChangeAllowed = reducingLoad
-                ? decreaseIsNeeded : increaseHasHeadroom;
+                ? stablePressureSamples >= kAiStablePressureSamples
+                : stableHeadroomSamples >= kAiStableHeadroomSamples;
             if (scaleDiffers && scaleChangeCooldownElapsed && scaleChangeAllowed) {
                 if (snapframe_host_apply_backend_config(
                         g_enabled.load(std::memory_order_acquire), requestedScale)) {
@@ -1948,8 +1959,8 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
             } else if (scaleDiffers && scaleChangeCooldownElapsed) {
                 snapframeEvent(aiMetrics.frame_id, "ai_scale_change_deferred",
                     width, height, reducingLoad
-                        ? "load_reduction_without_sustained_pressure"
-                        : "quality_increase_without_gpu_and_source_headroom");
+                        ? "load_reduction_without_three_stable_pressure_samples"
+                        : "quality_increase_without_four_stable_headroom_samples");
             }
             const uint64_t decisions = g_aiDecisionCount.fetch_add(
                 1, std::memory_order_relaxed) + 1;
@@ -2723,6 +2734,8 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
     }
     g_aiDecisionCount.store(0, std::memory_order_relaxed);
     g_aiLastScaleChangeFrame = 0;
+    g_aiQualityHeadroomSamples.store(0, std::memory_order_relaxed);
+    g_aiLoadPressureSamples.store(0, std::memory_order_relaxed);
     g_motionAnalysisEnabled = validated.motion_analysis != 0;
     g_diagnosticSuiteEnabled = validated.diagnostic_suite != 0 && g_motionAnalysisEnabled;
     if (validated.diagnostic_suite != 0 && !g_motionAnalysisEnabled)
