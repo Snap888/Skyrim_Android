@@ -2602,7 +2602,7 @@ extern "C" bool snapframe_host_can_generate(void);
 extern "C" void* snapframe_host_generate_view(
     void* contextPtr, void* devicePtr,
     uint32_t width, uint32_t height, uint32_t formatValue);
-extern "C" void snapframe_host_present_result(int success);
+extern "C" void snapframe_host_present_result(int success, int vkResult);
 
 extern "C" void snapframe_config_defaults(SnapFrameConfig *config) {
     if (!config) return;
