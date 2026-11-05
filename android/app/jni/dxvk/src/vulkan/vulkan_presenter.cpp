@@ -46,14 +46,15 @@ namespace dxvk::vk {
   }
 
 
-  VkResult Presenter::acquireNextImage(PresenterSync& sync, uint32_t& index) {
+  VkResult Presenter::acquireNextImage(
+          PresenterSync& sync, uint32_t& index, uint64_t timeout) {
     sync = m_semaphores.at(m_frameIndex);
 
-    // Don't acquire more than one image at a time
+    // Don't acquire more than one image at a time. A caller may request a
+    // zero-timeout poll so the submission thread never blocks waiting for WSI.
     if (m_acquireStatus == VK_NOT_READY) {
       m_acquireStatus = m_vkd->vkAcquireNextImageKHR(m_vkd->device(),
-        m_swapchain, std::numeric_limits<uint64_t>::max(),
-        sync.acquire, VK_NULL_HANDLE, &m_imageIndex);
+        m_swapchain, timeout, sync.acquire, VK_NULL_HANDLE, &m_imageIndex);
     }
     
     if (m_acquireStatus != VK_SUCCESS && m_acquireStatus != VK_SUBOPTIMAL_KHR)
@@ -89,9 +90,10 @@ namespace dxvk::vk {
 
     sync = m_semaphores.at(m_frameIndex);
 
+    // Pre-acquire opportunistically only. An infinite-timeout acquire here
+    // stalls the submission thread and delays completion of the source Present.
     m_acquireStatus = m_vkd->vkAcquireNextImageKHR(m_vkd->device(),
-      m_swapchain, std::numeric_limits<uint64_t>::max(),
-      sync.acquire, VK_NULL_HANDLE, &m_imageIndex);
+      m_swapchain, 0, sync.acquire, VK_NULL_HANDLE, &m_imageIndex);
 
     bool vsync = m_info.presentMode == VK_PRESENT_MODE_FIFO_KHR
               || m_info.presentMode == VK_PRESENT_MODE_FIFO_RELAXED_KHR;
