@@ -230,6 +230,7 @@ uint32_t g_metricsPartialCount = 0;
 uint64_t g_midpointDispatchCount = 0;
 uint64_t g_midpointFailureCount = 0;
 std::atomic<uint32_t> g_flowScalePercent{50};
+std::atomic<int> g_presentMode{SNAPFRAME_PRESENT_MODE_AUTO};
 std::atomic<uint64_t> g_lastGpuTimingFrame{0};
 std::atomic<float> g_lastGpuTimingMs{0.0f};
 std::atomic<float> g_lastGpuFrameIntervalMs{0.0f};
@@ -2611,6 +2612,7 @@ extern "C" void snapframe_config_defaults(SnapFrameConfig *config) {
     config->multiplier = 2;
     config->quality = SNAPFRAME_QUALITY_BALANCED;
     config->flow_scale_percent = 50;
+    config->present_mode = SNAPFRAME_PRESENT_MODE_AUTO;
     config->motion_analysis = 1;
     config->profiling_enabled = 0;
     config->diagnostic_suite = 0;
@@ -2630,6 +2632,10 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
         validated.flow_scale_percent = 25;
     if (validated.flow_scale_percent > 100)
         validated.flow_scale_percent = 100;
+    if (validated.present_mode < SNAPFRAME_PRESENT_MODE_AUTO
+        || validated.present_mode > SNAPFRAME_PRESENT_MODE_IMMEDIATE)
+        validated.present_mode = SNAPFRAME_PRESENT_MODE_AUTO;
+    g_presentMode.store(validated.present_mode, std::memory_order_release);
     if (validated.diagnostic_phase_frames < 300) validated.diagnostic_phase_frames = 300;
     if (validated.diagnostic_phase_frames > 36000) validated.diagnostic_phase_frames = 36000;
     g_flowScalePercent.store(static_cast<uint32_t>(validated.flow_scale_percent), std::memory_order_release);
@@ -2768,6 +2774,12 @@ extern "C" int snapframe_host_get_settings(int *enabled, int *flow_scale_percent
     if (enabled) *enabled = g_enabled.load(std::memory_order_acquire);
     if (flow_scale_percent) *flow_scale_percent = static_cast<int>(flowScalePercent());
     return 1;
+}
+
+extern "C" int snapframe_host_get_present_mode(int *present_mode) {
+    if (present_mode)
+        *present_mode = g_presentMode.load(std::memory_order_acquire);
+    return g_initialized.load(std::memory_order_acquire) ? 1 : 0;
 }
 
 extern "C" int snapframe_host_get_last_telemetry(
