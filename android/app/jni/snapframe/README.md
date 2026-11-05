@@ -536,3 +536,6 @@ The report aggregates event counts, generated-present VkResult failures, perform
 
 DXVK now requests at least three swapchain images for the SnapFrame shared presenter (subject to the surface's supported limits). This is intended to leave room for a source image, a queued/scan-out image, and one generated image in the same cycle. The actual selected present mode and actual image count are logged as `SnapFrame: actual present mode=... image_count=...`. This is a measured experiment, not a guaranteed FIFO fix: triple buffering can increase queue latency on some drivers. Compare Game FPS, generated acceptance rate, source acquire p95, and visible input latency across all four modes. If the surface clamps the count to two, or FIFO still reports VK_NOT_READY, the next step is the per-acquire ticket design—not longer blocking acquire timeouts on the game thread.
 
+### WSI image-count diagnostics
+
+The local log analyzer extracts `SnapFrame: actual present mode=... image_count=... extent=...` records and flags surfaces that clamp the requested three-image swapchain below three images. This is a diagnostic finding, not proof that image count alone causes generated-frame drops. Correlate it with `VK_NOT_READY` generated acquire events and Game FPS for each actual present mode.
