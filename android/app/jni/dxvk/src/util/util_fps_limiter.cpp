@@ -60,8 +60,12 @@ namespace dxvk {
     // If the swap chain is known to have vsync enabled and the
     // refresh rate is similar to the target frame rate, disable
     // the limiter so it does not screw up frame times
+    // VSync already paces presentation. If the display refresh interval is
+    // unavailable (common on Android surfaces), do not fall through to the
+    // software limiter: that would add a second, potentially stale frame cap.
     if (vsyncEnabled && !m_envOverride
-     && m_refreshInterval * 100 > m_targetInterval * 97)
+     && (m_refreshInterval == NtTimerDuration::zero()
+      || m_refreshInterval * 100 > m_targetInterval * 97))
       return;
 
     auto t0 = m_lastFrame;
