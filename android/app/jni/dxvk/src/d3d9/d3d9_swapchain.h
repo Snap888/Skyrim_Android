@@ -133,7 +133,8 @@ namespace dxvk {
 
     void PresentImage(UINT PresentInterval);
 
-    void SubmitPresent(const vk::PresenterSync& Sync, uint32_t FrameId, DxvkSubmitStatus& Status);
+    void SubmitPresent(const vk::PresenterSync& Sync, uint32_t FrameId,
+                       DxvkSubmitStatus& Status, bool ApplyFrameRateLimit);
 
     void WaitForPresentSubmissions(double* sourceWaitMs = nullptr,
                                   double* generatedWaitMs = nullptr);
