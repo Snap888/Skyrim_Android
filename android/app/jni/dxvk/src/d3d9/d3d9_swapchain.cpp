@@ -985,6 +985,20 @@ namespace dxvk {
       snapframeEmitLog("SnapFrame: entered D3D9SwapChainEx::PresentImage");
     const auto perfStart = std::chrono::steady_clock::now();
     const bool perfBypassSnapFrame = snapFramePerfBypassEnabled();
+
+    /* Apply UI-requested WSI changes only on the serialized DXVK present
+     * thread. RecreateSwapChain drains outstanding source/generated presents
+     * and waits for device idle before replacing the shared swapchain. */
+    int requestedPresentMode = m_snapFramePresentMode;
+    SnapFramePresentModeHook presentModeHook =
+      g_snapFramePresentModeHook.load(std::memory_order_acquire);
+    if (presentModeHook && presentModeHook(&requestedPresentMode)
+        && requestedPresentMode >= 0 && requestedPresentMode <= 3
+        && requestedPresentMode != m_snapFramePresentMode) {
+      Logger::info(str::format("SnapFrame: applying runtime present mode request=",
+        requestedPresentMode, " at present boundary"));
+      RecreateSwapChain(m_vsync);
+    }
     uint32_t perfGenerated = 0;
     uint32_t perfRequested = 0;
     double perfSourceAcquireMs = 0.0;
@@ -1376,6 +1390,12 @@ namespace dxvk {
       throw DxvkError("D3D9SwapChainEx: Failed to recreate swap chain");
     
     CreateRenderTargetViews();
+    int requestedMode = 0;
+    SnapFramePresentModeHook presentModeHook =
+      g_snapFramePresentModeHook.load(std::memory_order_acquire);
+    if (presentModeHook)
+      presentModeHook(&requestedMode);
+    m_snapFramePresentMode = requestedMode;
   }
 
 
@@ -1411,6 +1431,12 @@ namespace dxvk {
     m_presenter->setFrameRateLimiterRefreshRate(m_displayRefreshRate);
 
     CreateRenderTargetViews();
+    int requestedMode = 0;
+    SnapFramePresentModeHook presentModeHook =
+      g_snapFramePresentModeHook.load(std::memory_order_acquire);
+    if (presentModeHook)
+      presentModeHook(&requestedMode);
+    m_snapFramePresentMode = requestedMode;
   }
 
 
