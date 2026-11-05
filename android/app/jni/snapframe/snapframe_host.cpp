@@ -829,7 +829,8 @@ bool recordV1GpuMetrics(
                     && gpu->extent[0] == width && gpu->extent[1] == height
                     && gpu->extent[2] == flowWidth && gpu->extent[3] == flowHeight;
                 const bool coverageValid = gpu->quality[3] >= 0.90f
-                    && gpu->quality[3] <= 1.001f;
+                    && gpu->quality[3] <= 1.001f
+                    && gpu->flags[3] == gpu->flags[2];
                 if (finite && identityValid && coverageValid
                     && gpu->flags[0] == 1u) {
                     const uint64_t previous = g_metricsPublishedFrame.load(
@@ -885,7 +886,15 @@ bool recordV1GpuMetrics(
                 } else if (!identityValid) {
                     rejectReason = "frame_identity_or_extent_mismatch";
                 } else if (!coverageValid || gpu->flags[0] != 1u) {
-                    rejectReason = "low_valid_flow_coverage";
+                    rejectReason = gpu->flags[3] != gpu->flags[2]
+                        ? "metrics_grid_coverage_mismatch"
+                        : "low_valid_flow_coverage";
+                    if (frame == 30u || (frame % 300u) == 0u) {
+                        snapframeLog("SnapFrame: GPU metrics rejected frame=%llu valid=%.1f observed=%u expected=%u coverage=%.3f confidence=%.3f\n",
+                            static_cast<unsigned long long>(frame),
+                            gpu->quality[3], gpu->flags[3], gpu->flags[2],
+                            gpu->quality[3], gpu->motion[2]);
+                    }
                 }
             } else {
                 rejectReason = "readback_map_failed";
