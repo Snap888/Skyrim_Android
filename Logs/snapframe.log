@@ -4,17 +4,15 @@ SnapFrame: bootstrap entered
 SnapFrame: MotionV2 telemetry store ready
 SnapFrame: flow readback disabled (motion_analysis=1 profiling=0 diagnostic_suite=0 interval=120 frames)
 SnapFrame: diagnostic_suite=0 phase_frames=1800 phases=7 profiling=0 motion_analysis=1 timestamp_interval=30 flow_readback_interval=120
-SnapFrame: host initialized enabled=0 quality=1 flow_scale=50% motion_analysis=1 mode=capture+luma+bidirectional-flow+fb-consistency+midpoint-warp
+SnapFrame: host initialized enabled=1 quality=1 flow_scale=75% motion_analysis=1 mode=capture+luma+bidirectional-flow+fb-consistency+midpoint-warp
 SnapFrame: portable SnapFrameBackendV1 active (DXVK GPU pipeline adapter)
-SnapFrame: config=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe.conf log=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe.log gpu_csv=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe_gpu.csv flow_csv=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe_flow.csv events_csv=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe_events.csv enabled=0 multiplier=2 quality=1 flow_scale=50 motion_analysis=1 profiling=0 diagnostic_suite=0 phase_frames=1800
+SnapFrame: config=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe.conf log=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe.log gpu_csv=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe_gpu.csv flow_csv=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe_flow.csv events_csv=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe_events.csv enabled=1 multiplier=2 quality=1 flow_scale=75 motion_analysis=1 profiling=0 diagnostic_suite=0 phase_frames=1800
 SnapFrame: entered D3D9SwapChainEx::PresentImage
 SnapFrame: DXVK present path reached extent=2448x1080 format=0x25 usage=0x13 copy_hook=1
 SnapFrame: dispatching first DXVK copy callback
 SnapFrame: queued history reset consumed on render callback
-SnapFrame: portable config update queued enabled=1 flow_scale=75%
-SnapFrame: queued history reset consumed on render callback
 SnapFrame: host copy callback entered
-SnapFrame: R16F luma output supported (features=0x1fd83 imageResult=0 extendedFormats=1)
+SnapFrame: R16F luma output supported (features=0x8001fd83 imageResult=0 extendedFormats=1)
 SnapFrame: V2 pyramid resources ready L0=1224x540 L1=612x270 L2=306x135 slots=2 format=R16F
 SnapFrame: V2 flow grids ready L0=153x68 L1=77x34 L2=39x17 directions=2 format=RGBA16F
 SnapFrame: forward/backward consistency resources ready format=R16_SFLOAT extent=112x50
@@ -29,21 +27,21 @@ SnapFrame: bidirectional flow pair accepted count=1 groups=14x7
 SnapFrame: midpoint warp accepted count=1 extent=2448x1080 output=RGBA16F
 SnapFrame: forward/backward consistency accepted count=1
 SnapFrame: two real frames captured; history ring valid
-SnapFrame: GPU metrics rejected frame=30 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=0.000
+SnapFrame: GPU metrics rejected frame=30 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=0.117
 SnapFrame: captured=60 skipped=0 extent=2448x1080
 SnapFrame: bidirectional flow pair accepted count=120 groups=14x7
 SnapFrame: forward/backward consistency accepted count=120
 SnapFrame: bidirectional flow pair accepted count=240 groups=14x7
 SnapFrame: forward/backward consistency accepted count=240
 SnapFrame: luma dispatch accepted count=300 groups=153x68
-SnapFrame: GPU metrics rejected frame=300 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=0.000
+SnapFrame: GPU metrics rejected frame=300 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=0.117
 SnapFrame: midpoint warp accepted count=300 extent=2448x1080 output=RGBA16F
 SnapFrame: bidirectional flow pair accepted count=360 groups=14x7
 SnapFrame: forward/backward consistency accepted count=360
 SnapFrame: bidirectional flow pair accepted count=480 groups=14x7
 SnapFrame: forward/backward consistency accepted count=480
 SnapFrame: luma dispatch accepted count=600 groups=153x68
-SnapFrame: GPU metrics rejected frame=600 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=0.188
+SnapFrame: GPU metrics rejected frame=600 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=0.146
 SnapFrame: bidirectional flow pair accepted count=600 groups=14x7
 SnapFrame: midpoint warp accepted count=600 extent=2448x1080 output=RGBA16F
 SnapFrame: forward/backward consistency accepted count=600
@@ -52,14 +50,14 @@ SnapFrame: forward/backward consistency accepted count=720
 SnapFrame: bidirectional flow pair accepted count=840 groups=14x7
 SnapFrame: forward/backward consistency accepted count=840
 SnapFrame: luma dispatch accepted count=900 groups=153x68
-SnapFrame: GPU metrics rejected frame=900 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=0.016
+SnapFrame: GPU metrics rejected frame=900 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=0.035
 SnapFrame: midpoint warp accepted count=900 extent=2448x1080 output=RGBA16F
 SnapFrame: bidirectional flow pair accepted count=960 groups=14x7
 SnapFrame: forward/backward consistency accepted count=960
 SnapFrame: bidirectional flow pair accepted count=1080 groups=14x7
 SnapFrame: forward/backward consistency accepted count=1080
 SnapFrame: luma dispatch accepted count=1200 groups=153x68
-SnapFrame: GPU metrics rejected frame=1200 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=0.020
+SnapFrame: GPU metrics rejected frame=1200 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=0.042
 SnapFrame: bidirectional flow pair accepted count=1200 groups=14x7
 SnapFrame: midpoint warp accepted count=1200 extent=2448x1080 output=RGBA16F
 SnapFrame: forward/backward consistency accepted count=1200
@@ -68,7 +66,7 @@ SnapFrame: forward/backward consistency accepted count=1320
 SnapFrame: bidirectional flow pair accepted count=1440 groups=14x7
 SnapFrame: forward/backward consistency accepted count=1440
 SnapFrame: luma dispatch accepted count=1500 groups=153x68
-SnapFrame: GPU metrics rejected frame=1500 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=0.033
+SnapFrame: GPU metrics rejected frame=1500 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=0.044
 SnapFrame: midpoint warp accepted count=1500 extent=2448x1080 output=RGBA16F
 SnapFrame: bidirectional flow pair accepted count=1560 groups=14x7
 SnapFrame: forward/backward consistency accepted count=1560
@@ -76,7 +74,7 @@ SnapFrame: bidirectional flow pair accepted count=1680 groups=14x7
 SnapFrame: forward/backward consistency accepted count=1680
 SnapFrame: luma dispatch accepted count=1800 groups=153x68
 SnapFrame: captured=1800 skipped=0 extent=2448x1080
-SnapFrame: GPU metrics rejected frame=1800 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=0.020
+SnapFrame: GPU metrics rejected frame=1800 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=0.044
 SnapFrame: bidirectional flow pair accepted count=1800 groups=14x7
 SnapFrame: midpoint warp accepted count=1800 extent=2448x1080 output=RGBA16F
 SnapFrame: forward/backward consistency accepted count=1800
@@ -85,9 +83,23 @@ SnapFrame: forward/backward consistency accepted count=1920
 SnapFrame: bidirectional flow pair accepted count=2040 groups=14x7
 SnapFrame: forward/backward consistency accepted count=2040
 SnapFrame: luma dispatch accepted count=2100 groups=153x68
-SnapFrame: GPU metrics rejected frame=2100 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=0.500
+SnapFrame: GPU metrics rejected frame=2100 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=0.061
 SnapFrame: midpoint warp accepted count=2100 extent=2448x1080 output=RGBA16F
 SnapFrame: bidirectional flow pair accepted count=2160 groups=14x7
 SnapFrame: forward/backward consistency accepted count=2160
 SnapFrame: bidirectional flow pair accepted count=2280 groups=14x7
 SnapFrame: forward/backward consistency accepted count=2280
+SnapFrame: luma dispatch accepted count=2400 groups=153x68
+SnapFrame: GPU metrics rejected frame=2400 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=1.000
+SnapFrame: bidirectional flow pair accepted count=2400 groups=14x7
+SnapFrame: midpoint warp accepted count=2400 extent=2448x1080 output=RGBA16F
+SnapFrame: forward/backward consistency accepted count=2400
+SnapFrame: bidirectional flow pair accepted count=2520 groups=14x7
+SnapFrame: forward/backward consistency accepted count=2520
+SnapFrame: bidirectional flow pair accepted count=2640 groups=14x7
+SnapFrame: forward/backward consistency accepted count=2640
+SnapFrame: luma dispatch accepted count=2700 groups=153x68
+SnapFrame: GPU metrics rejected frame=2700 valid_cells=128 expected_cells=5600 coverage=1.000 confidence=1.000
+SnapFrame: midpoint warp accepted count=2700 extent=2448x1080 output=RGBA16F
+SnapFrame: bidirectional flow pair accepted count=2760 groups=14x7
+SnapFrame: forward/backward consistency accepted count=2760
