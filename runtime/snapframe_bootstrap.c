@@ -50,6 +50,8 @@ void snapframe_bootstrap(void) {
                 config.quality = atoi(eq);
             else if (!strcmp(key, "flow_scale_percent"))
                 config.flow_scale_percent = atoi(eq);
+            else if (!strcmp(key, "present_mode"))
+                config.present_mode = atoi(eq);
             else if (!strcmp(key, "motion_analysis"))
                 config.motion_analysis = atoi(eq) != 0;
             else if (!strcmp(key, "profiling_enabled"))
