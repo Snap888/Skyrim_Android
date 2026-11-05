@@ -146,30 +146,6 @@ jobs:
           fi
           echo "APK versionName=$VER versionCode=$VERSION_CODE"
 
-      - name: Configure persistent APK signing
-        env:
-          KEYSTORE_BASE64: ${{ secrets.ANDROID_SIGNING_KEYSTORE_BASE64 }}
-          STORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
-        run: |
-          set -euo pipefail
-          if [[ -z "$KEYSTORE_BASE64" || -z "$STORE_PASSWORD" || -z "$KEY_ALIAS" || -z "$KEY_PASSWORD" ]]; then
-            echo "::error::Persistent APK signing is not configured."
-            echo "Add repository Actions secrets: ANDROID_SIGNING_KEYSTORE_BASE64, ANDROID_SIGNING_STORE_PASSWORD, ANDROID_SIGNING_KEY_ALIAS, ANDROID_SIGNING_KEY_PASSWORD."
-            exit 1
-          fi
-          KEYSTORE_PATH="$RUNNER_TEMP/skyrim-upload.jks"
-          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
-          test -s "$KEYSTORE_PATH"
-          {
-            echo "ANDROID_SIGNING_KEYSTORE=$KEYSTORE_PATH"
-            echo "ANDROID_SIGNING_STORE_PASSWORD=$STORE_PASSWORD"
-            echo "ANDROID_SIGNING_KEY_ALIAS=$KEY_ALIAS"
-            echo "ANDROID_SIGNING_KEY_PASSWORD=$KEY_PASSWORD"
-          } >> "$GITHUB_ENV"
-          echo "Persistent signing keystore configured."
-
       - name: Build main APK
         timeout-minutes: 105
         working-directory: android
@@ -291,7 +267,7 @@ jobs:
             echo "versionName=$VERSION_NAME"
             echo "versionCode=$VERSION_CODE"
             echo "applicationId=com.tj.skyrim"
-            echo "signing=repository-persistent-keystore"
+            echo "signing=ephemeral-runner-debug-keystore"
           } > dist/build-info.txt
           ls -lh dist/
 
