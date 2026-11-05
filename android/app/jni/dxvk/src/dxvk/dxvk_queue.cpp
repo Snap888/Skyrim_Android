@@ -38,6 +38,7 @@ namespace dxvk {
     });
 
     DxvkSubmitEntry entry = { };
+    entry.enqueuedAt = std::chrono::steady_clock::now();
     entry.submit = std::move(submitInfo);
 
     m_pending += 1;
@@ -50,6 +51,7 @@ namespace dxvk {
     std::unique_lock<dxvk::mutex> lock(m_mutex);
 
     DxvkSubmitEntry entry = { };
+    entry.enqueuedAt = std::chrono::steady_clock::now();
     entry.status  = status;
     entry.present = std::move(presentInfo);
 
@@ -108,6 +110,12 @@ namespace dxvk {
         return;
       
       DxvkSubmitEntry entry = std::move(m_submitQueue.front());
+      const uint32_t queuedEntriesAtDequeue =
+        static_cast<uint32_t>(m_submitQueue.size() - 1);
+      const auto dequeuedAt = std::chrono::steady_clock::now();
+      const uint64_t queueResidenceUs =
+        std::chrono::duration_cast<std::chrono::microseconds>(
+          dequeuedAt - entry.enqueuedAt).count();
       lock.unlock();
 
       // Submit command buffer to device
@@ -139,16 +147,25 @@ namespace dxvk {
         }
 
 #ifdef __ANDROID__
-        static const bool presentDiagnosticsEnabled =
-          env::getEnvVar("DXVK_PRESENT_DIAGNOSTICS") == "1";
+        /* Always collect rare long stalls on Android. This is bounded and
+         * avoids relying on launcher environment-variable support. Queue
+         * residence distinguishes submit-thread backlog from Vulkan queue
+         * mutex contention and vkQueuePresentKHR/WSI latency. */
         static std::atomic<uint32_t> presentDiagnosticCount = { 0u };
-        if (presentDiagnosticsEnabled
-            && entry.present.presenter != nullptr
-            && (queueLockWaitUs >= 8000 || presentCallUs >= 8000)
+        if (entry.present.presenter != nullptr
+            && (queueResidenceUs >= 8000
+                || queueLockWaitUs >= 8000
+                || presentCallUs >= 8000)
             && presentDiagnosticCount.fetch_add(1) < 64) {
+          const uint64_t totalEntryUs =
+            std::chrono::duration_cast<std::chrono::microseconds>(
+              std::chrono::steady_clock::now() - entry.enqueuedAt).count();
           Logger::info(str::format(
-            "DXVK-PRESENT: queue_lock_wait_us=", queueLockWaitUs,
+            "DXVK-PRESENT: queue_residence_us=", queueResidenceUs,
+            " queue_depth=", queuedEntriesAtDequeue,
+            " queue_lock_wait_us=", queueLockWaitUs,
             " present_call_us=", presentCallUs,
+            " total_entry_us=", totalEntryUs,
             " result=", status,
             " diagnostic_count=", presentDiagnosticCount.load()));
         }
