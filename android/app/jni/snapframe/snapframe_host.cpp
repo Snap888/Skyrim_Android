@@ -2065,7 +2065,10 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
      * them only when explicit profiling or the diagnostic suite is requested.
      * This also avoids inserting sparse timestamp queries into the production
      * path when no V2 diagnostic work is being measured. */
-    const bool v2DiagnosticsEnabled = g_profilingEnabled || g_diagnosticSuiteEnabled;
+    const bool wsiBackpressureActive =
+        g_aiWsiThrottleFrames.load(std::memory_order_acquire) != 0;
+    const bool v2DiagnosticsEnabled = !wsiBackpressureActive
+        && (g_profilingEnabled || g_diagnosticSuiteEnabled);
     // The compact V1 metrics reduction and total-chain timestamp share the
     // same frame cadence. Keep this one timestamp pair active in normal
     // gameplay even when verbose profiling and V2 diagnostics are disabled;
@@ -2351,7 +2354,8 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
         }
 
         g_lumaValid[slot] = dispatched;
-        if (dispatched && g_flowAvailable && g_lumaValid[slot ^ 1u]) {
+        if (dispatched && g_flowAvailable && g_lumaValid[slot ^ 1u]
+            && !wsiBackpressureActive) {
             const unsigned previousSlot = slot ^ 1u;
             const uint32_t flowWidth = flowExtent(lumaWidth);
             const uint32_t flowHeight = flowExtent(lumaHeight);
@@ -2916,12 +2920,12 @@ extern "C" void snapframe_host_report_submission_pressure(float waitMs) {
 }
 
 extern "C" bool snapframe_host_can_generate(void) {
-    if (!snapframe_host_active()
-        || !g_midpointAvailable
-        || g_midpointView == nullptr
-        || g_midpointFrameReady.load(std::memory_order_acquire) == 0)
+    if (!snapframe_host_active())
         return false;
 
+    /* Decrement before checking midpoint readiness: the WSI cooldown also
+     * suppresses flow/warp dispatch, so no midpoint image exists while it
+     * counts down. */
     uint32_t remaining = g_aiWsiThrottleFrames.load(std::memory_order_acquire);
     while (remaining != 0) {
         if (g_aiWsiThrottleFrames.compare_exchange_weak(
@@ -2936,7 +2940,10 @@ extern "C" bool snapframe_host_can_generate(void) {
             return false;
         }
     }
-    return true;
+
+    return g_midpointAvailable
+        && g_midpointView != nullptr
+        && g_midpointFrameReady.load(std::memory_order_acquire) != 0;
 }
 
 extern "C" void* snapframe_host_generate_view(
