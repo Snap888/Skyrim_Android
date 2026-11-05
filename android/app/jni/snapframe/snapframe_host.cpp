@@ -2785,6 +2785,17 @@ extern "C" int snapframe_host_get_present_mode(int *present_mode) {
     return g_initialized.load(std::memory_order_acquire) ? 1 : 0;
 }
 
+extern "C" int snapframe_host_update_present_mode(int present_mode) {
+    if (present_mode < SNAPFRAME_PRESENT_MODE_AUTO
+        || present_mode > SNAPFRAME_PRESENT_MODE_IMMEDIATE
+        || !g_initialized.load(std::memory_order_acquire))
+        return 0;
+    const int previous = g_presentMode.exchange(present_mode, std::memory_order_acq_rel);
+    if (previous != present_mode)
+        snapframeLog("SnapFrame: live present mode change queued; DXVK will recreate the shared swapchain at the next present boundary");
+    return 1;
+}
+
 extern "C" int snapframe_host_get_last_telemetry(
     uint64_t *frame, float *gpu_time_ms, float *frame_time_ms) {
     const uint64_t completedFrame = g_lastGpuTimingFrame.load(std::memory_order_acquire);
