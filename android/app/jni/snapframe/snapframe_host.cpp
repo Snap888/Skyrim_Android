@@ -107,8 +107,7 @@ void snapframeEvent(uint64_t frame, const char* event, uint32_t width,
 
     std::lock_guard<std::mutex> lock(g_eventLogMutex);
     if (!g_eventLogFile) return;
-    const int written = fprintf(g_eventLogFile, "%llu,%s,%u,%u,\"%s\"
-",
+    const int written = fprintf(g_eventLogFile, "%llu,%s,%u,%u,\"%s\"\n",
         static_cast<unsigned long long>(frame), event ? event : "unknown",
         width, height, detail ? detail : "");
     ++g_eventLogWriteCount;
@@ -117,8 +116,7 @@ void snapframeEvent(uint64_t frame, const char* event, uint32_t width,
     if (flushNow) {
         fflush(g_eventLogFile);
         if (written < 0 || ferror(g_eventLogFile))
-            snapframeLog("SnapFrame: event CSV write failed event=%s frame=%llu
-",
+            snapframeLog("SnapFrame: event CSV write failed event=%s frame=%llu\n",
                 event ? event : "unknown", static_cast<unsigned long long>(frame));
     }
 }
@@ -292,8 +290,7 @@ const char* diagnosticPhaseName(uint32_t phase) {
 
 void logDiagnosticPhaseResult(uint32_t phase, uint64_t frames) {
     snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed), "test_phase_result", g_width, g_height, diagnosticPhaseName(phase));
-    snapframeLog("SnapFrame: TEST_PHASE_RESULT phase=%s frames=%llu luma_ok=%llu flow_pairs_ok=%llu consistency_ok=%llu midpoint_warp_ok=%llu skipped=%llu luma_fail_total=%llu flow_fail_total=%llu consistency_fail_total=%llu midpoint_warp_fail_total=%llu
-",
+    snapframeLog("SnapFrame: TEST_PHASE_RESULT phase=%s frames=%llu luma_ok=%llu flow_pairs_ok=%llu consistency_ok=%llu midpoint_warp_ok=%llu skipped=%llu luma_fail_total=%llu flow_fail_total=%llu consistency_fail_total=%llu midpoint_warp_fail_total=%llu\n",
         diagnosticPhaseName(phase),
         static_cast<unsigned long long>(frames),
         static_cast<unsigned long long>(g_lumaDispatchCount - g_phaseStartLuma),
@@ -326,13 +323,10 @@ void beginDiagnosticPhase(uint32_t phase, uint64_t captured) {
     g_phaseStartSkipped = g_skippedFrames.load(std::memory_order_relaxed);
     g_phaseLastProgress = 0;
     snapframeEvent(captured, "test_phase_begin", g_width, g_height, diagnosticPhaseName(phase));
-    snapframeLog("SnapFrame: TEST_PHASE_BEGIN index=%u name=%s target_frames=%u
-",
+    snapframeLog("SnapFrame: TEST_PHASE_BEGIN index=%u name=%s target_frames=%u\n",
         phase + 1u, diagnosticPhaseName(phase), g_diagnosticPhaseFrames);
-    snapframeLog("SnapFrame: TEST_ACTION %s
-", actions[phase]);
-    snapframeLog("SnapFrame: TEST_PHASE_PROGRESS phase=%s elapsed_frames=0 target_frames=%u
-",
+    snapframeLog("SnapFrame: TEST_ACTION %s\n", actions[phase]);
+    snapframeLog("SnapFrame: TEST_PHASE_PROGRESS phase=%s elapsed_frames=0 target_frames=%u\n",
         diagnosticPhaseName(phase), g_diagnosticPhaseFrames);
 }
 
@@ -345,8 +339,7 @@ void logDiagnosticPhase(uint64_t captured) {
     if (captured > totalFrames) {
         if (g_diagnosticPhase == 6u) {
             logDiagnosticPhaseResult(6u, totalFrames - g_phaseStartCaptured);
-            snapframeLog("SnapFrame: TEST_SUITE_COMPLETE total_frames=%llu
-",
+            snapframeLog("SnapFrame: TEST_SUITE_COMPLETE total_frames=%llu\n",
                 static_cast<unsigned long long>(totalFrames));
             g_diagnosticSuiteComplete = true;
         }
@@ -359,8 +352,7 @@ void logDiagnosticPhase(uint64_t captured) {
         const uint64_t elapsed = captured - g_phaseStartCaptured;
         if (elapsed >= g_phaseLastProgress + 300u) {
             g_phaseLastProgress = (elapsed / 300u) * 300u;
-            snapframeLog("SnapFrame: TEST_PHASE_PROGRESS phase=%s elapsed_frames=%llu target_frames=%u
-",
+            snapframeLog("SnapFrame: TEST_PHASE_PROGRESS phase=%s elapsed_frames=%llu target_frames=%u\n",
                 diagnosticPhaseName(phase),
                 static_cast<unsigned long long>(g_phaseLastProgress),
                 g_diagnosticPhaseFrames);
@@ -467,13 +459,11 @@ void endGpuTimer(DxvkContext* context, const SnapFrameGpuTimer& timer) {
         std::lock_guard<std::mutex> lock(g_gpuLogMutex);
         if (!g_gpuLogFile) return;
         if (valid) {
-            fprintf(g_gpuLogFile, "%llu,%s,%.6f,%u,%u,ok
-",
+            fprintf(g_gpuLogFile, "%llu,%s,%.6f,%u,%u,ok\n",
                 static_cast<unsigned long long>(timer.frame), timer.stage.c_str(),
                 gpuMs, timer.width, timer.height);
         } else {
-            fprintf(g_gpuLogFile, "%llu,%s,0,%u,%u,unavailable:%d:%d:%d
-",
+            fprintf(g_gpuLogFile, "%llu,%s,0,%u,%u,unavailable:%d:%d:%d\n",
                 static_cast<unsigned long long>(timer.frame), timer.stage.c_str(),
                 timer.width, timer.height, int(result), int(beginStatus), int(endStatus));
         }
@@ -579,8 +569,7 @@ void recordFlowReadback(
     } catch (...) {
         if (!g_flowReadbackFailureLogged) {
             g_flowReadbackFailureLogged = true;
-            snapframeLog("SnapFrame: flow readback buffer allocation failed (HOST_VISIBLE|HOST_COHERENT unavailable or allocation error)
-");
+            snapframeLog("SnapFrame: flow readback buffer allocation failed (HOST_VISIBLE|HOST_COHERENT unavailable or allocation error)\n");
             snapframeEvent(frame, "flow_readback_allocation_failed", flowWidth, flowHeight, "host_visible_coherent_buffer_allocation_failed");
         }
         return;
@@ -588,8 +577,7 @@ void recordFlowReadback(
     if (readback == nullptr || readback->mapPtr(0) == nullptr) {
         if (!g_flowReadbackFailureLogged) {
             g_flowReadbackFailureLogged = true;
-            snapframeLog("SnapFrame: flow readback buffer is not host mapped
-");
+            snapframeLog("SnapFrame: flow readback buffer is not host mapped\n");
             snapframeEvent(frame, "flow_readback_map_failed", flowWidth, flowHeight, "staging_buffer_map_ptr_null");
         }
         return;
@@ -614,8 +602,7 @@ void recordFlowReadback(
         if (result != VK_SUCCESS) {
             snapframeEvent(frame, "flow_readback_completion_failed", flowWidth, flowHeight, "command_list_completion_error");
             if (dumpVectors)
-                snapframeLog("SnapFrame: flow vector readback completion failed frame=%llu result=%d
-",
+                snapframeLog("SnapFrame: flow vector readback completion failed frame=%llu result=%d\n",
                     static_cast<unsigned long long>(frame), int(result));
             std::lock_guard<std::mutex> lock(g_flowLogMutex);
             if (g_flowLogFile) {
@@ -623,8 +610,7 @@ void recordFlowReadback(
                     "%llu,%u,%u,"
                     "0,0,0,0,0,0,0,0,0,0,"
                     "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"
-                    "0,0,0,completion_error:%d
-",
+                    "0,0,0,completion_error:%d\n",
                     static_cast<unsigned long long>(frame), flowWidth, flowHeight, int(result));
                 fflush(g_flowLogFile);
             }
@@ -634,8 +620,7 @@ void recordFlowReadback(
         if (!data) {
             snapframeEvent(frame, "flow_readback_map_failed", flowWidth, flowHeight, "completion_callback_map_ptr_null");
             if (dumpVectors)
-                snapframeLog("SnapFrame: flow vector readback mapping failed frame=%llu
-",
+                snapframeLog("SnapFrame: flow vector readback mapping failed frame=%llu\n",
                     static_cast<unsigned long long>(frame));
             std::lock_guard<std::mutex> lock(g_flowLogMutex);
             if (g_flowLogFile) {
@@ -643,8 +628,7 @@ void recordFlowReadback(
                     "%llu,%u,%u,"
                     "0,0,0,0,0,0,0,0,0,0,"
                     "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"
-                    "0,0,0,readback_mapping_failed
-",
+                    "0,0,0,readback_mapping_failed\n",
                     static_cast<unsigned long long>(frame), flowWidth, flowHeight);
                 fflush(g_flowLogFile);
             }
@@ -679,8 +663,7 @@ void recordFlowReadback(
                 fprintf(g_flowLogFile,
                     "%llu,%u,%u,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,"
                     "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,"
-                    "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%.6f,%.3f,%llu,ok
-",
+                    "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%.6f,%.3f,%llu,ok\n",
                     static_cast<unsigned long long>(frame), flowWidth, flowHeight,
                     forward.dx, forward.dy, forward.magnitude, forward.confidence, forward.cost,
                     backward.dx, backward.dy, backward.magnitude, backward.confidence, backward.cost,
@@ -717,8 +700,7 @@ void recordFlowReadback(
                         const uint16_t* fwd = forwardData + index * 4u;
                         const uint16_t* bwd = backwardData + index * 4u;
                         fprintf(g_vectorLogFile,
-                            "%llu,%u,%u,%.5f,%.5f,%.5f,%.5f,%.5f,%.5f,%.5f,%.5f,%.5f
-",
+                            "%llu,%u,%u,%.5f,%.5f,%.5f,%.5f,%.5f,%.5f,%.5f,%.5f,%.5f\n",
                             static_cast<unsigned long long>(frame), x, y,
                             snapFrameHalfToFloat(fwd[0]), snapFrameHalfToFloat(fwd[1]),
                             snapFrameHalfToFloat(fwd[2]), snapFrameHalfToFloat(fwd[3]),
@@ -730,14 +712,12 @@ void recordFlowReadback(
                 fflush(g_vectorLogFile);
                 const bool writeFailed = ferror(g_vectorLogFile) != 0;
                 if (writeFailed) snapframeEvent(frame, "flow_vector_csv_write_failed", flowWidth, flowHeight, "ferror_after_vector_dump");
-                snapframeLog("SnapFrame: flow vector dump %s frame=%llu rows=%llu grid=%ux%u
-",
+                snapframeLog("SnapFrame: flow vector dump %s frame=%llu rows=%llu grid=%ux%u\n",
                     writeFailed ? "write-error" : "complete",
                     static_cast<unsigned long long>(frame),
                     static_cast<unsigned long long>(pixels), flowWidth, flowHeight);
             } else {
-                snapframeLog("SnapFrame: flow vector dump skipped frame=%llu reason=file-not-open
-",
+                snapframeLog("SnapFrame: flow vector dump skipped frame=%llu reason=file-not-open\n",
                     static_cast<unsigned long long>(frame));
             }
         }
@@ -915,8 +895,7 @@ bool recordV1GpuMetrics(
                         ? "metrics_grid_coverage_mismatch"
                         : "low_valid_flow_coverage";
                     if (frame == 30u || (frame % 300u) == 0u) {
-                        snapframeLog("SnapFrame: GPU metrics rejected frame=%llu valid_cells=%u expected_cells=%u coverage=%.3f confidence=%.3f
-",
+                        snapframeLog("SnapFrame: GPU metrics rejected frame=%llu valid_cells=%u expected_cells=%u coverage=%.3f confidence=%.3f\n",
                             static_cast<unsigned long long>(frame),
                             gpu->flags[3], gpu->flags[2],
                             gpu->quality[3], gpu->motion[2]);
@@ -932,8 +911,7 @@ bool recordV1GpuMetrics(
         }
         if (accepted) {
             if (frame == 1u || (frame % 120u) == 0u)
-                snapframeLog("SnapFrame: GPU metrics published frame=%llu confidence=%.3f complexity=%.3f artifact=%.3f
-",
+                snapframeLog("SnapFrame: GPU metrics published frame=%llu confidence=%.3f complexity=%.3f artifact=%.3f\n",
                     static_cast<unsigned long long>(frame),
                     loggedConfidence, loggedComplexity, loggedArtifactRisk);
             snapframeEvent(frame, "gpu_metrics_published", width, height,
@@ -1047,8 +1025,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
         device->adapter()->formatProperties(format);
     if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT)) {
         snapframeLog(
-                "SnapFrame: history format unsupported: format=0x%x lacks sampled-image support
-",
+                "SnapFrame: history format unsupported: format=0x%x lacks sampled-image support\n",
                 static_cast<unsigned>(format));
         return false;
     }
@@ -1068,8 +1045,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
         || width > historyImageProperties.maxExtent.width
         || height > historyImageProperties.maxExtent.height) {
         snapframeLog(
-                "SnapFrame: history image config unsupported format=0x%x result=%d extent=%ux%u max=%ux%u usage=TRANSFER_DST|SAMPLED
-",
+                "SnapFrame: history image config unsupported format=0x%x result=%d extent=%ux%u max=%ux%u usage=TRANSFER_DST|SAMPLED\n",
                 static_cast<unsigned>(format), static_cast<int>(historyImageResult),
                 width, height, historyImageProperties.maxExtent.width,
                 historyImageProperties.maxExtent.height);
@@ -1101,8 +1077,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
         && (width / 2u + width % 2u) <= lumaImageProperties.maxExtent.width
         && (height / 2u + height % 2u) <= lumaImageProperties.maxExtent.height;
     snapframeLog(
-            "SnapFrame: R16F luma output %s (features=0x%x imageResult=%d extendedFormats=%d)
-",
+            "SnapFrame: R16F luma output %s (features=0x%x imageResult=%d extendedFormats=%d)\n",
             lumaFormatSupported ? "supported" : "unsupported",
             static_cast<unsigned>(lumaFormatProperties.optimalTilingFeatures),
             static_cast<int>(lumaImageResult),
@@ -1379,13 +1354,11 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                     g_v2ShaderDevice = device;
                 }
                 if (!g_v2PyramidAvailable) {
-                    snapframeLog("SnapFrame: V2 pyramid unavailable (images=%u luma=%u downsample=%u sampler=%u); V1 path remains active
-",
+                    snapframeLog("SnapFrame: V2 pyramid unavailable (images=%u luma=%u downsample=%u sampler=%u); V1 path remains active\n",
                         unsigned(v2ImagesCreated), unsigned(g_v2LumaShader != nullptr),
                         unsigned(g_v2DownsampleShader != nullptr), unsigned(g_lumaSampler != nullptr));
                 } else {
-                    snapframeLog("SnapFrame: V2 pyramid resources ready L0=%ux%u L1=%ux%u L2=%ux%u slots=2 format=R16F
-",
+                    snapframeLog("SnapFrame: V2 pyramid resources ready L0=%ux%u L1=%ux%u L2=%ux%u slots=2 format=R16F\n",
                         v2Widths[0], v2Heights[0], v2Widths[1], v2Heights[1],
                         v2Widths[2], v2Heights[2]);
                 }
@@ -1464,14 +1437,12 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                 g_v2FlowAvailable = v2FlowImagesCreated
                     && g_v2SearchShader != nullptr && g_lumaSampler != nullptr;
                 if (!g_v2FlowAvailable) {
-                    snapframeLog("SnapFrame: V2 flow search unavailable (images=%u search=%u sampler=%u); pyramid remains independently available
-",
+                    snapframeLog("SnapFrame: V2 flow search unavailable (images=%u search=%u sampler=%u); pyramid remains independently available\n",
                         unsigned(v2FlowImagesCreated), unsigned(g_v2SearchShader != nullptr),
                         unsigned(g_lumaSampler != nullptr));
                 }
                 if (g_v2FlowAvailable) {
-                    snapframeLog("SnapFrame: V2 flow grids ready L0=%ux%u L1=%ux%u L2=%ux%u directions=2 format=RGBA16F
-",
+                    snapframeLog("SnapFrame: V2 flow grids ready L0=%ux%u L1=%ux%u L2=%ux%u directions=2 format=RGBA16F\n",
                         v2FlowGridExtent(v2LumaWidths[0]), v2FlowGridExtent(v2LumaHeights[0]),
                         v2FlowGridExtent(v2LumaWidths[1]), v2FlowGridExtent(v2LumaHeights[1]),
                         v2FlowGridExtent(v2LumaWidths[2]), v2FlowGridExtent(v2LumaHeights[2]));
@@ -1526,8 +1497,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                         && g_v2RefineShader != nullptr
                         && g_v2ValidationShader != nullptr;
                     if (!g_v2RefinementAvailable)
-                        snapframeLog("SnapFrame: V2 refinement/validation resources unavailable; coarse flow retained for diagnostics only
-");
+                        snapframeLog("SnapFrame: V2 refinement/validation resources unavailable; coarse flow retained for diagnostics only\n");
                 }
 
                 for (unsigned i = 0; i < 2; ++i) {
@@ -1595,12 +1565,10 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                         g_consistencyShaderDevice = device;
                     }
                     if (g_consistencyAvailable)
-                        snapframeLog("SnapFrame: forward/backward consistency resources ready format=R16_SFLOAT extent=%ux%u
-",
+                        snapframeLog("SnapFrame: forward/backward consistency resources ready format=R16_SFLOAT extent=%ux%u\n",
                             flowWidth, flowHeight);
                     if (!g_consistencyAvailable)
-                        snapframeLog("SnapFrame: forward/backward consistency resources unavailable; midpoint reconstruction disabled
-");
+                        snapframeLog("SnapFrame: forward/backward consistency resources unavailable; midpoint reconstruction disabled\n");
 
                     const VkFormat midpointFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
                     const VkFormatProperties midpointProperties =
@@ -1678,8 +1646,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                         }
                     } else {
                         g_midpointAvailable = false;
-                        snapframeLog("SnapFrame: midpoint output format unsupported or consistency unavailable result=%d features=0x%x; warp disabled
-",
+                        snapframeLog("SnapFrame: midpoint output format unsupported or consistency unavailable result=%d features=0x%x; warp disabled\n",
                             int(midpointImageResult), unsigned(midpointProperties.optimalTilingFeatures));
                     }
                     // Metrics use the live V1 flow and consistency images only.
@@ -1783,8 +1750,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                             for (uint32_t slot = 0; slot < kMetricsReadbackSlots; ++slot)
                                 g_metricsReadbackBuffers[slot] = Rc<DxvkBuffer>();
                         }
-                        snapframeLog("SnapFrame: V1 GPU scalar metrics %s grid=%ux%u partials=%u readback_slots=%u
-",
+                        snapframeLog("SnapFrame: V1 GPU scalar metrics %s grid=%ux%u partials=%u readback_slots=%u\n",
                             g_metricsAvailable ? "ready" : "unavailable",
                             flowWidth, flowHeight, g_metricsPartialCount,
                             kMetricsReadbackSlots);
@@ -1794,12 +1760,10 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                         g_metricsResultBuffer = Rc<DxvkBuffer>();
                         for (uint32_t slot = 0; slot < kMetricsReadbackSlots; ++slot)
                             g_metricsReadbackBuffers[slot] = Rc<DxvkBuffer>();
-                        snapframeLog("SnapFrame: V1 GPU scalar metrics allocation failed; frame generation remains active
-");
+                        snapframeLog("SnapFrame: V1 GPU scalar metrics allocation failed; frame generation remains active\n");
                     }
 
-                    snapframeLog("SnapFrame: midpoint reconstruction resources %s output=RGBA16F extent=%ux%u
-",
+                    snapframeLog("SnapFrame: midpoint reconstruction resources %s output=RGBA16F extent=%ux%u\n",
                         g_midpointAvailable ? "ready" : "unavailable", width, height);
                     snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed) + 1u,
                         g_midpointAvailable ? "midpoint_resources_ready" : "midpoint_resources_unavailable",
@@ -1809,8 +1773,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                 }
             } else {
                 g_flowAvailable = false;
-                snapframeLog("SnapFrame: block-matching flow unsupported result=%d features=0x%x extent=%ux%u
-",
+                snapframeLog("SnapFrame: block-matching flow unsupported result=%d features=0x%x extent=%ux%u\n",
                     static_cast<int>(flowImageResult), static_cast<unsigned>(flowProperties.optimalTilingFeatures),
                     flowWidth, flowHeight);
             }
@@ -1844,16 +1807,13 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             g_metricsResultBuffer = Rc<DxvkBuffer>();
             for (uint32_t slot = 0; slot < kMetricsReadbackSlots; ++slot)
                 g_metricsReadbackBuffers[slot] = Rc<DxvkBuffer>();
-            snapframeLog("SnapFrame: exception while creating luma/flow compute resources
-");
+            snapframeLog("SnapFrame: exception while creating luma/flow compute resources\n");
         }
         if (g_motionAnalysisEnabled && g_lumaAvailable) {
-            snapframeLog("SnapFrame: luma compute resources ready outputs=2 extent=%ux%u format=R16_SFLOAT
-",
+            snapframeLog("SnapFrame: luma compute resources ready outputs=2 extent=%ux%u format=R16_SFLOAT\n",
                          width / 2u + width % 2u, height / 2u + height % 2u);
         } else {
-            snapframeLog("SnapFrame: luma resources image=%d view=%d sampler=%d shader=%d
-",
+            snapframeLog("SnapFrame: luma resources image=%d view=%d sampler=%d shader=%d\n",
                          g_lumaImage[0] != nullptr && g_lumaImage[1] != nullptr,
                          g_lumaView[0] != nullptr && g_lumaView[1] != nullptr,
                          g_lumaSampler != nullptr, g_lumaShader != nullptr);
@@ -1862,12 +1822,10 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             g_lumaImage[0] = Rc<DxvkImage>();
             g_lumaImage[1] = Rc<DxvkImage>();
             g_lumaSampler = Rc<DxvkSampler>();
-            snapframeLog("SnapFrame: luma compute resource creation failed; capture remains active
-");
+            snapframeLog("SnapFrame: luma compute resource creation failed; capture remains active\n");
         }
         if (g_flowAvailable) {
-            snapframeLog("SnapFrame: bidirectional block-matching flow ready outputs=2 extent=%ux%u format=RGBA16F search=coarse5x5-step4+refine3x3 range=+/-9 patch=3x3 candidates_max=33 flow_scale=%u%% block_stride=%u luma_texels
-",
+            snapframeLog("SnapFrame: bidirectional block-matching flow ready outputs=2 extent=%ux%u format=RGBA16F search=coarse5x5-step4+refine3x3 range=+/-9 patch=3x3 candidates_max=33 flow_scale=%u%% block_stride=%u luma_texels\n",
                 flowExtent(width / 2u + width % 2u),
                 flowExtent(height / 2u + height % 2u),
                 flowScalePercent(), flowBlockStride());
@@ -1878,12 +1836,10 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             g_flowImage[1] = Rc<DxvkImage>();
         }
     } else {
-        snapframeLog("SnapFrame: motion analysis disabled or luma compute unsupported; capture-only mode
-");
+        snapframeLog("SnapFrame: motion analysis disabled or luma compute unsupported; capture-only mode\n");
     }
 #else
-    snapframeLog("SnapFrame: luma SPIR-V header missing; run tools/compile_snapframe_shaders.py before APK build
-");
+    snapframeLog("SnapFrame: luma SPIR-V header missing; run tools/compile_snapframe_shaders.py before APK build\n");
 #endif
 
     g_device = device;
@@ -1892,8 +1848,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
     g_format = format;
     g_frameIndex = 0;
     g_readyLogged = false;
-    snapframeLog( "SnapFrame: allocated two-frame history %ux%u format=0x%x
-",
+    snapframeLog( "SnapFrame: allocated two-frame history %ux%u format=0x%x\n",
             width, height, static_cast<unsigned>(format));
     return true;
 }
@@ -1950,8 +1905,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                 if (snapframe_host_apply_backend_config(
                         g_enabled.load(std::memory_order_acquire), requestedScale)) {
                     g_aiLastScaleChangeFrame = aiMetrics.frame_id;
-                    snapframeLog("SnapFrame AI: applied Flow Scale=%d%% at frame=%llu; resource rebuild scheduled
-",
+                    snapframeLog("SnapFrame AI: applied Flow Scale=%d%% at frame=%llu; resource rebuild scheduled\n",
                         requestedScale,
                         static_cast<unsigned long long>(aiMetrics.frame_id));
                 }
@@ -1959,8 +1913,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
             const uint64_t decisions = g_aiDecisionCount.fetch_add(
                 1, std::memory_order_relaxed) + 1;
             if (decisions == 1 || (decisions % 30u) == 0u)
-                snapframeLog("SnapFrame AI: frame=%llu mode=%u flow_scale=%d%% gpu=%.3fms pressure=%.3f confidence=%.3f complexity=%.3f artifact=%.3f
-",
+                snapframeLog("SnapFrame AI: frame=%llu mode=%u flow_scale=%d%% gpu=%.3fms pressure=%.3f confidence=%.3f complexity=%.3f artifact=%.3f\n",
                     static_cast<unsigned long long>(aiMetrics.frame_id),
                     static_cast<unsigned>(decision.mode), requestedScale,
                     aiMetrics.gpu_time_ms, aiMetrics.gpu_pressure,
@@ -1978,8 +1931,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
     // destruction.
     if (g_resetHistoryRequested.exchange(0, std::memory_order_acq_rel)) {
         clearHistory();
-        snapframeLog("SnapFrame: history reset requested; cached GPU resources released
-");
+        snapframeLog("SnapFrame: history reset requested; cached GPU resources released\n");
     }
     g_midpointFrameReady.store(0, std::memory_order_release);
     if (!g_enabled.load(std::memory_order_acquire))
@@ -1987,8 +1939,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
     const uint64_t callbackCall =
         g_copyCallbackCalls.fetch_add(1, std::memory_order_relaxed) + 1;
     if (callbackCall == 1)
-        snapframeLog( "SnapFrame: host copy callback entered
-");
+        snapframeLog( "SnapFrame: host copy callback entered\n");
 
     auto* context = reinterpret_cast<DxvkContext*>(contextPtr);
     auto* sourceView = reinterpret_cast<DxvkImageView*>(sourceViewPtr);
@@ -1999,8 +1950,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
             width, height, "null_callback_argument_or_zero_extent");
         if (!g_skipReasonLogged) {
             g_skipReasonLogged = true;
-            snapframeLog("SnapFrame: capture skipped: invalid callback arguments context=%d source=%d device=%d extent=%ux%u
-",
+            snapframeLog("SnapFrame: capture skipped: invalid callback arguments context=%d source=%d device=%d extent=%ux%u\n",
                          context != nullptr, sourceView != nullptr, device != nullptr,
                          width, height);
         }
@@ -2024,8 +1974,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
             width, height, skipReason);
         if (!g_skipReasonLogged) {
             g_skipReasonLogged = true;
-            snapframeLog( "SnapFrame: capture skipped: %s
-", skipReason);
+            snapframeLog( "SnapFrame: capture skipped: %s\n", skipReason);
         }
         return;
     }
@@ -2037,16 +1986,14 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
         try {
             historyCreated = createHistory(device, width, height, format);
         } catch (...) {
-            snapframeLog("SnapFrame: exception while allocating frame history
-");
+            snapframeLog("SnapFrame: exception while allocating frame history\n");
         }
         if (!historyCreated) {
             clearHistory();
             g_skippedFrames.fetch_add(1, std::memory_order_relaxed);
             snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed), "skip_history_allocation",
                 width, height, "history_or_compute_resource_allocation_failed");
-            snapframeLog("SnapFrame: history allocation failed for %ux%u format=0x%x
-",
+            snapframeLog("SnapFrame: history allocation failed for %ux%u format=0x%x\n",
                     width, height, static_cast<unsigned>(format));
             return;
         }
@@ -2072,8 +2019,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
         g_v2SearchIntervalFrames.load(std::memory_order_acquire);
     if (currentV2SearchInterval != g_v2SearchIntervalLogged) {
         g_v2SearchIntervalLogged = currentV2SearchInterval;
-        snapframeLog("SnapFrame AI budget: V2 motion search interval=%u source frames (GPU budget target=6ms)
-",
+        snapframeLog("SnapFrame AI budget: V2 motion search interval=%u source frames (GPU budget target=6ms)\n",
             currentV2SearchInterval);
     }
     bool totalTimerEnded = false;
@@ -2153,8 +2099,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                         width, height, l2Ok ? "l1_or_l2_dispatch_rejected" : "l2_dispatch_rejected");
                 } else if (g_v2DownsampleDispatchCount == 1
                     || (g_v2DownsampleDispatchCount % 300u) == 0u) {
-                    snapframeLog("SnapFrame: V2 pyramid dispatch accepted count=%llu frame=%llu L0=%ux%u L1=%ux%u L2=%ux%u
-",
+                    snapframeLog("SnapFrame: V2 pyramid dispatch accepted count=%llu frame=%llu L0=%ux%u L1=%ux%u L2=%ux%u\n",
                         static_cast<unsigned long long>(g_v2DownsampleDispatchCount),
                         static_cast<unsigned long long>(nextCapturedFrame),
                         l0Width, l0Height, l1Width, l1Height, l2Width, l2Height);
@@ -2225,8 +2170,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
             snapframeEvent(nextCapturedFrame, "v2_flow_pair_ok", width, height,
                 "bidirectional_L2_to_L1_to_L0_search");
             if (g_v2FlowDispatchCount == 1u || (g_v2FlowDispatchCount % 120u) == 0u)
-                snapframeLog("SnapFrame: V2 coarse-to-fine flow pair accepted count=%llu frame=%llu levels=L2,L1,L0 directions=2
-",
+                snapframeLog("SnapFrame: V2 coarse-to-fine flow pair accepted count=%llu frame=%llu levels=L2,L1,L0 directions=2\n",
                     static_cast<unsigned long long>(g_v2FlowDispatchCount),
                     static_cast<unsigned long long>(nextCapturedFrame));
         }
@@ -2310,8 +2254,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                         width, height, "refined_bidirectional_round_trip_confidence");
                     if (g_v2RefinementDispatchCount == 1u
                         || (g_v2RefinementDispatchCount % 120u) == 0u)
-                        snapframeLog("SnapFrame: V2 refinement+validation accepted count=%llu frame=%llu grid=%ux%u thresholds=1.5/4.0px
-",
+                        snapframeLog("SnapFrame: V2 refinement+validation accepted count=%llu frame=%llu grid=%ux%u thresholds=1.5/4.0px\n",
                             static_cast<unsigned long long>(g_v2RefinementDispatchCount),
                             static_cast<unsigned long long>(nextCapturedFrame), blocksX, blocksY);
                 } else {
@@ -2338,14 +2281,12 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
         if (dispatched) {
             ++g_lumaDispatchCount;
             if (g_lumaDispatchCount == 1 || (g_lumaDispatchCount % 300u) == 0)
-                snapframeLog("SnapFrame: luma dispatch accepted count=%llu groups=%ux%u
-",
+                snapframeLog("SnapFrame: luma dispatch accepted count=%llu groups=%ux%u\n",
                     static_cast<unsigned long long>(g_lumaDispatchCount), groupsX, groupsY);
         } else {
             ++g_lumaFailureCount;
             if (g_lumaFailureCount == 1 || (g_lumaFailureCount % 60u) == 0)
-                snapframeLog("SnapFrame: luma dispatch failed count=%llu
-",
+                snapframeLog("SnapFrame: luma dispatch failed count=%llu\n",
                     static_cast<unsigned long long>(g_lumaFailureCount));
         }
 
@@ -2382,8 +2323,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
             if (currentToPrevious && previousToCurrent) {
                 ++g_flowDispatchCount;
                 if (g_flowDispatchCount == 1 || (g_flowDispatchCount % 120u) == 0)
-                    snapframeLog("SnapFrame: bidirectional flow pair accepted count=%llu groups=%ux%u
-",
+                    snapframeLog("SnapFrame: bidirectional flow pair accepted count=%llu groups=%ux%u\n",
                         static_cast<unsigned long long>(g_flowDispatchCount), flowGroupsX, flowGroupsY);
                 if (g_consistencyAvailable) {
                     const SnapFrameGpuTimer consistencyTimer = beginGpuTimer(
@@ -2425,8 +2365,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                                 context->flushComputeBarriers();
                                 if (g_midpointDispatchCount == 1
                                  || (g_midpointDispatchCount % 300u) == 0u)
-                                    snapframeLog("SnapFrame: midpoint warp accepted count=%llu extent=%ux%u output=RGBA16F
-",
+                                    snapframeLog("SnapFrame: midpoint warp accepted count=%llu extent=%ux%u output=RGBA16F\n",
                                         static_cast<unsigned long long>(g_midpointDispatchCount),
                                         width, height);
                             } else {
@@ -2441,23 +2380,20 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                         }
                         if (g_consistencyDispatchCount == 1
                          || (g_consistencyDispatchCount % 120u) == 0)
-                            snapframeLog("SnapFrame: forward/backward consistency accepted count=%llu
-",
+                            snapframeLog("SnapFrame: forward/backward consistency accepted count=%llu\n",
                                 static_cast<unsigned long long>(g_consistencyDispatchCount));
                     } else {
                         ++g_consistencyFailureCount;
                         if (g_consistencyFailureCount == 1
                          || (g_consistencyFailureCount % 30u) == 0)
-                            snapframeLog("SnapFrame: forward/backward consistency failed count=%llu
-",
+                            snapframeLog("SnapFrame: forward/backward consistency failed count=%llu\n",
                                 static_cast<unsigned long long>(g_consistencyFailureCount));
                     }
                 }
             } else {
                 ++g_flowFailureCount;
                 if (g_flowFailureCount == 1 || (g_flowFailureCount % 30u) == 0)
-                    snapframeLog("SnapFrame: bidirectional flow pair failed count=%llu current_to_previous=%d previous_to_current=%d
-",
+                    snapframeLog("SnapFrame: bidirectional flow pair failed count=%llu current_to_previous=%d previous_to_current=%d\n",
                         static_cast<unsigned long long>(g_flowFailureCount),
                         currentToPrevious, previousToCurrent);
             }
@@ -2474,12 +2410,10 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
         logDiagnosticPhase(captured + 1u);
     if (g_frameIndex >= 2 && !g_readyLogged) {
         g_readyLogged = true;
-        snapframeLog( "SnapFrame: two real frames captured; history ring valid
-");
+        snapframeLog( "SnapFrame: two real frames captured; history ring valid\n");
     }
     if (captured == 1 || captured == 60 || (captured % 1800) == 0)
-        snapframeLog( "SnapFrame: captured=%llu skipped=%llu extent=%ux%u
-",
+        snapframeLog( "SnapFrame: captured=%llu skipped=%llu extent=%ux%u\n",
                 static_cast<unsigned long long>(captured),
                 static_cast<unsigned long long>(g_skippedFrames.load(std::memory_order_relaxed)),
                 width, height);
@@ -2502,8 +2436,7 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
      * DXVK callback, before either the portable core or legacy fallback runs. */
     if (g_resetHistoryRequested.exchange(0, std::memory_order_acq_rel)) {
         clearHistory();
-        snapframeLog("SnapFrame: queued history reset consumed on render callback
-");
+        snapframeLog("SnapFrame: queued history reset consumed on render callback\n");
     }
     g_midpointFrameReady.store(0, std::memory_order_release);
 
@@ -2517,16 +2450,14 @@ void snapframeCopyFrame(void* contextPtr, void* sourceViewPtr, void* devicePtr,
     } else if (adapterResult < 0) {
         if (g_skippedFrames.load(std::memory_order_relaxed) == skippedBefore)
             g_skippedFrames.fetch_add(1, std::memory_order_relaxed);
-        snapframeLog("SnapFrame: portable backend failed; presenting real frame only
-");
+        snapframeLog("SnapFrame: portable backend failed; presenting real frame only\n");
     }
 }
 
 void snapframeDeviceDestroyed(void* devicePtr) {
     auto* device = reinterpret_cast<DxvkDevice*>(devicePtr);
     if (g_device == device || g_lumaShaderDevice == device || g_v2ShaderDevice == device) {
-        snapframeLog("SnapFrame: DXVK device destroyed; releasing history and shader state
-");
+        snapframeLog("SnapFrame: DXVK device destroyed; releasing history and shader state\n");
         clearHistory();
         g_lumaShader = Rc<DxvkShader>();
         g_lumaShaderDevice = nullptr;
@@ -2545,8 +2476,7 @@ void snapframeDeviceDestroyed(void* devicePtr) {
 
 void snapframeForwardDxvkLog(const char* message) {
     if (message && *message)
-        snapframeLog("%s
-", message);
+        snapframeLog("%s\n", message);
 }
 }
 
@@ -2587,13 +2517,10 @@ extern "C" int snapframe_host_set_log_path(const char *path) {
     }
     g_logFile = fopen(path, "w");
     if (!g_logFile) {
-        fprintf(stderr, "SnapFrame: cannot open dedicated log: %s
-", path);
+        fprintf(stderr, "SnapFrame: cannot open dedicated log: %s\n", path);
         return 0;
     }
-    fprintf(g_logFile, "SnapFrame diagnostic log
-path=%s
-", path);
+    fprintf(g_logFile, "SnapFrame diagnostic log\npath=%s\n", path);
     fflush(g_logFile);
     return 1;
 }
@@ -2604,12 +2531,10 @@ extern "C" int snapframe_host_set_gpu_log_path(const char *path) {
     if (g_gpuLogFile) fclose(g_gpuLogFile);
     g_gpuLogFile = fopen(path, "w");
     if (!g_gpuLogFile) {
-        fprintf(stderr, "SnapFrame: cannot open GPU timing CSV: %s
-", path);
+        fprintf(stderr, "SnapFrame: cannot open GPU timing CSV: %s\n", path);
         return 0;
     }
-    fprintf(g_gpuLogFile, "frame,stage,gpu_ms,width,height,status
-");
+    fprintf(g_gpuLogFile, "frame,stage,gpu_ms,width,height,status\n");
     fflush(g_gpuLogFile);
     return 1;
 }
@@ -2620,15 +2545,13 @@ extern "C" int snapframe_host_set_flow_log_path(const char *path) {
     if (g_flowLogFile) fclose(g_flowLogFile);
     g_flowLogFile = fopen(path, "w");
     if (!g_flowLogFile) {
-        fprintf(stderr, "SnapFrame: cannot open flow readback CSV: %s
-", path);
+        fprintf(stderr, "SnapFrame: cannot open flow readback CSV: %s\n", path);
         return 0;
     }
     fprintf(g_flowLogFile, "frame,grid_width,grid_height,forward_mean_dx,forward_mean_dy,forward_mean_magnitude,forward_mean_confidence,forward_mean_cost,backward_mean_dx,backward_mean_dy,backward_mean_magnitude,backward_mean_confidence,backward_mean_cost,"
         "forward_conf_lt_0_1,forward_conf_0_1_to_0_5,forward_conf_ge_0_5,forward_conf_ge_0_75,forward_conf_ge_0_9,forward_high_conf_nonzero,forward_boundary_saturated,forward_boundary_low_conf,"
         "backward_conf_lt_0_1,backward_conf_0_1_to_0_5,backward_conf_ge_0_5,backward_conf_ge_0_75,backward_conf_ge_0_9,backward_high_conf_nonzero,backward_boundary_saturated,backward_boundary_low_conf,"
-        "consistency_mean,consistency_gt_0_5_pct,nonfinite_values,status
-");
+        "consistency_mean,consistency_gt_0_5_pct,nonfinite_values,status\n");
     fflush(g_flowLogFile);
     return 1;
 }
@@ -2639,14 +2562,12 @@ extern "C" int snapframe_host_set_event_log_path(const char *path) {
     if (g_eventLogFile) fclose(g_eventLogFile);
     g_eventLogFile = fopen(path, "w");
     if (!g_eventLogFile) {
-        fprintf(stderr, "SnapFrame: cannot open event CSV: %s
-", path);
+        fprintf(stderr, "SnapFrame: cannot open event CSV: %s\n", path);
         return 0;
     }
     setvbuf(g_eventLogFile, nullptr, _IOFBF, 64u * 1024u);
     g_eventLogWriteCount = 0;
-    fprintf(g_eventLogFile, "frame,event,width,height,detail
-");
+    fprintf(g_eventLogFile, "frame,event,width,height,detail\n");
     fflush(g_eventLogFile);
     return 1;
 }
@@ -2657,20 +2578,17 @@ extern "C" int snapframe_host_set_flow_vectors_log_path(const char *path) {
     if (g_vectorLogFile) fclose(g_vectorLogFile);
     g_vectorLogFile = fopen(path, "w");
     if (!g_vectorLogFile) {
-        fprintf(stderr, "SnapFrame: cannot open flow vector CSV: %s
-", path);
+        fprintf(stderr, "SnapFrame: cannot open flow vector CSV: %s\n", path);
         return 0;
     }
-    fprintf(g_vectorLogFile, "frame,x,y,forward_dx,forward_dy,forward_confidence,forward_cost,backward_dx,backward_dy,backward_confidence,backward_cost,consistency
-");
+    fprintf(g_vectorLogFile, "frame,x,y,forward_dx,forward_dy,forward_confidence,forward_cost,backward_dx,backward_dy,backward_confidence,backward_cost,consistency\n");
     fflush(g_vectorLogFile);
     return 1;
 }
 
 extern "C" void snapframe_host_log(const char *message) {
     if (message && *message)
-        snapframeLog("SnapFrame: %s
-", message);
+        snapframeLog("SnapFrame: %s\n", message);
 }
 
 extern "C" void snapframe_dxvk_set_copy_hook(
@@ -2762,18 +2680,15 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
     g_motionAnalysisEnabled = validated.motion_analysis != 0;
     g_diagnosticSuiteEnabled = validated.diagnostic_suite != 0 && g_motionAnalysisEnabled;
     if (validated.diagnostic_suite != 0 && !g_motionAnalysisEnabled)
-        snapframeLog("SnapFrame: diagnostic_suite requested but skipped because motion_analysis=0
-");
+        snapframeLog("SnapFrame: diagnostic_suite requested but skipped because motion_analysis=0\n");
     g_diagnosticSuiteComplete = false;
     g_diagnosticPhaseFrames = static_cast<uint32_t>(validated.diagnostic_phase_frames);
     g_diagnosticPhase = UINT32_MAX;
     g_profilingEnabled = validated.profiling_enabled != 0;
     g_flowReadbackFailureLogged = false;
-    snapframeLog("SnapFrame: MotionV2 telemetry store %s
-",
+    snapframeLog("SnapFrame: MotionV2 telemetry store %s\n",
         g_motionV2 ? "ready" : "unavailable");
-    snapframeLog("SnapFrame: flow readback %s (motion_analysis=%d profiling=%d diagnostic_suite=%d interval=120 frames)
-",
+    snapframeLog("SnapFrame: flow readback %s (motion_analysis=%d profiling=%d diagnostic_suite=%d interval=120 frames)\n",
         (g_motionAnalysisEnabled && g_profilingEnabled) ? "enabled" : "disabled",
         g_motionAnalysisEnabled ? 1 : 0, g_profilingEnabled ? 1 : 0,
         g_diagnosticSuiteEnabled ? 1 : 0);
@@ -2803,17 +2718,14 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
     snapframe_dxvk_set_present_mode_hook(snapframe_host_get_present_mode);
     snapframeEvent(0, "host_init", 0, 0,
         g_motionAnalysisEnabled ? "motion_analysis_enabled" : "motion_analysis_disabled");
-    snapframeLog("SnapFrame: diagnostic_suite=%d phase_frames=%u phases=7 profiling=%d motion_analysis=%d timestamp_interval=30 flow_readback_interval=120
-",
+    snapframeLog("SnapFrame: diagnostic_suite=%d phase_frames=%u phases=7 profiling=%d motion_analysis=%d timestamp_interval=30 flow_readback_interval=120\n",
         g_diagnosticSuiteEnabled ? 1 : 0, g_diagnosticPhaseFrames,
         g_profilingEnabled ? 1 : 0, g_motionAnalysisEnabled ? 1 : 0);
-    snapframeLog( "SnapFrame: host initialized enabled=%d quality=%d flow_scale=%d%% motion_analysis=%d mode=%s
-",
+    snapframeLog( "SnapFrame: host initialized enabled=%d quality=%d flow_scale=%d%% motion_analysis=%d mode=%s\n",
             validated.enabled, validated.quality, validated.flow_scale_percent,
             g_motionAnalysisEnabled ? 1 : 0,
             g_motionAnalysisEnabled ? "capture+luma+bidirectional-flow+fb-consistency+midpoint-warp" : "capture-only");
-    snapframeLog("SnapFrame: portable SnapFrameBackendV1 %s
-",
+    snapframeLog("SnapFrame: portable SnapFrameBackendV1 %s\n",
         portableReady ? "active (DXVK GPU pipeline adapter)" : "unavailable; legacy fallback active");
     return 1;
 }
@@ -2890,8 +2802,7 @@ extern "C" int snapframe_host_update_settings(int enabled, int flow_scale_percen
     if (snapframe_engine_adapter_available()) {
         if (!snapframe_engine_adapter_update_settings(enabled ? 1 : 0, flow_scale_percent))
             return 0;
-        snapframeLog("SnapFrame: portable config update queued enabled=%d flow_scale=%d%%
-",
+        snapframeLog("SnapFrame: portable config update queued enabled=%d flow_scale=%d%%\n",
             enabled ? 1 : 0, flow_scale_percent);
         return 1;
     }
@@ -2905,8 +2816,7 @@ extern "C" int snapframe_host_update_settings(int enabled, int flow_scale_percen
         requestedEnabled, std::memory_order_acq_rel);
     if (previousScale != requestedScale || previousEnabled != requestedEnabled) {
         g_resetHistoryRequested.store(1, std::memory_order_release);
-        snapframeLog("SnapFrame: legacy live settings queued enabled=%d flow_scale=%u%%
-",
+        snapframeLog("SnapFrame: legacy live settings queued enabled=%d flow_scale=%u%%\n",
             requestedEnabled, requestedScale);
     }
     return 1;
