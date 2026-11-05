@@ -43,5 +43,17 @@ class AnalyzerTests(unittest.TestCase):
             self.assertIn("AI_TELEMETRY_REJECTED", codes)
 
 
+    def test_flags_surface_clamping_of_wsi_image_count(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "log.txt").write_text(
+                "SnapFrame: actual present mode=FIFO image_count=2 extent=2448x1080\n",
+                encoding="utf-8")
+            report = analyze(root)
+            self.assertEqual(report["actual_wsi_configurations"][0]["image_count"], 2)
+            codes = {item["code"] for item in report["findings"]}
+            self.assertIn("WSI_IMAGE_COUNT_BELOW_TARGET", codes)
+
+
 if __name__ == "__main__":
     unittest.main()
