@@ -198,6 +198,9 @@ struct SnapAIPendingMetrics {
 };
 SnapAIPendingMetrics g_snapAiPendingMetrics;
 std::atomic<uint64_t> g_aiDecisionCount{0};
+std::atomic<uint32_t> g_aiWsiThrottleFrames{0};
+static constexpr float kAiGeneratedWaitThrottleMs = 8.0f;
+static constexpr uint32_t kAiGeneratedWaitThrottleFrames = 30;
 uint64_t g_aiLastScaleChangeFrame = 0;
 std::atomic<uint32_t> g_aiQualityHeadroomSamples{0};
 std::atomic<uint32_t> g_aiLoadPressureSamples{0};
@@ -2653,6 +2656,7 @@ extern "C" void snapframe_dxvk_set_copy_hook(
 extern "C" void snapframe_dxvk_set_device_destroy_hook(void (*hook)(void*));
 extern "C" void snapframe_dxvk_set_log_hook(void (*hook)(const char*));
 extern "C" void snapframe_dxvk_set_present_mode_hook(int (*hook)(int*));
+extern "C" void snapframe_dxvk_set_submission_pressure_hook(void (*hook)(float));
 extern "C" void snapframe_dxvk_set_generation_hooks(
     bool (*canGenerateHook)(void),
     void* (*generateHook)(void*, void*, uint32_t, uint32_t, uint32_t),
@@ -2733,6 +2737,7 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
         g_snapAiPendingMetrics = SnapAIPendingMetrics{};
     }
     g_aiDecisionCount.store(0, std::memory_order_relaxed);
+    g_aiWsiThrottleFrames.store(0, std::memory_order_relaxed);
     g_aiLastScaleChangeFrame = 0;
     g_aiQualityHeadroomSamples.store(0, std::memory_order_relaxed);
     g_aiLoadPressureSamples.store(0, std::memory_order_relaxed);
@@ -2775,6 +2780,8 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
     snapframe_dxvk_set_device_destroy_hook(snapframeDeviceDestroyed);
     snapframe_dxvk_set_log_hook(snapframeForwardDxvkLog);
     snapframe_dxvk_set_present_mode_hook(snapframe_host_get_present_mode);
+    snapframe_dxvk_set_submission_pressure_hook(
+        snapframe_host_report_submission_pressure);
     snapframeEvent(0, "host_init", 0, 0,
         g_motionAnalysisEnabled ? "motion_analysis_enabled" : "motion_analysis_disabled");
     snapframeLog("SnapFrame: diagnostic_suite=%d phase_frames=%u phases=7 profiling=%d motion_analysis=%d timestamp_interval=30 flow_readback_interval=120\n",
@@ -2892,11 +2899,43 @@ extern "C" int snapframe_host_update_settings(int enabled, int flow_scale_percen
     return 1;
 }
 
+extern "C" void snapframe_host_report_submission_pressure(float waitMs) {
+    if (!std::isfinite(waitMs) || waitMs < kAiGeneratedWaitThrottleMs)
+        return;
+
+    const uint32_t previous = g_aiWsiThrottleFrames.exchange(
+        kAiGeneratedWaitThrottleFrames, std::memory_order_acq_rel);
+    if (previous == 0) {
+        snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed),
+            "ai_wsi_backpressure", g_width, g_height,
+            "generated_submission_wait_over_8ms; temporarily_bypassing_generation");
+        snapframeLog("SnapFrame AI: WSI backpressure wait=%.3fms; bypassing generation for %u source frames\\n",
+            waitMs, kAiGeneratedWaitThrottleFrames);
+    }
+}
+
 extern "C" bool snapframe_host_can_generate(void) {
-    return snapframe_host_active()
-        && g_midpointAvailable
-        && g_midpointView != nullptr
-        && g_midpointFrameReady.load(std::memory_order_acquire) != 0;
+    if (!snapframe_host_active()
+        || !g_midpointAvailable
+        || g_midpointView == nullptr
+        || g_midpointFrameReady.load(std::memory_order_acquire) == 0)
+        return false;
+
+    uint32_t remaining = g_aiWsiThrottleFrames.load(std::memory_order_acquire);
+    while (remaining != 0) {
+        if (g_aiWsiThrottleFrames.compare_exchange_weak(
+                remaining, remaining - 1u,
+                std::memory_order_acq_rel, std::memory_order_acquire)) {
+            if (remaining == 1u) {
+                snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed),
+                    "ai_wsi_backpressure_recovered", g_width, g_height,
+                    "generation_resumed_after_submission_pressure_cooldown");
+                snapframeLog("SnapFrame AI: WSI backpressure cooldown complete; generation resumed\\n");
+            }
+            return false;
+        }
+    }
+    return true;
 }
 
 extern "C" void* snapframe_host_generate_view(
