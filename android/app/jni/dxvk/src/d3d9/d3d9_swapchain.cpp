@@ -14,6 +14,7 @@
 
 /* SnapFrame owns source capture and midpoint generation in this DXVK path. */
 using SnapFrameCopyHook = void (*)(void*, void*, void*, uint32_t, uint32_t, uint32_t);
+extern "C" int snapframe_host_get_present_mode(int* presentMode);
 static std::atomic<SnapFrameCopyHook> g_snapFrameCopyHook{nullptr};
 using SnapFrameLogHook = void (*)(const char*);
 static std::atomic<SnapFrameLogHook> g_snapFrameLogHook{nullptr};
@@ -1606,21 +1607,43 @@ namespace dxvk {
   uint32_t D3D9SwapChainEx::PickPresentModes(
           BOOL                      Vsync,
           VkPresentModeKHR*         pDstModes) {
-    uint32_t n = 0;
+    int requestedMode = 0;
+    snapframe_host_get_present_mode(&requestedMode);
 
-    if (Vsync) {
-      if (m_parent->GetOptions()->tearFree == Tristate::False)
-        pDstModes[n++] = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
-      pDstModes[n++] = VK_PRESENT_MODE_FIFO_KHR;
-    } else {
-      if (m_parent->GetOptions()->tearFree != Tristate::True)
+    uint32_t n = 0;
+    switch (requestedMode) {
+      case 1: // FIFO
+        pDstModes[n++] = VK_PRESENT_MODE_FIFO_KHR;
+        break;
+      case 2: // MAILBOX; FIFO is the guaranteed fallback.
+        pDstModes[n++] = VK_PRESENT_MODE_MAILBOX_KHR;
+        pDstModes[n++] = VK_PRESENT_MODE_FIFO_KHR;
+        break;
+      case 3: // IMMEDIATE; FIFO is the guaranteed fallback.
         pDstModes[n++] = VK_PRESENT_MODE_IMMEDIATE_KHR;
-      pDstModes[n++] = VK_PRESENT_MODE_MAILBOX_KHR;
+        pDstModes[n++] = VK_PRESENT_MODE_FIFO_KHR;
+        break;
+      default: // Auto preserves the game's existing VSync/tear-free policy.
+        if (Vsync) {
+          if (m_parent->GetOptions()->tearFree == Tristate::False)
+            pDstModes[n++] = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
+          pDstModes[n++] = VK_PRESENT_MODE_FIFO_KHR;
+        } else {
+          if (m_parent->GetOptions()->tearFree != Tristate::True)
+            pDstModes[n++] = VK_PRESENT_MODE_IMMEDIATE_KHR;
+          pDstModes[n++] = VK_PRESENT_MODE_MAILBOX_KHR;
+          pDstModes[n++] = VK_PRESENT_MODE_FIFO_KHR;
+        }
+        break;
     }
 
+    Logger::info(str::format("SnapFrame: requested present mode=",
+      requestedMode == 1 ? "FIFO" :
+      requestedMode == 2 ? "MAILBOX" :
+      requestedMode == 3 ? "IMMEDIATE" : "AUTO",
+      " (fallback=FIFO where applicable)"));
     return n;
   }
-
 
   uint32_t D3D9SwapChainEx::PickImageCount(
           UINT                      Preferred) {
