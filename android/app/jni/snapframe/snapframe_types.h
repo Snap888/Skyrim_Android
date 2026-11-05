@@ -12,8 +12,16 @@ typedef enum SnapFrameQuality {
     SNAPFRAME_QUALITY_QUALITY = 2
 } SnapFrameQuality;
 
+typedef enum SnapFramePresentMode {
+    SNAPFRAME_PRESENT_MODE_AUTO = 0,
+    SNAPFRAME_PRESENT_MODE_FIFO = 1,
+    SNAPFRAME_PRESENT_MODE_MAILBOX = 2,
+    SNAPFRAME_PRESENT_MODE_IMMEDIATE = 3
+} SnapFramePresentMode;
+
 typedef struct SnapFrameConfig {
     int enabled;
+    int present_mode;     /* SnapFramePresentMode; applies to the shared DXVK swapchain. */
     int multiplier;       /* Initially only 1 (off) or 2 (one generated frame). */
     int quality;          /* SnapFrameQuality */
     int flow_scale_percent;
