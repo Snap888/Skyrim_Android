@@ -694,3 +694,12 @@ available production solution on a stock non-rooted device. Android's loader
 documentation describes app-packaged layers and restricts external code
 injection into non-debuggable processes. See the Vulkan layer and Android
 loader references in the project discussion.
+
+
+## WSI pacing: non-blocking generated-image acquisition
+
+The Presenter keeps its current single outstanding acquire state until a full per-acquire ticket model is implemented. To protect source-frame throughput in the meantime, the submission thread now pre-acquires the next WSI image with a zero timeout. The generated-frame path also polls acquisition with a zero timeout and skips that generated frame when the swapchain has no image immediately available. VK_NOT_READY and VK_TIMEOUT are normal back-pressure outcomes; they must not trigger swapchain recreation. Only VK_ERROR_OUT_OF_DATE_KHR and VK_ERROR_SURFACE_LOST_KHR enter the bounded recreation path.
+
+The source-to-generated handoff remains serialized for correctness. Its metric is now named avg_presenter_handoff_wait_ms: it measures waiting for the queued presenter operation to consume the source acquire token, issue vkQueuePresentKHR, and perform the non-blocking next-image poll. It is not a GPU-retirement or GPU-fence wait. avg_generated_acquire_ms separately measures the generated-image poll. The next architectural step is an explicit acquire-ticket object carrying swapchain generation, frame slot, image index, and semaphore ownership; do not remove the handoff until that ticket is consumed exactly once and safely retired.
+
+This change prioritizes uninterrupted source frames over guaranteeing one generated frame for every source frame. On a saturated FIFO/WSI queue, some generated frames may be skipped rather than stalling the game thread. Validate source FPS, generated FPS, presenter handoff time, generated acquire time, and visual pacing on the target device before changing this policy.
