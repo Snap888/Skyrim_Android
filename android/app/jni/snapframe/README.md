@@ -602,3 +602,16 @@ with 2618 (subject to invalid/non-finite flow samples), while active_partials
 should remain 50/50. AI publication still requires full grid coverage and
 valid-flow coverage. This source fix is committed, but runtime confirmation
 requires a new APK and device log.
+
+
+### DXVK long-present stall trace
+
+DXVK now emits a bounded diagnostic line to snapframe.log when one
+PresentImage call takes at least 35 ms (maximum 64 lines per process). The line
+splits wall time into command-stream flush, source acquire, source/generated
+submission handoffs, generated acquire, midpoint recording, submit enqueue,
+and frame-latency wait. The remaining untracked time covers image/command
+recording and other CPU work not yet instrumented. This is diagnostic-only:
+it does not add waits, change queue order, or automatically disable frame
+ generation. Use these lines to identify whether severe game-FPS drops correlate
+with CPU-side DXVK stalls before changing WSI ownership or FG scheduling.
