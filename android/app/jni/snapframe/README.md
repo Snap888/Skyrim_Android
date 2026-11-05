@@ -532,3 +532,7 @@ python3 tools/analyze_snapframe_logs.py --log-dir /path/to/port --format json --
 
 The report aggregates event counts, generated-present VkResult failures, performance mean/median/p95/p99/max, flow telemetry availability, GPU-stage sample availability, observed present modes, and prioritized findings. It reads the event/performance/flow/GPU CSV files, SnapFrame log, DXVK log and config when present. Source logs are read-only and remain on the device; the analyzer performs no network requests and does not upload anything. Share the Markdown report first; attach full logs only when a finding requires deeper tracing. The report is a triage aid, not a replacement for source-level investigation. Tests run in Android CI.
 
+### WSI image depth for source + generated presentation
+
+DXVK now requests at least three swapchain images for the SnapFrame shared presenter (subject to the surface's supported limits). This is intended to leave room for a source image, a queued/scan-out image, and one generated image in the same cycle. The actual selected present mode and actual image count are logged as `SnapFrame: actual present mode=... image_count=...`. This is a measured experiment, not a guaranteed FIFO fix: triple buffering can increase queue latency on some drivers. Compare Game FPS, generated acceptance rate, source acquire p95, and visible input latency across all four modes. If the surface clamps the count to two, or FIFO still reports VK_NOT_READY, the next step is the per-acquire ticket design—not longer blocking acquire timeouts on the game thread.
+
