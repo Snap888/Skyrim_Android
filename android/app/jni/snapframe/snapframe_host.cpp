@@ -1937,7 +1937,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                 if (snapframe_host_apply_backend_config(
                         g_enabled.load(std::memory_order_acquire), requestedScale)) {
                     g_aiLastScaleChangeFrame = aiMetrics.frame_id;
-                    snapframeLog("SnapFrame AI: accepted Flow Scale=%d%% at frame=%llu direction=%s pressure=%.3f frame_ms=%.3f confidence=%.3f artifact=%.3f; resource rebuild scheduled\\n",
+                    snapframeLog("SnapFrame AI: accepted Flow Scale=%d%% at frame=%llu direction=%s pressure=%.3f frame_ms=%.3f confidence=%.3f artifact=%.3f; resource rebuild scheduled\n",
                         requestedScale,
                         static_cast<unsigned long long>(aiMetrics.frame_id),
                         reducingLoad ? "load_reduction" : "quality_increase",
