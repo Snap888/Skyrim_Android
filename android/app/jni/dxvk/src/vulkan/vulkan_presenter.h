@@ -143,7 +143,7 @@ namespace dxvk::vk {
      * but do not present before acquiring an image.
      * \returns Status of the operation
      */
-    VkResult presentImage();
+    VkResult presentImage(bool applyFrameRateLimit = true);
     
     /**
      * \brief Changes presenter properties
