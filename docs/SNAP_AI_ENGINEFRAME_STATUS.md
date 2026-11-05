@@ -651,3 +651,16 @@ policy as later swapchain recreations.
 - CI APKs are signed with one persistent repository keystore. Configure these Actions secrets before running an APK build: ANDROID_SIGNING_KEYSTORE_BASE64, ANDROID_SIGNING_STORE_PASSWORD, ANDROID_SIGNING_KEY_ALIAS, ANDROID_SIGNING_KEY_PASSWORD. The workflow intentionally fails with a clear message if the persistent key is missing; silently falling back to an ephemeral debug key would recreate the update problem.
 - Both workflows verify the embedded applicationId, versionCode, versionName, APK signature and signer certificate digest. The dual APK is copied immediately after its own build so it cannot be overwritten or mistaken for the main APK.
 - The existing installed APK was produced with the old ephemeral debug certificate. It cannot be updated by a new persistent signing key. A one-time uninstall/reinstall is unavoidable when switching signing identities; all subsequent builds signed with the configured persistent key can update in place as long as applicationId remains unchanged.
+
+
+### One-time persistent signing key setup
+
+Generate the keystore once on a trusted machine and keep a secure backup. Never regenerate it for ordinary APK updates:
+
+```bash
+keytool -genkeypair -v -keystore skyrim-upload.jks -alias skyrim-upload \
+  -keyalg RSA -keysize 3072 -validity 10000
+base64 -w0 skyrim-upload.jks
+```
+
+Save the base64 output as ANDROID_SIGNING_KEYSTORE_BASE64 and save the keystore password, alias (skyrim-upload), and key password in the other three Actions secrets. Do not commit the JKS or its passwords to the repository. The signing key must remain unchanged for the lifetime of this installed application package.
