@@ -15,7 +15,13 @@
 /* SnapFrame owns source capture and midpoint generation in this DXVK path. */
 using SnapFrameCopyHook = void (*)(void*, void*, void*, uint32_t, uint32_t, uint32_t);
 using SnapFramePresentModeHook = int (*)(int*);
+using SnapFrameSubmissionPressureHook = void (*)(float);
 static std::atomic<SnapFramePresentModeHook> g_snapFramePresentModeHook{nullptr};
+static std::atomic<SnapFrameSubmissionPressureHook> g_snapFrameSubmissionPressureHook{nullptr};
+extern "C" void snapframe_dxvk_set_submission_pressure_hook(
+    SnapFrameSubmissionPressureHook hook) {
+  g_snapFrameSubmissionPressureHook.store(hook, std::memory_order_release);
+}
 extern "C" void snapframe_dxvk_set_present_mode_hook(SnapFramePresentModeHook hook) {
   g_snapFramePresentModeHook.store(hook, std::memory_order_release);
 }
@@ -1034,6 +1040,12 @@ namespace dxvk {
         perfSourceHandoffWaitMs += std::chrono::duration<double, std::milli>(
           std::chrono::steady_clock::now() - waitStart).count();
       }
+      /* Feed the exact generated-status wait back to SnapFrame immediately.
+       * A long generated WSI handoff temporarily suppresses new FG requests,
+       * preventing the generator from extending a present-queue backlog. */
+      if (const SnapFrameSubmissionPressureHook pressureHook =
+            g_snapFrameSubmissionPressureHook.load(std::memory_order_acquire))
+        pressureHook(static_cast<float>(perfGeneratedSubmissionWaitMs));
 
       // Presentation semaphores and WSI swap chain image
       vk::PresenterInfo info = m_presenter->info();
