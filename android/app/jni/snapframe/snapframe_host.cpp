@@ -2910,7 +2910,7 @@ extern "C" void snapframe_host_report_submission_pressure(float waitMs) {
         snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed),
             "ai_wsi_backpressure", g_width, g_height,
             "generated_submission_wait_over_8ms; temporarily_bypassing_generation");
-        snapframeLog("SnapFrame AI: WSI backpressure wait=%.3fms; bypassing generation for %u source frames\\n",
+        snapframeLog("SnapFrame AI: WSI backpressure wait=%.3fms; bypassing generation for %u source frames\n",
             waitMs, kAiGeneratedWaitThrottleFrames);
     }
 }
@@ -2931,7 +2931,7 @@ extern "C" bool snapframe_host_can_generate(void) {
                 snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed),
                     "ai_wsi_backpressure_recovered", g_width, g_height,
                     "generation_resumed_after_submission_pressure_cooldown");
-                snapframeLog("SnapFrame AI: WSI backpressure cooldown complete; generation resumed\\n");
+                snapframeLog("SnapFrame AI: WSI backpressure cooldown complete; generation resumed\n");
             }
             return false;
         }
