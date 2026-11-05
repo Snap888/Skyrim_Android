@@ -558,3 +558,23 @@ drops substantially, while generated-present waits remain low. The uploaded
 GPU CSV has only its header because profiling was disabled, so these logs
 cannot quantify shader cost. Repeated `VK_NOT_READY` generated acquire
 results and the invalid scalar coverage telemetry remain separate issues.
+
+### SnapFrame WSI present-mode selector — 2026-11-05
+
+Added a launcher selector with `Auto`, `FIFO`, `MAILBOX`, and `IMMEDIATE`.
+The launcher preserves all existing `port/snapframe.conf` entries and updates
+only `present_mode` (0=Auto, 1=FIFO, 2=MAILBOX, 3=IMMEDIATE). The native
+bootstrap parses and validates the value; invalid values resolve to Auto.
+
+DXVK's D3D9 swapchain now builds its desired present-mode order from this
+preference. Auto preserves the existing VSync/tear-free behavior. Explicit
+MAILBOX and IMMEDIATE prefer the requested mode and list FIFO as a fallback.
+FIFO remains Vulkan's guaranteed mode. The Presenter reports the actual mode
+selected after querying surface support, so unsupported requests are visible
+in logs rather than silently assumed to work.
+
+Important architecture limitation: this selects the **shared** swapchain
+mode for both source and generated frames. It does not independently pace FG.
+Changing the preference requires restarting the game / recreating the swapchain.
+No automatic runtime switching is enabled. Runtime A/B measurements and device
+validation are still required; output submit FPS is not physical scanout FPS.
