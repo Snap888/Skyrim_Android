@@ -88,7 +88,7 @@ def to_markdown(r):
       f"- Generated skipped (WSI backpressure): {r['generated_present']['skipped_backpressure']}",
       f"- Generated failed (non-backpressure): {r['generated_present']['failed']}",
       f"- Backpressure VkResult counts: {json.dumps(r['generated_present']['backpressure_vk_results'],sort_keys=True)}",
-      f"- Failure VkResult counts: {json.dumps(r['generated_present']['failure_vk_results'],sort_keys=True)},
+      f"- Failure VkResult counts: {json.dumps(r['generated_present']['failure_vk_results'],sort_keys=True)}",
       f"- Modes observed: {json.dumps(r['present_modes_seen_in_log'],sort_keys=True)}","","## Event counts",""]
     out += [f"- {k}: {v}" for k,v in sorted(r["event_counts"].items())]
     out += ["","## Performance (ms unless noted)",""]
