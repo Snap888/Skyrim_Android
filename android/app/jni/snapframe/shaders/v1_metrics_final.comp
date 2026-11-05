@@ -18,6 +18,7 @@ struct SnapFrameMetricsResult {
     uvec4 flags;    // valid, partial count, expected cells, valid cells
     vec4 motion;    // mean magnitude, normalized complexity, mean confidence, low-confidence ratio
     vec4 quality;   // inconsistency ratio, boundary ratio, artifact-risk heuristic, valid coverage
+    uvec4 debug;     // non-empty partials, min/max cells per partial, expected partials
 };
 layout(set = 0, binding = 1, std430) writeonly buffer ResultBuffer {
     SnapFrameMetricsResult value;
@@ -31,23 +32,41 @@ layout(push_constant) uniform MetricsPush {
 
 shared vec4 sharedMotion[64];
 shared vec4 sharedQuality[64];
+shared uint sharedActivePartials[64];
+shared uint sharedMinCells[64];
+shared uint sharedMaxCells[64];
 
 void main() {
     uint lane = gl_LocalInvocationIndex;
     vec4 motion = vec4(0.0);
     vec4 quality = vec4(0.0);
+    uint activePartials = 0u;
+    uint minCells = 0xffffffffu;
+    uint maxCells = 0u;
     for (uint i = lane; i < pc.counts.x; i += 64u) {
-        motion += inputPartials.values[i].motion;
-        quality += inputPartials.values[i].quality;
+        SnapFrameMetricsPartial partial = inputPartials.values[i];
+        motion += partial.motion;
+        quality += partial.quality;
+        uint cells = uint(round(max(partial.quality.w, 0.0)));
+        if (cells > 0u)
+            activePartials++;
+        minCells = min(minCells, cells);
+        maxCells = max(maxCells, cells);
     }
     sharedMotion[lane] = motion;
     sharedQuality[lane] = quality;
+    sharedActivePartials[lane] = activePartials;
+    sharedMinCells[lane] = minCells;
+    sharedMaxCells[lane] = maxCells;
     barrier();
 
     for (uint stride = 32u; stride > 0u; stride >>= 1u) {
         if (lane < stride) {
             sharedMotion[lane] += sharedMotion[lane + stride];
             sharedQuality[lane] += sharedQuality[lane + stride];
+            sharedActivePartials[lane] += sharedActivePartials[lane + stride];
+            sharedMinCells[lane] = min(sharedMinCells[lane], sharedMinCells[lane + stride]);
+            sharedMaxCells[lane] = max(sharedMaxCells[lane], sharedMaxCells[lane + stride]);
         }
         barrier();
     }
@@ -77,5 +96,8 @@ void main() {
         outputResult.value.motion = meanMotion;
         outputResult.value.quality = vec4(meanQuality.x, meanQuality.y,
                                           artifactRisk, validCoverage);
+        outputResult.value.debug = uvec4(sharedActivePartials[0],
+            sharedMinCells[0] == 0xffffffffu ? 0u : sharedMinCells[0],
+            sharedMaxCells[0], pc.counts.x);
     }
 }
