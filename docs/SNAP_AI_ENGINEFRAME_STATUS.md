@@ -664,3 +664,11 @@ base64 -w0 skyrim-upload.jks
 ```
 
 Save the base64 output as ANDROID_SIGNING_KEYSTORE_BASE64 and save the keystore password, alias (skyrim-upload), and key password in the other three Actions secrets. Do not commit the JKS or its passwords to the repository. The signing key must remain unchanged for the lifetime of this installed application package.
+
+
+## WSI-aware Snap AI backpressure
+
+- DXVK now reports the measured generated-submission wait from the start-of-frame synchronization point to the SnapFrame host.
+- If that wait reaches 8 ms, Snap AI enters a 30-source-frame generation cooldown. During the cooldown the game continues presenting real frames, while new midpoint presents are suppressed. The controller then resumes generation automatically.
+- This is a backpressure guard, not a claim that the WSI stall itself is fixed. It prevents repeated generated presents from continuously extending a slow generated-present queue and prioritizes source-frame cadence during overload.
+- The throttle uses atomics only on the present path; it does not add waits, allocate resources, rebuild flow history, or alter semaphore ownership. Events ai_wsi_backpressure and ai_wsi_backpressure_recovered make each throttle cycle visible in snapframe_events.csv.
