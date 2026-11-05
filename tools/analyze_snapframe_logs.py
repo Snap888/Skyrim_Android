@@ -35,10 +35,18 @@ def analyze(root):
     log="\n".join((root/name).read_text(encoding="utf-8",errors="replace") for name in FILES[4:6] if (root/name).is_file())
     config=(root/FILES[6]).read_text(encoding="utf-8",errors="replace") if (root/FILES[6]).is_file() else ""
     counts=Counter(x.get("event","unknown") for x in events); results=Counter(); reasons=Counter()
+    backpressure=Counter()
     for row in events:
-        if row.get("event")=="midpoint_present_failed":
-            d=row.get("detail",""); m=re.search(r"result=(-?\d+)",d)
-            results[m.group(1) if m else "unknown"]+=1
+        event=row.get("event")
+        d=row.get("detail","")
+        m=re.search(r"result=(-?\d+)",d)
+        result=m.group(1) if m else "unknown"
+        # Older logs used midpoint_present_failed for VK_NOT_READY/TIMEOUT.
+        if event=="midpoint_present_skipped_backpressure" or (
+            event=="midpoint_present_failed" and result in ("1","2")):
+            backpressure[result]+=1
+        elif event=="midpoint_present_failed":
+            results[result]+=1
             reasons[d.split(" result=")[0] or "unspecified"]+=1
     keys=("avg_cpu_present_ms","max_cpu_present_ms","avg_source_acquire_ms","avg_generated_acquire_ms",
           "avg_source_handoff_wait_ms","avg_generated_handoff_wait_ms","avg_source_submission_wait_ms",
@@ -52,10 +60,12 @@ def analyze(root):
     actual_wsi=[]
     for m in re.finditer(r"SnapFrame: actual present mode=(FIFO|MAILBOX|IMMEDIATE|FIFO_RELAXED|OTHER) image_count=(\d+) extent=(\d+)x(\d+)",log,re.I):
         actual_wsi.append({"mode":m.group(1).upper(),"image_count":int(m.group(2)),"width":int(m.group(3)),"height":int(m.group(4))})
-    failed=counts.get("midpoint_present_failed",0); nr=results.get("1",0); rejected=counts.get("gpu_metrics_rejected",0)
+    failed=counts.get("midpoint_present_failed",0)
+    backpressure_count=sum(backpressure.values())
+    rejected=counts.get("gpu_metrics_rejected",0)
     findings=[]
-    if nr: findings.append({"severity":"high","code":"GENERATED_WSI_BACKPRESSURE","message":f"{nr} generated-frame failures report VK_NOT_READY.","recommendation":"Keep game presentation non-blocking. Inspect per-mode acquire availability and presenter pre-acquire/ticket ownership before increasing timeout."})
-    if failed>nr: findings.append({"severity":"high","code":"GENERATED_WSI_ERRORS","message":f"{failed-nr} generated failures have results other than VK_NOT_READY.","recommendation":"Inspect exact VkResult and surface/swapchain lifecycle."})
+    if backpressure_count: findings.append({"severity":"medium","code":"GENERATED_WSI_BACKPRESSURE","message":f"{backpressure_count} generated-frame attempts were skipped because no WSI image was immediately available (VK_NOT_READY/VK_TIMEOUT).","recommendation":"Keep generated acquire non-blocking. Compare backpressure by present mode and improve image scheduling; do not treat these skips as interpolation failures."})
+    if failed and results: findings.append({"severity":"high","code":"GENERATED_WSI_ERRORS","message":f"{sum(results.values())} generated-frame failures have non-backpressure VkResults.","recommendation":"Inspect exact VkResult and surface/swapchain lifecycle."})
     if rejected: findings.append({"severity":"high","code":"AI_TELEMETRY_REJECTED","message":f"{rejected} GPU metric records were rejected; adaptive AI tuning must remain disabled.","recommendation":"Validate shader valid/expected cell counts against CPU grid dimensions and derive coverage from the same counters."})
     if actual_wsi and min(x["image_count"] for x in actual_wsi)<3:
         findings.append({"severity":"medium","code":"WSI_IMAGE_COUNT_BELOW_TARGET","message":"The actual surface swapchain image count fell below three.","recommendation":"Compare generated acquire VK_NOT_READY rates by actual present mode. The surface may cap image count; do not force blocking acquire to compensate."})
@@ -64,7 +74,9 @@ def analyze(root):
     sizes={n:((root/n).stat().st_size if (root/n).is_file() else 0) for n in FILES}
     return {"schema":"snapframe-diagnostic-report-v1","source_directory":root.name,"files_bytes":sizes,
       "event_rows":len(events),"event_counts":dict(counts),
-      "generated_present":{"accepted":counts.get("midpoint_present_accepted",0),"failed":failed,
+      "generated_present":{"accepted":counts.get("midpoint_present_accepted",0),
+        "skipped_backpressure":backpressure_count,"failed":sum(results.values()),
+        "backpressure_vk_results":dict(backpressure),
         "failure_vk_results":dict(results),"failure_reasons":dict(reasons)},
       "present_modes_seen_in_log":dict(modes),"actual_wsi_configurations":actual_wsi,"performance":perfstats,
       "flow":{"rows":len(flow),"metrics":flowstats},"gpu_stage_rows":len(gpu),"findings":findings}
@@ -73,8 +85,10 @@ def to_markdown(r):
     out=["# SnapFrame diagnostic report","",f"- Schema: {r['schema']}",f"- Source folder: {r['source_directory']}",
       f"- Event rows: {r['event_rows']}",f"- Flow rows: {r['flow']['rows']}",f"- GPU stage rows: {r['gpu_stage_rows']}",
       "","## Present / WSI","",f"- Generated accepted: {r['generated_present']['accepted']}",
-      f"- Generated failed: {r['generated_present']['failed']}",
-      f"- VkResult counts: {json.dumps(r['generated_present']['failure_vk_results'],sort_keys=True)}",
+      f"- Generated skipped (WSI backpressure): {r['generated_present']['skipped_backpressure']}",
+      f"- Generated failed (non-backpressure): {r['generated_present']['failed']}",
+      f"- Backpressure VkResult counts: {json.dumps(r['generated_present']['backpressure_vk_results'],sort_keys=True)}",
+      f"- Failure VkResult counts: {json.dumps(r['generated_present']['failure_vk_results'],sort_keys=True)},
       f"- Modes observed: {json.dumps(r['present_modes_seen_in_log'],sort_keys=True)}","","## Event counts",""]
     out += [f"- {k}: {v}" for k,v in sorted(r["event_counts"].items())]
     out += ["","## Performance (ms unless noted)",""]
