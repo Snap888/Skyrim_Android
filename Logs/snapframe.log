@@ -7,10 +7,11 @@ SnapFrame: diagnostic_suite=0 phase_frames=1800 phases=7 profiling=0 motion_anal
 SnapFrame: host initialized enabled=0 quality=1 flow_scale=50% motion_analysis=1 mode=capture+luma+bidirectional-flow+fb-consistency+midpoint-warp
 SnapFrame: portable SnapFrameBackendV1 active (DXVK GPU pipeline adapter)
 SnapFrame: config=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe.conf log=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe.log gpu_csv=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe_gpu.csv flow_csv=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe_flow.csv events_csv=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe_events.csv enabled=0 multiplier=2 quality=1 flow_scale=50 motion_analysis=1 profiling=0 diagnostic_suite=0 phase_frames=1800
-SnapFrame: portable config update queued enabled=1 flow_scale=50%
 SnapFrame: entered D3D9SwapChainEx::PresentImage
 SnapFrame: DXVK present path reached extent=2448x1080 format=0x25 usage=0x13 copy_hook=1
 SnapFrame: dispatching first DXVK copy callback
+SnapFrame: queued history reset consumed on render callback
+SnapFrame: portable config update queued enabled=1 flow_scale=50%
 SnapFrame: queued history reset consumed on render callback
 SnapFrame: host copy callback entered
 SnapFrame: R16F luma output supported (features=0x1fd83 imageResult=0 extendedFormats=1)
@@ -32,172 +33,65 @@ SnapFrame: midpoint warp accepted count=1 extent=2448x1080 output=RGBA16F
 SnapFrame: forward/backward consistency accepted count=1
 SnapFrame: two real frames captured; history ring valid
 SnapFrame: captured=60 skipped=0 extent=2448x1080
-SnapFrame: V2 coarse-to-fine flow pair accepted count=120 frame=121 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=120 frame=121 grid=153x68 thresholds=1.5/4.0px
+SnapFrame AI budget: V2 motion search interval=4 source frames (GPU budget target=6ms)
 SnapFrame: bidirectional flow pair accepted count=120 groups=10x5
 SnapFrame: forward/backward consistency accepted count=120
-SnapFrame: V2 coarse-to-fine flow pair accepted count=240 frame=241 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=240 frame=241 grid=153x68 thresholds=1.5/4.0px
 SnapFrame: bidirectional flow pair accepted count=240 groups=10x5
 SnapFrame: forward/backward consistency accepted count=240
 SnapFrame: V2 pyramid dispatch accepted count=300 frame=300 L0=1224x540 L1=612x270 L2=306x135
 SnapFrame: luma dispatch accepted count=300 groups=153x68
 SnapFrame: midpoint warp accepted count=300 extent=2448x1080 output=RGBA16F
-SnapFrame: V2 coarse-to-fine flow pair accepted count=360 frame=361 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=360 frame=361 grid=153x68 thresholds=1.5/4.0px
+SnapFrame: V2 coarse-to-fine flow pair accepted count=120 frame=304 levels=L2,L1,L0 directions=2
+SnapFrame: V2 refinement+validation accepted count=120 frame=304 grid=153x68 thresholds=1.5/4.0px
 SnapFrame: bidirectional flow pair accepted count=360 groups=10x5
 SnapFrame: forward/backward consistency accepted count=360
-SnapFrame: V2 coarse-to-fine flow pair accepted count=480 frame=481 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=480 frame=481 grid=153x68 thresholds=1.5/4.0px
 SnapFrame: bidirectional flow pair accepted count=480 groups=10x5
 SnapFrame: forward/backward consistency accepted count=480
 SnapFrame: V2 pyramid dispatch accepted count=600 frame=600 L0=1224x540 L1=612x270 L2=306x135
 SnapFrame: luma dispatch accepted count=600 groups=153x68
-SnapFrame: V2 coarse-to-fine flow pair accepted count=600 frame=601 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=600 frame=601 grid=153x68 thresholds=1.5/4.0px
 SnapFrame: bidirectional flow pair accepted count=600 groups=10x5
 SnapFrame: midpoint warp accepted count=600 extent=2448x1080 output=RGBA16F
 SnapFrame: forward/backward consistency accepted count=600
-SnapFrame: V2 coarse-to-fine flow pair accepted count=720 frame=721 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=720 frame=721 grid=153x68 thresholds=1.5/4.0px
 SnapFrame: bidirectional flow pair accepted count=720 groups=10x5
 SnapFrame: forward/backward consistency accepted count=720
-SnapFrame: V2 coarse-to-fine flow pair accepted count=840 frame=841 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=840 frame=841 grid=153x68 thresholds=1.5/4.0px
+SnapFrame: V2 coarse-to-fine flow pair accepted count=240 frame=784 levels=L2,L1,L0 directions=2
+SnapFrame: V2 refinement+validation accepted count=240 frame=784 grid=153x68 thresholds=1.5/4.0px
 SnapFrame: bidirectional flow pair accepted count=840 groups=10x5
 SnapFrame: forward/backward consistency accepted count=840
 SnapFrame: V2 pyramid dispatch accepted count=900 frame=900 L0=1224x540 L1=612x270 L2=306x135
 SnapFrame: luma dispatch accepted count=900 groups=153x68
 SnapFrame: midpoint warp accepted count=900 extent=2448x1080 output=RGBA16F
-SnapFrame: V2 coarse-to-fine flow pair accepted count=960 frame=961 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=960 frame=961 grid=153x68 thresholds=1.5/4.0px
 SnapFrame: bidirectional flow pair accepted count=960 groups=10x5
 SnapFrame: forward/backward consistency accepted count=960
-SnapFrame: V2 coarse-to-fine flow pair accepted count=1080 frame=1081 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=1080 frame=1081 grid=153x68 thresholds=1.5/4.0px
 SnapFrame: bidirectional flow pair accepted count=1080 groups=10x5
 SnapFrame: forward/backward consistency accepted count=1080
 SnapFrame: V2 pyramid dispatch accepted count=1200 frame=1200 L0=1224x540 L1=612x270 L2=306x135
 SnapFrame: luma dispatch accepted count=1200 groups=153x68
-SnapFrame: V2 coarse-to-fine flow pair accepted count=1200 frame=1201 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=1200 frame=1201 grid=153x68 thresholds=1.5/4.0px
 SnapFrame: bidirectional flow pair accepted count=1200 groups=10x5
 SnapFrame: midpoint warp accepted count=1200 extent=2448x1080 output=RGBA16F
 SnapFrame: forward/backward consistency accepted count=1200
-SnapFrame: V2 coarse-to-fine flow pair accepted count=1320 frame=1321 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=1320 frame=1321 grid=153x68 thresholds=1.5/4.0px
+SnapFrame: V2 coarse-to-fine flow pair accepted count=360 frame=1264 levels=L2,L1,L0 directions=2
+SnapFrame: V2 refinement+validation accepted count=360 frame=1264 grid=153x68 thresholds=1.5/4.0px
 SnapFrame: bidirectional flow pair accepted count=1320 groups=10x5
 SnapFrame: forward/backward consistency accepted count=1320
-SnapFrame: V2 coarse-to-fine flow pair accepted count=1440 frame=1441 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=1440 frame=1441 grid=153x68 thresholds=1.5/4.0px
 SnapFrame: bidirectional flow pair accepted count=1440 groups=10x5
 SnapFrame: forward/backward consistency accepted count=1440
 SnapFrame: V2 pyramid dispatch accepted count=1500 frame=1500 L0=1224x540 L1=612x270 L2=306x135
 SnapFrame: luma dispatch accepted count=1500 groups=153x68
 SnapFrame: midpoint warp accepted count=1500 extent=2448x1080 output=RGBA16F
-SnapFrame: V2 coarse-to-fine flow pair accepted count=1560 frame=1561 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=1560 frame=1561 grid=153x68 thresholds=1.5/4.0px
 SnapFrame: bidirectional flow pair accepted count=1560 groups=10x5
 SnapFrame: forward/backward consistency accepted count=1560
-SnapFrame: V2 coarse-to-fine flow pair accepted count=1680 frame=1681 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=1680 frame=1681 grid=153x68 thresholds=1.5/4.0px
 SnapFrame: bidirectional flow pair accepted count=1680 groups=10x5
 SnapFrame: forward/backward consistency accepted count=1680
+SnapFrame: V2 coarse-to-fine flow pair accepted count=480 frame=1744 levels=L2,L1,L0 directions=2
+SnapFrame: V2 refinement+validation accepted count=480 frame=1744 grid=153x68 thresholds=1.5/4.0px
 SnapFrame: V2 pyramid dispatch accepted count=1800 frame=1800 L0=1224x540 L1=612x270 L2=306x135
 SnapFrame: luma dispatch accepted count=1800 groups=153x68
 SnapFrame: captured=1800 skipped=0 extent=2448x1080
-SnapFrame: V2 coarse-to-fine flow pair accepted count=1800 frame=1801 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=1800 frame=1801 grid=153x68 thresholds=1.5/4.0px
 SnapFrame: bidirectional flow pair accepted count=1800 groups=10x5
 SnapFrame: midpoint warp accepted count=1800 extent=2448x1080 output=RGBA16F
 SnapFrame: forward/backward consistency accepted count=1800
-SnapFrame: V2 coarse-to-fine flow pair accepted count=1920 frame=1921 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=1920 frame=1921 grid=153x68 thresholds=1.5/4.0px
 SnapFrame: bidirectional flow pair accepted count=1920 groups=10x5
 SnapFrame: forward/backward consistency accepted count=1920
-SnapFrame: V2 coarse-to-fine flow pair accepted count=2040 frame=2041 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=2040 frame=2041 grid=153x68 thresholds=1.5/4.0px
 SnapFrame: bidirectional flow pair accepted count=2040 groups=10x5
 SnapFrame: forward/backward consistency accepted count=2040
-SnapFrame: V2 pyramid dispatch accepted count=2100 frame=2100 L0=1224x540 L1=612x270 L2=306x135
-SnapFrame: luma dispatch accepted count=2100 groups=153x68
-SnapFrame: midpoint warp accepted count=2100 extent=2448x1080 output=RGBA16F
-SnapFrame: V2 coarse-to-fine flow pair accepted count=2160 frame=2161 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=2160 frame=2161 grid=153x68 thresholds=1.5/4.0px
-SnapFrame: bidirectional flow pair accepted count=2160 groups=10x5
-SnapFrame: forward/backward consistency accepted count=2160
-SnapFrame: V2 coarse-to-fine flow pair accepted count=2280 frame=2281 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=2280 frame=2281 grid=153x68 thresholds=1.5/4.0px
-SnapFrame: bidirectional flow pair accepted count=2280 groups=10x5
-SnapFrame: forward/backward consistency accepted count=2280
-SnapFrame: V2 pyramid dispatch accepted count=2400 frame=2400 L0=1224x540 L1=612x270 L2=306x135
-SnapFrame: luma dispatch accepted count=2400 groups=153x68
-SnapFrame: V2 coarse-to-fine flow pair accepted count=2400 frame=2401 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=2400 frame=2401 grid=153x68 thresholds=1.5/4.0px
-SnapFrame: bidirectional flow pair accepted count=2400 groups=10x5
-SnapFrame: midpoint warp accepted count=2400 extent=2448x1080 output=RGBA16F
-SnapFrame: forward/backward consistency accepted count=2400
-SnapFrame: V2 coarse-to-fine flow pair accepted count=2520 frame=2521 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=2520 frame=2521 grid=153x68 thresholds=1.5/4.0px
-SnapFrame: bidirectional flow pair accepted count=2520 groups=10x5
-SnapFrame: forward/backward consistency accepted count=2520
-SnapFrame: V2 coarse-to-fine flow pair accepted count=2640 frame=2641 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=2640 frame=2641 grid=153x68 thresholds=1.5/4.0px
-SnapFrame: bidirectional flow pair accepted count=2640 groups=10x5
-SnapFrame: forward/backward consistency accepted count=2640
-SnapFrame: V2 pyramid dispatch accepted count=2700 frame=2700 L0=1224x540 L1=612x270 L2=306x135
-SnapFrame: luma dispatch accepted count=2700 groups=153x68
-SnapFrame: midpoint warp accepted count=2700 extent=2448x1080 output=RGBA16F
-SnapFrame: V2 coarse-to-fine flow pair accepted count=2760 frame=2761 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=2760 frame=2761 grid=153x68 thresholds=1.5/4.0px
-SnapFrame: bidirectional flow pair accepted count=2760 groups=10x5
-SnapFrame: forward/backward consistency accepted count=2760
-SnapFrame: V2 coarse-to-fine flow pair accepted count=2880 frame=2881 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=2880 frame=2881 grid=153x68 thresholds=1.5/4.0px
-SnapFrame: bidirectional flow pair accepted count=2880 groups=10x5
-SnapFrame: forward/backward consistency accepted count=2880
-SnapFrame: V2 pyramid dispatch accepted count=3000 frame=3000 L0=1224x540 L1=612x270 L2=306x135
-SnapFrame: luma dispatch accepted count=3000 groups=153x68
-SnapFrame: V2 coarse-to-fine flow pair accepted count=3000 frame=3001 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=3000 frame=3001 grid=153x68 thresholds=1.5/4.0px
-SnapFrame: bidirectional flow pair accepted count=3000 groups=10x5
-SnapFrame: midpoint warp accepted count=3000 extent=2448x1080 output=RGBA16F
-SnapFrame: forward/backward consistency accepted count=3000
-SnapFrame: V2 coarse-to-fine flow pair accepted count=3120 frame=3121 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=3120 frame=3121 grid=153x68 thresholds=1.5/4.0px
-SnapFrame: bidirectional flow pair accepted count=3120 groups=10x5
-SnapFrame: forward/backward consistency accepted count=3120
-SnapFrame: V2 coarse-to-fine flow pair accepted count=3240 frame=3241 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=3240 frame=3241 grid=153x68 thresholds=1.5/4.0px
-SnapFrame: bidirectional flow pair accepted count=3240 groups=10x5
-SnapFrame: forward/backward consistency accepted count=3240
-SnapFrame: V2 pyramid dispatch accepted count=3300 frame=3300 L0=1224x540 L1=612x270 L2=306x135
-SnapFrame: luma dispatch accepted count=3300 groups=153x68
-SnapFrame: midpoint warp accepted count=3300 extent=2448x1080 output=RGBA16F
-SnapFrame: V2 coarse-to-fine flow pair accepted count=3360 frame=3361 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=3360 frame=3361 grid=153x68 thresholds=1.5/4.0px
-SnapFrame: bidirectional flow pair accepted count=3360 groups=10x5
-SnapFrame: forward/backward consistency accepted count=3360
-SnapFrame: V2 coarse-to-fine flow pair accepted count=3480 frame=3481 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=3480 frame=3481 grid=153x68 thresholds=1.5/4.0px
-SnapFrame: bidirectional flow pair accepted count=3480 groups=10x5
-SnapFrame: forward/backward consistency accepted count=3480
-SnapFrame: V2 pyramid dispatch accepted count=3600 frame=3600 L0=1224x540 L1=612x270 L2=306x135
-SnapFrame: luma dispatch accepted count=3600 groups=153x68
-SnapFrame: captured=3600 skipped=0 extent=2448x1080
-SnapFrame: V2 coarse-to-fine flow pair accepted count=3600 frame=3601 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=3600 frame=3601 grid=153x68 thresholds=1.5/4.0px
-SnapFrame: bidirectional flow pair accepted count=3600 groups=10x5
-SnapFrame: midpoint warp accepted count=3600 extent=2448x1080 output=RGBA16F
-SnapFrame: forward/backward consistency accepted count=3600
-SnapFrame: V2 coarse-to-fine flow pair accepted count=3720 frame=3721 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=3720 frame=3721 grid=153x68 thresholds=1.5/4.0px
-SnapFrame: bidirectional flow pair accepted count=3720 groups=10x5
-SnapFrame: forward/backward consistency accepted count=3720
-SnapFrame: V2 coarse-to-fine flow pair accepted count=3840 frame=3841 levels=L2,L1,L0 directions=2
-SnapFrame: V2 refinement+validation accepted count=3840 frame=3841 grid=153x68 thresholds=1.5/4.0px
-SnapFrame: bidirectional flow pair accepted count=3840 groups=10x5
-SnapFrame: forward/backward consistency accepted count=3840
-SnapFrame: V2 pyramid dispatch accepted count=3900 frame=3900 L0=1224x540 L1=612x270 L2=306x135
-SnapFrame: luma dispatch accepted count=3900 groups=153x68
-SnapFrame: midpoint warp accepted count=3900 extent=2448x1080 output=RGBA16F
