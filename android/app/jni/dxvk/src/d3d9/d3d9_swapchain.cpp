@@ -25,8 +25,7 @@ static std::atomic<SnapFrameLogHook> g_snapFrameLogHook{nullptr};
 static void snapframeEmitLog(const char* message) {
   SnapFrameLogHook hook = g_snapFrameLogHook.load(std::memory_order_acquire);
   if (hook) hook(message);
-  else fprintf(stderr, "%s
-", message);
+  else fprintf(stderr, "%s\n", message);
 }
 static std::atomic<uint64_t> g_snapFramePresentEntryCount{0};
 static std::atomic<uint64_t> g_snapFramePresentPathCount{0};
@@ -104,15 +103,13 @@ namespace dxvk {
           stream.open(filePath.c_str(), std::ios::out | std::ios::app);
           if (stream) {
             stream << "=== DXVK_PERF_START run=" << run
-                   << " snapframe_bypassed=" << (snapFrameBypassed ? 1 : 0) << " ===
-";
+                   << " snapframe_bypassed=" << (snapFrameBypassed ? 1 : 0) << " ===\n";
             stream << "columns: frame,avg_cpu_present_ms,min_cpu_present_ms,max_cpu_present_ms,"
                       "avg_generated_requested,avg_generated_queued,width,height,vsync,"
                       "snapframe_active_frames,avg_source_acquire_ms,avg_generated_acquire_ms,"
                       "avg_submit_enqueue_ms,avg_generate_record_ms,avg_source_handoff_wait_ms,"
                       "avg_generated_handoff_wait_ms,avg_source_submission_wait_ms,"
-                      "avg_generated_submission_wait_ms,avg_frame_latency_wait_ms
-";
+                      "avg_generated_submission_wait_ms,avg_frame_latency_wait_ms\n";
             stream.flush();
           }
         }
@@ -164,8 +161,7 @@ namespace dxvk {
                  << (generatedHandoffWaitMs / 120.0) << ','
                  << (sourceSubmissionWaitMs / 120.0) << ','
                  << (generatedSubmissionWaitMs / 120.0) << ','
-                 << (frameLatencyWaitMs / 120.0) << '
-';
+                 << (frameLatencyWaitMs / 120.0) << '\n';
           stream.flush();
           totalMs = 0.0;
           minMs = 1.0e30;
