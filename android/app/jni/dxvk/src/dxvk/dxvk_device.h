@@ -409,7 +409,8 @@ namespace dxvk {
      */
     void presentImage(
       const Rc<vk::Presenter>&        presenter,
-            DxvkSubmitStatus*         status);
+            DxvkSubmitStatus*         status,
+            bool                      applyFrameRateLimit = true);
     
     /**
      * \brief Submits a command list
