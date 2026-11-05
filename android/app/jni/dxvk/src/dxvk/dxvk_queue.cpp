@@ -146,7 +146,7 @@ namespace dxvk {
             && entry.present.presenter != nullptr
             && (queueLockWaitUs >= 8000 || presentCallUs >= 8000)
             && presentDiagnosticCount.fetch_add(1) < 64) {
-          Logger::warn(str::format(
+          Logger::info(str::format(
             "DXVK-PRESENT: queue_lock_wait_us=", queueLockWaitUs,
             " present_call_us=", presentCallUs,
             " result=", status,
