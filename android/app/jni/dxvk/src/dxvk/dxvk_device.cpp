@@ -227,11 +227,13 @@ namespace dxvk {
   
   void DxvkDevice::presentImage(
     const Rc<vk::Presenter>&        presenter,
-          DxvkSubmitStatus*         status) {
+          DxvkSubmitStatus*         status,
+          bool                      applyFrameRateLimit) {
     status->result = VK_NOT_READY;
 
     DxvkPresentInfo presentInfo;
     presentInfo.presenter = presenter;
+    presentInfo.applyFrameRateLimit = applyFrameRateLimit;
     m_submissionQueue.present(presentInfo, status);
     
     std::lock_guard<sync::Spinlock> statLock(m_statLock);
