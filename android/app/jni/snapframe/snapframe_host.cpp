@@ -207,9 +207,10 @@ struct alignas(16) SnapFrameMetricsGpuResult {
     uint32_t flags[4];
     float motion[4];
     float quality[4];
+    uint32_t debug[4];
 };
-static_assert(sizeof(SnapFrameMetricsGpuResult) == 80,
-    "SnapFrame metrics result ABI must remain 80 bytes");
+static_assert(sizeof(SnapFrameMetricsGpuResult) == 96,
+    "SnapFrame metrics result ABI must remain 96 bytes");
 
 struct alignas(16) SnapFrameMetricsPush {
     uint32_t identity[4];
@@ -928,7 +929,7 @@ bool recordV1GpuMetrics(
         }
     });
     snapframeEvent(frame, "gpu_metrics_copy_recorded", width, height,
-        "80_byte_frame_tagged_scalar_record_async_readback");
+        "96_byte_frame_tagged_scalar_record_with_partial_dispatch_diagnostics_async_readback");
     return true;
 }
 
