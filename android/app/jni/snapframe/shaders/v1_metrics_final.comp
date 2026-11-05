@@ -15,7 +15,7 @@ layout(set = 0, binding = 0, std430) readonly buffer PartialBuffer {
 struct SnapFrameMetricsResult {
     uvec4 identity; // frame ID low/high, timestamp ns low/high
     uvec4 extent;   // source width/height, flow width/height
-    uvec4 flags;    // valid, partial count, total cells, reserved
+    uvec4 flags;    // valid, partial count, expected cells, valid cells
     vec4 motion;    // mean magnitude, normalized complexity, mean confidence, low-confidence ratio
     vec4 quality;   // inconsistency ratio, boundary ratio, artifact-risk heuristic, valid coverage
 };
@@ -73,7 +73,7 @@ void main() {
         outputResult.value.identity = pc.identity;
         outputResult.value.extent = pc.extent;
         outputResult.value.flags = uvec4(valid ? 1u : 0u,
-                                         pc.counts.x, pc.counts.y, uint(round(observedCells)));
+                                         pc.counts.x, pc.counts.y, uint(round(validCells)));
         outputResult.value.motion = meanMotion;
         outputResult.value.quality = vec4(meanQuality.x, meanQuality.y,
                                           artifactRisk, validCoverage);
