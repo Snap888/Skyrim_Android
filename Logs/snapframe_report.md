@@ -2,45 +2,45 @@
 
 - Schema: snapframe-diagnostic-report-v1
 - Source folder: port
-- Event rows: 1024
+- Event rows: 503
 - Flow rows: 0
-- GPU stage rows: 265
+- GPU stage rows: 130
 
 ## Present / WSI
 
-- Generated accepted: 66
+- Generated accepted: 32
 - Generated failed: 0
 - VkResult counts: {}
 - Modes observed: {"MAILBOX": 7}
 
 ## Event counts
 
-- capture_copy_recorded: 67
-- consistency_dispatch_ok: 66
-- flow_pair_ok: 66
-- frame_complete: 27
-- gpu_metrics_copy_recorded: 265
-- gpu_metrics_published: 265
+- capture_copy_recorded: 33
+- consistency_dispatch_ok: 32
+- flow_pair_ok: 32
+- frame_complete: 14
+- gpu_metrics_copy_recorded: 130
+- gpu_metrics_published: 130
 - host_init: 1
-- luma_dispatch_ok: 67
-- midpoint_present_accepted: 66
-- midpoint_present_requested: 66
+- luma_dispatch_ok: 33
+- midpoint_present_accepted: 32
+- midpoint_present_requested: 32
 - midpoint_resources_ready: 2
-- midpoint_warp_ok: 66
+- midpoint_warp_ok: 32
 
 ## Performance (ms unless noted)
 
-- avg_cpu_present_ms (ms): mean 2.895, median 2.524, p95 4.569, p99 4.870, max 4.936 (n=66)
-- max_cpu_present_ms (ms): mean 9.717, median 6.618, p95 35.907, p99 45.867, max 46.090 (n=66)
-- avg_source_acquire_ms (ms): mean 0.000, median 0.000, p95 0.001, p99 0.001, max 0.001 (n=66)
-- avg_generated_acquire_ms (ms): mean 0.000, median 0.000, p95 0.001, p99 0.001, max 0.001 (n=66)
-- avg_source_handoff_wait_ms (ms): mean 1.296, median 1.148, p95 3.456, p99 3.695, max 3.723 (n=66)
-- avg_generated_handoff_wait_ms (ms): mean 0.966, median 1.145, p95 1.700, p99 1.885, max 1.954 (n=66)
-- avg_source_submission_wait_ms (ms): mean 0.966, median 1.144, p95 1.699, p99 1.884, max 1.953 (n=66)
-- avg_generated_submission_wait_ms (ms): mean 1.290, median 1.143, p95 3.449, p99 3.688, max 3.716 (n=66)
-- avg_generate_record_ms (ms): mean 0.178, median 0.176, p95 0.233, p99 0.279, max 0.324 (n=66)
-- avg_generated_requested (ratio): mean 1.000, median 1.000, p95 1.000, p99 1.000, max 1.000 (n=66)
-- avg_generated_queued (ratio): mean 1.000, median 1.000, p95 1.000, p99 1.000, max 1.000 (n=66)
+- avg_cpu_present_ms (ms): mean 5.314, median 4.605, p95 11.630, p99 12.624, max 13.006 (n=32)
+- max_cpu_present_ms (ms): mean 17.486, median 17.377, p95 27.327, p99 46.395, max 54.689 (n=32)
+- avg_source_acquire_ms (ms): mean 0.001, median 0.001, p95 0.001, p99 0.001, max 0.001 (n=32)
+- avg_generated_acquire_ms (ms): mean 0.000, median 0.000, p95 0.001, p99 0.001, max 0.001 (n=32)
+- avg_source_handoff_wait_ms (ms): mean 3.912, median 3.215, p95 10.391, p99 10.545, max 10.555 (n=32)
+- avg_generated_handoff_wait_ms (ms): mean 0.906, median 0.686, p95 1.827, p99 2.056, max 2.140 (n=32)
+- avg_source_submission_wait_ms (ms): mean 0.905, median 0.685, p95 1.826, p99 2.054, max 2.139 (n=32)
+- avg_generated_submission_wait_ms (ms): mean 3.899, median 3.203, p95 10.368, p99 10.522, max 10.531 (n=32)
+- avg_generate_record_ms (ms): mean 0.089, median 0.088, p95 0.111, p99 0.113, max 0.113 (n=32)
+- avg_generated_requested (ratio): mean 0.999, median 1.000, p95 1.000, p99 1.000, max 1.000 (n=32)
+- avg_generated_queued (ratio): mean 0.999, median 1.000, p95 1.000, p99 1.000, max 1.000 (n=32)
 
 ## Findings
 
@@ -53,12 +53,12 @@ Recommendation: Check flow diagnostics export gating; accepted dispatch events a
 
 | File | Bytes |
 |---|---:|
-| snapframe_events.csv | 92740 |
-| snapframe_perf_on.csv | 9528 |
+| snapframe_events.csv | 45479 |
+| snapframe_perf_on.csv | 4907 |
 | snapframe_flow.csv | 668 |
-| snapframe_gpu.csv | 10338 |
-| snapframe.log | 24467 |
-| log.txt | 1500650 |
+| snapframe_gpu.csv | 5073 |
+| snapframe.log | 14587 |
+| log.txt | 1460403 |
 | snapframe.conf | 47 |
 
 Full logs remain local. This report contains aggregates and selected reasons; it does not upload files.
