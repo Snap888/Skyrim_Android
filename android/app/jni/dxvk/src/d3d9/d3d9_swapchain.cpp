@@ -1092,7 +1092,7 @@ namespace dxvk {
 
       {
         const auto submitStart = std::chrono::steady_clock::now();
-        SubmitPresent(sync, i, m_sourcePresentStatus);
+        SubmitPresent(sync, i, m_sourcePresentStatus, true);
         perfSubmitEnqueueMs += std::chrono::duration<double, std::milli>(
           std::chrono::steady_clock::now() - submitStart).count();
       }
@@ -1215,7 +1215,7 @@ namespace dxvk {
           std::chrono::steady_clock::now() - generateRecordStart).count();
         {
           const auto submitStart = std::chrono::steady_clock::now();
-          SubmitPresent(generatedSync, generation + 1, m_generatedPresentStatus);
+          SubmitPresent(generatedSync, generation + 1, m_generatedPresentStatus, false);
           perfSubmitEnqueueMs += std::chrono::duration<double, std::milli>(
             std::chrono::steady_clock::now() - submitStart).count();
         }
@@ -1266,7 +1266,8 @@ namespace dxvk {
 
   }
 
-  void D3D9SwapChainEx::SubmitPresent(const vk::PresenterSync& Sync, uint32_t FrameId, DxvkSubmitStatus& Status) {
+  void D3D9SwapChainEx::SubmitPresent(const vk::PresenterSync& Sync, uint32_t FrameId,
+                                      DxvkSubmitStatus& Status, bool ApplyFrameRateLimit) {
     // Present from CS thread so that we don't
     // have to synchronize with it first.
     Status.result = VK_NOT_READY;
@@ -1280,7 +1281,8 @@ namespace dxvk {
       cSync        = Sync,
       cHud         = m_hud,
       cCommandList = m_context->endRecording(),
-      cStatus      = &Status
+      cStatus      = &Status,
+      cApplyFrameRateLimit = ApplyFrameRateLimit
     ] (DxvkContext* ctx) {
       m_device->submitCommandList(cCommandList,
         cSync.acquire, cSync.present);
@@ -1288,9 +1290,8 @@ namespace dxvk {
       if (cHud != nullptr && !cFrameId)
         cHud->update();
 
-      // FrameId 0 is the source game frame; generated frames must not
-      // advance or sleep the source frame-rate limiter.
-      m_device->presentImage(m_presenter, cStatus, cFrameId == 0);
+      // Only source presents participate in the source FPS limiter.
+      m_device->presentImage(m_presenter, cStatus, cApplyFrameRateLimit);
     });
 
     m_parent->FlushCsChunk();
