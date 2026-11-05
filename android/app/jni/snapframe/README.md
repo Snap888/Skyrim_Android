@@ -474,3 +474,23 @@ The Presenter keeps its current single outstanding acquire state until a full pe
 The source-to-generated handoff remains serialized for correctness. Its metric is now named avg_presenter_handoff_wait_ms: it measures waiting for the queued presenter operation to consume the source acquire token, issue vkQueuePresentKHR, and perform the non-blocking next-image poll. It is not a GPU-retirement or GPU-fence wait. avg_generated_acquire_ms separately measures the generated-image poll. The next architectural step is an explicit acquire-ticket object carrying swapchain generation, frame slot, image index, and semaphore ownership; do not remove the handoff until that ticket is consumed exactly once and safely retired.
 
 This change prioritizes uninterrupted source frames over guaranteeing one generated frame for every source frame. On a saturated FIFO/WSI queue, some generated frames may be skipped rather than stalling the game thread. Validate source FPS, generated FPS, presenter handoff time, generated acquire time, and visual pacing on the target device before changing this policy.
+
+## WSI presentation mode selection
+
+The launcher stores `present_mode` in `port/snapframe.conf`:
+
+- `0`: Auto — retain the existing DXVK VSync/tear-free policy.
+- `1`: FIFO — synchronized, tear-free queueing.
+- `2`: MAILBOX — prefer the newest ready frame; older queued frames may be discarded.
+- `3`: IMMEDIATE — no VSync pacing; tearing is possible.
+
+This setting selects the **one shared DXVK swapchain** used by both source and
+SnapFrame generated presents. It does not create an independent generated-frame
+queue. DXVK queries the surface's supported modes and falls back to guaranteed
+FIFO when an explicit MAILBOX or IMMEDIATE request is unavailable. The startup
+log reports both the requested mode and actual swapchain mode.
+
+Changing the setting requires a game restart so the swapchain is created with
+the selected mode. Compare source Game FPS, generated submit FPS, output submit
+FPS, source/generated submission wait, and visual tearing/stutter. Submit FPS
+does not prove physical scanout.
