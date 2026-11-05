@@ -510,3 +510,8 @@ The Android launcher exposes **Auto**, **FIFO**, **MAILBOX**, and **IMMEDIATE** 
 The mode is selected when DXVK creates the game's shared output swapchain. Both real and generated frames use that same swapchain; this is not an independent generated-frame mode. A requested MAILBOX or IMMEDIATE mode is only selected when the surface advertises it, otherwise DXVK proceeds to FIFO. The setting is applied on the next game launch. The DXVK host reads it through a registered callback, avoiding a direct link from the DXVK D3D9 shared library to the SnapFrame host library.
 
 **Tuning guidance:** start with Auto as the baseline. FIFO is the stable pacing option; MAILBOX is a useful low-latency option when supported; IMMEDIATE may tear and should be evaluated only when tearing is acceptable. Compare source/game FPS and frame-time consistency, not just generated-present submission counts. A higher output-submit rate is not proof of higher physical display scanout.
+
+
+### In-game live present-mode control
+
+The Skyrim overlay exposes the same four modes without leaving the game. JNI validates and persists the requested mode, then updates the host atomic. DXVK checks for a changed request at the beginning of the serialized present path and performs the shared-swapchain recreation there—not on the Android UI thread. Before recreation, DXVK waits for outstanding source/generated present submissions and device idle; after recreation it refreshes swapchain image views and resumes the next source frame. This is intentionally a safe, potentially visible one-time hitch rather than an unsafe asynchronous WSI mutation. The overlay reports the requested mode; the actual selected mode still needs device-side confirmation from the DXVK WSI logs.
