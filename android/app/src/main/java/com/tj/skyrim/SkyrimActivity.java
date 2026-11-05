@@ -66,7 +66,7 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
 
     // ---- In-game SnapFrame controls ---------------------------------------------
     private static native int[] nativeGetSnapFrameSettings();
-    private static native boolean nativeSetSnapFrameSettings(int enabled, int flowPercent);
+    private static native boolean nativeSetSnapFrameSettings(int enabled, int flowPercent, int presentMode);
 
     private int dp(float value) {
         return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
@@ -489,7 +489,7 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
 
     private void showSnapFrameSettings() {
         int[] current = nativeGetSnapFrameSettings();
-        if (current == null || current.length < 3 || current[0] == 0) {
+        if (current == null || current.length < 4 || current[0] == 0) {
             new AlertDialog.Builder(this)
                     .setTitle("Snap AI / Frame Generation")
                     .setMessage("SnapFrame backend is not active. Check port/snapframe.conf and the SnapFrame initialization log.")
@@ -506,6 +506,24 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
         status.setText("Frame Generation changes apply at the next safe render callback. Flow Scale changes reset temporal history before rebuilding its GPU resources.");
         status.setTextSize(13);
         panel.addView(status);
+
+        TextView presentModeLabel = new TextView(this);
+        presentModeLabel.setText("Vulkan Present Mode");
+        presentModeLabel.setTextSize(14);
+        presentModeLabel.setPadding(0, dp(16), 0, dp(4));
+        panel.addView(presentModeLabel);
+
+        String[] presentModeNames = { "Auto", "FIFO", "MAILBOX", "IMMEDIATE" };
+        Spinner presentMode = new Spinner(this);
+        presentMode.setAdapter(new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_dropdown_item, presentModeNames));
+        presentMode.setSelection(Math.max(0, Math.min(3, current[3])));
+        panel.addView(presentMode);
+
+        TextView presentModeHint = new TextView(this);
+        presentModeHint.setText("Changing mode safely recreates the shared Vulkan swapchain at the next present boundary. A brief frame-time spike may occur; unsupported MAILBOX / IMMEDIATE falls back to FIFO.");
+        presentModeHint.setTextSize(11);
+        panel.addView(presentModeHint);
 
         CheckBox frameGeneration = new CheckBox(this);
         frameGeneration.setText("Frame Generation");
@@ -544,11 +562,12 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
                 .setPositiveButton("Apply", (dialog, which) -> {
                     int enabled = frameGeneration.isChecked() ? 1 : 0;
                     int scale = flowScale.getProgress() + 25;
-                    if (!nativeSetSnapFrameSettings(enabled, scale)) {
+                    int mode = presentMode.getSelectedItemPosition();
+                    if (!nativeSetSnapFrameSettings(enabled, scale, mode)) {
                         android.widget.Toast.makeText(this, "Could not apply SnapFrame settings",
                                 android.widget.Toast.LENGTH_SHORT).show();
                     } else {
-                        android.widget.Toast.makeText(this, "SnapFrame settings queued for the next frame",
+                        android.widget.Toast.makeText(this, "SnapFrame settings applied; present mode switches at the next safe present boundary",
                                 android.widget.Toast.LENGTH_SHORT).show();
                     }
                 })
