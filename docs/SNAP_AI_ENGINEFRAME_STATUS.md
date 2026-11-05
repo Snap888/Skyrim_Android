@@ -669,6 +669,6 @@ Save the base64 output as ANDROID_SIGNING_KEYSTORE_BASE64 and save the keystore 
 ## WSI-aware Snap AI backpressure
 
 - DXVK now reports the measured generated-submission wait from the start-of-frame synchronization point to the SnapFrame host.
-- If that wait reaches 8 ms, Snap AI enters a 30-source-frame generation cooldown. During the cooldown the game continues presenting real frames, while new midpoint presents are suppressed. The controller then resumes generation automatically.
+- If that wait reaches 8 ms, Snap AI enters a 30-source-frame generation cooldown. During the cooldown the game continues presenting real frames; capture and luma history continue, while bidirectional flow, consistency, midpoint warp, V2 diagnostics and generated presents are skipped. The controller then resumes generation automatically from the rolling two-frame history.
 - This is a backpressure guard, not a claim that the WSI stall itself is fixed. It prevents repeated generated presents from continuously extending a slow generated-present queue and prioritizes source-frame cadence during overload.
-- The throttle uses atomics only on the present path; it does not add waits, allocate resources, rebuild flow history, or alter semaphore ownership. Events ai_wsi_backpressure and ai_wsi_backpressure_recovered make each throttle cycle visible in snapframe_events.csv.
+- The throttle uses atomics only; it does not add waits, allocate resources, reset temporal history, or alter semaphore ownership. Keeping capture/luma active means the first resumed flow pass can use the most recent real-frame pair. Events ai_wsi_backpressure and ai_wsi_backpressure_recovered make each throttle cycle visible in snapframe_events.csv.
