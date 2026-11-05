@@ -460,3 +460,8 @@ For controlled stage profiling, set profiling_enabled=1. The CSV stage
 measurements (v2_pyramid, v2_search, v2_refine, v2_validation) are diagnostic
 GPU execution intervals, not total game frame time. With profiling disabled,
 sparse total_chain rows still support the V2 budget guard.
+
+
+### Production gating for diagnostic V2 workloads
+
+The V2 pyramid, coarse-to-fine search, refinement and round-trip validation are diagnostic-only and do not feed the V1 midpoint warp. They are now gated behind `profiling_enabled=1` or `diagnostic_suite=1`; with both disabled, normal gameplay runs the V1 capture/flow/consistency/midpoint path without building the V2 pyramid or dispatching V2 search. Sparse `total_chain` timestamps used by the V2 budget governor are also omitted in this mode. This is intended to remove avoidable GPU work from the production path while preserving V1 frame generation. Enable profiling only for controlled diagnostic runs because it deliberately adds V2 workload.
