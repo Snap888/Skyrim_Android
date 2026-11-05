@@ -262,7 +262,7 @@ jobs:
             local expected_name="$3"
             local badging
             badging_output=$("$AAPT" dump badging "$apk")
-            badging=$(printf '%s\\n' "$badging_output" | sed -n '1p')
+            badging=$(printf '%s\n' "$badging_output" | sed -n '1p')
             echo "$badging"
             [[ "$badging" == *"name='$expected_package'"* ]] || {
               echo "::error::Unexpected applicationId in $apk"
@@ -279,7 +279,7 @@ jobs:
             "$APK_SIGNER" verify --verbose "$apk"
             cert_output=$("$APK_SIGNER" verify --print-certs "$apk")
             [[ "$cert_output" == *"Signer #1 certificate SHA-256 digest:"* ]]
-            printf '%s\\n' "$cert_output" | sed -n '/Signer #1 certificate SHA-256 digest:/p'
+            printf '%s\n' "$cert_output" | sed -n '/Signer #1 certificate SHA-256 digest:/p'
           }
           verify_apk "dist/Skyrim-$VERSION_NAME.apk" "com.tj.skyrim" "$VERSION_NAME"
           if [[ -f "dist/Skyrim-$VERSION_NAME-dual.apk" ]]; then
