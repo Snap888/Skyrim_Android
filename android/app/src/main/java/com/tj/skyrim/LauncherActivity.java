@@ -246,6 +246,11 @@ public class LauncherActivity extends Activity {
         check(root, "hudOutput", "Output submit FPS", true);
         check(root, "hudDriverInfo", "Show Vulkan driver information", false);
 
+        text(root, "SnapFrame Frame Generation", 20, true);
+        spinner(root, "snapFramePresentMode", "Presentation mode",
+                new String[] {"Auto", "FIFO", "MAILBOX", "IMMEDIATE"}, 0);
+        text(root, "Controls the shared DXVK output swapchain for both game and generated frames. Unsupported modes safely fall back to FIFO. Applied on next launch.", 13, false);
+
         text(root, "Vulkan GPU driver", 20, true);
         text(root, "System uses the Android device driver. Import a compatible Turnip ZIP to use a custom Adreno driver.", 13, false);
         gpuDriverSpinner = new Spinner(this);
@@ -523,6 +528,37 @@ public class LauncherActivity extends Activity {
         }
     }
 
+    /* Preserve existing SnapFrame settings and update only the selected
+     * WSI present mode. The native bootstrap reads this before DXVK creates
+     * the shared game/generated swapchain. */
+    private void writeSnapFramePresentMode(File game) throws Exception {
+        File port = new File(game, "port");
+        if (!port.exists() && !port.mkdirs())
+            throw new java.io.IOException("cannot create SnapFrame config folder");
+        File config = new File(port, "snapframe.conf");
+        List<String> lines = new ArrayList<>();
+        boolean replaced = false;
+        if (config.isFile()) {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(config)))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.trim().startsWith("present_mode=")) {
+                        if (!replaced) {
+                            lines.add("present_mode=" + sel("snapFramePresentMode"));
+                            replaced = true;
+                        }
+                    } else {
+                        lines.add(line);
+                    }
+                }
+            }
+        }
+        if (!replaced) lines.add("present_mode=" + sel("snapFramePresentMode"));
+        try (Writer writer = new OutputStreamWriter(new FileOutputStream(config))) {
+            for (String line : lines) writer.write(line + "\n");
+        }
+    }
+
     private void saveChoices() {
         SharedPreferences.Editor e = prefs.edit();
         for (Map.Entry<String, Spinner> s : spinners.entrySet()) e.putInt(s.getKey(), s.getValue().getSelectedItemPosition());
@@ -547,6 +583,7 @@ public class LauncherActivity extends Activity {
             writePrefs(new File(folder), new File(iniDir, "SkyrimPrefs.ini"));
             writeDxvkHudConfig(new File(folder));
             writeGpuDriverConfig(new File(folder));
+            writeSnapFramePresentMode(new File(folder));
             configureDxvkPerfEnvironment(new File(folder), perfEnabled, snapFramePerfOn);
             configureRuntimeTuning(new File(folder));
             removeLegacyFrameGenArtifacts(new File(folder));
