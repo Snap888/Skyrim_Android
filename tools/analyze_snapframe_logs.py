@@ -4,7 +4,7 @@ import argparse, csv, json, math, re, statistics
 from collections import Counter
 from pathlib import Path
 
-FILES=("snapframe_events.csv","snapframe_perf_on.csv","snapframe_flow.csv","snapframe_gpu.csv","snapframe.log")
+FILES=("snapframe_events.csv","snapframe_perf_on.csv","snapframe_flow.csv","snapframe_gpu.csv","snapframe.log","log.txt","snapframe.conf")
 
 def read_csv(path):
     if not path.is_file() or not path.stat().st_size: return []
@@ -32,7 +32,7 @@ def stats(values):
 
 def analyze(root):
     events,perf,flow,gpu=[read_csv(root/x) for x in FILES[:4]]
-    log=(root/FILES[4]).read_text(encoding="utf-8",errors="replace") if (root/FILES[4]).is_file() else ""
+    log="\\n".join((root/name).read_text(encoding="utf-8",errors="replace") for name in FILES[4:6] if (root/name).is_file())\n    config=(root/FILES[6]).read_text(encoding="utf-8",errors="replace") if (root/FILES[6]).is_file() else ""
     counts=Counter(x.get("event","unknown") for x in events); results=Counter(); reasons=Counter()
     for row in events:
         if row.get("event")=="midpoint_present_failed":
@@ -46,7 +46,7 @@ def analyze(root):
     flowkeys=("forward_mean_confidence","backward_mean_confidence","consistency_mean","nonfinite_values")
     flowstats={k:s for k in flowkeys if (s:=stats([num(x.get(k)) for x in flow]))}
     modes=Counter()
-    for m in re.finditer(r"(?:requested present mode=|present_mode=)(AUTO|FIFO|MAILBOX|IMMEDIATE|[0-3])",log,re.I):
+    for m in re.finditer(r"(?:requested present mode=|present_mode=)(AUTO|FIFO|MAILBOX|IMMEDIATE|[0-3])",log+"\\n"+config,re.I):
         v=m.group(1).upper(); modes[{"0":"AUTO","1":"FIFO","2":"MAILBOX","3":"IMMEDIATE"}.get(v,v)]+=1
     failed=counts.get("midpoint_present_failed",0); nr=results.get("1",0); rejected=counts.get("gpu_metrics_rejected",0)
     findings=[]
