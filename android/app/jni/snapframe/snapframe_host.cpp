@@ -1930,7 +1930,8 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                 && aiMetrics.artifact_risk <= 0.25f;
             const bool decreaseIsNeeded =
                 aiMetrics.gpu_pressure >= 0.75f
-                || aiMetrics.frame_time_ms >= 25.0f;
+                && aiMetrics.frame_time_ms > 0.0f
+                && aiMetrics.frame_time_ms <= 20.0f;
             const bool scaleChangeAllowed = reducingLoad
                 ? decreaseIsNeeded : increaseHasHeadroom;
             if (scaleDiffers && scaleChangeCooldownElapsed && scaleChangeAllowed) {
