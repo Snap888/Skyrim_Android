@@ -72,9 +72,14 @@ void main() {
     }
 
     if (lane == 0u) {
+        // The workgroup reduction results live in shared memory. The local
+        // accumulators above are lane-private and contain only this lane's
+        // strided partial records; using them here silently counted only lane 0.
+        vec4 totalMotion = sharedMotion[0];
+        vec4 totalQuality = sharedQuality[0];
         float expectedCells = max(float(pc.counts.y), 1.0);
-        float observedCells = max(quality.w, 0.0);
-        float validCells = max(quality.z, 0.0);
+        float observedCells = max(totalQuality.w, 0.0);
+        float validCells = max(totalQuality.z, 0.0);
         // Measure coverage against the cells the partial pass actually visited,
         // while separately requiring complete grid coverage. This distinguishes
         // invalid motion samples from a dispatch/grid-size mismatch.
@@ -83,8 +88,8 @@ void main() {
         bool valid = gridComplete && validCells > 0.0 && validCoverage >= 0.90;
         float divisor = max(validCells, 1.0);
 
-        vec4 meanMotion = motion / divisor;
-        vec4 meanQuality = quality / divisor;
+        vec4 meanMotion = totalMotion / divisor;
+        vec4 meanQuality = totalQuality / divisor;
         float artifactRisk = clamp(0.50 * meanMotion.w
                                   + 0.35 * meanQuality.x
                                   + 0.15 * meanQuality.y, 0.0, 1.0);
