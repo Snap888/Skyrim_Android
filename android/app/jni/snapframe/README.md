@@ -557,3 +557,7 @@ The local log analyzer keeps compatibility with older logs, where
 backpressure. GPU telemetry remains disabled for AI decisions until the
 partial-reduction count and valid/expected cell totals are internally
 consistent; diagnostic logs now include the partial-workgroup count.
+
+### Metrics reduction buffer hygiene
+
+The V1 GPU telemetry partial-reduction buffer is device-local and reused between samples. Before each sampled reduction, the host clears the full `partial_count * 32` byte range with `vkCmdFillBuffer` through DXVK's `DxvkContext::clearBuffer`, then dispatches the 8x8 partial reduction. This prevents unwritten workgroup records from inheriting values from an earlier sample. The buffer therefore includes `VK_BUFFER_USAGE_TRANSFER_DST_BIT` in addition to storage usage. This is a correctness/diagnostic safeguard, not a fix for the currently observed `valid_cells=64` versus `expected_cells=2618` mismatch; AI adaptation remains gated until full-grid telemetry validates.
