@@ -65,7 +65,7 @@ namespace dxvk::vk {
   }
 
 
-  VkResult Presenter::presentImage() {
+  VkResult Presenter::presentImage(bool applyFrameRateLimit) {
     PresenterSync sync = m_semaphores.at(m_frameIndex);
 
     VkPresentInfoKHR info;
@@ -98,7 +98,8 @@ namespace dxvk::vk {
     bool vsync = m_info.presentMode == VK_PRESENT_MODE_FIFO_KHR
               || m_info.presentMode == VK_PRESENT_MODE_FIFO_RELAXED_KHR;
 
-    m_fpsLimiter.delay(vsync);
+    if (applyFrameRateLimit)
+      m_fpsLimiter.delay(vsync);
     return status;
   }
 
