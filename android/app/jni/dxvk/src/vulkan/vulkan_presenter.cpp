@@ -1,5 +1,10 @@
 #include "vulkan_presenter.h"
 
+#include <chrono>
+#ifdef __ANDROID__
+#include <atomic>
+#endif
+
 #include "../dxvk/dxvk_format.h"
 #include "../wsi/wsi_presenter.h"
 
@@ -66,6 +71,11 @@ namespace dxvk::vk {
 
 
   VkResult Presenter::presentImage(bool applyFrameRateLimit) {
+    const auto presentStart = std::chrono::steady_clock::now();
+    uint64_t queuePresentUs = 0;
+    uint64_t preAcquireUs = 0;
+    uint64_t frameLimiterUs = 0;
+    VkResult preAcquireStatus = VK_NOT_READY;
     PresenterSync sync = m_semaphores.at(m_frameIndex);
 
     VkPresentInfoKHR info;
@@ -78,10 +88,24 @@ namespace dxvk::vk {
     info.pImageIndices      = &m_imageIndex;
     info.pResults           = nullptr;
 
+    const auto queuePresentStart = std::chrono::steady_clock::now();
     VkResult status = m_vkd->vkQueuePresentKHR(m_device.queue, &info);
+    queuePresentUs = std::chrono::duration_cast<std::chrono::microseconds>(
+      std::chrono::steady_clock::now() - queuePresentStart).count();
 
-    if (status != VK_SUCCESS && status != VK_SUBOPTIMAL_KHR)
+    if (status != VK_SUCCESS && status != VK_SUBOPTIMAL_KHR) {
+#ifdef __ANDROID__
+      static std::atomic<uint32_t> wsiDiagnosticCount{0};
+      if (queuePresentUs >= 8000 && wsiDiagnosticCount.fetch_add(1) < 64) {
+        Logger::info(str::format(
+          "DXVK-WSI: queue_present_us=", queuePresentUs,
+          " pre_acquire_us=0 frame_limiter_us=0 result=", status,
+          " present_mode=", m_info.presentMode,
+          " apply_frame_limit=", applyFrameRateLimit));
+      }
+#endif
       return status;
+    }
 
     // Try to acquire next image already, in order to hide
     // potential delays from the application thread.
@@ -92,14 +116,42 @@ namespace dxvk::vk {
 
     // Pre-acquire opportunistically only. An infinite-timeout acquire here
     // stalls the submission thread and delays completion of the source Present.
+    const auto preAcquireStart = std::chrono::steady_clock::now();
     m_acquireStatus = m_vkd->vkAcquireNextImageKHR(m_vkd->device(),
       m_swapchain, 0, sync.acquire, VK_NULL_HANDLE, &m_imageIndex);
+    preAcquireStatus = m_acquireStatus;
+    preAcquireUs = std::chrono::duration_cast<std::chrono::microseconds>(
+      std::chrono::steady_clock::now() - preAcquireStart).count();
 
     bool vsync = m_info.presentMode == VK_PRESENT_MODE_FIFO_KHR
               || m_info.presentMode == VK_PRESENT_MODE_FIFO_RELAXED_KHR;
 
-    if (applyFrameRateLimit)
+    if (applyFrameRateLimit) {
+      const auto limiterStart = std::chrono::steady_clock::now();
       m_fpsLimiter.delay(vsync);
+      frameLimiterUs = std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now() - limiterStart).count();
+    }
+
+#ifdef __ANDROID__
+    static std::atomic<uint32_t> wsiDiagnosticCount{0};
+    const uint64_t totalPresentUs =
+      std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now() - presentStart).count();
+    if ((queuePresentUs >= 8000 || preAcquireUs >= 8000
+        || frameLimiterUs >= 8000 || totalPresentUs >= 12000)
+        && wsiDiagnosticCount.fetch_add(1) < 64) {
+      Logger::info(str::format(
+        "DXVK-WSI: queue_present_us=", queuePresentUs,
+        " pre_acquire_us=", preAcquireUs,
+        " frame_limiter_us=", frameLimiterUs,
+        " total_present_us=", totalPresentUs,
+        " acquire_result=", preAcquireStatus,
+        " result=", status,
+        " present_mode=", m_info.presentMode,
+        " apply_frame_limit=", applyFrameRateLimit));
+    }
+#endif
     return status;
   }
 
