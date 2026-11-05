@@ -40,7 +40,7 @@ Java_com_tj_skyrim_SkyrimActivity_nativeSetTouchEditor(JNIEnv *env, jclass clazz
 
 static pthread_mutex_t g_snapframeConfigMutex = PTHREAD_MUTEX_INITIALIZER;
 
-static int persist_snapframe_settings(int enabled, int flow_percent) {
+static int persist_snapframe_settings(int enabled, int flow_percent, int present_mode) {
     char path[1200], temporary[1240], line[1024];
     snprintf(path, sizeof(path), "%s/port/snapframe.conf", g_game_dir);
     snprintf(temporary, sizeof(temporary), "%s.tmp", path);
@@ -54,7 +54,7 @@ static int persist_snapframe_settings(int enabled, int flow_percent) {
         return 0;
     }
 
-    int wrote_enabled = 0, wrote_flow = 0;
+    int wrote_enabled = 0, wrote_flow = 0, wrote_present_mode = 0;
     while (input && fgets(line, sizeof(line), input)) {
         char *key = line;
         while (*key == ' ' || *key == '\\t') ++key;
@@ -64,6 +64,9 @@ static int persist_snapframe_settings(int enabled, int flow_percent) {
         } else if (!strncmp(key, "flow_scale_percent=", 19)) {
             fprintf(output, "flow_scale_percent=%d\n", flow_percent);
             wrote_flow = 1;
+        } else if (!strncmp(key, "present_mode=", 13)) {
+            fprintf(output, "present_mode=%d\n", present_mode);
+            wrote_present_mode = 1;
         } else {
             fputs(line, output);
         }
@@ -86,23 +89,26 @@ static int persist_snapframe_settings(int enabled, int flow_percent) {
 JNIEXPORT jintArray JNICALL
 Java_com_tj_skyrim_SkyrimActivity_nativeGetSnapFrameSettings(JNIEnv *env, jclass clazz) {
     (void)clazz;
-    int enabled = 0, flow_percent = 75;
+    int enabled = 0, flow_percent = 75, present_mode = 0;
     int active = snapframe_host_get_settings(&enabled, &flow_percent);
-    jint values[3] = { active, enabled, flow_percent };
-    jintArray result = (*env)->NewIntArray(env, 3);
-    if (result) (*env)->SetIntArrayRegion(env, result, 0, 3, values);
+    snapframe_host_get_present_mode(&present_mode);
+    jint values[4] = { active, enabled, flow_percent, present_mode };
+    jintArray result = (*env)->NewIntArray(env, 4);
+    if (result) (*env)->SetIntArrayRegion(env, result, 0, 4, values);
     return result;
 }
 
 JNIEXPORT jboolean JNICALL
 Java_com_tj_skyrim_SkyrimActivity_nativeSetSnapFrameSettings(
-        JNIEnv *env, jclass clazz, jint enabled, jint flow_percent) {
+        JNIEnv *env, jclass clazz, jint enabled, jint flow_percent, jint present_mode) {
     (void)env;
     (void)clazz;
-    if (flow_percent < 25 || flow_percent > 100) return JNI_FALSE;
-    if (!snapframe_host_update_settings(enabled ? 1 : 0, flow_percent))
+    if (flow_percent < 25 || flow_percent > 100
+        || present_mode < 0 || present_mode > 3) return JNI_FALSE;
+    if (!snapframe_host_update_settings(enabled ? 1 : 0, flow_percent)
+        || !snapframe_host_update_present_mode(present_mode))
         return JNI_FALSE;
-    if (!persist_snapframe_settings(enabled ? 1 : 0, flow_percent))
+    if (!persist_snapframe_settings(enabled ? 1 : 0, flow_percent, present_mode))
         fprintf(stderr, "SnapFrame: live settings applied but config persistence failed\n");
     return JNI_TRUE;
 }
