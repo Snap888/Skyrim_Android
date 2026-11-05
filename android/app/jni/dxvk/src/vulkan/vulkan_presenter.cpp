@@ -52,7 +52,7 @@ namespace dxvk::vk {
 
     // Don't acquire more than one image at a time. A caller may request a
     // zero-timeout poll so the submission thread never blocks waiting for WSI.
-    if (m_acquireStatus == VK_NOT_READY) {
+    if (m_acquireStatus == VK_NOT_READY || m_acquireStatus == VK_TIMEOUT) {
       m_acquireStatus = m_vkd->vkAcquireNextImageKHR(m_vkd->device(),
         m_swapchain, timeout, sync.acquire, VK_NULL_HANDLE, &m_imageIndex);
     }
