@@ -35,12 +35,27 @@ class AnalyzerTests(unittest.TestCase):
                 "120,4.0,0.5\n240,8.0,1.0\n", encoding="utf-8")
             report = analyze(root)
             self.assertEqual(report["generated_present"]["accepted"], 1)
-            self.assertEqual(report["generated_present"]["failed"], 1)
-            self.assertEqual(report["generated_present"]["failure_vk_results"]["1"], 1)
+            self.assertEqual(report["generated_present"]["failed"], 0)
+            self.assertEqual(report["generated_present"]["skipped_backpressure"], 1)
+            self.assertEqual(report["generated_present"]["backpressure_vk_results"]["1"], 1)
             self.assertEqual(report["performance"]["avg_cpu_present_ms"]["median"], 6.0)
             codes = {item["code"] for item in report["findings"]}
             self.assertIn("GENERATED_WSI_BACKPRESSURE", codes)
             self.assertIn("AI_TELEMETRY_REJECTED", codes)
+
+    def test_separates_real_generated_present_errors_from_backpressure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "snapframe_events.csv").write_text(
+                "frame,event,width,height,detail\n"
+                '1,midpoint_present_skipped_backpressure,2448,1080,"generated_wsi_image_unavailable result=1"\n'
+                '2,midpoint_present_failed,2448,1080,"generation_failed result=-1000000000"\n',
+                encoding="utf-8")
+            report = analyze(root)
+            self.assertEqual(report["generated_present"]["skipped_backpressure"], 1)
+            self.assertEqual(report["generated_present"]["failed"], 1)
+            codes = {item["code"] for item in report["findings"]}
+            self.assertIn("GENERATED_WSI_ERRORS", codes)
 
 
     def test_flags_surface_clamping_of_wsi_image_count(self):
