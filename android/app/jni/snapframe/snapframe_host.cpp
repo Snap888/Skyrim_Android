@@ -2594,7 +2594,7 @@ extern "C" void snapframe_host_log(const char *message) {
 extern "C" void snapframe_dxvk_set_copy_hook(
     void (*hook)(void*, void*, void*, uint32_t, uint32_t, uint32_t));
 extern "C" void snapframe_dxvk_set_device_destroy_hook(void (*hook)(void*));
-extern "C" void snapframe_dxvk_set_log_hook(void (*hook)(const char*));
+extern "C" void snapframe_dxvk_set_log_hook(void (*hook)(const char*));\nextern "C" void snapframe_dxvk_set_present_mode_hook(int (*hook)(int*));
 extern "C" void snapframe_dxvk_set_generation_hooks(
     bool (*canGenerateHook)(void),
     void* (*generateHook)(void*, void*, uint32_t, uint32_t, uint32_t),
@@ -2713,7 +2713,7 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
         snapframe_host_can_generate, snapframe_host_generate_view,
         snapframe_host_present_result);
     snapframe_dxvk_set_device_destroy_hook(snapframeDeviceDestroyed);
-    snapframe_dxvk_set_log_hook(snapframeForwardDxvkLog);
+    snapframe_dxvk_set_log_hook(snapframeForwardDxvkLog);\n    snapframe_dxvk_set_present_mode_hook(snapframe_host_get_present_mode);
     snapframeEvent(0, "host_init", 0, 0,
         g_motionAnalysisEnabled ? "motion_analysis_enabled" : "motion_analysis_disabled");
     snapframeLog("SnapFrame: diagnostic_suite=%d phase_frames=%u phases=7 profiling=%d motion_analysis=%d timestamp_interval=30 flow_readback_interval=120\n",
@@ -2733,7 +2733,7 @@ extern "C" void snapframe_host_shutdown(void) {
     g_initialized.store(0, std::memory_order_release);
     g_resetHistoryRequested.store(1, std::memory_order_release);
     snapframe_dxvk_set_copy_hook(nullptr);
-    snapframe_dxvk_set_generation_hooks(nullptr, nullptr, nullptr);
+    snapframe_dxvk_set_generation_hooks(nullptr, nullptr, nullptr);\n    snapframe_dxvk_set_present_mode_hook(nullptr);
     snapframe_engine_adapter_shutdown();
     {
         std::lock_guard<std::mutex> aiLock(g_snapAiMutex);
