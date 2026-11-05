@@ -523,3 +523,38 @@ same scene and settings, comparing source FPS, generated output FPS,
 `avg_source_submission_wait_ms`, `avg_generated_submission_wait_ms`, and
 `avg_frame_latency_wait_ms`. The previous timing-only build passed CI, but
 this change requires its own CI result and runtime validation.
+
+### Updated 2026-11-05 device-log diagnosis: source-side limiter stall
+
+The newly uploaded `snapframe_perf_on.csv` contains the split wait measurements.
+At frames 1920–2880, the average CPU Present interval rises to roughly
+27–36 ms. In the same windows:
+- `avg_source_submission_wait_ms` is about 25.9–35.1 ms.
+- `avg_generated_submission_wait_ms` stays around 0.65–0.78 ms.
+- `avg_frame_latency_wait_ms` remains below 0.001 ms.
+- Source acquire and generated acquire are both around 0.0003–0.0008 ms
+  in the long-stall windows.
+
+This localizes the dominant wait to completion of the **source submission**,
+not the generated submission, WSI acquire, or the frame-latency wait. The
+Presenter executes `FpsLimiter::delay(vsync)` on the serialized submission
+thread after `vkQueuePresentKHR`. On Android windowed surfaces the display
+refresh rate can remain unknown (`m_refreshInterval == 0`), because the
+fullscreen display-mode notification path is not necessarily used. The old
+limiter condition then failed to recognize that FIFO VSync already paces
+frames and could impose a second software frame cap on source presents.
+
+Correction committed in `afb7107afac87c69c292f1afe17b6e64429146a1`:
+when VSync is active, no explicit environment override is set, and refresh
+rate is unknown, the software limiter now yields to VSync instead of sleeping.
+An explicit `DXVK_FRAME_RATE` override still retains control. Generated
+presents continue to bypass the limiter independently.
+
+This is the first change directly targeted at the measured 25–35 ms source
+submission wait. Runtime confirmation is still required. Re-test the same
+static scene with VSync enabled and compare source FPS plus
+`avg_source_submission_wait_ms`; expected behavior is that the source wait
+drops substantially, while generated-present waits remain low. The uploaded
+GPU CSV has only its header because profiling was disabled, so these logs
+cannot quantify shader cost. Repeated `VK_NOT_READY` generated acquire
+results and the invalid scalar coverage telemetry remain separate issues.
