@@ -582,3 +582,12 @@ Initial Presenter creation was also corrected to pass the current `m_vsync`
 state into `PickPresentModes` instead of hard-coding `false`. This matters
 for Auto mode: the initial swapchain now follows the same VSync/tear-free
 policy as later swapchain recreations.
+
+
+## V1 optical-flow and midpoint sampling optimization — 2026-11-05
+
+- V1 block matching now loads the current-frame 3x3 luma patch once per flow cell and reuses it across all coarse/refinement candidates. Candidate scoring still evaluates the same nine absolute differences, uses the same candidate order, exact monotonic SAD early-out, best/second-best ranking, tie-breaking, search span and boundary confidence penalty. Only redundant current-frame texture fetches are removed.
+- Midpoint warp specializes the fully trusted endpoint: when motionWeight is at least 0.999, it writes the already-computed warped blend directly instead of fetching the current-frame fallback and mixing with a weight effectively equal to one. Low-confidence fallback and intermediate-confidence blending remain unchanged.
+- These are data-reuse/algebraic optimizations, not quality reductions. They require Vulkan 1.1 SPIR-V compilation and target-device A/B validation; no FPS uplift is claimed before device measurements.
+- The available MAILBOX log set predates the DXVK present-spike instrumentation, so the new per-stage stall records are still pending. Keep source/generated handoff and existing WSI semaphore ownership unchanged.
+- Presenter still has shared mutable acquire state (m_acquireStatus, m_imageIndex, m_frameIndex). Move-only per-acquire tickets remain a separate staged refactor; no CPU handoff wait has been removed.
