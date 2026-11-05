@@ -1288,7 +1288,9 @@ namespace dxvk {
       if (cHud != nullptr && !cFrameId)
         cHud->update();
 
-      m_device->presentImage(m_presenter, cStatus);
+      // FrameId 0 is the source game frame; generated frames must not
+      // advance or sleep the source frame-rate limiter.
+      m_device->presentImage(m_presenter, cStatus, cFrameId == 0);
     });
 
     m_parent->FlushCsChunk();
