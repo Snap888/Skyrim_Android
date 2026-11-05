@@ -2597,7 +2597,7 @@ extern "C" void snapframe_dxvk_set_log_hook(void (*hook)(const char*));
 extern "C" void snapframe_dxvk_set_generation_hooks(
     bool (*canGenerateHook)(void),
     void* (*generateHook)(void*, void*, uint32_t, uint32_t, uint32_t),
-    void (*presentResultHook)(int));
+    void (*presentResultHook)(int, int));
 extern "C" bool snapframe_host_can_generate(void);
 extern "C" void* snapframe_host_generate_view(
     void* contextPtr, void* devicePtr,
@@ -2843,14 +2843,16 @@ extern "C" void* snapframe_host_generate_view(
     return generatedView;
 }
 
-extern "C" void snapframe_host_present_result(int success) {
+extern "C" void snapframe_host_present_result(int success, int vkResult) {
     if (success) {
         g_generatedFrames.fetch_add(1, std::memory_order_relaxed);
         snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed),
-            "midpoint_present_accepted", g_width, g_height, "wsi_present_completion_vk_success");
+            "midpoint_present_accepted", g_width, g_height,
+            (std::string("wsi_present_completion_vk_success result=") + std::to_string(vkResult)).c_str());
     } else {
         snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed),
-            "midpoint_present_failed", g_width, g_height, "generation_or_wsi_present_not_accepted_fallback_used");
+            "midpoint_present_failed", g_width, g_height,
+            (std::string("generation_or_wsi_present_not_accepted result=") + std::to_string(vkResult)).c_str());
     }
 }
 
