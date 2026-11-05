@@ -49,11 +49,16 @@ def analyze(root):
     modes=Counter()
     for m in re.finditer(r"(?:requested present mode=|actual present mode=|present_mode=)(AUTO|FIFO|MAILBOX|IMMEDIATE|[0-3])",log+"\n"+config,re.I):
         v=m.group(1).upper(); modes[{"0":"AUTO","1":"FIFO","2":"MAILBOX","3":"IMMEDIATE"}.get(v,v)]+=1
+    actual_wsi=[]
+    for m in re.finditer(r"SnapFrame: actual present mode=(FIFO|MAILBOX|IMMEDIATE|FIFO_RELAXED|OTHER) image_count=(\d+) extent=(\d+)x(\d+)",log,re.I):
+        actual_wsi.append({"mode":m.group(1).upper(),"image_count":int(m.group(2)),"width":int(m.group(3)),"height":int(m.group(4))})
     failed=counts.get("midpoint_present_failed",0); nr=results.get("1",0); rejected=counts.get("gpu_metrics_rejected",0)
     findings=[]
     if nr: findings.append({"severity":"high","code":"GENERATED_WSI_BACKPRESSURE","message":f"{nr} generated-frame failures report VK_NOT_READY.","recommendation":"Keep game presentation non-blocking. Inspect per-mode acquire availability and presenter pre-acquire/ticket ownership before increasing timeout."})
     if failed>nr: findings.append({"severity":"high","code":"GENERATED_WSI_ERRORS","message":f"{failed-nr} generated failures have results other than VK_NOT_READY.","recommendation":"Inspect exact VkResult and surface/swapchain lifecycle."})
     if rejected: findings.append({"severity":"high","code":"AI_TELEMETRY_REJECTED","message":f"{rejected} GPU metric records were rejected; adaptive AI tuning must remain disabled.","recommendation":"Validate shader valid/expected cell counts against CPU grid dimensions and derive coverage from the same counters."})
+    if actual_wsi and min(x["image_count"] for x in actual_wsi)<3:
+        findings.append({"severity":"medium","code":"WSI_IMAGE_COUNT_BELOW_TARGET","message":"The actual surface swapchain image count fell below three.","recommendation":"Compare generated acquire VK_NOT_READY rates by actual present mode. The surface may cap image count; do not force blocking acquire to compensate."})
     if not gpu: findings.append({"severity":"medium","code":"GPU_STAGE_CSV_EMPTY","message":"snapframe_gpu.csv has no stage samples.","recommendation":"Enable stage profiling briefly; keep diagnostic V2 workloads disabled during normal gameplay."})
     if not flow: findings.append({"severity":"medium","code":"FLOW_CSV_EMPTY","message":"snapframe_flow.csv has no flow samples.","recommendation":"Check flow diagnostics export gating; accepted dispatch events alone do not prove flow quality."})
     sizes={n:((root/n).stat().st_size if (root/n).is_file() else 0) for n in FILES}
@@ -61,7 +66,7 @@ def analyze(root):
       "event_rows":len(events),"event_counts":dict(counts),
       "generated_present":{"accepted":counts.get("midpoint_present_accepted",0),"failed":failed,
         "failure_vk_results":dict(results),"failure_reasons":dict(reasons)},
-      "present_modes_seen_in_log":dict(modes),"performance":perfstats,
+      "present_modes_seen_in_log":dict(modes),"actual_wsi_configurations":actual_wsi,"performance":perfstats,
       "flow":{"rows":len(flow),"metrics":flowstats},"gpu_stage_rows":len(gpu),"findings":findings}
 
 def to_markdown(r):
