@@ -38,3 +38,17 @@ The portable core exposes hot enable/config/quality setters. The adapter current
 The existing host's asynchronous GPU timestamp queries and CSV logs remain authoritative. `SnapFrameFrameOutput` timing fields are currently zero because legacy timing values arrive asynchronously; generated-frame output is also zero at dispatch time because WSI acceptance is reported later by DXVK. This avoids inventing timing or accepted-frame values.
 
 Portable API tests do not validate Vulkan dispatch. The concrete adapter compiled for Android ARM64 in CI run #41738044737. It still requires device execution, GPU timestamp checks, generated-frame acceptance counters and visual comparison against the unchanged pre-adapter path.
+
+
+## Shared-swapchain present mode
+
+The launcher writes `present_mode=0..3` to `port/snapframe.conf` and applies it at the next launch:
+
+- `0` — Auto; preserve DXVK's current VSync/tear-free selection.
+- `1` — FIFO.
+- `2` — MAILBOX, then FIFO fallback if unsupported.
+- `3` — IMMEDIATE, then FIFO fallback if unsupported.
+
+The choice is made by DXVK when creating the shared swapchain. Game and generated frames therefore use the same Vulkan present mode; independent source/generated present modes are not supported by this integration. The DXVK D3D9 library obtains the setting through a function-pointer callback registered by SnapFrame Host at initialization and cleared during shutdown. This keeps the shared-library boundary free of a direct unresolved reference to `snapframe_host_get_present_mode`.
+
+For A/B testing, use Auto first, then FIFO/MAILBOX/IMMEDIATE with the same scene and VSync setting. Record the selected/actual present mode and compare source FPS, source frame times, generated-frame acceptance and pacing. Do not treat queued/present-submission FPS as measured panel scanout.
