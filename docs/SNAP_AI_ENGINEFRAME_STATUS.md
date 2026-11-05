@@ -591,3 +591,11 @@ policy as later swapchain recreations.
 - These are data-reuse/algebraic optimizations, not quality reductions. They require Vulkan 1.1 SPIR-V compilation and target-device A/B validation; no FPS uplift is claimed before device measurements.
 - The available MAILBOX log set predates the DXVK present-spike instrumentation, so the new per-stage stall records are still pending. Keep source/generated handoff and existing WSI semaphore ownership unchanged.
 - Presenter still has shared mutable acquire state (m_acquireStatus, m_imageIndex, m_frameIndex). Move-only per-acquire tickets remain a separate staged refactor; no CPU handoff wait has been removed.
+
+
+## Snap AI production telemetry cadence correction — 2026-11-05
+
+- Found that V1 scalar reduction ran every 30 source frames, but the matching total-chain GPU timestamp was sampled only when verbose profiling or V2 diagnostics were enabled. With the normal runtime configuration (profiling=0 and diagnostic_suite=0), Snap AI therefore could not receive a valid same-frame GPU-time pair and would bypass decisions.
+- The host now schedules only the asynchronous total-chain timestamp pair every 30 source frames, aligned with V1 scalar reduction, regardless of verbose profiling. It does not enable per-stage timestamps, V2 pyramid/search/refinement, pixel/vector readback, or a CPU/GPU wait.
+- Snap AI already validates the frame association and only applies bounded Flow Scale decisions when the compact GPU metrics and matching total-chain timestamp are both valid. Device confirmation is still required; do not interpret successful compilation as proof that decisions are being applied in gameplay.
+- The WSI ticket refactor remains staged: current Presenter state is shared across acquire/present calls, so source/generated handoff remains in place until ticket ownership is threaded through DXVK command submission and queue presentation.
