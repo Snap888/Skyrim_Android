@@ -30,6 +30,7 @@ static void snapframeEmitLog(const char* message) {
 static std::atomic<uint64_t> g_snapFramePresentEntryCount{0};
 static std::atomic<uint64_t> g_snapFramePresentPathCount{0};
 static std::atomic<uint64_t> g_snapFrameCallbackDispatchCount{0};
+static std::atomic<uint32_t> g_snapFramePresentSpikeLogCount{0};
 extern "C" void snapframe_dxvk_set_copy_hook(SnapFrameCopyHook hook) {
   g_snapFrameCopyHook.store(hook, std::memory_order_release);
 }
@@ -1001,6 +1002,7 @@ namespace dxvk {
     }
     uint32_t perfGenerated = 0;
     uint32_t perfRequested = 0;
+    double perfCommandFlushMs = 0.0;
     double perfSourceAcquireMs = 0.0;
     double perfGeneratedAcquireMs = 0.0;
     double perfSubmitEnqueueMs = 0.0;
@@ -1010,7 +1012,12 @@ namespace dxvk {
     double perfSourceSubmissionWaitMs = 0.0;
     double perfGeneratedSubmissionWaitMs = 0.0;
     double perfFrameLatencyWaitMs = 0.0;
-    m_parent->Flush();
+    {
+      const auto flushStart = std::chrono::steady_clock::now();
+      m_parent->Flush();
+      perfCommandFlushMs += std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - flushStart).count();
+    }
 
     // Retrieve the image and image view to present
     auto swapImage = m_backBuffers[0]->GetCommonTexture()->GetImage();
@@ -1282,6 +1289,28 @@ namespace dxvk {
       perfSourceHandoffWaitMs, perfGeneratedHandoffWaitMs,
       perfSourceSubmissionWaitMs, perfGeneratedSubmissionWaitMs,
       perfFrameLatencyWaitMs);
+
+    /* Keep rare long PresentImage stalls diagnosable without per-frame log
+     * traffic. These timings are disjoint wall-clock sections; the residual
+     * includes command recording and any uninstrumented CPU-side work. */
+    if (perfMs >= 35.0
+        && g_snapFramePresentSpikeLogCount.fetch_add(
+             1, std::memory_order_relaxed) < 64u) {
+      const double trackedMs = perfCommandFlushMs
+        + perfSourceAcquireMs + perfSubmitEnqueueMs
+        + perfGenerateRecordMs + perfSourceHandoffWaitMs
+        + perfGeneratedHandoffWaitMs + perfGeneratedAcquireMs
+        + perfFrameLatencyWaitMs;
+      char spikeMessage[768];
+      snprintf(spikeMessage, sizeof(spikeMessage),
+        "SnapFrame: DXVK present spike frame=%llu total=%.3fms flush=%.3fms source_acquire=%.3fms source_handoff=%.3fms generated_handoff=%.3fms generated_acquire=%.3fms generate_record=%.3fms submit_enqueue=%.3fms frame_latency=%.3fms untracked=%.3fms fg_requested=%u fg_queued=%u",
+        static_cast<unsigned long long>(m_frameId), perfMs,
+        perfCommandFlushMs, perfSourceAcquireMs, perfSourceHandoffWaitMs,
+        perfGeneratedHandoffWaitMs, perfGeneratedAcquireMs,
+        perfGenerateRecordMs, perfSubmitEnqueueMs, perfFrameLatencyWaitMs,
+        std::max(0.0, perfMs - trackedMs), perfRequested, perfGenerated);
+      snapframeEmitLog(spikeMessage);
+    }
 
   }
 
