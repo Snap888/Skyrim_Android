@@ -1918,14 +1918,37 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                 aiMetrics.frame_id >= g_aiLastScaleChangeFrame
                 && (aiMetrics.frame_id - g_aiLastScaleChangeFrame)
                     >= kAiScaleChangeCooldownFrames;
-            if (scaleDiffers && scaleChangeCooldownElapsed) {
+            /* Flow Scale changes rebuild V1 flow/consistency resources and
+             * reset temporal history. Treat AI output as a request: never
+             * increase compute load without clear GPU and source-frame headroom. */
+            const bool reducingLoad = requestedScale < static_cast<int>(flowScalePercent());
+            const bool increaseHasHeadroom =
+                aiMetrics.gpu_pressure <= 0.55f
+                && aiMetrics.frame_time_ms > 0.0f
+                && aiMetrics.frame_time_ms <= 20.0f
+                && aiMetrics.flow_confidence >= 0.45f
+                && aiMetrics.artifact_risk <= 0.25f;
+            const bool decreaseIsNeeded =
+                aiMetrics.gpu_pressure >= 0.75f
+                || aiMetrics.frame_time_ms >= 25.0f;
+            const bool scaleChangeAllowed = reducingLoad
+                ? decreaseIsNeeded : increaseHasHeadroom;
+            if (scaleDiffers && scaleChangeCooldownElapsed && scaleChangeAllowed) {
                 if (snapframe_host_apply_backend_config(
                         g_enabled.load(std::memory_order_acquire), requestedScale)) {
                     g_aiLastScaleChangeFrame = aiMetrics.frame_id;
-                    snapframeLog("SnapFrame AI: applied Flow Scale=%d%% at frame=%llu; resource rebuild scheduled\n",
+                    snapframeLog("SnapFrame AI: accepted Flow Scale=%d%% at frame=%llu direction=%s pressure=%.3f frame_ms=%.3f confidence=%.3f artifact=%.3f; resource rebuild scheduled\\n",
                         requestedScale,
-                        static_cast<unsigned long long>(aiMetrics.frame_id));
+                        static_cast<unsigned long long>(aiMetrics.frame_id),
+                        reducingLoad ? "load_reduction" : "quality_increase",
+                        aiMetrics.gpu_pressure, aiMetrics.frame_time_ms,
+                        aiMetrics.flow_confidence, aiMetrics.artifact_risk);
                 }
+            } else if (scaleDiffers && scaleChangeCooldownElapsed) {
+                snapframeEvent(aiMetrics.frame_id, "ai_scale_change_deferred",
+                    width, height, reducingLoad
+                        ? "load_reduction_without_sustained_pressure"
+                        : "quality_increase_without_gpu_and_source_headroom");
             }
             const uint64_t decisions = g_aiDecisionCount.fetch_add(
                 1, std::memory_order_relaxed) + 1;
