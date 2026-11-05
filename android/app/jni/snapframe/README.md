@@ -579,3 +579,9 @@ is active, the next investigation target is partial-dispatch execution or
 storage-buffer writes; if all records are active but the sum/readback remains
 wrong, inspect final reduction and result-buffer ABI/barriers. This is
 diagnostic evidence, not a claim that the telemetry issue is already fixed.
+
+
+The host also validates these counters before publishing metrics to Snap AI:
+all expected partial records must be non-empty, each record must cover at
+least one cell, and no 8×8 record may exceed 64 cells. A numerically plausible
+sum can therefore no longer hide a missing partial workgroup.
