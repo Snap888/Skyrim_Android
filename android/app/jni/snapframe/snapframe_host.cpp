@@ -902,10 +902,12 @@ bool recordV1GpuMetrics(
                         ? "metrics_grid_coverage_mismatch"
                         : "low_valid_flow_coverage";
                     if (frame == 30u || (frame % 300u) == 0u) {
-                        snapframeLog("SnapFrame: GPU metrics rejected frame=%llu partial_count=%u valid_cells=%u expected_cells=%u coverage=%.3f confidence=%.3f\n",
+                        snapframeLog("SnapFrame: GPU metrics rejected frame=%llu partial_count=%u valid_cells=%u expected_cells=%u coverage=%.3f confidence=%.3f active_partials=%u/%u cells_per_partial=%u..%u\n",
                             static_cast<unsigned long long>(frame),
                             gpu->flags[1], gpu->flags[3], gpu->flags[2],
-                            gpu->quality[3], gpu->motion[2]);
+                            gpu->quality[3], gpu->motion[2],
+                            gpu->debug[0], gpu->debug[3],
+                            gpu->debug[1], gpu->debug[2]);
                     }
                 }
             } else {
