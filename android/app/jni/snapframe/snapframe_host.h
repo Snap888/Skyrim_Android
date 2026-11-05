@@ -27,6 +27,8 @@ void snapframe_host_get_stats(SnapFrameStats *stats);
 int  snapframe_host_get_settings(int *enabled, int *flow_scale_percent);
 /* Returns the requested shared-swapchain present mode (SnapFramePresentMode). */
 int  snapframe_host_get_present_mode(int *present_mode);
+/* Queues a shared-swapchain present-mode change for the next DXVK present. */
+int  snapframe_host_update_present_mode(int present_mode);
 int  snapframe_host_update_settings(int enabled, int flow_scale_percent);
 int  snapframe_host_get_last_telemetry(uint64_t *frame, float *gpu_time_ms, float *frame_time_ms);
 
