@@ -2028,10 +2028,15 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
      * This also avoids inserting sparse timestamp queries into the production
      * path when no V2 diagnostic work is being measured. */
     const bool v2DiagnosticsEnabled = g_profilingEnabled || g_diagnosticSuiteEnabled;
+    // The compact V1 metrics reduction and total-chain timestamp share the
+    // same frame cadence. Keep this one timestamp pair active in normal
+    // gameplay even when verbose profiling and V2 diagnostics are disabled;
+    // it is asynchronous and does not enable per-stage profiling/readback.
+    const bool telemetrySampleThisFrame =
+        (nextCapturedFrame % kAiTelemetryIntervalFrames) == 0u;
     const SnapFrameGpuTimer totalTimer = beginGpuTimer(
         context, device, "total_chain", nextCapturedFrame, width, height,
-        profileThisFrame || (v2DiagnosticsEnabled
-            && (nextCapturedFrame % kAiTelemetryIntervalFrames) == 0u));
+        profileThisFrame || telemetrySampleThisFrame);
     const uint32_t currentV2SearchInterval =
         g_v2SearchIntervalFrames.load(std::memory_order_acquire);
     if (currentV2SearchInterval != g_v2SearchIntervalLogged) {
