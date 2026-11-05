@@ -77,7 +77,8 @@ bool snapframeEventIsRoutineSuccess(const char* event) {
         "capture_copy_recorded", "luma_dispatch_ok", "v2_luma_dispatch_ok", "v2_flow_pair_ok",
         "v2_downsample_dispatch_ok", "v2_occlusion_mask_ok", "flow_pair_ok",
         "consistency_dispatch_ok", "midpoint_warp_ok",
-        "midpoint_present_requested", "midpoint_present_accepted"
+        "midpoint_present_requested", "midpoint_present_accepted",
+        "midpoint_present_skipped_backpressure"
     };
     for (const char* name : routineEvents)
         if (strcmp(event, name) == 0) return true;
@@ -895,9 +896,9 @@ bool recordV1GpuMetrics(
                         ? "metrics_grid_coverage_mismatch"
                         : "low_valid_flow_coverage";
                     if (frame == 30u || (frame % 300u) == 0u) {
-                        snapframeLog("SnapFrame: GPU metrics rejected frame=%llu valid_cells=%u expected_cells=%u coverage=%.3f confidence=%.3f\n",
+                        snapframeLog("SnapFrame: GPU metrics rejected frame=%llu partial_count=%u valid_cells=%u expected_cells=%u coverage=%.3f confidence=%.3f\n",
                             static_cast<unsigned long long>(frame),
-                            gpu->flags[3], gpu->flags[2],
+                            gpu->flags[1], gpu->flags[3], gpu->flags[2],
                             gpu->quality[3], gpu->motion[2]);
                     }
                 }
@@ -2875,6 +2876,12 @@ extern "C" void snapframe_host_present_result(int success, int vkResult) {
         snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed),
             "midpoint_present_accepted", g_width, g_height,
             (std::string("wsi_present_completion_vk_success result=") + std::to_string(vkResult)).c_str());
+    } else if (vkResult == VK_NOT_READY || vkResult == VK_TIMEOUT) {
+        /* Opportunistic generated acquire is intentionally non-blocking.
+         * No free WSI image is normal queue backpressure, not a render failure. */
+        snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed),
+            "midpoint_present_skipped_backpressure", g_width, g_height,
+            (std::string("generated_wsi_image_unavailable result=") + std::to_string(vkResult)).c_str());
     } else {
         snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed),
             "midpoint_present_failed", g_width, g_height,
