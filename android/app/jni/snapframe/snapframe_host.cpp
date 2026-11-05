@@ -770,6 +770,11 @@ bool recordV1GpuMetrics(
 
     const uint32_t groupsX = (flowWidth + 7u) / 8u;
     const uint32_t groupsY = (flowHeight + 7u) / 8u;
+    // The partial buffer is device-local and reused across telemetry samples.
+    // Clear it before each reduction so missing workgroup writes cannot be
+    // masked by stale values left by an earlier frame.
+    context->clearBuffer(g_metricsPartialBuffer, 0,
+        VkDeviceSize(g_metricsPartialCount) * 32u, 0u);
     const bool partialDispatched = context->dispatchSnapFrameMetricsPartial(
         g_metricsPartialShader, g_flowView[0], g_flowView[1],
         g_consistencyView, g_lumaSampler,
@@ -1705,7 +1710,8 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                             VkDeviceSize(g_metricsPartialCount) * 32u;
                         DxvkBufferCreateInfo partialInfo{};
                         partialInfo.size = partialBytes;
-                        partialInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+                        partialInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+                                           | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
                         partialInfo.stages = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
                         partialInfo.access = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
                         g_metricsPartialBuffer = device->createBuffer(
