@@ -70,9 +70,9 @@ void snapframe_bootstrap(void) {
     fprintf(stderr, "SnapAI: library loaded api=%u expected=%u adaptive_control=pending_telemetry_adapter\n",
         snapAiApi, SNAP_AI_API_VERSION);
     char summary[1400];
-    snprintf(summary, sizeof(summary), "config=%s log=%s gpu_csv=%s flow_csv=%s events_csv=%s enabled=%d multiplier=%d quality=%d flow_scale=%d motion_analysis=%d profiling=%d diagnostic_suite=%d phase_frames=%d",
+    snprintf(summary, sizeof(summary), "config=%s log=%s gpu_csv=%s flow_csv=%s events_csv=%s enabled=%d multiplier=%d quality=%d flow_scale=%d present_mode=%d motion_analysis=%d profiling=%d diagnostic_suite=%d phase_frames=%d",
              path, logPath, gpuLogPath, flowLogPath, eventLogPath, config.enabled, config.multiplier,
-             config.quality, config.flow_scale_percent, config.motion_analysis,
+             config.quality, config.flow_scale_percent, config.present_mode, config.motion_analysis,
              config.profiling_enabled, config.diagnostic_suite, config.diagnostic_phase_frames);
     snapframe_host_log(summary);
 }
