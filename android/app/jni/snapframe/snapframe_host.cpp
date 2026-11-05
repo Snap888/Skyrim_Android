@@ -838,10 +838,16 @@ bool recordV1GpuMetrics(
                     && gpu->extent[2] == flowWidth && gpu->extent[3] == flowHeight;
                 const float reportedCoverage = gpu->flags[2] > 0u
                     ? float(gpu->flags[3]) / float(gpu->flags[2]) : 0.0f;
+                const bool partialDispatchValid = gpu->debug[3] == gpu->flags[1]
+                    && gpu->debug[0] == gpu->debug[3]
+                    && gpu->debug[1] > 0u
+                    && gpu->debug[1] <= gpu->debug[2]
+                    && gpu->debug[2] <= 64u;
                 const bool coverageValid = gpu->quality[3] >= 0.90f
                     && gpu->quality[3] <= 1.001f
                     && gpu->flags[3] <= gpu->flags[2]
-                    && std::abs(gpu->quality[3] - reportedCoverage) <= 0.02f;
+                    && std::abs(gpu->quality[3] - reportedCoverage) <= 0.02f
+                    && partialDispatchValid;
                 if (finite && identityValid && coverageValid
                     && gpu->flags[0] == 1u) {
                     const uint64_t previous = g_metricsPublishedFrame.load(
@@ -899,6 +905,7 @@ bool recordV1GpuMetrics(
                 } else if (!coverageValid || gpu->flags[0] != 1u) {
                     rejectReason = gpu->flags[3] > gpu->flags[2]
                         || std::abs(gpu->quality[3] - reportedCoverage) > 0.02f
+                        || !partialDispatchValid
                         ? "metrics_grid_coverage_mismatch"
                         : "low_valid_flow_coverage";
                     if (frame == 30u || (frame % 300u) == 0u) {
