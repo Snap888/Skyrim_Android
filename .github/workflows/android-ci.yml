@@ -34,6 +34,16 @@ env:
   CMAKE_VERSION: "3.22.1"
 
 jobs:
+  snapframe-log-analyzer:
+    name: SnapFrame log analyzer tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Test local diagnostic report generator
+        run: python3 -m unittest discover -s tools/tests -p 'test_analyze_snapframe_logs.py' -v
+
   java:
     name: Android Java compilation
     runs-on: ubuntu-latest
