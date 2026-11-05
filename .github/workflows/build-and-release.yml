@@ -140,6 +140,10 @@ jobs:
           fi
           echo "version=$VER" >> "$GITHUB_OUTPUT"
           echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          if [[ ! "$VER" =~ ^[0-9A-Za-z][0-9A-Za-z._+-]{0,63}$ ]]; then
+            echo "::error::Version name contains unsupported characters."
+            exit 1
+          fi
           echo "APK versionName=$VER versionCode=$VERSION_CODE"
 
       - name: Configure persistent APK signing
@@ -171,8 +175,10 @@ jobs:
         working-directory: android
         env:
           GRADLE_OPTS: "-Dorg.gradle.logging.stacktrace=all"
+          VERSION_CODE: ${{ steps.ver.outputs.version_code }}
+          VERSION_NAME: ${{ steps.ver.outputs.version }}
         run: |
-          set -o pipefail
+          set -euo pipefail
           echo "=== Build started: $(date -u) ==="
           echo "=== Runner resources ==="
           nproc
@@ -180,8 +186,8 @@ jobs:
           df -h .
           ./gradlew assembleDebug \
             -PndkVersion=${{ env.NDK_VERSION }} \
-            -PversionCode=${{ steps.ver.outputs.version_code }} \
-            -PversionName=${{ steps.ver.outputs.version }} \
+            -PversionCode="$VERSION_CODE" \
+            -PversionName="$VERSION_NAME" \
             --no-daemon \
             --info \
             --console=plain \
@@ -224,11 +230,14 @@ jobs:
       - name: Build dual APK (optional)
         if: github.event.inputs.dual == 'true'
         working-directory: android
+        env:
+          VERSION_CODE: ${{ steps.ver.outputs.version_code }}
+          VERSION_NAME: ${{ steps.ver.outputs.version }}
         run: |
           ./gradlew assembleDebug \
             -PndkVersion=${{ env.NDK_VERSION }} \
-            -PversionCode=${{ steps.ver.outputs.version_code }} \
-            -PversionName=${{ steps.ver.outputs.version }} \
+            -PversionCode="$VERSION_CODE" \
+            -PversionName="$VERSION_NAME" \
             -Pdual=true \
             --no-daemon \
             --info \
