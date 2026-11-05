@@ -296,7 +296,7 @@ jobs:
           AAPT="$ANDROID_HOME/build-tools/34.0.0/aapt"
           APK_SIGNER="$ANDROID_HOME/build-tools/34.0.0/apksigner"
           BADGING_OUTPUT=$("$AAPT" dump badging "$APK")
-          BADGING=$(printf '%s\\n' "$BADGING_OUTPUT" | sed -n '1p')
+          BADGING=$(printf '%s\n' "$BADGING_OUTPUT" | sed -n '1p')
           echo "$BADGING"
           [[ "$BADGING" == *"name='com.tj.skyrim'"* ]]
           [[ "$BADGING" == *"versionCode='$VERSION_CODE'"* ]]
@@ -304,7 +304,7 @@ jobs:
           "$APK_SIGNER" verify --verbose "$APK"
           CERT_OUTPUT=$("$APK_SIGNER" verify --print-certs "$APK")
           [[ "$CERT_OUTPUT" == *"Signer #1 certificate SHA-256 digest:"* ]]
-          printf '%s\\n' "$CERT_OUTPUT" | sed -n '/Signer #1 certificate SHA-256 digest:/p'
+          printf '%s\n' "$CERT_OUTPUT" | sed -n '/Signer #1 certificate SHA-256 digest:/p'
           mkdir -p ../dist
           cp "$APK" "../dist/Skyrim-$VERSION_NAME.apk"
           {
