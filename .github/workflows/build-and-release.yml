@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version name (например 0.24). Пусто = из build.gradle"
+        description: "Явное имя версии. Пусто = автоматическая версия 0.21.<run_number>"
         required: false
         type: string
       dual:
@@ -121,17 +121,50 @@ jobs:
 
       - name: Determine version
         id: ver
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
         run: |
-          if [ -n "${{ github.event.inputs.version }}" ]; then
-            VER="${{ github.event.inputs.version }}"
-          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+          set -euo pipefail
+          if [[ -n "$REQUESTED_VERSION" ]]; then
+            VER="$REQUESTED_VERSION"
+          elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             VER="${GITHUB_REF#refs/tags/v}"
           else
-            VER=$(grep -oP 'versionName\s+"\K[^"]+' android/app/build.gradle | head -1 || true)
-            VER=${VER:-"0.0.0"}
+            VER="0.21.${GITHUB_RUN_NUMBER}"
           fi
-          echo "version=$VER" >> $GITHUB_OUTPUT
-          echo "Сборка версии: $VER"
+          # Shared repository-wide sequence across both APK workflows.
+          VERSION_CODE=$((1000000000 + (GITHUB_RUN_ID % 1000000000)))
+          if (( VERSION_CODE > 2100000000 || VERSION_CODE < 1 )); then
+            echo "::error::Generated Android versionCode is outside the supported range."
+            exit 1
+          fi
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "APK versionName=$VER versionCode=$VERSION_CODE"
+
+      - name: Configure persistent APK signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_SIGNING_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$KEYSTORE_BASE64" || -z "$STORE_PASSWORD" || -z "$KEY_ALIAS" || -z "$KEY_PASSWORD" ]]; then
+            echo "::error::Persistent APK signing is not configured."
+            echo "Add repository Actions secrets: ANDROID_SIGNING_KEYSTORE_BASE64, ANDROID_SIGNING_STORE_PASSWORD, ANDROID_SIGNING_KEY_ALIAS, ANDROID_SIGNING_KEY_PASSWORD."
+            exit 1
+          fi
+          KEYSTORE_PATH="$RUNNER_TEMP/skyrim-upload.jks"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          test -s "$KEYSTORE_PATH"
+          {
+            echo "ANDROID_SIGNING_KEYSTORE=$KEYSTORE_PATH"
+            echo "ANDROID_SIGNING_STORE_PASSWORD=$STORE_PASSWORD"
+            echo "ANDROID_SIGNING_KEY_ALIAS=$KEY_ALIAS"
+            echo "ANDROID_SIGNING_KEY_PASSWORD=$KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+          echo "Persistent signing keystore configured."
 
       - name: Build main APK
         timeout-minutes: 105
@@ -147,11 +180,17 @@ jobs:
           df -h .
           ./gradlew assembleDebug \
             -PndkVersion=${{ env.NDK_VERSION }} \
+            -PversionCode=${{ steps.ver.outputs.version_code }} \
+            -PversionName=${{ steps.ver.outputs.version }} \
             --no-daemon \
             --info \
             --console=plain \
             --stacktrace 2>&1 | tee ../build-main.log
           echo "=== Build finished: $(date -u) ==="
+          mkdir -p ../dist
+          MAIN_APK="app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$MAIN_APK"
+          cp "$MAIN_APK" "../dist/Skyrim-${{ steps.ver.outputs.version }}.apk"
 
       - name: Diagnose failed or timed-out build
         if: failure() || cancelled()
@@ -188,31 +227,59 @@ jobs:
         run: |
           ./gradlew assembleDebug \
             -PndkVersion=${{ env.NDK_VERSION }} \
+            -PversionCode=${{ steps.ver.outputs.version_code }} \
+            -PversionName=${{ steps.ver.outputs.version }} \
             -Pdual=true \
             --no-daemon \
             --info \
             --console=plain \
             --stacktrace
+          DUAL_APK="app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$DUAL_APK"
+          cp "$DUAL_APK" "../dist/Skyrim-${{ steps.ver.outputs.version }}-dual.apk"
 
-      - name: Prepare artifacts
+      - name: Verify APK package, version and signing certificate
         id: prep
         run: |
-          VER="${{ steps.ver.outputs.version }}"
-          mkdir -p dist
-
-          MAIN_APK=$(find android/app/build/outputs/apk -name "app-debug.apk" | head -1)
-          if [ -z "$MAIN_APK" ]; then
-            echo "::error::APK не найден"
-            exit 1
+          set -euo pipefail
+          AAPT="$ANDROID_HOME/build-tools/34.0.0/aapt"
+          APK_SIGNER="$ANDROID_HOME/build-tools/34.0.0/apksigner"
+          VERSION_CODE="${{ steps.ver.outputs.version_code }}"
+          VERSION_NAME="${{ steps.ver.outputs.version }}"
+          verify_apk() {
+            local apk="$1"
+            local expected_package="$2"
+            local expected_name="$3"
+            local badging
+            badging=$("$AAPT" dump badging "$apk" | head -n 1)
+            echo "$badging"
+            [[ "$badging" == *"name='$expected_package'"* ]] || {
+              echo "::error::Unexpected applicationId in $apk"
+              exit 1
+            }
+            [[ "$badging" == *"versionCode='$VERSION_CODE'"* ]] || {
+              echo "::error::APK versionCode does not match CI sequence."
+              exit 1
+            }
+            [[ "$badging" == *"versionName='$expected_name'"* ]] || {
+              echo "::error::APK versionName does not match release metadata."
+              exit 1
+            }
+            "$APK_SIGNER" verify --verbose "$apk"
+            "$APK_SIGNER" verify --print-certs "$apk" | grep "Signer #1 certificate SHA-256 digest:"
+          }
+          verify_apk "dist/Skyrim-$VERSION_NAME.apk" "com.tj.skyrim" "$VERSION_NAME"
+          if [[ -f "dist/Skyrim-$VERSION_NAME-dual.apk" ]]; then
+            verify_apk "dist/Skyrim-$VERSION_NAME-dual.apk" "com.tj.skyrim.dual" "$VERSION_NAME-dual"
           fi
-          cp "$MAIN_APK" "dist/Skyrim-${VER}.apk"
-          echo "main_apk=dist/Skyrim-${VER}.apk" >> $GITHUB_OUTPUT
-
-          DUAL_APK=$(find android/app/build/outputs/apk -name "app-debug.apk" | tail -n +2 | head -1 || true)
-          if [ -n "$DUAL_APK" ] && [ "$DUAL_APK" != "$MAIN_APK" ]; then
-            cp "$DUAL_APK" "dist/Skyrim-${VER}-dual.apk"
-          fi
-
+          {
+            echo "branch=$GITHUB_REF_NAME"
+            echo "commit=$GITHUB_SHA"
+            echo "versionName=$VERSION_NAME"
+            echo "versionCode=$VERSION_CODE"
+            echo "applicationId=com.tj.skyrim"
+            echo "signing=repository-persistent-keystore"
+          } > dist/build-info.txt
           ls -lh dist/
 
       - name: Upload APK artifacts
