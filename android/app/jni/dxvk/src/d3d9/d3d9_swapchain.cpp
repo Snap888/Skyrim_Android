@@ -99,7 +99,7 @@ namespace dxvk {
             stream << "columns: frame,avg_cpu_present_ms,min_cpu_present_ms,max_cpu_present_ms,"
                       "avg_generated_requested,avg_generated_queued,width,height,vsync,"
                       "snapframe_active_frames,avg_source_acquire_ms,avg_generated_acquire_ms,"
-                      "avg_submit_enqueue_ms,avg_generate_record_ms,avg_retire_wait_ms,"
+                      "avg_submit_enqueue_ms,avg_generate_record_ms,avg_presenter_handoff_wait_ms,"
                       "avg_frame_latency_wait_ms\n";
             stream.flush();
           }
@@ -972,7 +972,7 @@ namespace dxvk {
     double perfGeneratedAcquireMs = 0.0;
     double perfSubmitEnqueueMs = 0.0;
     double perfGenerateRecordMs = 0.0;
-    double perfRetireWaitMs = 0.0;
+    double perfPresenterHandoffWaitMs = 0.0;
     double perfFrameLatencyWaitMs = 0.0;
     m_parent->Flush();
 
@@ -987,7 +987,7 @@ namespace dxvk {
       {
         const auto waitStart = std::chrono::steady_clock::now();
         SynchronizePresent();
-        perfRetireWaitMs += std::chrono::duration<double, std::milli>(
+        perfPresenterHandoffWaitMs += std::chrono::duration<double, std::milli>(
           std::chrono::steady_clock::now() - waitStart).count();
       }
 
@@ -1093,20 +1093,17 @@ namespace dxvk {
     perfRequested = generationCount;
     if (generationCount) {
       /*
-       * Presenter currently exposes one outstanding acquire token
-       * (m_acquireStatus/m_imageIndex/m_frameIndex). The source present is
-       * queued asynchronously, and its CS-thread presentImage() advances that
-       * token and pre-acquires the next WSI image. Until Presenter is converted
-       * to explicit per-acquire tickets, retire the source submission here so
-       * generated acquire cannot reuse the source image/semaphores.
-       *
-       * This is intentionally a correctness barrier, not a permanent pacing
-       * design. A future ticket-based Presenter can remove it safely.
+       * Keep this handoff until Presenter has explicit per-acquire tickets:
+       * the submission thread must consume the source acquire token and advance
+       * its frame slot before the generated acquire can read the next token.
+       * This waits for the queued vkQueuePresentKHR + non-blocking pre-acquire,
+       * not for GPU retirement. The WSI pre-acquire itself uses timeout=0 so it
+       * cannot hold the submission thread waiting for scan-out availability.
        */
       {
         const auto waitStart = std::chrono::steady_clock::now();
         SynchronizePresent();
-        perfRetireWaitMs += std::chrono::duration<double, std::milli>(
+        perfPresenterHandoffWaitMs += std::chrono::duration<double, std::milli>(
           std::chrono::steady_clock::now() - waitStart).count();
       }
 
@@ -1119,15 +1116,25 @@ namespace dxvk {
         const auto generatedAcquireStart = std::chrono::steady_clock::now();
         VkResult generatedStatus = VK_NOT_READY;
         bool generatedAcquired = false;
-        for (uint32_t attempt = 0; attempt < 3; attempt++) {
-          generatedStatus = m_presenter->acquireNextImage(generatedSync, generatedImageIndex);
+        for (uint32_t attempt = 0; attempt < 2; attempt++) {
+          // Generated frames are opportunistic: never stall the game thread
+          // waiting for a WSI image that is not immediately available.
+          generatedStatus = m_presenter->acquireNextImage(
+            generatedSync, generatedImageIndex, 0);
           if (generatedStatus == VK_SUCCESS || generatedStatus == VK_SUBOPTIMAL_KHR) {
             generatedAcquired = true;
             break;
           }
 
-          Logger::warn(str::format("DXVK: generated WSI acquire failed (",
-            generatedStatus, "), recreating swap chain; attempt ", attempt + 1, "/3"));
+          if (generatedStatus == VK_NOT_READY || generatedStatus == VK_TIMEOUT)
+            break;
+
+          if (generatedStatus != VK_ERROR_OUT_OF_DATE_KHR
+           && generatedStatus != VK_ERROR_SURFACE_LOST_KHR)
+            break;
+
+          Logger::warn(str::format("DXVK: generated WSI acquire requires swap-chain recreation (",
+            generatedStatus, "), attempt ", attempt + 1, "/2"));
           RecreateSwapChain(m_vsync);
           generatedInfo = m_presenter->info();
         }
@@ -1233,7 +1240,7 @@ namespace dxvk {
       snapFrameCanGenerate, perfBypassSnapFrame,
       perfSourceAcquireMs, perfGeneratedAcquireMs,
       perfSubmitEnqueueMs, perfGenerateRecordMs,
-      perfRetireWaitMs, perfFrameLatencyWaitMs);
+      perfPresenterHandoffWaitMs, perfFrameLatencyWaitMs);
 
   }
 
