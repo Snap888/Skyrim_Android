@@ -4,15 +4,17 @@ SnapFrame: bootstrap entered
 SnapFrame: MotionV2 telemetry store ready
 SnapFrame: flow readback disabled (motion_analysis=1 profiling=0 diagnostic_suite=0 interval=120 frames)
 SnapFrame: diagnostic_suite=0 phase_frames=1800 phases=7 profiling=0 motion_analysis=1 timestamp_interval=30 flow_readback_interval=120
-SnapFrame: host initialized enabled=1 quality=1 flow_scale=50% motion_analysis=1 mode=capture+luma+bidirectional-flow+fb-consistency+midpoint-warp
+SnapFrame: host initialized enabled=0 quality=1 flow_scale=50% motion_analysis=1 mode=capture+luma+bidirectional-flow+fb-consistency+midpoint-warp
 SnapFrame: portable SnapFrameBackendV1 active (DXVK GPU pipeline adapter)
-SnapFrame: config=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe.conf log=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe.log gpu_csv=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe_gpu.csv flow_csv=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe_flow.csv events_csv=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe_events.csv enabled=1 multiplier=2 quality=1 flow_scale=50 present_mode=0 motion_analysis=1 profiling=0 diagnostic_suite=0 phase_frames=1800
+SnapFrame: config=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe.conf log=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe.log gpu_csv=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe_gpu.csv flow_csv=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe_flow.csv events_csv=/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/snapframe_events.csv enabled=0 multiplier=2 quality=1 flow_scale=50 present_mode=0 motion_analysis=1 profiling=0 diagnostic_suite=0 phase_frames=1800
 SnapFrame: entered D3D9SwapChainEx::PresentImage
 SnapFrame: DXVK present path reached extent=2448x1080 format=0x25 usage=0x13 copy_hook=1
 SnapFrame: dispatching first DXVK copy callback
 SnapFrame: queued history reset consumed on render callback
+SnapFrame: portable config update queued enabled=1 flow_scale=50%
+SnapFrame: queued history reset consumed on render callback
 SnapFrame: host copy callback entered
-SnapFrame: R16F luma output supported (features=0x1fd83 imageResult=0 extendedFormats=1)
+SnapFrame: R16F luma output supported (features=0x8001fd83 imageResult=0 extendedFormats=1)
 SnapFrame: V2 pyramid resources ready L0=1224x540 L1=612x270 L2=306x135 slots=2 format=R16F
 SnapFrame: V2 flow grids ready L0=153x68 L1=77x34 L2=39x17 directions=2 format=RGBA16F
 SnapFrame: forward/backward consistency resources ready format=R16_SFLOAT extent=77x34
@@ -57,27 +59,22 @@ SnapFrame: forward/backward consistency accepted count=960
 SnapFrame: bidirectional flow pair accepted count=1080 groups=10x5
 SnapFrame: forward/backward consistency accepted count=1080
 SnapFrame: luma dispatch accepted count=1200 groups=153x68
-SnapFrame: GPU metrics rejected frame=1200 valid_cells=64 expected_cells=2618 coverage=1.000 confidence=0.000
 SnapFrame: bidirectional flow pair accepted count=1200 groups=10x5
 SnapFrame: midpoint warp accepted count=1200 extent=2448x1080 output=RGBA16F
 SnapFrame: forward/backward consistency accepted count=1200
-SnapFrame: portable config update queued enabled=1 flow_scale=50%
+SnapFrame: GPU metrics rejected frame=1200 valid_cells=64 expected_cells=2618 coverage=1.000 confidence=0.000
 SnapFrame: bidirectional flow pair accepted count=1320 groups=10x5
 SnapFrame: forward/backward consistency accepted count=1320
-SnapFrame: portable config update queued enabled=1 flow_scale=50%
-SnapFrame: live present mode change queued; DXVK will recreate the shared swapchain at the next present boundarySnapFrame: bidirectional flow pair accepted count=1440 groups=10x5
+SnapFrame: bidirectional flow pair accepted count=1440 groups=10x5
 SnapFrame: forward/backward consistency accepted count=1440
-SnapFrame: portable config update queued enabled=1 flow_scale=50%
 SnapFrame: luma dispatch accepted count=1500 groups=153x68
 SnapFrame: GPU metrics rejected frame=1500 valid_cells=64 expected_cells=2618 coverage=1.000 confidence=0.000
 SnapFrame: midpoint warp accepted count=1500 extent=2448x1080 output=RGBA16F
 SnapFrame: bidirectional flow pair accepted count=1560 groups=10x5
 SnapFrame: forward/backward consistency accepted count=1560
-SnapFrame: portable config update queued enabled=1 flow_scale=50%
-SnapFrame: live present mode change queued; DXVK will recreate the shared swapchain at the next present boundarySnapFrame: bidirectional flow pair accepted count=1680 groups=10x5
+SnapFrame: bidirectional flow pair accepted count=1680 groups=10x5
 SnapFrame: forward/backward consistency accepted count=1680
-SnapFrame: portable config update queued enabled=1 flow_scale=50%
-SnapFrame: live present mode change queued; DXVK will recreate the shared swapchain at the next present boundarySnapFrame: luma dispatch accepted count=1800 groups=153x68
+SnapFrame: luma dispatch accepted count=1800 groups=153x68
 SnapFrame: captured=1800 skipped=0 extent=2448x1080
 SnapFrame: GPU metrics rejected frame=1800 valid_cells=64 expected_cells=2618 coverage=1.000 confidence=0.000
 SnapFrame: bidirectional flow pair accepted count=1800 groups=10x5
@@ -85,24 +82,21 @@ SnapFrame: midpoint warp accepted count=1800 extent=2448x1080 output=RGBA16F
 SnapFrame: forward/backward consistency accepted count=1800
 SnapFrame: bidirectional flow pair accepted count=1920 groups=10x5
 SnapFrame: forward/backward consistency accepted count=1920
-SnapFrame: portable config update queued enabled=1 flow_scale=50%
-SnapFrame: live present mode change queued; DXVK will recreate the shared swapchain at the next present boundarySnapFrame: bidirectional flow pair accepted count=2040 groups=10x5
+SnapFrame: bidirectional flow pair accepted count=2040 groups=10x5
 SnapFrame: forward/backward consistency accepted count=2040
 SnapFrame: luma dispatch accepted count=2100 groups=153x68
-SnapFrame: midpoint warp accepted count=2100 extent=2448x1080 output=RGBA16F
 SnapFrame: GPU metrics rejected frame=2100 valid_cells=64 expected_cells=2618 coverage=1.000 confidence=0.000
+SnapFrame: midpoint warp accepted count=2100 extent=2448x1080 output=RGBA16F
 SnapFrame: bidirectional flow pair accepted count=2160 groups=10x5
 SnapFrame: forward/backward consistency accepted count=2160
-SnapFrame: portable config update queued enabled=1 flow_scale=50%
-SnapFrame: live present mode change queued; DXVK will recreate the shared swapchain at the next present boundarySnapFrame: bidirectional flow pair accepted count=2280 groups=10x5
+SnapFrame: bidirectional flow pair accepted count=2280 groups=10x5
 SnapFrame: forward/backward consistency accepted count=2280
 SnapFrame: luma dispatch accepted count=2400 groups=153x68
 SnapFrame: GPU metrics rejected frame=2400 valid_cells=64 expected_cells=2618 coverage=1.000 confidence=0.000
 SnapFrame: bidirectional flow pair accepted count=2400 groups=10x5
 SnapFrame: midpoint warp accepted count=2400 extent=2448x1080 output=RGBA16F
 SnapFrame: forward/backward consistency accepted count=2400
-SnapFrame: portable config update queued enabled=1 flow_scale=50%
-SnapFrame: live present mode change queued; DXVK will recreate the shared swapchain at the next present boundarySnapFrame: bidirectional flow pair accepted count=2520 groups=10x5
+SnapFrame: bidirectional flow pair accepted count=2520 groups=10x5
 SnapFrame: forward/backward consistency accepted count=2520
 SnapFrame: bidirectional flow pair accepted count=2640 groups=10x5
 SnapFrame: forward/backward consistency accepted count=2640
@@ -111,8 +105,7 @@ SnapFrame: GPU metrics rejected frame=2700 valid_cells=64 expected_cells=2618 co
 SnapFrame: midpoint warp accepted count=2700 extent=2448x1080 output=RGBA16F
 SnapFrame: bidirectional flow pair accepted count=2760 groups=10x5
 SnapFrame: forward/backward consistency accepted count=2760
-SnapFrame: portable config update queued enabled=1 flow_scale=50%
-SnapFrame: live present mode change queued; DXVK will recreate the shared swapchain at the next present boundarySnapFrame: bidirectional flow pair accepted count=2880 groups=10x5
+SnapFrame: bidirectional flow pair accepted count=2880 groups=10x5
 SnapFrame: forward/backward consistency accepted count=2880
 SnapFrame: luma dispatch accepted count=3000 groups=153x68
 SnapFrame: GPU metrics rejected frame=3000 valid_cells=64 expected_cells=2618 coverage=1.000 confidence=0.000
@@ -121,8 +114,7 @@ SnapFrame: midpoint warp accepted count=3000 extent=2448x1080 output=RGBA16F
 SnapFrame: forward/backward consistency accepted count=3000
 SnapFrame: bidirectional flow pair accepted count=3120 groups=10x5
 SnapFrame: forward/backward consistency accepted count=3120
-SnapFrame: portable config update queued enabled=1 flow_scale=50%
-SnapFrame: live present mode change queued; DXVK will recreate the shared swapchain at the next present boundarySnapFrame: bidirectional flow pair accepted count=3240 groups=10x5
+SnapFrame: bidirectional flow pair accepted count=3240 groups=10x5
 SnapFrame: forward/backward consistency accepted count=3240
 SnapFrame: luma dispatch accepted count=3300 groups=153x68
 SnapFrame: GPU metrics rejected frame=3300 valid_cells=64 expected_cells=2618 coverage=1.000 confidence=0.000
@@ -131,8 +123,7 @@ SnapFrame: bidirectional flow pair accepted count=3360 groups=10x5
 SnapFrame: forward/backward consistency accepted count=3360
 SnapFrame: bidirectional flow pair accepted count=3480 groups=10x5
 SnapFrame: forward/backward consistency accepted count=3480
-SnapFrame: portable config update queued enabled=1 flow_scale=50%
-SnapFrame: live present mode change queued; DXVK will recreate the shared swapchain at the next present boundarySnapFrame: luma dispatch accepted count=3600 groups=153x68
+SnapFrame: luma dispatch accepted count=3600 groups=153x68
 SnapFrame: captured=3600 skipped=0 extent=2448x1080
 SnapFrame: GPU metrics rejected frame=3600 valid_cells=64 expected_cells=2618 coverage=1.000 confidence=0.000
 SnapFrame: bidirectional flow pair accepted count=3600 groups=10x5
@@ -154,3 +145,45 @@ SnapFrame: GPU metrics rejected frame=4200 valid_cells=64 expected_cells=2618 co
 SnapFrame: bidirectional flow pair accepted count=4200 groups=10x5
 SnapFrame: midpoint warp accepted count=4200 extent=2448x1080 output=RGBA16F
 SnapFrame: forward/backward consistency accepted count=4200
+SnapFrame: bidirectional flow pair accepted count=4320 groups=10x5
+SnapFrame: forward/backward consistency accepted count=4320
+SnapFrame: bidirectional flow pair accepted count=4440 groups=10x5
+SnapFrame: forward/backward consistency accepted count=4440
+SnapFrame: luma dispatch accepted count=4500 groups=153x68
+SnapFrame: GPU metrics rejected frame=4500 valid_cells=64 expected_cells=2618 coverage=1.000 confidence=0.000
+SnapFrame: midpoint warp accepted count=4500 extent=2448x1080 output=RGBA16F
+SnapFrame: bidirectional flow pair accepted count=4560 groups=10x5
+SnapFrame: forward/backward consistency accepted count=4560
+SnapFrame: bidirectional flow pair accepted count=4680 groups=10x5
+SnapFrame: forward/backward consistency accepted count=4680
+SnapFrame: luma dispatch accepted count=4800 groups=153x68
+SnapFrame: GPU metrics rejected frame=4800 valid_cells=64 expected_cells=2618 coverage=1.000 confidence=0.000
+SnapFrame: bidirectional flow pair accepted count=4800 groups=10x5
+SnapFrame: midpoint warp accepted count=4800 extent=2448x1080 output=RGBA16F
+SnapFrame: forward/backward consistency accepted count=4800
+SnapFrame: bidirectional flow pair accepted count=4920 groups=10x5
+SnapFrame: forward/backward consistency accepted count=4920
+SnapFrame: bidirectional flow pair accepted count=5040 groups=10x5
+SnapFrame: forward/backward consistency accepted count=5040
+SnapFrame: luma dispatch accepted count=5100 groups=153x68
+SnapFrame: GPU metrics rejected frame=5100 valid_cells=64 expected_cells=2618 coverage=1.000 confidence=0.000
+SnapFrame: midpoint warp accepted count=5100 extent=2448x1080 output=RGBA16F
+SnapFrame: bidirectional flow pair accepted count=5160 groups=10x5
+SnapFrame: forward/backward consistency accepted count=5160
+SnapFrame: bidirectional flow pair accepted count=5280 groups=10x5
+SnapFrame: forward/backward consistency accepted count=5280
+SnapFrame: luma dispatch accepted count=5400 groups=153x68
+SnapFrame: captured=5400 skipped=0 extent=2448x1080
+SnapFrame: GPU metrics rejected frame=5400 valid_cells=64 expected_cells=2618 coverage=1.000 confidence=0.000
+SnapFrame: bidirectional flow pair accepted count=5400 groups=10x5
+SnapFrame: midpoint warp accepted count=5400 extent=2448x1080 output=RGBA16F
+SnapFrame: forward/backward consistency accepted count=5400
+SnapFrame: bidirectional flow pair accepted count=5520 groups=10x5
+SnapFrame: forward/backward consistency accepted count=5520
+SnapFrame: bidirectional flow pair accepted count=5640 groups=10x5
+SnapFrame: forward/backward consistency accepted count=5640
+SnapFrame: luma dispatch accepted count=5700 groups=153x68
+SnapFrame: GPU metrics rejected frame=5700 valid_cells=64 expected_cells=2618 coverage=1.000 confidence=0.000
+SnapFrame: midpoint warp accepted count=5700 extent=2448x1080 output=RGBA16F
+SnapFrame: bidirectional flow pair accepted count=5760 groups=10x5
+SnapFrame: forward/backward consistency accepted count=5760
