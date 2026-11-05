@@ -47,7 +47,7 @@ def analyze(root):
     flowkeys=("forward_mean_confidence","backward_mean_confidence","consistency_mean","nonfinite_values")
     flowstats={k:s for k in flowkeys if (s:=stats([num(x.get(k)) for x in flow]))}
     modes=Counter()
-    for m in re.finditer(r"(?:requested present mode=|present_mode=)(AUTO|FIFO|MAILBOX|IMMEDIATE|[0-3])",log+"\n"+config,re.I):
+    for m in re.finditer(r"(?:requested present mode=|actual present mode=|present_mode=)(AUTO|FIFO|MAILBOX|IMMEDIATE|[0-3])",log+"\n"+config,re.I):
         v=m.group(1).upper(); modes[{"0":"AUTO","1":"FIFO","2":"MAILBOX","3":"IMMEDIATE"}.get(v,v)]+=1
     failed=counts.get("midpoint_present_failed",0); nr=results.get("1",0); rejected=counts.get("gpu_metrics_rejected",0)
     findings=[]
