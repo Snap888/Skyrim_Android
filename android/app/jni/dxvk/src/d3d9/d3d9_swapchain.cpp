@@ -1394,7 +1394,7 @@ namespace dxvk {
     presenterDesc.imageExtent     = GetPresentExtent();
     presenterDesc.imageCount      = PickImageCount(m_presentParams.BackBufferCount + 1);
     presenterDesc.numFormats      = PickFormats(EnumerateFormat(m_presentParams.BackBufferFormat), presenterDesc.formats);
-    presenterDesc.numPresentModes = PickPresentModes(false, presenterDesc.presentModes);
+    presenterDesc.numPresentModes = PickPresentModes(m_vsync, presenterDesc.presentModes);
     presenterDesc.fullScreenExclusive = PickFullscreenMode();
 
     m_presenter = new vk::Presenter(m_window,
