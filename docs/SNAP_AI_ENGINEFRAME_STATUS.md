@@ -497,3 +497,29 @@ The current log has no GPU stage timings because profiling is disabled.
 The scalar telemetry mismatch also remains unresolved
 (`valid_cells=128`, `expected_cells=5600`, `coverage=1.000`); keep it
 out of AI tuning until its reduction contract is fixed.
+
+### Source-only FPS limiter correction — 2026-11-05
+
+Code inspection found that both source and generated SnapFrame presents called
+`Presenter::presentImage()`, which also called the shared `FpsLimiter::delay()`
+on the serialized DXVK submission thread. With a non-zero DXVK frame-rate cap
+(and when VSync/refresh matching does not disable the limiter), the generated
+present could therefore consume a second limiter interval and delay subsequent
+source-frame submission. This is independent of optical-flow shader cost.
+
+The present path now carries an explicit `applyFrameRateLimit` flag:
+- D3D9 source presents pass `true`.
+- SnapFrame generated presents pass `false`.
+- Other existing Presenter callers retain the default `true`.
+
+This preserves source frame pacing while preventing generated output frames
+from advancing or sleeping the source FPS limiter. The flag is explicit at the
+source/generated call sites; it is not inferred from a frame index.
+
+This is a targeted pacing correction, not an acquire-ticket implementation.
+The shared Presenter acquire state and semaphore ring remain serialized and
+`SynchronizePresent()` remains in place. It must be tested on device with the
+same scene and settings, comparing source FPS, generated output FPS,
+`avg_source_submission_wait_ms`, `avg_generated_submission_wait_ms`, and
+`avg_frame_latency_wait_ms`. The previous timing-only build passed CI, but
+this change requires its own CI result and runtime validation.
