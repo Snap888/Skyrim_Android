@@ -19,3 +19,24 @@ The launcher contains no external LSFG controls, DLL import, LSFG A/B test, or L
 SnapFrame and Flow Scale settings persist in `port/snapframe.conf`. Native state is authoritative. JNI validates flow scale and returns failure if the host is not initialized. GPU-affecting changes are queued to the render callback; the UI thread never accesses Vulkan objects. The toast confirms queueing, not completed GPU resource recreation.
 
 Only expose settings that the active backend can actually apply. Performance/quality modes, custom search radius, AI adaptive controls, CPU affinity and worker spin-wait remain hidden until implemented and validated.
+
+## SnapFrame presentation mode
+
+The launcher exposes `Auto`, `FIFO`, `MAILBOX`, and `IMMEDIATE` under
+SnapFrame Frame Generation. The preference is written as `present_mode` in
+`port/snapframe.conf` and read by the native bootstrap before DXVK creates
+the swapchain.
+
+The selected mode applies to the **shared DXVK swapchain**, so it affects both
+source game frames and generated frames; it is not a separate FG-only queue.
+`Auto` preserves the existing game VSync/tear-free selection. Explicit
+`FIFO`, `MAILBOX`, and `IMMEDIATE` requests are checked against the surface's
+supported modes. MAILBOX and IMMEDIATE fall back to FIFO when unavailable.
+The Presenter log records the requested mode and the actual selected Vulkan
+present mode.
+
+The selection is applied at game startup / swapchain creation. Change it in
+the launcher and restart the game to run a controlled A/B test. MAILBOX may
+discard stale queued frames; IMMEDIATE can tear and does not guarantee scanout
+at the submit rate. Output submit FPS remains a submission metric, not a
+measurement of displayed refresh.
