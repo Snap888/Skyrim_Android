@@ -515,3 +515,20 @@ The mode is selected when DXVK creates the game's shared output swapchain. Both 
 ### In-game live present-mode control
 
 The Skyrim overlay exposes the same four modes without leaving the game. JNI validates and persists the requested mode, then updates the host atomic. DXVK checks for a changed request at the beginning of the serialized present path and performs the shared-swapchain recreation there—not on the Android UI thread. Before recreation, DXVK waits for outstanding source/generated present submissions and device idle; after recreation it refreshes swapchain image views and resumes the next source frame. This is intentionally a safe, potentially visible one-time hitch rather than an unsafe asynchronous WSI mutation. The overlay reports the requested mode; the actual selected mode still needs device-side confirmation from the DXVK WSI logs.
+
+## Compact local log analysis
+
+The repository includes `tools/analyze_snapframe_logs.py`, a standard-library-only Python analyzer for the SnapFrame log bundle. Run it on the device in Termux or on a PC after copying the log directory:
+
+```sh
+python3 tools/analyze_snapframe_logs.py --log-dir /path/to/port --output snapframe_diagnostic_report.md
+```
+
+For machine-readable output:
+
+```sh
+python3 tools/analyze_snapframe_logs.py --log-dir /path/to/port --format json --output snapframe_diagnostic_report.json
+```
+
+The report aggregates event counts, generated-present VkResult failures, performance mean/median/p95/p99/max, flow telemetry availability, GPU-stage sample availability, observed present modes, and prioritized findings. It reads the event/performance/flow/GPU CSV files, SnapFrame log, DXVK log and config when present. Source logs are read-only and remain on the device; the analyzer performs no network requests and does not upload anything. Share the Markdown report first; attach full logs only when a finding requires deeper tracing. The report is a triage aid, not a replacement for source-level investigation. Tests run in Android CI.
+
