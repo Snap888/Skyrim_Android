@@ -4,6 +4,8 @@ enabled=1
 multiplier=2
 quality=1
 flow_scale_percent=50
+# 0=Auto, 1=FIFO, 2=MAILBOX, 3=IMMEDIATE (shared DXVK swapchain)
+present_mode=0
 motion_analysis=1
 profiling_enabled=0
 diagnostic_suite=0
