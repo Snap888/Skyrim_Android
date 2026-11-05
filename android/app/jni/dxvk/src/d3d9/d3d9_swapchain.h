@@ -135,9 +135,11 @@ namespace dxvk {
 
     void SubmitPresent(const vk::PresenterSync& Sync, uint32_t FrameId, DxvkSubmitStatus& Status);
 
-    void WaitForPresentSubmissions();
+    void WaitForPresentSubmissions(double* sourceWaitMs = nullptr,
+                                  double* generatedWaitMs = nullptr);
 
-    void SynchronizePresent();
+    void SynchronizePresent(double* sourceWaitMs = nullptr,
+                            double* generatedWaitMs = nullptr);
 
     void RecreateSwapChain(
         BOOL                      Vsync);
