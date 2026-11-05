@@ -9,7 +9,10 @@ FILES=("snapframe_events.csv","snapframe_perf_on.csv","snapframe_flow.csv","snap
 def read_csv(path):
     if not path.is_file() or not path.stat().st_size: return []
     with path.open("r",encoding="utf-8-sig",errors="replace",newline="") as f:
-        lines=[x for x in f if x.strip() and not x.startswith("===") and not x.startswith("columns:")]
+        lines=[x for x in f if x.strip()]
+    lines=[x for x in lines if not x.startswith("===")]
+    if lines and lines[0].startswith("columns:"):
+        lines[0]=lines[0][len("columns:"):].lstrip()
     return list(csv.DictReader(lines)) if lines else []
 
 def num(x):
