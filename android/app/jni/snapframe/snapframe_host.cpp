@@ -1991,13 +1991,16 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
     const bool profileThisFrame = g_profilingEnabled
         && (!g_diagnosticSuiteEnabled || !g_diagnosticSuiteComplete)
         && (nextCapturedFrame % kAiTelemetryIntervalFrames) == 0u;
-    /* AI needs sparse GPU timing even when verbose profiling is disabled.
-     * Keep the total-chain timestamp at the same 30-frame cadence as the
-     * validated scalar readback; per-stage timers remain profiling-only. */
-    const bool collectAiTiming = (nextCapturedFrame % kAiTelemetryIntervalFrames) == 0u;
+    /* V2 pyramid/search/refinement/validation are diagnostic-only and do
+     * not feed the V1 midpoint warp. Keep them out of normal gameplay; enable
+     * them only when explicit profiling or the diagnostic suite is requested.
+     * This also avoids inserting sparse timestamp queries into the production
+     * path when no V2 diagnostic work is being measured. */
+    const bool v2DiagnosticsEnabled = g_profilingEnabled || g_diagnosticSuiteEnabled;
     const SnapFrameGpuTimer totalTimer = beginGpuTimer(
         context, device, "total_chain", nextCapturedFrame, width, height,
-        profileThisFrame || collectAiTiming);
+        profileThisFrame || (v2DiagnosticsEnabled
+            && (nextCapturedFrame % kAiTelemetryIntervalFrames) == 0u));
     const uint32_t currentV2SearchInterval =
         g_v2SearchIntervalFrames.load(std::memory_order_acquire);
     if (currentV2SearchInterval != g_v2SearchIntervalLogged) {
@@ -2030,7 +2033,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
     const uint32_t l1Height = l0Height / 2u + l0Height % 2u;
     const uint32_t l2Width = l1Width / 2u + l1Width % 2u;
     const uint32_t l2Height = l1Height / 2u + l1Height % 2u;
-    if (g_v2PyramidAvailable) {
+    if (v2DiagnosticsEnabled && g_v2PyramidAvailable) {
         const SnapFrameGpuTimer v2PyramidTimer = beginGpuTimer(
             context, device, "v2_pyramid", nextCapturedFrame, width, height, profileThisFrame);
         g_v2PyramidValid[slot] = false;
@@ -2100,7 +2103,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
 
     const bool v2SearchScheduled = currentV2SearchInterval <= 1u
         || (nextCapturedFrame % currentV2SearchInterval) == 0u;
-    if (g_v2FlowAvailable && g_v2PyramidValid[slot]
+    if (v2DiagnosticsEnabled && g_v2FlowAvailable && g_v2PyramidValid[slot]
         && g_v2PyramidValid[slot ^ 1u] && v2SearchScheduled) {
         const SnapFrameGpuTimer v2SearchTimer = beginGpuTimer(
             context, device, "v2_search", nextCapturedFrame, width, height, profileThisFrame);
