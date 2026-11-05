@@ -585,3 +585,20 @@ The host also validates these counters before publishing metrics to Snap AI:
 all expected partial records must be non-empty, each record must cover at
 least one cell, and no 8×8 record may exceed 64 cells. A numerically plausible
 sum can therefore no longer hide a missing partial workgroup.
+
+
+### Metrics final-reduction correctness fix
+
+The MAILBOX test exposed the remaining reduction bug. The final shader correctly
+reduced all 50 partial records into sharedMotion[0] and sharedQuality[0],
+but the final coverage calculation read the lane-local motion and quality
+accumulators instead. Lane 0 only owns the first strided partial record, which
+explains the stable but incorrect valid_cells=64 and coverage=1.000 despite
+all 50 partial records being present.
+
+The final calculation now consumes the shared reduction totals. For a 77×34
+grid, the next run should report valid_cells and observed cells consistent
+with 2618 (subject to invalid/non-finite flow samples), while active_partials
+should remain 50/50. AI publication still requires full grid coverage and
+valid-flow coverage. This source fix is committed, but runtime confirmation
+requires a new APK and device log.
