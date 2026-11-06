@@ -249,3 +249,39 @@ completion token. The next production change must extend the queue entry and
 Presenter transaction API together, with per-transaction ownership and a
 non-blocking generated-image acquisition path. Until then the source present
 continues unchanged and generated presentation stays disabled.
+
+
+## Submit-worker WSI blocking gate
+
+A focused read of the pinned Presenter::presentImage body confirms a
+second, more immediate scheduling hazard. The call is made by
+DxvkSubmissionQueue::submitCmdLists while its m_mutexQueue lock is held.
+After vkQueuePresentKHR, the success path calls
+waitForSwapchainFence(nextSync) and then
+vkAcquireNextImageKHR with
+std::numeric_limits<uint64_t>::max() as the timeout. This is not a
+non-blocking poll.
+
+Consequences:
+
+- A generated-present entry placed behind a source present cannot execute
+  until the source present's pre-acquire returns.
+- A generated-present entry placed ahead of a source command submission can
+  delay the source frame and violate the project's source-FPS priority.
+- A second caller of the existing Presenter API still shares mutable
+  m_imageIndex, m_frameIndex, and m_presentPending state; queue FIFO
+  alone does not make that API transaction-safe.
+
+The Android patcher now extracts the pinned Presenter::presentImage
+function and fails closed unless the fence wait and infinite-timeout
+pre-acquire anchors are present. This guard deliberately makes no claim that
+the WSI operation is always blocked on every frame; it records that the API
+permits a blocking wait and therefore cannot be used for optional generated
+work on the source-critical path.
+
+Implementation decision: do not add generated presents to the current
+submit worker as a simple FIFO entry. The production scheduler needs a
+non-blocking, separately owned WSI acquisition/present transaction and a
+source-priority policy that cannot be held hostage by generated work. If the
+platform/driver cannot provide a free generated slot without waiting, drop
+that generated frame. The ordinary source present remains unchanged.
