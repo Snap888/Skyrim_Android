@@ -74,8 +74,8 @@ class AnalyzerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / "log.txt").write_text(
-                "DXVK-WSI: queue_present_us=9000 pre_acquire_us=1000 frame_limiter_us=0 total_present_us=10000 acquire_result=1 result=0 present_mode=1 apply_frame_limit=1\\n"
-                "DXVK-PRESENT: queue_residence_us=12000 queue_depth=3 queue_lock_wait_us=100 present_call_us=15000 total_entry_us=27100 result=0 diagnostic_count=1\\n",
+                "DXVK-WSI: queue_present_us=9000 pre_acquire_us=1000 frame_limiter_us=0 total_present_us=10000 acquire_result=1 result=0 present_mode=1 apply_frame_limit=1\n"
+                "DXVK-PRESENT: queue_residence_us=12000 queue_depth=3 queue_lock_wait_us=100 present_call_us=15000 total_entry_us=27100 result=0 diagnostic_count=1\n",
                 encoding="utf-8")
             report = analyze(root)
             self.assertEqual(report["dxvk_wsi"]["wsi_rows"], 1)
