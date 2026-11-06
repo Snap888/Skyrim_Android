@@ -19,7 +19,7 @@ for file in "$DXVK_SO" "$RUNTIME_SO"; do
   }
 done
 
-"$READELF" -d "$DXVK_SO" | grep -Fq "SONAME.*[$EXPECTED_SONAME]" || {
+"$READELF" -d "$DXVK_SO" | grep -Fq "Library soname: [$EXPECTED_SONAME]" || {
   echo "::error::DXVK SONAME mismatch; expected $EXPECTED_SONAME"; exit 1;
 }
 
