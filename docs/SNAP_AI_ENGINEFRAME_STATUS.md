@@ -13,7 +13,7 @@ Last audited: 2026-11-04
 ## Audited upstream
 
 Snap AI Engine repository: `Snap888/Snap_AI_Engine`, branch `snapframe-engine`, pinned commit:
-`ccf4589ca19d5f788adc56c7248d94f83ca0a506` (current CMake pin; the historical integration steps below retain their original revisions).
+`9621c32981ad818d2ff3c01dcecaa127da107c64` (current CMake pin; includes the adaptive Flow Scale policy fix).
 
 The corresponding PR #1 is still a draft and open. Its portable C APIs and core tests are present, but its own PR description explicitly says that the DXVK implementation under `framegen/backends/dxvk/legacy` has not yet been adapted to `SnapFrameBackendV1`. It also makes no Android APK or real-device validation claim.
 
@@ -726,4 +726,6 @@ compilation can cause long frame-time spikes.
 - Hardened the live snap_ai_update() result gate: a non-bypass decision is applied only when the returned structure size, API version, mode, frame ID and finite Flow Scale are valid. Non-bypass Flow Scale must remain within the host's supported 50–75% capability range. Invalid decisions are rejected and logged; AI API errors are logged separately.
 - Removed adaptive-AI telemetry work in Standard mode. When adaptive AI is disabled, the host no longer schedules the sparse total-chain timestamp or the V1 scalar-reduction/readback for AI. Explicit profiling/diagnostic sampling remains independently available.
 - The AI path still uses the existing asynchronous 96-byte GPU-reduced scalar record and frame-matched total-chain timestamp. It does not read back full flow vectors for AI and does not add a GPU wait.
+- Updated the pinned portable Snap AI controller to make Flow Scale decisions relative to the configured capability range: simple/high-confidence scenes move toward the minimum, complex/uncertain scenes toward the maximum, and sustained GPU pressure caps the requested scale. Hysteresis now starts from the configured maximum rather than a hard-coded 1.0 value.
+- Upstream branch `feature/snap-ai-flow-governor`, commit `9621c32981ad818d2ff3c01dcecaa127da107c64`, passed Linux CI run [#42194038989](https://github.com/Snap888/Snap_AI_Engine/actions/runs/42194038989), including all three portable test suites. Skyrim ARM64 integration CI is pending.
 - Source FPS and generated-image quality have not been measured after this change. The current CI run must pass ARM64 host compilation and portable API tests; the new decision guard and Standard-mode overhead reduction still require device validation on Adreno 740.
