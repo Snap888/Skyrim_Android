@@ -84,6 +84,7 @@ add_library(snap_display_info STATIC
 target_include_directories(snap_display_info PUBLIC "${_display_info_src}/include")
 target_compile_features(snap_display_info PRIVATE c_std_11)
 target_compile_definitions(snap_display_info PRIVATE _POSIX_C_SOURCE=200809L)
+set_target_properties(snap_display_info PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(snap_display_info PUBLIC m)
 
 if(NOT TARGET SDL2)
