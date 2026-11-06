@@ -153,7 +153,7 @@ jobs:
       - name: Configure Skyrim native build
         run: |
           mkdir -p gen
-          printf 'void snapframe_ci_dummy(void) {}\\n' > gen/snapframe_ci_dummy.c
+          printf 'void snapframe_ci_dummy(void) {}\n' > gen/snapframe_ci_dummy.c
           "$ANDROID_HOME/cmake/$CMAKE_VERSION/bin/cmake" \
             -S android/app/jni \
             -B "$RUNNER_TEMP/skyrim-native-build" \
