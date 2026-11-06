@@ -41,12 +41,18 @@ struct DeviceState {
   std::array<Rc<DxvkImageView>, 2> lumaViews;
   std::array<Rc<DxvkImage>, 2> flowImages;
   std::array<Rc<DxvkImageView>, 2> flowViews;
+  std::array<Rc<DxvkImage>, 2> colorHistoryImages;
+  std::array<Rc<DxvkImageView>, 2> colorHistoryViews;
+  Rc<DxvkImage> midpointImage;
+  Rc<DxvkImageView> midpointView;
   Rc<DxvkImage> consistencyImage;
   Rc<DxvkImageView> consistencyView;
   Rc<DxvkSampler> sampler;
   Rc<DxvkShader> lumaShader;
   Rc<DxvkShader> flowShader;
   Rc<DxvkShader> consistencyShader;
+  Rc<DxvkShader> colorHistoryShader;
+  Rc<DxvkShader> midpointWarpShader;
   uint32_t flowWidth = 0;
   uint32_t flowHeight = 0;
   bool hasPreviousLuma = false;
@@ -256,6 +262,86 @@ bool initializeDeviceState(DeviceState& state, DxvkDevice* device,
   if (!state.consistencyShader)
     return false;
 
+  const VkFormat colorFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+  const VkFormatProperties colorProperties = device->adapter()->formatProperties(colorFormat);
+  const VkFormatFeatureFlags colorRequired =
+    VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+  VkImageFormatProperties colorImageProperties{};
+  const VkResult colorResult = device->adapter()->imageFormatProperties(
+    colorFormat, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
+    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 0, colorImageProperties);
+  if ((colorProperties.optimalTilingFeatures & colorRequired) != colorRequired
+      || colorResult != VK_SUCCESS
+      || width > colorImageProperties.maxExtent.width
+      || height > colorImageProperties.maxExtent.height)
+    return false;
+
+  DxvkImageCreateInfo colorInfo = flowInfo;
+  colorInfo.format = colorFormat;
+  colorInfo.extent = { width, height, 1 };
+  colorInfo.debugName = "SnapFrame262 RGBA16F color history";
+  DxvkImageViewKey colorViewInfo = flowViewInfo;
+  colorViewInfo.format = colorFormat;
+  for (uint32_t i = 0; i < state.colorHistoryImages.size(); ++i) {
+    state.colorHistoryImages[i] = device->createImage(
+      colorInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (!state.colorHistoryImages[i])
+      return false;
+    state.colorHistoryViews[i] = state.colorHistoryImages[i]->createView(colorViewInfo);
+    if (!state.colorHistoryViews[i])
+      return false;
+  }
+  colorInfo.debugName = "SnapFrame262 midpoint output";
+  state.midpointImage = device->createImage(
+    colorInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  if (!state.midpointImage)
+    return false;
+  state.midpointView = state.midpointImage->createView(colorViewInfo);
+  if (!state.midpointView)
+    return false;
+
+  const DxvkBindingInfo colorCopyBindings[] = {
+    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0,
+      VK_IMAGE_VIEW_TYPE_2D, VK_SHADER_STAGE_COMPUTE_BIT, VK_ACCESS_SHADER_READ_BIT },
+    { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1,
+      VK_IMAGE_VIEW_TYPE_2D, VK_SHADER_STAGE_COMPUTE_BIT, VK_ACCESS_SHADER_WRITE_BIT },
+  };
+  DxvkShaderCreateInfo colorCopyInfo{};
+  colorCopyInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+  colorCopyInfo.bindingCount = uint32_t(std::size(colorCopyBindings));
+  colorCopyInfo.bindings = colorCopyBindings;
+  SpirvCodeBuffer colorCopyCode(
+    snapframe::shaders::k_color_history_copy_word_count,
+    snapframe::shaders::k_color_history_copy);
+  state.colorHistoryShader = new DxvkShader(colorCopyInfo, std::move(colorCopyCode));
+  if (!state.colorHistoryShader)
+    return false;
+
+  const DxvkBindingInfo midpointBindings[] = {
+    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0,
+      VK_IMAGE_VIEW_TYPE_2D, VK_SHADER_STAGE_COMPUTE_BIT, VK_ACCESS_SHADER_READ_BIT },
+    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
+      VK_IMAGE_VIEW_TYPE_2D, VK_SHADER_STAGE_COMPUTE_BIT, VK_ACCESS_SHADER_READ_BIT },
+    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2,
+      VK_IMAGE_VIEW_TYPE_2D, VK_SHADER_STAGE_COMPUTE_BIT, VK_ACCESS_SHADER_READ_BIT },
+    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3,
+      VK_IMAGE_VIEW_TYPE_2D, VK_SHADER_STAGE_COMPUTE_BIT, VK_ACCESS_SHADER_READ_BIT },
+    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4,
+      VK_IMAGE_VIEW_TYPE_2D, VK_SHADER_STAGE_COMPUTE_BIT, VK_ACCESS_SHADER_READ_BIT },
+    { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 5,
+      VK_IMAGE_VIEW_TYPE_2D, VK_SHADER_STAGE_COMPUTE_BIT, VK_ACCESS_SHADER_WRITE_BIT },
+  };
+  DxvkShaderCreateInfo midpointInfo{};
+  midpointInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+  midpointInfo.bindingCount = uint32_t(std::size(midpointBindings));
+  midpointInfo.bindings = midpointBindings;
+  SpirvCodeBuffer midpointCode(
+    snapframe::shaders::k_midpoint_warp_word_count,
+    snapframe::shaders::k_midpoint_warp);
+  state.midpointWarpShader = new DxvkShader(midpointInfo, std::move(midpointCode));
+  if (!state.midpointWarpShader)
+    return false;
+
   const DxvkBindingInfo bindings[] = {
     {
       VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0,
@@ -282,9 +368,17 @@ bool initializeDeviceState(DeviceState& state, DxvkDevice* device,
 }
 
 void resetDeviceState(DeviceState& state) {
+  state.midpointWarpShader = nullptr;
+  state.colorHistoryShader = nullptr;
   state.consistencyShader = nullptr;
   state.flowShader = nullptr;
   state.lumaShader = nullptr;
+  state.midpointView = nullptr;
+  state.midpointImage = nullptr;
+  for (auto& view : state.colorHistoryViews)
+    view = nullptr;
+  for (auto& image : state.colorHistoryImages)
+    image = nullptr;
   state.consistencyView = nullptr;
   state.consistencyImage = nullptr;
   state.sampler = nullptr;
@@ -380,6 +474,19 @@ extern "C" int snapframe_dxvk262_record_source(
   const uint32_t lumaHeight = frame_info->height / 2u + frame_info->height % 2u;
   dxvkContext->dispatch((lumaWidth + 7u) / 8u, (lumaHeight + 7u) / 8u, 1u);
 
+  // Copy the real source into an owned linear RGBA16F history image. The
+  // source swapchain image may be recycled immediately after presentation.
+  dxvkContext->bindShader<VK_SHADER_STAGE_COMPUTE_BIT>(
+    Rc<DxvkShader>(state.colorHistoryShader));
+  dxvkContext->bindResourceImageView(VK_SHADER_STAGE_COMPUTE_BIT, 0,
+    Rc<DxvkImageView>(sourceView));
+  dxvkContext->bindResourceSampler(VK_SHADER_STAGE_COMPUTE_BIT, 0,
+    Rc<DxvkSampler>(state.sampler));
+  dxvkContext->bindResourceImageView(VK_SHADER_STAGE_COMPUTE_BIT, 1,
+    Rc<DxvkImageView>(state.colorHistoryViews[slot]));
+  dxvkContext->dispatch((frame_info->width + 7u) / 8u,
+                        (frame_info->height + 7u) / 8u, 1u);
+
   // The first captured image only seeds temporal history. From the second
   // frame onward, record both directions into separate flow fields.
   if (state.hasPreviousLuma) {
@@ -429,6 +536,32 @@ extern "C" int snapframe_dxvk262_record_source(
       Rc<DxvkSampler>(state.sampler));
     dxvkContext->dispatch((state.flowWidth + 7u) / 8u,
                           (state.flowHeight + 7u) / 8u, 1u);
+    dxvkContext->bindShader<VK_SHADER_STAGE_COMPUTE_BIT>(
+      Rc<DxvkShader>(state.midpointWarpShader));
+    dxvkContext->bindResourceImageView(VK_SHADER_STAGE_COMPUTE_BIT, 0,
+      Rc<DxvkImageView>(state.colorHistoryViews[previousSlot]));
+    dxvkContext->bindResourceSampler(VK_SHADER_STAGE_COMPUTE_BIT, 0,
+      Rc<DxvkSampler>(state.sampler));
+    dxvkContext->bindResourceImageView(VK_SHADER_STAGE_COMPUTE_BIT, 1,
+      Rc<DxvkImageView>(state.colorHistoryViews[slot]));
+    dxvkContext->bindResourceSampler(VK_SHADER_STAGE_COMPUTE_BIT, 1,
+      Rc<DxvkSampler>(state.sampler));
+    dxvkContext->bindResourceImageView(VK_SHADER_STAGE_COMPUTE_BIT, 2,
+      Rc<DxvkImageView>(state.flowViews[0]));
+    dxvkContext->bindResourceSampler(VK_SHADER_STAGE_COMPUTE_BIT, 2,
+      Rc<DxvkSampler>(state.sampler));
+    dxvkContext->bindResourceImageView(VK_SHADER_STAGE_COMPUTE_BIT, 3,
+      Rc<DxvkImageView>(state.flowViews[1]));
+    dxvkContext->bindResourceSampler(VK_SHADER_STAGE_COMPUTE_BIT, 3,
+      Rc<DxvkSampler>(state.sampler));
+    dxvkContext->bindResourceImageView(VK_SHADER_STAGE_COMPUTE_BIT, 4,
+      Rc<DxvkImageView>(state.consistencyView));
+    dxvkContext->bindResourceSampler(VK_SHADER_STAGE_COMPUTE_BIT, 4,
+      Rc<DxvkSampler>(state.sampler));
+    dxvkContext->bindResourceImageView(VK_SHADER_STAGE_COMPUTE_BIT, 5,
+      Rc<DxvkImageView>(state.midpointView));
+    dxvkContext->dispatch((frame_info->width + 7u) / 8u,
+                          (frame_info->height + 7u) / 8u, 1u);
     ++state.flowPairsRecorded;
   }
 
@@ -445,7 +578,7 @@ extern "C" int snapframe_dxvk262_record_source(
   }
 
   // Luma, bidirectional flow and cycle consistency are now recorded. The
-  // hook still skips FG until midpoint warp and WSI presentation are connected.
+  // hook still skips FG until the midpoint image is wired into the WSI blit source.
   return 1;
 }
 
