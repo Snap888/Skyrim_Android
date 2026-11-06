@@ -39,8 +39,15 @@ struct DeviceState {
   VkFormat sourceFormat = VK_FORMAT_UNDEFINED;
   std::array<Rc<DxvkImage>, 2> lumaImages;
   std::array<Rc<DxvkImageView>, 2> lumaViews;
+  std::array<Rc<DxvkImage>, 2> flowImages;
+  std::array<Rc<DxvkImageView>, 2> flowViews;
   Rc<DxvkSampler> sampler;
   Rc<DxvkShader> lumaShader;
+  Rc<DxvkShader> flowShader;
+  uint32_t flowWidth = 0;
+  uint32_t flowHeight = 0;
+  bool hasPreviousLuma = false;
+  uint64_t flowPairsRecorded = 0;
   uint64_t recordedFrames = 0;
   uint32_t writeSlot = 0;
 };
@@ -136,6 +143,81 @@ bool initializeDeviceState(DeviceState& state, DxvkDevice* device,
   if (!state.sampler)
     return false;
 
+  // The existing V1 block matcher uses one flow cell per 16 luma texels
+  // at the default 50% scale. Keep this scale fixed until AI settings are
+  // plumbed into the 2.6.2 host; vectors remain in luma-texel units.
+  constexpr uint32_t flowStride = 16u;
+  state.flowWidth = (lumaWidth + flowStride - 1u) / flowStride;
+  state.flowHeight = (lumaHeight + flowStride - 1u) / flowStride;
+  const VkFormat flowFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+  const VkFormatProperties flowProperties = device->adapter()->formatProperties(flowFormat);
+  const VkFormatFeatureFlags flowRequired =
+    VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+  VkImageFormatProperties flowImageProperties{};
+  const VkResult flowResult = device->adapter()->imageFormatProperties(
+    flowFormat, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
+    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 0, flowImageProperties);
+  if ((flowProperties.optimalTilingFeatures & flowRequired) != flowRequired
+      || flowResult != VK_SUCCESS
+      || state.flowWidth > flowImageProperties.maxExtent.width
+      || state.flowHeight > flowImageProperties.maxExtent.height
+      || !device->features().core.features.shaderStorageImageExtendedFormats)
+    return false;
+
+  DxvkImageCreateInfo flowInfo{};
+  flowInfo.type = VK_IMAGE_TYPE_2D;
+  flowInfo.format = flowFormat;
+  flowInfo.sampleCount = VK_SAMPLE_COUNT_1_BIT;
+  flowInfo.extent = { state.flowWidth, state.flowHeight, 1 };
+  flowInfo.numLayers = 1;
+  flowInfo.mipLevels = 1;
+  flowInfo.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+  flowInfo.stages = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+  flowInfo.access = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
+  flowInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+  flowInfo.layout = VK_IMAGE_LAYOUT_GENERAL;
+  flowInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  flowInfo.shared = VK_FALSE;
+  flowInfo.debugName = "SnapFrame262 bidirectional flow";
+
+  DxvkImageViewKey flowViewInfo{};
+  flowViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+  flowViewInfo.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+  flowViewInfo.format = flowFormat;
+  flowViewInfo.aspects = VK_IMAGE_ASPECT_COLOR_BIT;
+  flowViewInfo.mipIndex = 0;
+  flowViewInfo.mipCount = 1;
+  flowViewInfo.layerIndex = 0;
+  flowViewInfo.layerCount = 1;
+  for (uint32_t i = 0; i < state.flowImages.size(); ++i) {
+    state.flowImages[i] = device->createImage(
+      flowInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (!state.flowImages[i])
+      return false;
+    state.flowViews[i] = state.flowImages[i]->createView(flowViewInfo);
+    if (!state.flowViews[i])
+      return false;
+  }
+
+  const DxvkBindingInfo flowBindings[] = {
+    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0,
+      VK_IMAGE_VIEW_TYPE_2D, VK_SHADER_STAGE_COMPUTE_BIT, VK_ACCESS_SHADER_READ_BIT },
+    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
+      VK_IMAGE_VIEW_TYPE_2D, VK_SHADER_STAGE_COMPUTE_BIT, VK_ACCESS_SHADER_READ_BIT },
+    { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 2,
+      VK_IMAGE_VIEW_TYPE_2D, VK_SHADER_STAGE_COMPUTE_BIT, VK_ACCESS_SHADER_WRITE_BIT },
+  };
+  DxvkShaderCreateInfo flowShaderInfo{};
+  flowShaderInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+  flowShaderInfo.bindingCount = uint32_t(std::size(flowBindings));
+  flowShaderInfo.bindings = flowBindings;
+  SpirvCodeBuffer flowShaderCode(
+    snapframe::shaders::k_block_match_flow_word_count,
+    snapframe::shaders::k_block_match_flow);
+  state.flowShader = new DxvkShader(flowShaderInfo, std::move(flowShaderCode));
+  if (!state.flowShader)
+    return false;
+
   const DxvkBindingInfo bindings[] = {
     {
       VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0,
@@ -162,8 +244,13 @@ bool initializeDeviceState(DeviceState& state, DxvkDevice* device,
 }
 
 void resetDeviceState(DeviceState& state) {
+  state.flowShader = nullptr;
   state.lumaShader = nullptr;
   state.sampler = nullptr;
+  for (auto& view : state.flowViews)
+    view = nullptr;
+  for (auto& image : state.flowImages)
+    image = nullptr;
   for (auto& view : state.lumaViews)
     view = nullptr;
   for (auto& image : state.lumaImages)
@@ -243,18 +330,54 @@ extern "C" int snapframe_dxvk262_record_source(
   const uint32_t lumaHeight = frame_info->height / 2u + frame_info->height % 2u;
   dxvkContext->dispatch((lumaWidth + 7u) / 8u, (lumaHeight + 7u) / 8u, 1u);
 
+  // The first captured image only seeds temporal history. From the second
+  // frame onward, record both directions into separate flow fields.
+  if (state.hasPreviousLuma) {
+    const uint32_t previousSlot = slot ^ 1u;
+    dxvkContext->bindShader<VK_SHADER_STAGE_COMPUTE_BIT>(
+      Rc<DxvkShader>(state.flowShader));
+
+    // Current -> previous: compare the current patch against displaced
+    // samples from the previous luma image.
+    dxvkContext->bindResourceImageView(VK_SHADER_STAGE_COMPUTE_BIT, 0,
+      Rc<DxvkImageView>(state.lumaViews[previousSlot]));
+    dxvkContext->bindResourceSampler(VK_SHADER_STAGE_COMPUTE_BIT, 0,
+      Rc<DxvkSampler>(state.sampler));
+    dxvkContext->bindResourceImageView(VK_SHADER_STAGE_COMPUTE_BIT, 1,
+      Rc<DxvkImageView>(state.lumaViews[slot]));
+    dxvkContext->bindResourceSampler(VK_SHADER_STAGE_COMPUTE_BIT, 1,
+      Rc<DxvkSampler>(state.sampler));
+    dxvkContext->bindResourceImageView(VK_SHADER_STAGE_COMPUTE_BIT, 2,
+      Rc<DxvkImageView>(state.flowViews[0]));
+    dxvkContext->dispatch((state.flowWidth + 7u) / 8u,
+                          (state.flowHeight + 7u) / 8u, 1u);
+
+    // Previous -> current: reverse the sampled luma pair.
+    dxvkContext->bindResourceImageView(VK_SHADER_STAGE_COMPUTE_BIT, 0,
+      Rc<DxvkImageView>(state.lumaViews[slot]));
+    dxvkContext->bindResourceImageView(VK_SHADER_STAGE_COMPUTE_BIT, 1,
+      Rc<DxvkImageView>(state.lumaViews[previousSlot]));
+    dxvkContext->bindResourceImageView(VK_SHADER_STAGE_COMPUTE_BIT, 2,
+      Rc<DxvkImageView>(state.flowViews[1]));
+    dxvkContext->dispatch((state.flowWidth + 7u) / 8u,
+                          (state.flowHeight + 7u) / 8u, 1u);
+    ++state.flowPairsRecorded;
+  }
+
+  state.hasPreviousLuma = true;
   ++state.recordedFrames;
   state.writeSlot ^= 1u;
   if (state.recordedFrames == 1u || (state.recordedFrames % 600u) == 0u) {
     __android_log_print(ANDROID_LOG_INFO, kLogTag,
-      "luma dispatch recorded frame=%llu extent=%ux%u slot=%u",
+      "luma/flow dispatch frame=%llu extent=%ux%u slot=%u flow_pairs=%llu flow_extent=%ux%u",
       static_cast<unsigned long long>(frame_info->frame_id),
-      frame_info->width, frame_info->height, slot);
+      frame_info->width, frame_info->height, slot,
+      static_cast<unsigned long long>(state.flowPairsRecorded),
+      state.flowWidth, state.flowHeight);
   }
 
-  // Luma preprocessing is active, but frame interpolation is not yet
-  // advertised as accepted/generated until bidirectional flow, validation,
-  // midpoint warp and presentation are connected.
+  // Luma and bidirectional flow are now recorded. The hook still skips FG:
+  // flow validation, midpoint warp and presentation are not connected.
   return 1;
 }
 
