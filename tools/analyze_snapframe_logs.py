@@ -47,10 +47,13 @@ def analyze(root):
     motion_analysis=config_values.get("motion_analysis",1)
     profiling_enabled=config_values.get("profiling_enabled",0)
     counts=Counter(x.get("event","unknown") for x in events); results=Counter(); reasons=Counter()
-    backpressure=Counter()
+    backpressure=Counter(); wsi_throttle_reasons=Counter()
     for row in events:
         event=row.get("event")
         d=row.get("detail","")
+        if event=="ai_wsi_backpressure":
+            reason=re.search(r"(?:^|;)reason=([^;]+)",d)
+            wsi_throttle_reasons[reason.group(1) if reason else "legacy_or_unspecified"]+=1
         m=re.search(r"result=(-?\d+)",d)
         result=m.group(1) if m else "unknown"
         # Older logs used midpoint_present_failed for VK_NOT_READY/TIMEOUT.
@@ -125,6 +128,7 @@ def analyze(root):
         "skipped_backpressure":backpressure_count,"failed":sum(results.values()),
         "backpressure_vk_results":dict(backpressure),
         "failure_vk_results":dict(results),"failure_reasons":dict(reasons)},
+      "wsi_throttle_reasons":dict(wsi_throttle_reasons),
       "present_modes_seen_in_log":dict(modes),"actual_wsi_configurations":actual_wsi,"performance":perfstats,
       "diagnostic_config":{"motion_analysis":bool(motion_analysis),"profiling_enabled":bool(profiling_enabled)},
       "dxvk_wsi":{"wsi_rows":len(wsi_rows),"queue_rows":len(queue_rows),
