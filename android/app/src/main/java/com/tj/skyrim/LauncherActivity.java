@@ -264,7 +264,7 @@ public class LauncherActivity extends Activity {
 
         text(root, "DXVK runtime version", 20, true);
         spinner(root, DxvkRuntimeSelector.PREF_VERSION_INDEX, "DXVK implementation",
-                DxvkRuntimeSelector.labels(this), 0);
+                DxvkRuntimeSelector.labels(this), DxvkRuntimeSelector.selectedIndex(this));
         text(root, "The launcher lists only complete DXVK + Skyrim runtime pairs packaged in this APK. The current Android Native 1.9.2b remains the fallback. DXVK Native 2.6.2 will appear here only after its Android port and matching game runtime are built and included.", 13, false);
 
         text(root, "Vulkan GPU driver", 20, true);
@@ -593,6 +593,9 @@ public class LauncherActivity extends Activity {
         SharedPreferences.Editor e = prefs.edit();
         for (Map.Entry<String, Spinner> s : spinners.entrySet()) e.putInt(s.getKey(), s.getValue().getSelectedItemPosition());
         for (Map.Entry<String, CheckBox> c : checks.entrySet()) e.putBoolean(c.getKey(), c.getValue().isChecked());
+        Spinner dxvkSpinner = spinners.get(DxvkRuntimeSelector.PREF_VERSION_INDEX);
+        if (dxvkSpinner != null) e.putString(DxvkRuntimeSelector.PREF_VERSION_ID,
+                DxvkRuntimeSelector.idAt(this, dxvkSpinner.getSelectedItemPosition()));
         TurnipDriverManager.Driver gpuDriver = selectedGpuDriver();
         e.putString("gpuDriverId", gpuDriver != null ? gpuDriver.id : "");
         e.apply();
