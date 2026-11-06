@@ -74,6 +74,8 @@ grep -q 'dxvk_native_surface' "$native_surface_cpp"
 grep -q 'ANativeWindow_acquire' "$native_surface_cpp"
 grep -q 'ANativeWindow_release' "$native_surface_cpp"
 grep -q 'releaseNativeSurface' "$native_surface_wsi"
+grep -q 'nativeSurfaceLease' "$native_surface_cpp"
+grep -q 'NativeSurfaceLease' "$native_surface_cpp"
 
 # Enforce active-registration and temporary-lease ownership, not just API presence.
 grep -q 'acquireWindow(window);' "$native_surface_cpp"
