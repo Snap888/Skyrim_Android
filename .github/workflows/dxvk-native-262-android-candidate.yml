@@ -78,7 +78,7 @@ jobs:
         env:
           BUILD_JOBS: "2"
         run: |
-          tools/dxvk/build_native_262_android_candidate.sh \
+          bash tools/dxvk/build_native_262_android_candidate.sh \
             "$RUNNER_TEMP/dxvk-2.6.2" "$RUNNER_TEMP/dxvk-262-build" "$GITHUB_WORKSPACE"
 
       - name: Upload verified ARM64 candidate library
