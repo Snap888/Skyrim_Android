@@ -30,11 +30,61 @@ endif()
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 find_program(SNAP_GLSLANG_VALIDATOR NAMES glslangValidator glslang REQUIRED)
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(DISPLAY_INFO REQUIRED IMPORTED_TARGET "libdisplay-info<0.2.0")
+find_package(Threads REQUIRED)
 find_library(SNAP_VULKAN_LIBRARY vulkan REQUIRED)
 find_library(SNAP_ANDROID_LIBRARY android REQUIRED)
 find_library(SNAP_LOG_LIBRARY log REQUIRED)
+
+# DXVK 2.6.2 requires libdisplay-info >=0.0.0,<0.2.0. Build the pinned
+# 0.1.1 source as a static Android dependency instead of relying on a host
+# pkg-config package or an unavailable Android prebuilt.
+include(FetchContent)
+FetchContent_Declare(snap_libdisplay_info
+    GIT_REPOSITORY https://github.com/aosp-mirror-neo/platform_external_libdisplay-info.git
+    GIT_TAG 92b031749c0fe84ef5cdf895067b84a829920e25
+    GIT_SHALLOW FALSE)
+FetchContent_GetProperties(snap_libdisplay_info)
+if(NOT snap_libdisplay_info_POPULATED)
+    FetchContent_Populate(snap_libdisplay_info)
+endif()
+set(_display_info_src "${snap_libdisplay_info_SOURCE_DIR}")
+set(_display_info_generated "${CMAKE_CURRENT_BINARY_DIR}/display-info-generated")
+file(MAKE_DIRECTORY "${_display_info_generated}")
+find_file(SNAP_PNP_IDS_FILE NAMES pnp.ids
+    PATHS /usr/share/hwdata /usr/share/misc /usr/share/libdisplay-info
+    NO_DEFAULT_PATH)
+if(SNAP_PNP_IDS_FILE)
+    set(_display_info_pnp_input "${SNAP_PNP_IDS_FILE}")
+else()
+    # PNP names are optional metadata; an empty table preserves EDID parsing
+    # and colorimetry/HDR behavior without requiring host hwdata on Android.
+    set(_display_info_pnp_input "${_display_info_generated}/pnp-empty.ids")
+    file(WRITE "${_display_info_pnp_input}" "")
+    message(STATUS "libdisplay-info: hwdata pnp.ids not found; vendor-name lookup disabled")
+endif()
+set(_display_info_pnp_table "${_display_info_generated}/pnp-id-table.c")
+add_custom_command(
+    OUTPUT "${_display_info_pnp_table}"
+    COMMAND "${Python3_EXECUTABLE}" "${_display_info_src}/tool/gen-search-table.py"
+        "${_display_info_pnp_input}" "${_display_info_pnp_table}" pnp_id_table
+    DEPENDS "${_display_info_src}/tool/gen-search-table.py" "${_display_info_pnp_input}"
+    VERBATIM)
+add_library(snap_display_info STATIC
+    "${_display_info_src}/cta.c"
+    "${_display_info_src}/cta-vic-table.c"
+    "${_display_info_src}/cvt.c"
+    "${_display_info_src}/displayid.c"
+    "${_display_info_src}/dmt-table.c"
+    "${_display_info_src}/edid.c"
+    "${_display_info_src}/gtf.c"
+    "${_display_info_src}/info.c"
+    "${_display_info_src}/log.c"
+    "${_display_info_src}/memory-stream.c"
+    "${_display_info_pnp_table}")
+target_include_directories(snap_display_info PUBLIC "${_display_info_src}/include")
+target_compile_features(snap_display_info PRIVATE c_std_11)
+target_compile_definitions(snap_display_info PRIVATE _POSIX_C_SOURCE=200809L)
+target_link_libraries(snap_display_info PUBLIC m)
 
 if(NOT TARGET SDL2)
     message(FATAL_ERROR "SDL2 target must be provided by the parent Android build")
@@ -94,8 +144,10 @@ foreach(_group IN ITEMS d3d9_shaders dxvk_shaders)
             OUTPUT "${_header}"
             COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/generated"
             COMMAND "${SNAP_GLSLANG_VALIDATOR}" --quiet --target-env vulkan1.3
-                --vn "${_shader_stem}" "${_shader}" -o "${_header}"
+                --vn "${_shader_stem}" --depfile "${_header}.d"
+                "${_shader}" -o "${_header}"
             DEPENDS "${_shader}"
+            DEPFILE "${_header}.d"
             VERBATIM)
         list(APPEND _shader_headers "${_header}")
     endforeach()
@@ -149,7 +201,7 @@ target_compile_options(dxvk_d3d9_262 PRIVATE
 target_link_options(dxvk_d3d9_262 PRIVATE
     "-Wl,--version-script=${SNAP_DXVK_NATIVE_262_SOURCE_DIR}/src/d3d9/d3d9.sym")
 target_link_libraries(dxvk_d3d9_262 PRIVATE
-    SDL2 PkgConfig::DISPLAY_INFO "${SNAP_VULKAN_LIBRARY}"
+    SDL2 snap_display_info Threads::Threads "${SNAP_VULKAN_LIBRARY}"
     "${SNAP_ANDROID_LIBRARY}" "${SNAP_LOG_LIBRARY}")
 # Android packages the exact filename and SONAME consumed by the runtime
 # selector; versioned ELF sonames/symlinks are not suitable APK ABI assets.
