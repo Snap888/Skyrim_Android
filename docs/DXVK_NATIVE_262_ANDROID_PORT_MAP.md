@@ -369,9 +369,8 @@ source revision instead of requiring a preinstalled host pkg-config package:
 - `tools/dxvk/build_native_262_android_candidate.sh` creates a minimal CMake harness,
   builds SDL2 plus the DXVK 2.6.2 D3D9 candidate with the NDK, and checks AArch64 ELF,
   the unversioned SONAME, and D3D9 entry-point exports.
-- CI has a dedicated `DXVK Native 2.6.2 Android ARM64 candidate build` job. This
-  job is the first real Android compilation gate; source-inventory success alone
-  must never be treated as proof that the library builds.
+- CI has a dedicated `DXVK Native 2.6.2 Android ARM64 candidate build` job. It initializes the exact Vulkan-Headers, SPIRV-Headers and DirectX header submodule commits recorded by DXVK 2.6.2 before configuring CMake. The first compile exposed that a plain DXVK checkout leaves these directories empty; the job now verifies the required headers before building.
+- This job is the first real Android compilation gate; source-inventory success alone must never be treated as proof that the library builds.
 
 The candidate remains opt-in and is not packaged or selectable until the ARM64
 build passes and the matching `libmain_262.so` runtime pair is produced and verified.
