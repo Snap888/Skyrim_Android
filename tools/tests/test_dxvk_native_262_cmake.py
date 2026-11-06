@@ -107,6 +107,15 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn('#if defined(_WIN32) && !defined(__ANDROID__)', self.patcher)
         self.assertNotIn('#define VK_USE_PLATFORM_WIN32_KHR 1\\n', self.patcher)
 
+    def test_android_presenter_uses_portable_present_mode_query(self):
+        # Full-screen-exclusive present-mode query is Win32-only. Android
+        # must compile only the portable KHR query and never load the EXT fn.
+        self.assertIn("presenter_modes = ", self.patcher)
+        self.assertIn("#ifdef _WIN32", self.patcher)
+        self.assertIn("vkGetPhysicalDeviceSurfacePresentModes2EXT", self.patcher)
+        self.assertIn("vkGetPhysicalDeviceSurfacePresentModesKHR", self.patcher)
+        self.assertIn("presenter_modes_second", self.patcher)
+
     def test_android_fence_excludes_win32_semaphore_handle_api(self):
         # DXVK's HANDLE import/export bridge is Win32-only. Android must keep
         # native Vulkan semaphore operation and compile no Win32 Vk structs.
