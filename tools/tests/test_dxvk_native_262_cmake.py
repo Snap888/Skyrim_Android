@@ -106,7 +106,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn('shutil.copyfile(snapframe_api, dxvk_dir / "snapframe_dxvk262_api.h")', self.patcher)
         self.assertIn("snapframe_dxvk262_release_device(static_cast<void*>(this));", self.patcher)
         self.assertIn("m_objects.pipelineManager().stopWorkerThreads();", self.patcher)
-        self.assertIn('device_text.rfind("m_objects.waitForIdle();", 0, stop_offset)', self.patcher)
+        self.assertIn('device_text.rfind("this->waitForIdle();", 0, stop_offset)', self.patcher)
         self.assertIn("DXVK device teardown no longer drains submissions", self.patcher)
         # Device resources may be retired only after DXVK stops its pipeline
         # workers. Assert the exact replacement block, not loose token presence.
