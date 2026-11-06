@@ -200,6 +200,9 @@ SnapAIPendingMetrics g_snapAiPendingMetrics;
 std::atomic<uint64_t> g_aiDecisionCount{0};
 std::atomic<uint32_t> g_aiWsiThrottleFrames{0};
 static constexpr float kAiGeneratedWaitThrottleMs = 8.0f;
+/* Source submissions are the game's own present workload. Only throttle on
+ * a severe source-only stall; moderate source waits remain telemetry. */
+static constexpr float kAiSourceWaitThrottleMs = 16.0f;
 static constexpr uint32_t kAiGeneratedWaitThrottleFrames = 24;
 std::atomic<int> g_aiMode{SNAPFRAME_AI_INTELLIGENT};
 std::atomic<float> g_aiGpuBudgetMs{6.0f};
@@ -2976,9 +2979,14 @@ extern "C" int snapframe_host_update_settings(int enabled, int flow_scale_percen
 
 extern "C" void snapframe_host_report_submission_pressure(
     float sourceWaitMs, float generatedWaitMs) {
-    const float waitMs = std::max(sourceWaitMs, generatedWaitMs);
-    if (!std::isfinite(sourceWaitMs) || !std::isfinite(generatedWaitMs)
-        || waitMs < kAiGeneratedWaitThrottleMs)
+    if (!std::isfinite(sourceWaitMs) || !std::isfinite(generatedWaitMs))
+        return;
+
+    const bool generatedPressure =
+        generatedWaitMs >= kAiGeneratedWaitThrottleMs;
+    const bool severeSourcePressure =
+        sourceWaitMs >= kAiSourceWaitThrottleMs;
+    if (!generatedPressure && !severeSourcePressure)
         return;
 
     const uint32_t previous = g_aiWsiThrottleFrames.exchange(
@@ -2986,14 +2994,18 @@ extern "C" void snapframe_host_report_submission_pressure(
     g_aiQualityHeadroomSamples.store(0, std::memory_order_relaxed);
     g_aiLoadPressureSamples.store(0, std::memory_order_relaxed);
     if (previous == 0) {
-        char detail[160];
+        const char* reason = generatedPressure
+            ? "generated_wait" : "severe_source_wait";
+        char detail[192];
         snprintf(detail, sizeof(detail),
-            "source_wait_ms=%.3f;generated_wait_ms=%.3f;threshold_ms=%.1f",
-            sourceWaitMs, generatedWaitMs, kAiGeneratedWaitThrottleMs);
+            "reason=%s;source_wait_ms=%.3f;generated_wait_ms=%.3f;generated_threshold_ms=%.1f;source_threshold_ms=%.1f",
+            reason, sourceWaitMs, generatedWaitMs,
+            kAiGeneratedWaitThrottleMs, kAiSourceWaitThrottleMs);
         snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed),
             "ai_wsi_backpressure", g_width, g_height, detail);
-        snapframeLog("SnapFrame AI: WSI backpressure source_wait=%.3fms generated_wait=%.3fms max=%.3fms; bypassing generation for %u source frames\n",
-            sourceWaitMs, generatedWaitMs, waitMs, kAiGeneratedWaitThrottleFrames);
+        snapframeLog("SnapFrame AI: WSI backpressure reason=%s source_wait=%.3fms generated_wait=%.3fms; bypassing generation for %u source frames\n",
+            reason, sourceWaitMs, generatedWaitMs,
+            kAiGeneratedWaitThrottleFrames);
     }
 }
 
