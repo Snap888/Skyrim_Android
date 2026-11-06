@@ -169,6 +169,40 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("source_view_ref", host_text)
         self.assertIn("Rc<DxvkImageView>", host_text)
 
+    def test_262_host_records_bidirectional_flow_without_enabling_fake_fg(self):
+        host = ROOT / "android/app/jni/snapframe/snapframe_host_262.cpp"
+        host_text = host.read_text(encoding="utf-8")
+        for required in (
+            "VK_FORMAT_R16G16B16A16_SFLOAT",
+            "k_block_match_flow_word_count",
+            "state.flowImages",
+            "state.flowViews",
+            "state.flowShader",
+            "state.hasPreviousLuma",
+            "const uint32_t previousSlot = slot ^ 1u",
+            "Current -> previous",
+            "Previous -> current",
+            "state.flowViews[0]",
+            "state.flowViews[1]",
+            "++state.flowPairsRecorded",
+            "flow_pairs=%llu",
+            "flowStride = 16u",
+        ):
+            self.assertIn(required, host_text)
+        self.assertEqual(host_text.count(
+            "dxvkContext->dispatch((state.flowWidth + 7u) / 8u"), 2)
+        self.assertIn("return 1;", host_text)
+        self.assertIn("flow validation, midpoint warp and presentation are not connected", host_text)
+        for forbidden in (
+            "vkQueueSubmit",
+            "vkDeviceWaitIdle",
+            "vkWaitForFences",
+            "flushCommandList",
+            "waitForIdle",
+            "mapPtr(",
+        ):
+            self.assertNotIn(forbidden, host_text)
+
     def test_legacy_snapframe_host_is_not_linked_to_262_candidate(self):
         # The current SnapFrame host consumes DXVK-internal C++ types from the
         # 1.9.2b tree. Keep the candidate isolated until a 2.6.2-native host
