@@ -1,8 +1,7 @@
-"""Executable ownership model for a future DXVK generated-present scheduler.
+"""Reference ownership model for a future DXVK generated-present scheduler.
 
-This is a contract test, not a Vulkan/WSI implementation. It models each
-swapchain image + binary semaphore pair as one transaction slot and refuses
-reuse until presentation completion has been observed by the owner.
+This is a contract test, not a Vulkan/WSI implementation. A slot owns one
+swapchain image and its acquire/present binary semaphores until completion.
 """
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -14,6 +13,21 @@ class State(Enum):
     ACQUIRED = auto()
     SUBMITTED = auto()
     PRESENT_QUEUED = auto()
+    RETIRED = auto()
+
+
+class PresentResult(Enum):
+    SUCCESS = auto()
+    OUT_OF_DATE = auto()
+    SURFACE_LOST = auto()
+    DEVICE_LOST = auto()
+
+
+@dataclass(frozen=True)
+class Token:
+    generation: int
+    image_index: int
+    serial: int
 
 
 @dataclass
@@ -21,95 +35,196 @@ class Slot:
     image_index: int
     acquire_semaphore: str
     present_semaphore: str
+    generation: int
+    serial: int = 0
     state: State = State.FREE
-    generation: int = 0
 
 
 class TransactionPool:
-    def __init__(self, image_count):
+    """Keeps old generations alive until their outstanding tokens retire."""
+
+    def __init__(self, image_count, generation=1):
         if image_count < 2:
             raise ValueError("at least two WSI images are required")
-        self.slots = [
-            Slot(i, f"acquire-{i}", f"present-{i}")
-            for i in range(image_count)
-        ]
+        self.generation = generation
+        self.pools = {
+            generation: [
+                Slot(i, f"g{generation}-acquire-{i}",
+                     f"g{generation}-present-{i}", generation)
+                for i in range(image_count)
+            ]
+        }
+        self.retired_generations = set()
+        self.device_lost = False
 
-    def acquire(self, image_index):
-        slot = self.slots[image_index]
-        if slot.state is not State.FREE:
-            raise RuntimeError("WSI image/semaphore slot is still owned")
-        slot.generation += 1
-        slot.state = State.ACQUIRED
-        return slot
+    @property
+    def slots(self):
+        """Compatibility view of the current generation."""
+        return self.pools[self.generation]
 
-    def submit(self, slot):
-        self._require_live(slot, State.ACQUIRED)
+    def acquire(self):
+        if self.device_lost or self.generation in self.retired_generations:
+            return None
+        for slot in self.slots:
+            if slot.state is State.FREE:
+                slot.serial += 1
+                slot.state = State.ACQUIRED
+                return Token(slot.generation, slot.image_index, slot.serial)
+        # Generated work is optional: never block the source present for a slot.
+        return None
+
+    def submit(self, token):
+        slot = self._resolve(token, State.ACQUIRED)
         slot.state = State.SUBMITTED
 
-    def queue_present(self, slot):
-        self._require_live(slot, State.SUBMITTED)
+    def queue_present(self, token):
+        slot = self._resolve(token, State.SUBMITTED)
         slot.state = State.PRESENT_QUEUED
 
-    def complete_present(self, slot):
-        self._require_live(slot, State.PRESENT_QUEUED)
-        slot.state = State.FREE
+    def complete_present(self, token, result=PresentResult.SUCCESS):
+        slot = self._resolve(token, State.PRESENT_QUEUED)
+        if result in (PresentResult.OUT_OF_DATE, PresentResult.SURFACE_LOST):
+            self.retired_generations.add(token.generation)
+        elif result is PresentResult.DEVICE_LOST:
+            self.device_lost = True
+            self._abandon_all()
+            return
+        slot.state = State.RETIRED if token.generation in self.retired_generations else State.FREE
+        self._collect_retired_generation(token.generation)
 
-    @staticmethod
-    def _require_live(slot, expected):
-        if slot.state is not expected:
-            raise RuntimeError(f"invalid transaction transition: {slot.state} -> {expected}")
+    def recreate(self, image_count):
+        if image_count < 2:
+            raise ValueError("at least two WSI images are required")
+        old_generation = self.generation
+        self.retired_generations.add(old_generation)
+        self.generation += 1
+        self.pools[self.generation] = [
+            Slot(i, f"g{self.generation}-acquire-{i}",
+                 f"g{self.generation}-present-{i}", self.generation)
+            for i in range(image_count)
+        ]
+        self._collect_retired_generation(old_generation)
+
+    def _resolve(self, token, expected):
+        slots = self.pools.get(token.generation)
+        if slots is None or token.image_index >= len(slots):
+            raise RuntimeError("stale transaction generation")
+        slot = slots[token.image_index]
+        if slot.serial != token.serial or slot.state is not expected:
+            raise RuntimeError("invalid or stale transaction token")
+        return slot
+
+    def _collect_retired_generation(self, generation):
+        if generation == self.generation or generation not in self.retired_generations:
+            return
+        slots = self.pools.get(generation, [])
+        if all(s.state in (State.FREE, State.RETIRED) for s in slots):
+            self.pools.pop(generation, None)
+
+    def _abandon_all(self):
+        # Device loss makes normal GPU completion impossible; this is teardown,
+        # not permission to reuse these handles on a live device.
+        for slots in self.pools.values():
+            for slot in slots:
+                slot.state = State.RETIRED
+        self.pools.clear()
 
 
 class PresenterTransactionModelTests(unittest.TestCase):
     def setUp(self):
         self.pool = TransactionPool(3)
 
-    def test_two_independent_transactions_do_not_alias(self):
-        game = self.pool.acquire(0)
-        generated = self.pool.acquire(1)
-        self.assertNotEqual(game.acquire_semaphore, generated.acquire_semaphore)
-        self.assertNotEqual(game.present_semaphore, generated.present_semaphore)
-        self.pool.submit(game)
-        self.pool.submit(generated)
-        self.pool.queue_present(game)
-        self.pool.queue_present(generated)
+    def _queue(self, token):
+        self.pool.submit(token)
+        self.pool.queue_present(token)
+
+    def test_game_and_generated_transactions_have_distinct_ownership(self):
+        game = self.pool.acquire()
+        generated = self.pool.acquire()
+        self.assertIsNotNone(game)
+        self.assertIsNotNone(generated)
+        game_slot = self.pool.pools[game.generation][game.image_index]
+        gen_slot = self.pool.pools[generated.generation][generated.image_index]
+        self.assertNotEqual(game_slot.acquire_semaphore, gen_slot.acquire_semaphore)
+        self.assertNotEqual(game_slot.present_semaphore, gen_slot.present_semaphore)
+        self._queue(game)
+        self._queue(generated)
         self.pool.complete_present(game)
         self.pool.complete_present(generated)
         self.assertTrue(all(s.state is State.FREE for s in self.pool.slots))
 
-    def test_slot_cannot_be_reacquired_before_present_completion(self):
-        slot = self.pool.acquire(0)
-        self.pool.submit(slot)
-        self.pool.queue_present(slot)
-        with self.assertRaisesRegex(RuntimeError, "still owned"):
-            self.pool.acquire(0)
-        self.pool.complete_present(slot)
-        self.assertIs(self.pool.acquire(0), slot)
+    def test_no_free_slot_skips_generated_frame_without_waiting(self):
+        tokens = [self.pool.acquire() for _ in range(3)]
+        self.assertTrue(all(token is not None for token in tokens))
+        self.assertIsNone(self.pool.acquire())
+        self._queue(tokens[0])
+        self.pool.complete_present(tokens[0])
+        self.assertIsNotNone(self.pool.acquire())
+
+    def test_slot_cannot_be_reacquired_before_completion(self):
+        token = self.pool.acquire()
+        self._queue(token)
+        self.assertIsNone(self.pool.acquire())  # other two slots are still free
+        same_slot = self.pool.pools[token.generation][token.image_index]
+        self.assertIs(same_slot.state, State.PRESENT_QUEUED)
+        self.pool.complete_present(token)
+        self.assertIsNotNone(self.pool.acquire())
 
     def test_present_cannot_be_queued_before_submission(self):
-        slot = self.pool.acquire(0)
-        with self.assertRaisesRegex(RuntimeError, "invalid transaction transition"):
-            self.pool.queue_present(slot)
+        token = self.pool.acquire()
+        with self.assertRaisesRegex(RuntimeError, "invalid or stale"):
+            self.pool.queue_present(token)
 
     def test_duplicate_completion_is_rejected(self):
-        slot = self.pool.acquire(0)
-        self.pool.submit(slot)
-        self.pool.queue_present(slot)
-        self.pool.complete_present(slot)
-        with self.assertRaisesRegex(RuntimeError, "invalid transaction transition"):
-            self.pool.complete_present(slot)
+        token = self.pool.acquire()
+        self._queue(token)
+        self.pool.complete_present(token)
+        with self.assertRaisesRegex(RuntimeError, "invalid or stale"):
+            self.pool.complete_present(token)
 
-    def test_out_of_date_or_resize_requires_retiring_pool_not_reusing_live_slot(self):
-        slot = self.pool.acquire(2)
-        self.pool.submit(slot)
-        self.pool.queue_present(slot)
-        # A swapchain-generation change must not silently reset live ownership.
-        with self.assertRaisesRegex(RuntimeError, "still owned"):
-            self.pool.acquire(2)
-        self.pool.complete_present(slot)
-        replacement = TransactionPool(2)
-        self.assertEqual(len(replacement.slots), 2)
-        self.assertTrue(all(s.state is State.FREE for s in replacement.slots))
+    def test_resize_preserves_live_old_generation_until_completion(self):
+        token = self.pool.acquire()
+        self._queue(token)
+        old_generation = token.generation
+        self.pool.recreate(2)
+        self.assertIn(old_generation, self.pool.pools)
+        self.assertEqual(len(self.pool.slots), 2)
+        self.assertIsNone(self.pool.acquire() if self.pool.device_lost else None)
+        self.pool.complete_present(token)
+        self.assertNotIn(old_generation, self.pool.pools)
+        self.assertIsNotNone(self.pool.acquire())
+
+    def test_out_of_date_retires_generation_and_requires_recreate(self):
+        token = self.pool.acquire()
+        self._queue(token)
+        self.pool.complete_present(token, PresentResult.OUT_OF_DATE)
+        self.assertIn(token.generation, self.pool.retired_generations)
+        self.pool.recreate(3)
+        self.assertIsNotNone(self.pool.acquire())
+
+    def test_surface_lost_retires_generation(self):
+        token = self.pool.acquire()
+        self._queue(token)
+        self.pool.complete_present(token, PresentResult.SURFACE_LOST)
+        self.assertIn(token.generation, self.pool.retired_generations)
+
+    def test_device_lost_abandons_all_generations_without_reuse(self):
+        token = self.pool.acquire()
+        self._queue(token)
+        self.pool.complete_present(token, PresentResult.DEVICE_LOST)
+        self.assertTrue(self.pool.device_lost)
+        self.assertEqual(self.pool.pools, {})
+        self.assertIsNone(self.pool.acquire())
+
+    def test_stale_token_cannot_complete_reused_slot(self):
+        token = self.pool.acquire()
+        self._queue(token)
+        self.pool.complete_present(token)
+        replacement = self.pool.acquire()
+        self.assertEqual(replacement.image_index, token.image_index)
+        self.assertNotEqual(replacement.serial, token.serial)
+        with self.assertRaisesRegex(RuntimeError, "invalid or stale"):
+            self.pool.submit(token)
 
     def test_single_image_pool_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "at least two"):
