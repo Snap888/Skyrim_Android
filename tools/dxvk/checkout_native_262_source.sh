@@ -64,6 +64,9 @@ for path in "$native_surface_cpp" "$native_surface_wsi" "$swapchain_cpp" "$cmake
 done
 
 grep -q 'dxvk_native_surface' "$native_surface_cpp"
+grep -q 'ANativeWindow_acquire' "$native_surface_cpp"
+grep -q 'ANativeWindow_release' "$native_surface_cpp"
+grep -q 'releaseNativeSurface' "$native_surface_wsi"
 grep -q 'vkCreateAndroidSurfaceKHR' "$native_surface_wsi"
 grep -q 'SnapFrameCopyHook' "$swapchain_cpp"
 grep -q 'SnapFramePresentResultHook' "$swapchain_cpp"
