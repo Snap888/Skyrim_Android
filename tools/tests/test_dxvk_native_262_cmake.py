@@ -42,6 +42,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         for dependency in (
             "GIT_TAG 92b031749c0fe84ef5cdf895067b84a829920e25",
             "snap_display_info STATIC",
+            "POSITION_INDEPENDENT_CODE ON",
             "gen-search-table.py",
             "find_package(Threads REQUIRED)",
             "find_library(SNAP_VULKAN_LIBRARY vulkan REQUIRED)",
