@@ -109,12 +109,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         # Device resources may be retired only after DXVK stops its pipeline
         # workers. Assert the exact replacement block, not loose token presence.
         self.assertIn(
-            \"\"\"        \"\"\"    m_objects.pipelineManager().stopWorkerThreads();
-
-    if (snapframe_dxvk262_release_device)
-      snapframe_dxvk262_release_device(static_cast<void*>(this));
-  }
-\"\"\"\",
+            '"""    m_objects.pipelineManager().stopWorkerThreads();\\n\\n    if (snapframe_dxvk262_release_device)\\n      snapframe_dxvk262_release_device(static_cast<void*>(this));\\n  }\\n"""',
             self.patcher,
         )
 
