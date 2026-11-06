@@ -151,6 +151,11 @@ def to_markdown(r):
     for group in ("wsi_ms","queue_ms"):
         for key, value in r["dxvk_wsi"][group].items():
             out.append(f"- {key}: mean {value['mean']:.3f}, median {value['median']:.3f}, p95 {value['p95']:.3f}, max {value['max']:.3f} (n={value['n']})")
+    out += ["","## WSI throttle reasons",""]
+    if r["wsi_throttle_reasons"]:
+        out += [f"- {k}: {v}" for k,v in sorted(r["wsi_throttle_reasons"].items())]
+    else:
+        out.append("- No ai_wsi_backpressure events recorded.")
     out += ["","## Event counts",""]
     out += [f"- {k}: {v}" for k,v in sorted(r["event_counts"].items())]
     out += ["","## Performance (ms unless noted)",""]
