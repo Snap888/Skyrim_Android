@@ -87,6 +87,13 @@ def analyze(root):
         actual_wsi.append({"mode":m.group(1).upper(),"image_count":int(m.group(2)),"width":int(m.group(3)),"height":int(m.group(4))})
     wsi_rows=[key_values(line) for line in log.splitlines() if "DXVK-WSI:" in line]
     queue_rows=[key_values(line) for line in log.splitlines() if "DXVK-PRESENT:" in line]
+    present_spike_rows=[key_values(line) for line in log.splitlines()
+                        if "DXVK present spike " in line]
+    present_spike_keys=("total","flush","source_acquire","source_handoff",
+        "source_submission_wait","generated_handoff","generated_submission_wait",
+        "generated_acquire","generate_record","submit_enqueue","frame_latency","untracked")
+    present_spike_stats={k:s for k in present_spike_keys
+        if (s:=stats([row.get(k) for row in present_spike_rows]))}
     wsi_ms=timing_group(wsi_rows, {
         "queue_present_us":"vk_queue_present_ms",
         "pre_acquire_us":"wsi_pre_acquire_ms",
@@ -143,6 +150,7 @@ def analyze(root):
         "ring_busy_skips":telemetry_ring_busy_skips,"other_skips":telemetry_other_skips,
         "recorded_samples":counts.get("gpu_metrics_copy_recorded",0),
         "skip_rate_percent":(100.0*telemetry_ring_busy_skips/(counts.get("gpu_metrics_copy_recorded",0)+telemetry_ring_busy_skips) if counts.get("gpu_metrics_copy_recorded",0)+telemetry_ring_busy_skips else 0.0)},
+      "present_spikes":{"rows":len(present_spike_rows),"timings_ms":present_spike_stats},
       "present_modes_seen_in_log":dict(modes),"actual_wsi_configurations":actual_wsi,"performance":perfstats,
       "diagnostic_config":{"motion_analysis":bool(motion_analysis),"profiling_enabled":bool(profiling_enabled)},
       "dxvk_wsi":{"wsi_rows":len(wsi_rows),"queue_rows":len(queue_rows),
@@ -165,6 +173,12 @@ def to_markdown(r):
     for group in ("wsi_ms","queue_ms"):
         for key, value in r["dxvk_wsi"][group].items():
             out.append(f"- {key}: mean {value['mean']:.3f}, median {value['median']:.3f}, p95 {value['p95']:.3f}, max {value['max']:.3f} (n={value['n']})")
+    out += ["","## DXVK present spike samples (thresholded log events; not all frames)",""]
+    out.append(f"- Spike rows: {r['present_spikes']['rows']}")
+    for key, value in r["present_spikes"]["timings_ms"].items():
+        out.append(f"- {key}: mean {value['mean']:.3f}, median {value['median']:.3f}, p95 {value['p95']:.3f}, max {value['max']:.3f} ms (n={value['n']})")
+    if not r["present_spikes"]["rows"]:
+        out.append("- No DXVK present spike samples recorded.")
     out += ["","## WSI throttle reasons",""]
     if r["wsi_throttle_reasons"]:
         out += [f"- {k}: {v}" for k,v in sorted(r["wsi_throttle_reasons"].items())]
