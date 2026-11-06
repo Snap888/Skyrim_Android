@@ -316,3 +316,37 @@ CI now applies this overlay to a disposable checkout and checks the resulting
 source anchors before generating the source inventory. This is a source-level
 integration test only. It is not yet a successful Android compile, runtime
 surface test, or packaged DXVK 2.6.2 library.
+
+
+## Opt-in Android CMake candidate (2026-11-06)
+
+An isolated candidate target now exists at
+`android/app/jni/dxvk_native_262/CMakeLists.txt`. The root Android CMake
+project exposes it only when `SNAP_BUILD_DXVK_NATIVE_262=ON`; it remains OFF
+by default, so the packaged native-1.9.2b runtime and existing build are not
+changed.
+
+The candidate:
+- Rejects any source checkout except the exact pinned 2.6.2 commit.
+- Requires the Presenter/Android WSI overlay to have been applied first.
+- Generates its source list from the Meson-derived manifest rather than
+  copying the old 1.9.2b list.
+- Compiles the upstream D3D9 and DXVK GLSL inputs to generated headers using
+  `glslangValidator --target-env vulkan1.3`.
+- Generates upstream `buildenv.h` and `version.h`, links with the upstream
+  `d3d9.sym` export map, and emits a separately named
+  `libdxvk_d3d9_262.so` candidate.
+
+The target is deliberately gated on external Android build prerequisites:
+SDL2 CMake target, Vulkan/Android/log system libraries, Python 3,
+glslangValidator, and a pkg-config-visible `libdisplay-info` version below
+0.2.0. The latter is required by upstream `wsi_edid.cpp`; it is not silently
+stubbed or omitted. If any dependency or generated input is missing, CMake
+stops with a clear configuration error rather than producing an incomplete
+library.
+
+**Build status remains NOT_BUILT.** This CMake candidate has not yet passed an
+Android configure/compile, and it does not build the matching
+`libmain_262.so`. Do not enable the option in production builds, add the
+candidate to the runtime selector, or package it until the ARM64 compile,
+runtime-pair ABI checks, and device surface tests pass.
