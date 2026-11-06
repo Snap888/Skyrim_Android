@@ -365,6 +365,7 @@ source revision instead of requiring a preinstalled host pkg-config package:
   Otherwise an empty lookup table is generated; EDID parsing and colorimetry/HDR
   metadata remain compiled, but manufacturer-name lookup is unavailable.
 - Shader generation mirrors upstream Meson, including the GLSL depfile dependency.
+- SDL2 is compiled by the candidate harness but is not linked as a direct `DT_NEEDED` dependency: upstream DXVK dynamically loads it. The Android overlay uses the actual Android package name `libSDL2.so`, while desktop sonames remain unchanged.
 - `tools/dxvk/build_native_262_android_candidate.sh` creates a minimal CMake harness,
   builds SDL2 plus the DXVK 2.6.2 D3D9 candidate with the NDK, and checks AArch64 ELF,
   the unversioned SONAME, and D3D9 entry-point exports.
