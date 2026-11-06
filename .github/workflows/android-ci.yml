@@ -191,6 +191,9 @@ jobs:
       - name: Checkout Skyrim Android integration
         uses: actions/checkout@v4
 
+      - name: Test DXVK source inventory parser
+        run: python3 -m unittest discover -s tools/tests -p 'test_dxvk_native_manifest.py' -v
+
       - name: Checkout pinned DXVK Native 2.6.2
         run: |
           git clone --filter=blob:none --no-checkout https://github.com/doitsujin/dxvk.git "$RUNNER_TEMP/dxvk-native-262"
