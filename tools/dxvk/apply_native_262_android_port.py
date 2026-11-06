@@ -99,6 +99,7 @@ def main() -> int:
     bool                        m_presentPending = false;
     uint64_t                    m_swapchainGeneration = 0u;
     uint64_t                    m_nextTransactionId = 1u;
+    uint64_t                    m_activeTransactionId = 0u;
 """,
     )
 
@@ -116,6 +117,7 @@ def main() -> int:
     sync.semaphoreIndex = m_frameIndex;
     image = m_images.at(m_imageIndex);
 
+    m_activeTransactionId = sync.transactionId;
     m_presentPending = true;
 """,
     )
@@ -128,23 +130,30 @@ def main() -> int:
           const PresenterSync& transaction,
                 uint64_t frameId,
           const Rc<DxvkLatencyTracker>& tracker) {
-    std::lock_guard transactionLock(m_surfaceMutex);
+    {
+      std::lock_guard transactionLock(m_surfaceMutex);
 
-    // Reject stale or malformed ownership rather than presenting an image
-    // selected from whichever mutable ring index happens to be current.
-    if (!transaction.transactionId
-     || transaction.swapchainGeneration != m_swapchainGeneration
-     || transaction.semaphoreIndex >= m_semaphores.size()
-     || transaction.imageIndex >= m_images.size()
-     || !m_swapchain)
-      return VK_ERROR_OUT_OF_DATE_KHR;
+      // Reject stale or malformed ownership rather than presenting an image
+      // selected from whichever mutable ring index happens to be current.
+      if (!transaction.transactionId
+       || transaction.transactionId != m_activeTransactionId
+       || !m_presentPending
+       || transaction.swapchainGeneration != m_swapchainGeneration
+       || transaction.semaphoreIndex >= m_semaphores.size()
+       || transaction.imageIndex >= m_images.size()
+       || !m_swapchain)
+        return VK_ERROR_OUT_OF_DATE_KHR;
 
+      const PresenterSync& ownedSync = m_semaphores.at(transaction.semaphoreIndex);
+      if (ownedSync.acquire != transaction.acquire
+       || ownedSync.present != transaction.present
+       || ownedSync.fence != transaction.fence)
+        return VK_ERROR_VALIDATION_FAILED_EXT;
+    }
+
+    // acquireNextImage is serialized by m_presentPending until the end of
+    // this method, so the validated semaphore ring entry remains stable.
     PresenterSync& currSync = m_semaphores.at(transaction.semaphoreIndex);
-    if (currSync.acquire != transaction.acquire
-     || currSync.present != transaction.present
-     || currSync.fence != transaction.fence)
-      return VK_ERROR_VALIDATION_FAILED_EXT;
-
     uint32_t presentImageIndex = transaction.imageIndex;
 """,
     )
