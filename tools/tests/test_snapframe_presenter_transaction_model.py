@@ -300,5 +300,71 @@ class SourcePrioritySchedulerTests(unittest.TestCase):
         # progress; production must not label this as a hard latency guarantee.
         self.assertTrue(self.scheduler.generated_running)
 
+class WorkKind(Enum):
+    SOURCE_SUBMIT = auto()
+    SOURCE_PRESENT = auto()
+    GENERATED_PRESENT = auto()
+
+
+class PriorityScheduler:
+    """Reference policy: generated work is optional and never jumps ahead of source."""
+
+    def __init__(self, generated_capacity=1):
+        if generated_capacity < 1:
+            raise ValueError("generated capacity must be positive")
+        self.source_queue = []
+        self.generated_queue = []
+        self.generated_capacity = generated_capacity
+        self.dropped_generated = 0
+
+    def enqueue_source(self, kind):
+        if kind not in (WorkKind.SOURCE_SUBMIT, WorkKind.SOURCE_PRESENT):
+            raise ValueError("invalid source work kind")
+        self.source_queue.append(kind)
+
+    def enqueue_generated(self):
+        if len(self.generated_queue) >= self.generated_capacity:
+            self.dropped_generated += 1
+            return False
+        self.generated_queue.append(WorkKind.GENERATED_PRESENT)
+        return True
+
+    def take_next(self):
+        if self.source_queue:
+            return self.source_queue.pop(0)
+        if self.generated_queue:
+            return self.generated_queue.pop(0)
+        return None
+
+
+class SourcePrioritySchedulerTests(unittest.TestCase):
+    def test_source_submit_and_present_precede_generated_present(self):
+        scheduler = PriorityScheduler()
+        scheduler.enqueue_generated()
+        scheduler.enqueue_source(WorkKind.SOURCE_SUBMIT)
+        scheduler.enqueue_source(WorkKind.SOURCE_PRESENT)
+        self.assertIs(scheduler.take_next(), WorkKind.SOURCE_SUBMIT)
+        self.assertIs(scheduler.take_next(), WorkKind.SOURCE_PRESENT)
+        self.assertIs(scheduler.take_next(), WorkKind.GENERATED_PRESENT)
+
+    def test_generated_backlog_is_bounded_and_drops_excess(self):
+        scheduler = PriorityScheduler(generated_capacity=1)
+        self.assertTrue(scheduler.enqueue_generated())
+        self.assertFalse(scheduler.enqueue_generated())
+        self.assertEqual(scheduler.dropped_generated, 1)
+
+    def test_continuous_source_work_does_not_get_preempted(self):
+        scheduler = PriorityScheduler(generated_capacity=2)
+        scheduler.enqueue_generated()
+        for _ in range(3):
+            scheduler.enqueue_source(WorkKind.SOURCE_SUBMIT)
+        for _ in range(3):
+            self.assertIs(scheduler.take_next(), WorkKind.SOURCE_SUBMIT)
+        self.assertIs(scheduler.take_next(), WorkKind.GENERATED_PRESENT)
+
+    def test_empty_scheduler_returns_none(self):
+        self.assertIsNone(PriorityScheduler().take_next())
+
+
 if __name__ == "__main__":
     unittest.main()
