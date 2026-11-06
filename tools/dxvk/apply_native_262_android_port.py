@@ -199,6 +199,7 @@ namespace dxvk::wsi {
             extent.width,
             extent.height,
             cSrcView->image()->info().format,
+            static_cast<void*>(cPresenter.ptr()),
             0u
           };
           (void)snapframe_dxvk262_record_source(
