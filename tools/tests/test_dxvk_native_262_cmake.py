@@ -23,6 +23,9 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("add_subdirectory(dxvk_native_262)", self.root_text)
         self.assertRegex(self.text, r"add_library\(dxvk_d3d9_262 SHARED")
         self.assertIn("DXVK source revision mismatch", self.text)
+        self.assertIn("initialize upstream submodules", self.text)
+        self.assertIn("include/native/directx/d3d9.h", self.text)
+        self.assertIn("include/vulkan/include/vulkan/vulkan.h", self.text)
         self.assertNotIn("target_link_libraries(dxvk_d3d9_262 PRIVATE\n    SDL2", self.text)
 
     def test_android_arm64_soname_contract_is_unversioned(self):
