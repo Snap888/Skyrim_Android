@@ -28,6 +28,16 @@ if(NOT EXISTS "${SNAP_DXVK_NATIVE_262_SOURCE_DIR}/src/wsi/sdl2/wsi_native_surfac
     message(FATAL_ERROR "DXVK Android WSI overlay is missing; run apply_native_262_android_port.py first")
 endif()
 
+foreach(_required_header IN ITEMS
+    include/native/directx/d3d9.h
+    include/vulkan/include/vulkan/vulkan.h
+    include/spirv/include/spirv/unified1/spirv.hpp)
+    if(NOT EXISTS "${SNAP_DXVK_NATIVE_262_SOURCE_DIR}/${_required_header}")
+        message(FATAL_ERROR
+            "DXVK 2.6.2 dependency header is missing: ${_required_header}; initialize upstream submodules")
+    endif()
+endforeach()
+
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 find_program(SNAP_GLSLANG_VALIDATOR NAMES glslangValidator glslang REQUIRED)
 find_package(Threads REQUIRED)
