@@ -294,9 +294,9 @@ jobs:
 
       - name: Compile DXVK Native 2.6.2 for Android ARM64 and verify ELF ABI
         env:
-          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/${{ env.NDK_VERSION }}
           BUILD_JOBS: "2"
         run: |
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/$NDK_VERSION"
           chmod +x tools/dxvk/build_native_262_android_candidate.sh
           bash -n tools/dxvk/build_native_262_android_candidate.sh
           tools/dxvk/build_native_262_android_candidate.sh \
