@@ -11,6 +11,9 @@ on:
       - "android/app/jni/dxvk/**"
       - "android/app/jni/snapframe/**"
       - "tools/dxvk/**"
+      - "tools/tests/test_dxvk_native_262_cmake.py"
+      - "tools/tests/test_snapframe_presenter_transaction_model.py"
+      - "tools/tests/test_dxvk_runtime_selector.py"
 
 permissions:
   contents: read
