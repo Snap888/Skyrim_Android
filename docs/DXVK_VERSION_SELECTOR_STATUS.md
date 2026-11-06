@@ -57,7 +57,7 @@ The 2.6.2 native D3D9 swapchain is not source-compatible with the current adapte
 
 ## CI build coverage update
 
-The Android CI host job previously built the SnapFrame host and JNI bridge but did not explicitly build the `dxvk_d3d9` shared-library target. The workflow now includes that target and checks the resulting ELF header for AArch64 and its dynamic section for `SONAME=libdxvk_d3d9.so`. This validates the current baseline DXVK Android build artifact; it does not yet validate a second version or prove device runtime behavior.
+The Android CI native job now explicitly builds `dxvk_d3d9`, the Skyrim `main` shared runtime, the SnapFrame host, and the JNI compile-check target. It verifies that both DXVK and `main` are AArch64 ELF objects, that the DXVK dynamic section contains its SONAME, and that `libmain.so` has an exact `DT_NEEDED` entry for `libdxvk_d3d9.so`. This closes an important gap: compiling DXVK alone does not prove that the actual game runtime links against the intended baseline library. The CI job still uses a dummy generated C translation unit, so it validates the native runtime integration/build graph but is not a full game-code APK build and does not prove device runtime behavior.
 
 ## Selector framework committed
 
