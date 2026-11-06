@@ -76,10 +76,10 @@ class AnalyzerTests(unittest.TestCase):
             (root / "snapframe.log").write_text(
                 "SnapFrame: DXVK present spike frame=10 total=50.000ms "
                 "source_submission_wait=42.000ms generated_handoff=41.000ms "
-                "generate_record=0.100ms untracked=7.000ms fg_requested=1 fg_queued=1\\n"
+                "generate_record=0.100ms untracked=7.000ms fg_requested=1 fg_queued=1\n"
                 "SnapFrame: DXVK present spike frame=20 total=30.000ms "
                 "source_submission_wait=20.000ms generated_handoff=19.000ms "
-                "generate_record=0.200ms untracked=9.000ms fg_requested=1 fg_queued=1\\n",
+                "generate_record=0.200ms untracked=9.000ms fg_requested=1 fg_queued=1\n",
                 encoding="utf-8")
             report = analyze(root)
             spikes = report["present_spikes"]
