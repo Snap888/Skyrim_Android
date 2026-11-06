@@ -200,10 +200,31 @@ jobs:
 
       - name: Generate and validate Android source inventory
         run: |
+          python3 -m py_compile tools/dxvk/generate_native_262_android_manifest.py
           python3 tools/dxvk/generate_native_262_android_manifest.py \
             "$RUNNER_TEMP/dxvk-native-262" \
             --output "$RUNNER_TEMP/dxvk-native-262-android-source-manifest.json"
           python3 -m json.tool "$RUNNER_TEMP/dxvk-native-262-android-source-manifest.json" >/dev/null
+          python3 - "$RUNNER_TEMP/dxvk-native-262-android-source-manifest.json" <<'PY'
+          import json
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as stream:
+              manifest = json.load(stream)
+          groups = manifest["groups"]
+          build_groups = manifest["build_groups"]
+          assert "wsi_common" in build_groups and "android_wsi" in build_groups
+          assert "wsi_excluded_desktop" not in build_groups
+          assert len(groups["wsi_common"]) == 2
+          assert len(groups["android_wsi"]) == 3
+          assert len(manifest["duplicate_android_build_sources"]) == 0
+          assert all(path.startswith("src/wsi/") for path in groups["android_wsi"])
+          assert all(
+              any(name in path for name in ("win32/", "sdl3/", "glfw/"))
+              for path in groups["wsi_excluded_desktop"]
+          )
+          print("DXVK_NATIVE_262_ANDROID_WSI_PARTITION_OK")
+          PY
 
       - name: Upload reviewed source inventory
         uses: actions/upload-artifact@v4
