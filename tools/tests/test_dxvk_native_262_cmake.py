@@ -94,7 +94,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         # The 2.6.2 hook receives opaque objects from the exact pinned DXVK
         # build and is called before the source WSI blit in the same context.
         # It must never make the legacy host appear compatible with 2.6.2.
-        self.assertIn("SNAPFRAME_DXVK262_ABI_VERSION 1u", self.dxvk262_api)
+        self.assertIn("SNAPFRAME_DXVK262_ABI_VERSION 2u", self.dxvk262_api)
         self.assertIn("void* context", self.dxvk262_api)
         self.assertIn("void* context_objects", self.dxvk262_api)
         self.assertIn("void* device", self.dxvk262_api)
