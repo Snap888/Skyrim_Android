@@ -102,8 +102,10 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("static_cast<void*>(cPresenter.ptr())", self.patcher)
         self.assertIn("snapframe_dxvk262_release_window", self.patcher)
         self.assertIn("snapframe_dxvk262_release_window(void* window_token)", self.dxvk262_api)
-        retirement_block = self.patcher.split("# Retire per-Presenter", 1)[1].split("# Guard the lifetime", 1)[0]
-        self.assertLess(retirement_block.index("snapframe_dxvk262_release_window("), retirement_block.index("entry->second.presenter->destroyResources()"))
+        self.assertIn(
+            "if (snapframe_dxvk262_release_window)\\n          snapframe_dxvk262_release_window(static_cast<void*>(entry->second.presenter.ptr()));\\n        entry->second.presenter->destroyResources();",
+            self.patcher,
+        )
         self.assertIn("__attribute__((weak))", self.dxvk262_api)
         self.assertIn("must not submit/flush it", self.dxvk262_api)
         self.assertIn('snapframe_api = project / "android/app/jni/snapframe/snapframe_dxvk262_api.h"', self.patcher)
