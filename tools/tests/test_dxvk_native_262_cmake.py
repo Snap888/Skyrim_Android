@@ -47,7 +47,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
     def test_candidate_does_not_replace_production_runtime(self):
         self.assertIn("SNAP_BUILD_DXVK_NATIVE_262", self.root_text)
         self.assertNotIn("SNAP_BUILD_DXVK_NATIVE_262 ON", self.root_text)
-        self.assertIn("native-1.9.2b", self.root_text)
+        self.assertIn("add_subdirectory(dxvk)", self.root_text)
 
 
 if __name__ == "__main__":
