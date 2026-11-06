@@ -458,7 +458,7 @@ extern "C" int snapframe_dxvk262_record_source(
       resetDeviceState(state);
       return 1;
     }
-    logOnce("DXVK 2.6.2 luma compute host initialized");
+    logOnce("DXVK 2.6.2 temporal compute host initialized");
   }
 
   const uint32_t slot = state.writeSlot;
@@ -571,7 +571,7 @@ extern "C" int snapframe_dxvk262_record_source(
   state.writeSlot ^= 1u;
   if (state.recordedFrames == 1u || (state.recordedFrames % 600u) == 0u) {
     __android_log_print(ANDROID_LOG_INFO, kLogTag,
-      "luma/flow dispatch frame=%llu extent=%ux%u slot=%u flow_pairs=%llu flow_extent=%ux%u",
+      "luma/flow/consistency/midpoint dispatch frame=%llu extent=%ux%u slot=%u flow_pairs=%llu flow_extent=%ux%u",
       static_cast<unsigned long long>(frame_info->frame_id),
       frame_info->width, frame_info->height, slot,
       static_cast<unsigned long long>(state.flowPairsRecorded),
