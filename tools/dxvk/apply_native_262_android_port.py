@@ -642,7 +642,11 @@ namespace dxvk::wsi {
          and "uint32_t semaphoreIndex = 0u;" in presenter_header_text),
         ("acquire stamps active token",
          "sync.transactionId = m_nextTransactionId++;" in presenter_source_text
-         and "m_activeTransactionId = sync.transactionId;" in presenter_source_text),
+         and "m_activeTransactionId = sync.transactionId;" in presenter_source_text
+         and "m_swapchainGeneration++;" in presenter_source_text),
+        ("present retires active token",
+         "m_activeTransactionId = 0u;" in presenter_source_text
+         and "m_presentPending = false;" in presenter_source_text),
         ("present validates active token",
          "transaction.transactionId != m_activeTransactionId" in presenter_source_text
          and "transaction.swapchainGeneration != m_swapchainGeneration" in presenter_source_text),
