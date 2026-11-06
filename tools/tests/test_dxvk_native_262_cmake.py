@@ -192,12 +192,26 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
             "state.consistencyView",
             "state.consistencyShader",
             "consistencyBindings",
+            "color_history_copy_word_count",
+            "state.colorHistoryImages",
+            "state.colorHistoryViews",
+            "state.colorHistoryShader",
+            "midpoint_warp_word_count",
+            "state.midpointImage",
+            "state.midpointView",
+            "state.midpointWarpShader",
+            "midpointBindings",
+            "state.colorHistoryViews[previousSlot]",
+            "state.colorHistoryViews[slot]",
+            "state.consistencyView",
+            "midpoint warp dispatch",
         ):
             self.assertIn(required, host_text)
         self.assertEqual(host_text.count(
             "dxvkContext->dispatch((state.flowWidth + 7u) / 8u"), 3)
+        self.assertEqual(host_text.count("dxvkContext->dispatch("), 6)
         self.assertIn("return 1;", host_text)
-        self.assertIn("midpoint warp and WSI presentation are connected", host_text)
+        self.assertIn("hook still skips FG until the midpoint image is wired into the WSI blit source", host_text)
         for forbidden in (
             "vkQueueSubmit",
             "vkDeviceWaitIdle",
