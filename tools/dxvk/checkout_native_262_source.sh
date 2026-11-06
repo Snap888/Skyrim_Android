@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Reproducibly materialize the reviewed upstream DXVK Native 2.6.2 source.
+# This is a source audit/preparation step, not an Android port or binary build.
+readonly repo="https://github.com/doitsujin/dxvk.git"
+readonly tag="v2.6.2"
+readonly expected_commit="9d6f54a1ade20d1d27dd421024717a636f3d8c68"
+dest="${1:-${TMPDIR:-/tmp}/dxvk-native-2.6.2}"
+
+if [[ -e "$dest" ]]; then
+  echo "::error::Destination already exists: $dest" >&2
+  exit 2
+fi
+
+git init "$dest"
+git -C "$dest" remote add origin "$repo"
+git -C "$dest" fetch --depth=1 origin "$tag"
+actual_commit="$(git -C "$dest" rev-parse FETCH_HEAD^{commit})"
+if [[ "$actual_commit" != "$expected_commit" ]]; then
+  echo "::error::Pinned tag resolved to $actual_commit, expected $expected_commit" >&2
+  exit 3
+fi
+git -C "$dest" checkout --detach "$expected_commit"
+
+required_files=(
+  src/d3d9/d3d9_swapchain.cpp
+  src/d3d9/d3d9_swapchain.h
+  src/d3d9/meson.build
+  src/dxvk/dxvk_presenter.cpp
+  src/dxvk/dxvk_presenter.h
+  src/wsi/meson.build
+  src/wsi/sdl2/wsi_platform_sdl2.cpp
+  meson.build
+)
+for path in "${required_files[@]}"; do
+  test -s "$dest/$path" || {
+    echo "::error::Pinned source is missing required file: $path" >&2
+    exit 4
+  }
+done
+
+# Fail if the source-level presenter contract changes unexpectedly. These
+# anchors are reviewed integration points, not a substitute for compilation.
+grep -q 'acquireNextImage' "$dest/src/d3d9/d3d9_swapchain.cpp"
+grep -q 'EmitCs' "$dest/src/d3d9/d3d9_swapchain.cpp"
+grep -q 'synchronizeWsi' "$dest/src/d3d9/d3d9_swapchain.cpp"
+grep -q 'presentImage' "$dest/src/dxvk/dxvk_presenter.cpp"
+
+echo "DXVK_NATIVE_SOURCE_AUDIT_OK tag=$tag commit=$actual_commit"
+echo "Android port status: NOT_PORTED"
+echo "Build status: SOURCE_ONLY"
