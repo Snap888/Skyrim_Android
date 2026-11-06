@@ -2103,10 +2103,10 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
         g_aiWsiThrottleFrames.load(std::memory_order_acquire) != 0;
     const bool v2DiagnosticsEnabled = !wsiBackpressureActive
         && (g_profilingEnabled || g_diagnosticSuiteEnabled);
-    // The compact V1 metrics reduction and total-chain timestamp share the
-    // same frame cadence. Keep this one timestamp pair active in normal
-    // gameplay even when verbose profiling and V2 diagnostics are disabled;
-    // it is asynchronous and does not enable per-stage profiling/readback.
+    // Adaptive AI needs one sparse total-chain timestamp and one compact
+    // scalar reduction on the same frame cadence. Keep this asynchronous
+    // telemetry active during normal AI gameplay, but remove both operations
+    // entirely in Standard mode when adaptive decisions are disabled.
     const bool telemetrySampleThisFrame = aiTelemetryEnabled
         && (nextCapturedFrame % kAiTelemetryIntervalFrames) == 0u;
     const SnapFrameGpuTimer totalTimer = beginGpuTimer(
