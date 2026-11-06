@@ -80,3 +80,8 @@ This prevents a misleading version selector: the UI cannot select a version whos
 ## Current readiness
 
 **Not ready for multi-version device testing.** The selector framework's Java compilation passed in Android CI run `42178305096`. Only the baseline pair is currently packaged, so the launcher correctly exposes no alternative yet. DXVK-Native 2.6.2 still needs the Android ARM64 port, SnapFrame/Snap AI adapter migration, the matching `main_262` runtime build, and packaging. The expanded native CI gate that also builds `main` and checks its exact DXVK `DT_NEEDED` dependency has been added; its validation is pending in the current branch CI run.
+## Runtime package integrity gate (2026-11-06)
+
+The selector no longer treats the presence of two filenames as sufficient. Before advertising or resolving a pair, it checks that both files are regular files with a minimum ELF64 header and the expected Android ARM64 encoding (ELF magic, 64-bit class, little-endian data, and `e_machine=EM_AARCH64`). This prevents an empty placeholder, wrong-ABI object, or partially copied library from making the candidate selectable.
+
+This is only a lightweight runtime package sanity check. It does **not** parse or certify the SONAME, exported D3D9 entry points, transitive dependencies, or the exact `DT_NEEDED` edge. Those remain build-time acceptance gates. The 2.6.2 pair remains hidden until both real libraries are packaged and the full ABI/linkage checks pass.
