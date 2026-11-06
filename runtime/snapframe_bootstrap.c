@@ -60,6 +60,16 @@ void snapframe_bootstrap(void) {
                 config.diagnostic_suite = atoi(eq) != 0;
             else if (!strcmp(key, "diagnostic_phase_frames"))
                 config.diagnostic_phase_frames = atoi(eq);
+            else if (!strcmp(key, "ai_mode"))
+                config.ai_mode = atoi(eq);
+            else if (!strcmp(key, "ai_gpu_budget_ms"))
+                config.ai_gpu_budget_ms = (float)atof(eq);
+            else if (!strcmp(key, "ai_pressure_threshold"))
+                config.ai_pressure_threshold = (float)atof(eq);
+            else if (!strcmp(key, "ai_headroom_threshold"))
+                config.ai_headroom_threshold = (float)atof(eq);
+            else if (!strcmp(key, "ai_artifact_threshold"))
+                config.ai_artifact_threshold = (float)atof(eq);
         }
         fclose(file);
     }
