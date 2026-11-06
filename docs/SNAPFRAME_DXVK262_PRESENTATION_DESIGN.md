@@ -63,3 +63,39 @@ A correct implementation needs a DXVK-owned presentation scheduler, not an extra
 ## Next implementation gate
 
 Before changing Presenter code, design and test a small transaction model for (a) acquired image, (b) acquire semaphore, (c) command-list submission, (d) present semaphore, (e) present completion/reuse. The model must prove no image or binary semaphore is reused while still owned by WSI. Then implement the model inside DXVK's submission/Presenter layer and add tests for normal, delayed, out-of-date, resize, and teardown paths. Do not enable generated presentation before those invariants hold.
+
+
+## Executable transaction ownership contract
+
+A small executable reference model now lives at
+`tools/tests/test_snapframe_presenter_transaction_model.py`. It is deliberately
+not wired into Vulkan or DXVK. Its purpose is to make the minimum slot-ownership
+rules testable before touching Presenter internals.
+
+Each slot represents one WSI image together with its acquire and present
+binary semaphores. Its only permitted lifecycle is:
+
+`FREE -> ACQUIRED -> SUBMITTED -> PRESENT_QUEUED -> FREE`
+
+Rules enforced by the model:
+
+- A slot cannot be acquired while its previous transaction is live.
+- The game and generated transaction must use distinct slot identities.
+- A present cannot be queued before the command-list submission stage.
+- A slot cannot be recycled merely because present was queued; its owner must
+  observe the completion/reuse condition first.
+- Duplicate completion and invalid transitions fail closed.
+- A swapchain-generation replacement is a new pool; it must not silently
+  reset still-live slots from the old generation.
+
+The model tests normal independent transactions, attempted early reuse,
+invalid ordering, duplicate completion, resize/out-of-date retirement, and
+minimum image-count validation.
+
+Important limitation: this state machine is a safety contract only. It does
+not prove Vulkan WSI completion semantics, DXVK queue ordering, or Android
+surface behavior. The real Presenter integration must map each transition to
+the exact upstream acquire, command submission, present, and completion
+signals at the pinned revision. In particular, a successful
+`vkQueuePresentKHR` return is not by itself treated as physical scanout or
+as permission to recycle every object referenced by the transaction.
