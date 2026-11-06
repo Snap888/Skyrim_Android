@@ -257,6 +257,71 @@ typedef struct VkSurfaceFullScreenExclusiveInfoEXT {
 """,
     )
 
+    # VK_EXT_full_screen_exclusive is a Win32-only path. Android must
+    # query present modes through the portable KHR surface API and must not
+    # compile or load vkGetPhysicalDeviceSurfacePresentModes2EXT.
+    presenter_modes = """    VkSurfaceFullScreenExclusiveInfoEXT fullScreenInfo = { VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT };
+    fullScreenInfo.fullScreenExclusive = m_fullscreenMode;
+
+    VkPhysicalDeviceSurfaceInfo2KHR surfaceInfo = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR, &fullScreenInfo };
+    surfaceInfo.surface = m_surface;
+
+    VkResult status;
+
+    if (m_device->features().extFullScreenExclusive) {
+      status = m_vki->vkGetPhysicalDeviceSurfacePresentModes2EXT(
+        m_device->adapter()->handle(), &surfaceInfo, &numModes, nullptr);
+    } else {
+      status = m_vki->vkGetPhysicalDeviceSurfacePresentModesKHR(
+        m_device->adapter()->handle(), m_surface, &numModes, nullptr);
+    }
+"""
+    replace_once(
+        presenter_cpp,
+        presenter_modes,
+        """    VkResult status;
+#ifdef _WIN32
+    VkSurfaceFullScreenExclusiveInfoEXT fullScreenInfo = { VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT };
+    fullScreenInfo.fullScreenExclusive = m_fullscreenMode;
+
+    VkPhysicalDeviceSurfaceInfo2KHR surfaceInfo = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR, &fullScreenInfo };
+    surfaceInfo.surface = m_surface;
+
+    if (m_device->features().extFullScreenExclusive) {
+      status = m_vki->vkGetPhysicalDeviceSurfacePresentModes2EXT(
+        m_device->adapter()->handle(), &surfaceInfo, &numModes, nullptr);
+    } else
+#endif
+    {
+      status = m_vki->vkGetPhysicalDeviceSurfacePresentModesKHR(
+        m_device->adapter()->handle(), m_surface, &numModes, nullptr);
+    }
+"""
+    )
+    presenter_modes_second = """    if (m_device->features().extFullScreenExclusive) {
+      status = m_vki->vkGetPhysicalDeviceSurfacePresentModes2EXT(
+        m_device->adapter()->handle(), &surfaceInfo, &numModes, modes.data());
+    } else {
+      status = m_vki->vkGetPhysicalDeviceSurfacePresentModesKHR(
+        m_device->adapter()->handle(), m_surface, &numModes, modes.data());
+    }
+"""
+    replace_once(
+        presenter_cpp,
+        presenter_modes_second,
+        """#ifdef _WIN32
+    if (m_device->features().extFullScreenExclusive) {
+      status = m_vki->vkGetPhysicalDeviceSurfacePresentModes2EXT(
+        m_device->adapter()->handle(), &surfaceInfo, &numModes, modes.data());
+    } else
+#endif
+    {
+      status = m_vki->vkGetPhysicalDeviceSurfacePresentModesKHR(
+        m_device->adapter()->handle(), m_surface, &numModes, modes.data());
+    }
+"""
+    )
+
     # Carry immutable identity for the source WSI acquire all the way from
     # Presenter -> command list -> queued present. This is deliberately the
     # first safe transaction step: one source transaction remains in flight,
