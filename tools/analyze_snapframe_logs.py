@@ -43,6 +43,9 @@ def analyze(root):
     events,perf,flow,gpu=[read_csv(root/x) for x in FILES[:4]]
     log="\n".join((root/name).read_text(encoding="utf-8",errors="replace") for name in FILES[4:6] if (root/name).is_file())
     config=(root/FILES[6]).read_text(encoding="utf-8",errors="replace") if (root/FILES[6]).is_file() else ""
+    config_values={k:int(v) for k,v in re.findall(r"^\s*(motion_analysis|profiling_enabled)\s*=\s*([01])\s*(?:#.*)?$",config,re.M)}
+    motion_analysis=config_values.get("motion_analysis",0)
+    profiling_enabled=config_values.get("profiling_enabled",0)
     counts=Counter(x.get("event","unknown") for x in events); results=Counter(); reasons=Counter()
     backpressure=Counter()
     for row in events:
@@ -103,7 +106,18 @@ def analyze(root):
     if actual_wsi and min(x["image_count"] for x in actual_wsi)<3:
         findings.append({"severity":"medium","code":"WSI_IMAGE_COUNT_BELOW_TARGET","message":"The actual surface swapchain image count fell below three.","recommendation":"Compare generated acquire VK_NOT_READY rates by actual present mode. The surface may cap image count; do not force blocking acquire to compensate."})
     if not gpu: findings.append({"severity":"medium","code":"GPU_STAGE_CSV_EMPTY","message":"snapframe_gpu.csv has no stage samples.","recommendation":"Enable stage profiling briefly; keep diagnostic V2 workloads disabled during normal gameplay."})
-    if not flow: findings.append({"severity":"medium","code":"FLOW_CSV_EMPTY","message":"snapframe_flow.csv has no flow samples.","recommendation":"Check flow diagnostics export gating; accepted dispatch events alone do not prove flow quality."})
+    if not flow:
+        if not profiling_enabled or not motion_analysis:
+            disabled=[]
+            if not profiling_enabled: disabled.append("profiling_enabled=1")
+            if not motion_analysis: disabled.append("motion_analysis=1")
+            findings.append({"severity":"info","code":"FLOW_READBACK_DISABLED_BY_CONFIG",
+                "message":"snapframe_flow.csv has no samples because diagnostic readback is disabled by configuration ("+", ".join(disabled)+"). Flow dispatch success events do not mean vectors were read back.",
+                "recommendation":"For a short diagnostic capture only, set profiling_enabled=1 and motion_analysis=1 in port/snapframe.conf. Restore profiling_enabled=0 for normal gameplay; readback adds GPU-to-CPU work."})
+        else:
+            findings.append({"severity":"medium","code":"FLOW_READBACK_MISSING",
+                "message":"Flow readback is enabled, but snapframe_flow.csv has no samples.",
+                "recommendation":"Inspect flow_readback_recorded/completion/allocation/map events and the output path. Accepted flow dispatch events alone do not prove readback completed."})
     sizes={n:((root/n).stat().st_size if (root/n).is_file() else 0) for n in FILES}
     return {"schema":"snapframe-diagnostic-report-v1","source_directory":root.name,"files_bytes":sizes,
       "event_rows":len(events),"event_counts":dict(counts),
@@ -112,6 +126,7 @@ def analyze(root):
         "backpressure_vk_results":dict(backpressure),
         "failure_vk_results":dict(results),"failure_reasons":dict(reasons)},
       "present_modes_seen_in_log":dict(modes),"actual_wsi_configurations":actual_wsi,"performance":perfstats,
+      "diagnostic_config":{"motion_analysis":bool(motion_analysis),"profiling_enabled":bool(profiling_enabled)},
       "dxvk_wsi":{"wsi_rows":len(wsi_rows),"queue_rows":len(queue_rows),
         "wsi_ms":wsi_ms,"queue_ms":queue_ms},
       "flow":{"rows":len(flow),"metrics":flowstats},"gpu_stage_rows":len(gpu),"findings":findings}
@@ -119,6 +134,7 @@ def analyze(root):
 def to_markdown(r):
     out=["# SnapFrame diagnostic report","",f"- Schema: {r['schema']}",f"- Source folder: {r['source_directory']}",
       f"- Event rows: {r['event_rows']}",f"- Flow rows: {r['flow']['rows']}",f"- GPU stage rows: {r['gpu_stage_rows']}",
+      f"- Diagnostic readback config: motion_analysis={int(r['diagnostic_config']['motion_analysis'])}, profiling_enabled={int(r['diagnostic_config']['profiling_enabled'])}",
       "","## Present / WSI","",f"- Generated accepted: {r['generated_present']['accepted']}",
       f"- Generated skipped (WSI backpressure): {r['generated_present']['skipped_backpressure']}",
       f"- Generated failed (non-backpressure): {r['generated_present']['failed']}",
