@@ -70,5 +70,23 @@ class AnalyzerTests(unittest.TestCase):
             self.assertIn("WSI_IMAGE_COUNT_BELOW_TARGET", codes)
 
 
+    def test_reports_dxvk_queue_and_vulkan_wsi_stalls(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "log.txt").write_text(
+                "DXVK-WSI: queue_present_us=9000 pre_acquire_us=1000 frame_limiter_us=0 total_present_us=10000 acquire_result=1 result=0 present_mode=1 apply_frame_limit=1\\n"
+                "DXVK-PRESENT: queue_residence_us=12000 queue_depth=3 queue_lock_wait_us=100 present_call_us=15000 total_entry_us=27100 result=0 diagnostic_count=1\\n",
+                encoding="utf-8")
+            report = analyze(root)
+            self.assertEqual(report["dxvk_wsi"]["wsi_rows"], 1)
+            self.assertEqual(report["dxvk_wsi"]["queue_rows"], 1)
+            self.assertEqual(report["dxvk_wsi"]["wsi_ms"]["vk_queue_present_ms"]["p95"], 9.0)
+            self.assertEqual(report["dxvk_wsi"]["queue_ms"]["submission_queue_residence_ms"]["p95"], 12.0)
+            codes = {item["code"] for item in report["findings"]}
+            self.assertIn("VULKAN_QUEUE_PRESENT_STALL", codes)
+            self.assertIn("DXVK_SUBMISSION_QUEUE_BACKLOG", codes)
+            self.assertIn("DXVK_PRESENT_CALL_STALL", codes)
+
+
 if __name__ == "__main__":
     unittest.main()
