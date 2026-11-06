@@ -53,6 +53,8 @@ python3 "$project_root/tools/dxvk/apply_native_262_android_port.py" \
 grep -q 'acquireNextImage' "$dest/src/d3d9/d3d9_swapchain.cpp"
 grep -q 'EmitCs' "$dest/src/d3d9/d3d9_swapchain.cpp"
 grep -q 'synchronizeWsi' "$dest/src/d3d9/d3d9_swapchain.cpp"
+grep -q 'snapframe_dxvk262_record_source' "$dest/src/d3d9/d3d9_swapchain.cpp"
+grep -q 'SNAPFRAME_DXVK262_ABI_VERSION' "$dest/src/d3d9/snapframe_dxvk262_api.h"
 grep -q 'presentImage' "$dest/src/dxvk/dxvk_presenter.cpp"
 
 
