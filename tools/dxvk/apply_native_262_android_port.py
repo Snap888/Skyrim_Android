@@ -39,6 +39,16 @@ def main() -> int:
     if actual != expected:
         raise SystemExit(f"wrong DXVK source revision: {actual}; expected {expected}")
 
+    # Keep the 2.6.2 SnapFrame seam inside the pinned upstream tree. This
+    # C ABI contains opaque 2.6.2 object pointers only; it is not shared with
+    # the legacy 1.9.2b host.
+    d3d9_dir = root / "src/d3d9"
+    d3d9_dir.mkdir(parents=True, exist_ok=True)
+    snapframe_api = project / "android/app/jni/snapframe/snapframe_dxvk262_api.h"
+    if not snapframe_api.is_file():
+        raise SystemExit(f"missing versioned SnapFrame 2.6.2 API: {snapframe_api}")
+    shutil.copyfile(snapframe_api, d3d9_dir / "snapframe_dxvk262_api.h")
+
     native_dir = root / "src/wsi/sdl2"
     native_dir.mkdir(parents=True, exist_ok=True)
     for name in ("wsi_native_surface.h", "wsi_native_surface.cpp"):
@@ -168,7 +178,39 @@ namespace dxvk::wsi {
     replace_once(
         swapchain,
         '#include "d3d9_window.h"\n',
-        '#include "d3d9_window.h"\n#include "../wsi/sdl2/wsi_native_surface.h"\n',
+        '#include "d3d9_window.h"\n#include "../wsi/sdl2/wsi_native_surface.h"\n#include "snapframe_dxvk262_api.h"\n',
+    )
+    replace_once(
+        swapchain,
+        """        // Blit back buffer onto Vulkan swap chain
+        auto contextObjects = ctx->beginExternalRendering();
+""",
+        """        // Record optional SnapFrame source work in this exact DXVK 2.6.2
+        // command context, before the source image is consumed by the WSI
+        // blitter. The hook must be non-blocking and must not flush/submit.
+        // If the matching host is absent, the weak symbol is null and the
+        // ordinary DXVK present path is unchanged.
+        if (snapframe_dxvk262_record_source) {
+          const auto extent = cSrcView->image()->info().extent;
+          const SnapFrameDxvk262FrameInfo frameInfo = {
+            sizeof(SnapFrameDxvk262FrameInfo),
+            SNAPFRAME_DXVK262_ABI_VERSION,
+            cFrameId,
+            extent.width,
+            extent.height,
+            cSrcView->image()->info().format,
+            0u
+          };
+          (void)snapframe_dxvk262_record_source(
+            static_cast<void*>(ctx),
+            static_cast<void*>(cDevice.ptr()),
+            static_cast<void*>(cSrcView.ptr()),
+            &frameInfo);
+        }
+
+        // Blit back buffer onto Vulkan swap chain
+        auto contextObjects = ctx->beginExternalRendering();
+""",
     )
     old_callback = """  Rc<Presenter> presenter = new Presenter(m_device, Signal, presenterDesc, [
       cDevice = m_device,
