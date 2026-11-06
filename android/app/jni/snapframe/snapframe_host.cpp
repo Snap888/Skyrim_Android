@@ -2974,8 +2974,11 @@ extern "C" int snapframe_host_update_settings(int enabled, int flow_scale_percen
     return 1;
 }
 
-extern "C" void snapframe_host_report_submission_pressure(float waitMs) {
-    if (!std::isfinite(waitMs) || waitMs < kAiGeneratedWaitThrottleMs)
+extern "C" void snapframe_host_report_submission_pressure(
+    float sourceWaitMs, float generatedWaitMs) {
+    const float waitMs = std::max(sourceWaitMs, generatedWaitMs);
+    if (!std::isfinite(sourceWaitMs) || !std::isfinite(generatedWaitMs)
+        || waitMs < kAiGeneratedWaitThrottleMs)
         return;
 
     const uint32_t previous = g_aiWsiThrottleFrames.exchange(
@@ -2983,11 +2986,14 @@ extern "C" void snapframe_host_report_submission_pressure(float waitMs) {
     g_aiQualityHeadroomSamples.store(0, std::memory_order_relaxed);
     g_aiLoadPressureSamples.store(0, std::memory_order_relaxed);
     if (previous == 0) {
+        char detail[160];
+        snprintf(detail, sizeof(detail),
+            "source_wait_ms=%.3f;generated_wait_ms=%.3f;threshold_ms=%.1f",
+            sourceWaitMs, generatedWaitMs, kAiGeneratedWaitThrottleMs);
         snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed),
-            "ai_wsi_backpressure", g_width, g_height,
-            "source_or_generated_submission_wait_over_8ms; temporarily_bypassing_generation");
-        snapframeLog("SnapFrame AI: WSI backpressure wait=%.3fms; bypassing generation for %u source frames\n",
-            waitMs, kAiGeneratedWaitThrottleFrames);
+            "ai_wsi_backpressure", g_width, g_height, detail);
+        snapframeLog("SnapFrame AI: WSI backpressure source_wait=%.3fms generated_wait=%.3fms max=%.3fms; bypassing generation for %u source frames\n",
+            sourceWaitMs, generatedWaitMs, waitMs, kAiGeneratedWaitThrottleFrames);
     }
 }
 
