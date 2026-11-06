@@ -247,7 +247,7 @@ namespace dxvk::wsi {
             static_cast<void*>(ctx),
             static_cast<void*>(&contextObjects),
             static_cast<void*>(cDevice.ptr()),
-            static_cast<void*>(cSrcView.ptr()),
+            static_cast<void*>(&cSrcView),
             &frameInfo);
         }
 """,
