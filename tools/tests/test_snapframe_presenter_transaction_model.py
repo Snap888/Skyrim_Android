@@ -62,16 +62,33 @@ class TransactionPool:
         """Compatibility view of the current generation."""
         return self.pools[self.generation]
 
-    def acquire(self):
-        if self.device_lost or self.generation in self.retired_generations:
+    def try_acquire(self, result=PresentResult.SUCCESS):
+        """Non-blocking generated acquire contract; NOT_READY always returns immediately."""
+        if self.device_lost:
+            return None
+        if result in (PresentResult.OUT_OF_DATE, PresentResult.SURFACE_LOST):
+            self.retired_generations.add(self.generation)
+            return None
+        if result is PresentResult.DEVICE_LOST:
+            self.device_lost = True
+            self._abandon_all()
+            return None
+        if result is not PresentResult.SUCCESS:
+            # VK_NOT_READY / VK_TIMEOUT: optional generated frame is dropped.
+            return None
+        if self.generation in self.retired_generations:
             return None
         for slot in self.slots:
             if slot.state is State.FREE:
                 slot.serial += 1
                 slot.state = State.ACQUIRED
                 return Token(slot.generation, slot.image_index, slot.serial)
-        # Generated work is optional: never block the source present for a slot.
+        # No immediately available image: do not wait or steal an in-flight slot.
         return None
+
+    def acquire(self):
+        """Compatibility alias used by ownership tests."""
+        return self.try_acquire()
 
     def submit(self, token):
         slot = self._resolve(token, State.ACQUIRED)
@@ -160,6 +177,23 @@ class PresenterTransactionModelTests(unittest.TestCase):
         self._queue(tokens[0])
         self.pool.complete_present(tokens[0])
         self.assertIsNotNone(self.pool.acquire())
+
+    def test_vk_not_ready_drops_generated_frame_without_claiming_slot(self):
+        self.assertIsNone(self.pool.try_acquire(PresentResult.NOT_READY))
+        self.assertTrue(all(slot.state is State.FREE for slot in self.pool.slots))
+        self.assertIsNotNone(self.pool.try_acquire(PresentResult.SUCCESS))
+
+    def test_nonblocking_acquire_out_of_date_requires_recreation(self):
+        self.assertIsNone(self.pool.try_acquire(PresentResult.OUT_OF_DATE))
+        self.assertIn(self.pool.generation, self.pool.retired_generations)
+        self.assertIsNone(self.pool.try_acquire(PresentResult.SUCCESS))
+        self.pool.recreate(3)
+        self.assertIsNotNone(self.pool.try_acquire(PresentResult.SUCCESS))
+
+    def test_nonblocking_acquire_device_lost_abandons_slots(self):
+        self.assertIsNone(self.pool.try_acquire(PresentResult.DEVICE_LOST))
+        self.assertTrue(self.pool.device_lost)
+        self.assertEqual(self.pool.pools, {})
 
     def test_slot_cannot_be_reacquired_before_completion(self):
         tokens = [self.pool.acquire() for _ in range(3)]
@@ -299,71 +333,6 @@ class SourcePrioritySchedulerTests(unittest.TestCase):
         # This model does not pretend it can preempt a Vulkan call already in
         # progress; production must not label this as a hard latency guarantee.
         self.assertTrue(self.scheduler.generated_running)
-
-class WorkKind(Enum):
-    SOURCE_SUBMIT = auto()
-    SOURCE_PRESENT = auto()
-    GENERATED_PRESENT = auto()
-
-
-class PriorityScheduler:
-    """Reference policy: generated work is optional and never jumps ahead of source."""
-
-    def __init__(self, generated_capacity=1):
-        if generated_capacity < 1:
-            raise ValueError("generated capacity must be positive")
-        self.source_queue = []
-        self.generated_queue = []
-        self.generated_capacity = generated_capacity
-        self.dropped_generated = 0
-
-    def enqueue_source(self, kind):
-        if kind not in (WorkKind.SOURCE_SUBMIT, WorkKind.SOURCE_PRESENT):
-            raise ValueError("invalid source work kind")
-        self.source_queue.append(kind)
-
-    def enqueue_generated(self):
-        if len(self.generated_queue) >= self.generated_capacity:
-            self.dropped_generated += 1
-            return False
-        self.generated_queue.append(WorkKind.GENERATED_PRESENT)
-        return True
-
-    def take_next(self):
-        if self.source_queue:
-            return self.source_queue.pop(0)
-        if self.generated_queue:
-            return self.generated_queue.pop(0)
-        return None
-
-
-class SourcePrioritySchedulerTests(unittest.TestCase):
-    def test_source_submit_and_present_precede_generated_present(self):
-        scheduler = PriorityScheduler()
-        scheduler.enqueue_generated()
-        scheduler.enqueue_source(WorkKind.SOURCE_SUBMIT)
-        scheduler.enqueue_source(WorkKind.SOURCE_PRESENT)
-        self.assertIs(scheduler.take_next(), WorkKind.SOURCE_SUBMIT)
-        self.assertIs(scheduler.take_next(), WorkKind.SOURCE_PRESENT)
-        self.assertIs(scheduler.take_next(), WorkKind.GENERATED_PRESENT)
-
-    def test_generated_backlog_is_bounded_and_drops_excess(self):
-        scheduler = PriorityScheduler(generated_capacity=1)
-        self.assertTrue(scheduler.enqueue_generated())
-        self.assertFalse(scheduler.enqueue_generated())
-        self.assertEqual(scheduler.dropped_generated, 1)
-
-    def test_continuous_source_work_does_not_get_preempted(self):
-        scheduler = PriorityScheduler(generated_capacity=2)
-        scheduler.enqueue_generated()
-        for _ in range(3):
-            scheduler.enqueue_source(WorkKind.SOURCE_SUBMIT)
-        for _ in range(3):
-            self.assertIs(scheduler.take_next(), WorkKind.SOURCE_SUBMIT)
-        self.assertIs(scheduler.take_next(), WorkKind.GENERATED_PRESENT)
-
-    def test_empty_scheduler_returns_none(self):
-        self.assertIsNone(PriorityScheduler().take_next())
 
 
 if __name__ == "__main__":
