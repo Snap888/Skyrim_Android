@@ -172,3 +172,61 @@ No Android 2.6.2 source files or binary are claimed as ported by this audit.
 The current Android WSI registry now owns an `ANativeWindow` reference for its active registration. `nativeSurface()` acquires a temporary reference while holding the registry mutex and the caller releases that lease immediately after `vkCreateAndroidSurfaceKHR` returns. Replacing/unregistering a registration acquires the new window before publishing it and releases the old registry reference after dropping the mutex, so native-window callbacks are not invoked under the registry lock.
 
 This specifically closes the lookup-versus-replacement race during Vulkan surface creation. It does **not** by itself prove that an already-created `VkSurfaceKHR` no longer uses the old native window. The Android caller must still retire the presenter/swapchain and destroy the Vulkan surface before unregistering/replacing the old registration. A follow-up 2.6.2 WSI port must preserve that ordering and add an explicit surface-lifetime test; no claim is made here that the full surface lifetime is reference-counted by this registry.
+
+
+## Upstream 2.6.2 architecture delta (reviewed against pinned commit)
+
+The pinned 2.6.2 source confirms that the current Android adapter files are
+not drop-in replacements for upstream:
+
+- Upstream has no `src/wsi/sdl2/wsi_presenter_sdl2.cpp`; SDL2 WSI surface
+  creation lives in `src/wsi/sdl2/wsi_platform_sdl2.cpp`, through the
+  `Sdl2WsiDriver::createSurface` implementation.
+- Upstream `WsiDriver::getInstanceExtensions()` is the instance-extension
+  provider. The SDL2 implementation currently returns SDL's extension list;
+  Android must add `VK_KHR_android_surface` only for the native-window path
+  and only when the loader/device supports it.
+- Upstream D3D9 owns a map of per-window `D3D9WindowContext` presenters.
+  The presenter accepts a `PresenterSurfaceProc` callback; it is not the
+  older single `m_presenter` + `wsi::createSurface` implementation in this
+  Android fork. Native-window lifetime must therefore be tied to the
+  presenter/window-context generation, not just to the duration of the
+  surface-create callback.
+- The upstream D3D9 target includes additional translation units absent from
+  the 1.9.2b CMake target, including `d3d9_constant_buffer.cpp`,
+  `d3d9_shader_validator.cpp`, `d3d9_annotation.cpp`, `d3d9_mem.cpp`,
+  `d3d9_window.cpp`, `d3d9_interop.cpp`, `d3d9_on_12.cpp`, and
+  `d3d9_bridge.cpp`. The DXVK core also has new/renamed units such as
+  `dxvk_allocator.cpp`, `dxvk_constant_state.cpp`,
+  `dxvk_fence.cpp`, `dxvk_implicit_resolve.cpp`,
+  `dxvk_latency_builtin.cpp`, `dxvk_latency_reflex.cpp`,
+  `dxvk_platform_exts.cpp`, and `dxvk_sparse.cpp`.
+- Upstream `src/wsi/meson.build` compiles SDL2, SDL3 and GLFW backends
+  conditionally. Android's curated CMake target should include only the SDL2
+  WSI sources and common WSI sources, not desktop GLFW/SDL3/Win32 files.
+
+### Required 2.6.2 port sequence
+
+1. Build a pinned-source-derived CMake source manifest from the upstream
+   Meson arrays. Every listed source must exist at the pinned commit; the
+   manifest must fail if an upstream source is missing or a new source is
+   silently omitted.
+2. Add Android native-window handling to upstream
+   `Sdl2WsiDriver::getInstanceExtensions()` and
+   `Sdl2WsiDriver::createSurface()`. Keep SDL's regular path unchanged.
+3. Extend the native-window registration from a temporary surface-create
+   lease to a presenter-generation lease. Retire the presenter (which destroys
+   its swapchain and surface) before releasing that generation's
+   `ANativeWindow` reference. Handle replacement and resize by creating a
+   new generation and retiring the old one only after presenter teardown.
+4. Build and package the upstream D3D9 library with SnapFrame disabled.
+   Validate AArch64 ELF, SONAME, D3D9 exports and matching runtime dependency.
+5. Run a device baseline test for surface creation, resize/replacement,
+   source presentation and stability. Only then port source capture and the
+   generated-present path to the new `D3D9WindowContext` / `Presenter`
+   lifecycle. Preserve source/generated accounting and avoid introducing
+   synchronous GPU readback or queue waits.
+
+**Current implementation boundary:** this review identifies the actual 2.6.2
+integration points and source-list delta. It does not yet add upstream 2.6.2
+translation units to the Android build, and does not claim a 2.6.2 binary.
