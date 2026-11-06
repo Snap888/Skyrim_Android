@@ -187,12 +187,17 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
             "++state.flowPairsRecorded",
             "flow_pairs=%llu",
             "flowStride = 16u",
+            "k_flow_consistency_word_count",
+            "state.consistencyImage",
+            "state.consistencyView",
+            "state.consistencyShader",
+            "consistencyBindings",
         ):
             self.assertIn(required, host_text)
         self.assertEqual(host_text.count(
-            "dxvkContext->dispatch((state.flowWidth + 7u) / 8u"), 2)
+            "dxvkContext->dispatch((state.flowWidth + 7u) / 8u"), 3)
         self.assertIn("return 1;", host_text)
-        self.assertIn("flow validation, midpoint warp and presentation are not connected", host_text)
+        self.assertIn("midpoint warp and WSI presentation are connected", host_text)
         for forbidden in (
             "vkQueueSubmit",
             "vkDeviceWaitIdle",
