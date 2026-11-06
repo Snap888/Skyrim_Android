@@ -121,6 +121,22 @@ class AnalyzerTests(unittest.TestCase):
             self.assertIn("## Asynchronous AI telemetry", rendered)
             self.assertIn("callback_latency_us", rendered)
 
+    def test_counts_nonblocking_readback_ring_saturation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "snapframe_events.csv").write_text(
+                "frame,event,width,height,detail\\n"
+                "30,gpu_metrics_copy_recorded,2448,1080,async_readback\\n"
+                "60,gpu_metrics_skipped,2448,1080,readback_ring_busy\\n"
+                "90,gpu_metrics_skipped,2448,1080,readback_ring_busy\\n",
+                encoding="utf-8")
+            report = analyze(root)
+            metrics = report["ai_telemetry_async"]
+            self.assertEqual(metrics["ring_busy_skips"], 2)
+            self.assertEqual(metrics["recorded_samples"], 1)
+            self.assertAlmostEqual(metrics["skip_rate_percent"], 200.0 / 3.0)
+            self.assertIn("readback ring busy skips: 2", to_markdown(report))
+
     def test_reports_ai_wsi_throttle_reason(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
