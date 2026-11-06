@@ -1,6 +1,6 @@
-# DXVK Native 2.6.2 Android runtime-pair build
+# DXVK Native 2.6.2 Android candidate and runtime-pair gate
 
-## Inputs pinned for this build
+## Pinned inputs
 
 - Skyrim Android branch: `Snap-AI-EngineFrame`
 - DXVK Native source: `doitsujin/dxvk`
@@ -9,17 +9,23 @@
 - Archive SHA-256: `5c03d4d21737ff50514433f775a3e4b0a6f2c68b282bc29a4fbcbb344683623c`
 - Android ABI: `arm64-v8a`, minimum API 28.
 
-## Required runtime pair
+## Current build boundary
 
-The APK build opts into both matching targets:
+CI builds and validates the standalone candidate `libdxvk_d3d9_262.so`. The APK may carry this candidate for inspection, but it is **not selectable as a runtime** yet.
+
+The matching `libmain_262.so` is gated by `SNAP_BUILD_DXVK_NATIVE_262_RUNTIME_PAIR=OFF`. Run 42301795388 exposed why this gate is necessary: `main_262` was linked against neither a DXVK-2.6.2-specific Android surface bridge nor a matching SnapFrame host API. It failed with unresolved `dxvk_native_surface` and `snapframe_host_*` symbols. Linking the legacy `snapframe_host` is not an acceptable workaround because that target depends on DXVK Native 1.9.2b.
+
+Do not turn the gate on until a dedicated 2.6.2 runtime bridge is implemented and the final APK contains both:
 
 - `libdxvk_d3d9_262.so`
 - `libmain_262.so`
 
-The build must verify AArch64 ELF headers, the DXVK SONAME and D3D9 exports, and the exact `DT_NEEDED` dependency from `libmain_262.so` to `libdxvk_d3d9_262.so`. It then extracts both libraries from the APK and repeats the pair check against the packaged files.
+The CI package check verifies the candidate's AArch64 ELF class and SONAME and explicitly rejects an accidentally packaged `libmain_262.so` while the gate is off.
 
-The existing DXVK Native 1.9.2b pair remains the default fallback. The 2.6.2 option is exposed by the Android selector only when both matching libraries are present.
+## Runtime selection and fallback
 
-## Scope and limitations
+The Android selector exposes a DXVK variant only when both corresponding ARM64 ELF libraries are present. DXVK Native 1.9.2b remains the default and safe fallback. A standalone 2.6.2 DSO must never cause the 2.6.2 selector entry to appear.
 
-This build validates compilation and APK packaging. It does not claim that SnapFrame generated-frame presentation is enabled or visually validated on-device; the current 2.6.2 host still records the source path and keeps generated present disabled until the WSI present transaction is implemented and tested.
+## SnapFrame status
+
+The 2.6.2 DXVK source hook currently captures the source path and records luma/flow/consistency work. Generated-frame WSI presentation remains disabled until a DXVK-owned asynchronous transaction scheduler and the matching runtime bridge are implemented and tested. Successful compilation of the candidate DSO is not evidence that generated frames are displayed.
