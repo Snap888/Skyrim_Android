@@ -14,22 +14,22 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         cls.root_text = JNI_CMAKE.read_text(encoding="utf-8")
 
     def test_candidate_is_opt_in_and_keeps_baseline_default(self):
-        self.assertIn('option(SNAP_BUILD_DXVK_NATIVE_262', self.root_text)
-        self.assertIn('if(SNAP_BUILD_DXVK_NATIVE_262)', self.root_text)
-        self.assertIn('add_subdirectory(dxvk_native_262)', self.root_text)
-        self.assertRegex(self.text, r'add_library\\(dxvk_d3d9_262 SHARED')
-        self.assertIn('DXVK source revision mismatch', self.text)
+        self.assertIn("option(SNAP_BUILD_DXVK_NATIVE_262", self.root_text)
+        self.assertIn("if(SNAP_BUILD_DXVK_NATIVE_262)", self.root_text)
+        self.assertIn("add_subdirectory(dxvk_native_262)", self.root_text)
+        self.assertRegex(self.text, r"add_library\(dxvk_d3d9_262 SHARED")
+        self.assertIn("DXVK source revision mismatch", self.text)
 
     def test_android_arm64_soname_contract_is_unversioned(self):
         self.assertIn('OUTPUT_NAME "dxvk_d3d9_262"', self.text)
-        self.assertIn('NO_SONAME FALSE', self.text)
-        self.assertNotRegex(self.text, r'\\b(?:VERSION|SOVERSION)\\b')
+        self.assertIn("NO_SONAME FALSE", self.text)
+        self.assertNotRegex(self.text, r"\b(?:VERSION|SOVERSION)\b")
 
     def test_upstream_source_and_shader_inventory_are_used(self):
-        for group in (
+        self.assertIn(
             "d3d9 dxvk dxso util spirv vulkan wsi_common android_wsi android_wsi_overlay",
-        ):
-            self.assertIn(group, self.text)
+            self.text,
+        )
         self.assertIn("d3d9_shaders dxvk_shaders", self.text)
         self.assertIn("generate_native_262_android_manifest.py", self.text)
         self.assertIn("glslangValidator", self.text)
