@@ -98,31 +98,27 @@ ELF_DEFINED=$("$NM" --defined-only "$DXVK_SO")
 
 if ! grep -q 'AArch64' <<<"$ELF_HEADER"; then
   echo "DXVK 2.6.2 candidate is not an AArch64 ELF library" >&2
-  printf '%s\n' "$ELF_HEADER" >&2
+  printf '%s\\n' "$ELF_HEADER" >&2
   exit 1
 fi
 if ! grep -Fq 'Library soname: [libdxvk_d3d9_262.so]' <<<"$ELF_DYNAMIC"; then
   echo "DXVK 2.6.2 candidate has an unexpected SONAME" >&2
-  printf '%s\n' "$ELF_DYNAMIC" >&2
+  printf '%s\\n' "$ELF_DYNAMIC" >&2
   exit 1
 fi
 if ! grep -Eq '[[:space:]]Direct3DCreate9$' <<<"$ELF_EXPORTS"; then
   echo "DXVK 2.6.2 candidate is missing Direct3DCreate9 export" >&2
-  printf '%s\n' "$ELF_EXPORTS" >&2
+  printf '%s\\n' "$ELF_EXPORTS" >&2
   exit 1
 fi
 if ! grep -Eq '[[:space:]]Direct3DCreate9Ex$' <<<"$ELF_EXPORTS"; then
   echo "DXVK 2.6.2 candidate is missing Direct3DCreate9Ex export" >&2
-  printf '%s\n' "$ELF_EXPORTS" >&2
+  printf '%s\\n' "$ELF_EXPORTS" >&2
   exit 1
 fi
-
-if ! grep -Eq '[[:space:]]snapframe_dxvk262_record_sourceecho "DXVK_NATIVE_262_ANDROID_ARM64_SONAME_OK"
-echo "DXVK_NATIVE_262_ANDROID_D3D9_EXPORTS_OK"
-echo "DXVK_NATIVE_262_ANDROID_LIBRARY=$DXVK_SO"
- <<<"$ELF_EXPORTS"; then
+if ! grep -Eq '[[:space:]]snapframe_dxvk262_record_source$' <<<"$ELF_DEFINED"; then
   echo "DXVK 2.6.2 candidate is missing its compiled SnapFrame host callback" >&2
-  printf '%s\\n' "$ELF_EXPORTS" >&2
+  printf '%s\\n' "$ELF_DEFINED" >&2
   exit 1
 fi
 
