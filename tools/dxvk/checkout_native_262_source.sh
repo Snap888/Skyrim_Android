@@ -40,6 +40,8 @@ for path in "${required_files[@]}"; do
   }
 done
 
+readonly project_root="$(git rev-parse --show-toplevel)"
+
 # Apply the pinned Android WSI/Presenter overlay in the disposable checkout.
 # This is a source transformation check only; it does not imply a successful
 # Android compile or a packaged runtime pair.
@@ -56,7 +58,6 @@ grep -q 'presentImage' "$dest/src/dxvk/dxvk_presenter.cpp"
 
 # Verify that the Android integration seam being ported still exists in this
 # checkout. These checks prevent the source map from drifting away from code.
-readonly project_root="$(git rev-parse --show-toplevel)"
 native_surface_cpp="$project_root/android/app/jni/dxvk/src/wsi/sdl2/wsi_native_surface.cpp"
 native_surface_wsi="$project_root/android/app/jni/dxvk/src/wsi/sdl2/wsi_presenter_sdl2.cpp"
 swapchain_cpp="$project_root/android/app/jni/dxvk/src/d3d9/d3d9_swapchain.cpp"
