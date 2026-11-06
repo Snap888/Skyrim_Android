@@ -51,7 +51,7 @@ def extract_array(root: Path, relative: str, name: str) -> list[str]:
 def extract_shader_array(root: Path, relative: str, name: str) -> list[str]:
     text = (root / relative).read_text(encoding="utf-8")
     match = re.search(
-        rf"(?m)^\s*{re.escape(name)}\s*=\s*\[(.*?)^\s*\]",
+        rf"(?m)^\s*{re.escape(name)}\s*=\s*(?:files\(\s*)?\[(.*?)^\s*\]",
         text,
         flags=re.DOTALL,
     )
