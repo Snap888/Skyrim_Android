@@ -290,6 +290,7 @@ jobs:
         run: |
           python3 tools/dxvk/apply_native_262_android_port.py \
             "$RUNNER_TEMP/dxvk-native-262-build" --project-root "$GITHUB_WORKSPACE"
+          grep -q '"libSDL2.so"' "$RUNNER_TEMP/dxvk-native-262-build/src/wsi/sdl2/wsi_platform_sdl2.cpp"
           git -C "$RUNNER_TEMP/dxvk-native-262-build" diff --check
 
       - name: Compile DXVK Native 2.6.2 for Android ARM64 and verify ELF ABI
