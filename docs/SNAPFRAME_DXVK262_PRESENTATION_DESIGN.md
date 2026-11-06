@@ -177,3 +177,75 @@ These tests remain a reference contract. In particular, the model's
 completion callback must eventually be mapped to a real DXVK/Vulkan completion
 signal; a return from `vkQueuePresentKHR` alone is not sufficient. The
 production generated-present path remains disabled.
+
+## Pinned DXVK submission queue: implementation-level findings
+
+The queue implementation in this revision is `src/dxvk/dxvk_queue.h` and
+`src/dxvk/dxvk_queue.cpp` (not `dxvk_submission_queue.*`). The relevant
+objects and thread boundaries were checked directly:
+
+- `DxvkSubmissionQueue::submit` appends a command-list entry to
+  `m_submitQueue` under `m_mutex`.
+- `DxvkSubmissionQueue::present` appends a present entry to that same FIFO
+  under the same mutex. It does not call `vkQueuePresentKHR` on the caller.
+- `submitCmdLists` is the submit worker. It drains FIFO entries and holds
+  `m_mutexQueue` while submitting a command list or calling
+  `Presenter::presentImage`. This serializes DXVK operations on the graphics
+  VkQueue.
+- A command-list entry is submitted through `DxvkCommandList::submit` and
+  moved to `m_finishQueue` with its timeline values.
+- `finishCmdLists` is a separate finish worker. For command-list entries it
+  waits on DXVK timeline semaphores before notifying tracked objects and
+  recycling the command list. For present entries it calls
+  `Presenter::signalFrame` and drops the retained Presenter reference.
+- `DxvkDevice::presentImage` is therefore an enqueue operation; the actual
+  Presenter call happens later on the submit worker. The present operation
+  follows the preceding command-list entry because both are appended to the
+  same FIFO.
+
+### Implications for the scheduler
+
+The existing queue already provides a useful ordering primitive, but it is
+not yet a generated-frame scheduler:
+
+1. The current D3D9 closure calls `synchronizeWsi`, enqueues its command list
+   with `flushCommandList`, then enqueues one present entry. A generated
+   transaction must be inserted into this same ordered stream, not sent
+   through a private Vulkan queue call.
+2. `m_mutexQueue` protects DXVK's graphics VkQueue. New generated operations
+   must use the same serialization domain; taking a second independent mutex
+   around raw Vulkan queue calls would not preserve queue ownership.
+3. `m_finishQueue` is the command-list retirement path. A generated image,
+   its views, and its transaction record must remain retained until the
+   generated command list has completed and its associated present completion
+   policy has been satisfied. Enqueueing a present is not retirement.
+4. The present worker currently calls `Presenter::presentImage`, whose
+   implementation uses mutable singleton fields (`m_imageIndex`,
+   `m_frameIndex`, `m_acquireStatus`, `m_presentPending`). A queued second
+   present cannot safely use those fields without first introducing an
+   immutable per-transaction Presenter API.
+5. The existing `Presenter::acquireNextImage` is explicitly documented as
+   potentially blocking. It cannot be called from the source CS closure for
+   optional generated work. A future non-blocking generated acquire must use
+   a distinct acquired image and semaphore pair, and treat no-ready-image as
+   "skip this generated frame".
+6. The finish worker's present path calls `signalFrame`; frame IDs and
+   latency-tracker callbacks must not be conflated between source and
+   generated presents. A separate generated-present accounting path is needed
+   before claiming a higher displayed frame rate.
+
+The Android patcher now checks the exact queue file names, FIFO append points,
+submit/finish worker ownership, graphics-queue mutex, present dispatch and
+finish retirement anchors, plus the D3D9 command-submit-before-present order.
+It aborts if those pinned-revision assumptions change. This is a source
+compatibility guard, not a scheduler implementation.
+
+### Safe implementation boundary
+
+Do not add a second `DxvkPresentInfo` entry alone: it contains only a
+Presenter pointer and frame ID, and therefore has no immutable acquired-image
+index, semaphore pair, swapchain generation, generated-image reference, or
+completion token. The next production change must extend the queue entry and
+Presenter transaction API together, with per-transaction ownership and a
+non-blocking generated-image acquisition path. Until then the source present
+continues unchanged and generated presentation stays disabled.
