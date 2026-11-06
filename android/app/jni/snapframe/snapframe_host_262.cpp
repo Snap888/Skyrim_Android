@@ -296,6 +296,15 @@ void resetDeviceState(DeviceState& state) {
     view = nullptr;
   for (auto& image : state.lumaImages)
     image = nullptr;
+  state.width = 0;
+  state.height = 0;
+  state.sourceFormat = VK_FORMAT_UNDEFINED;
+  state.flowWidth = 0;
+  state.flowHeight = 0;
+  state.hasPreviousLuma = false;
+  state.flowPairsRecorded = 0;
+  state.recordedFrames = 0;
+  state.writeSlot = 0;
   state.device = nullptr;
 }
 
@@ -441,7 +450,8 @@ extern "C" int snapframe_dxvk262_record_source(
 }
 
 extern "C" void snapframe_dxvk262_release_window(void*) {
-  // Per-window history is not allocated in the preprocessing-only stage.
+  // Temporal history is device-scoped in this stage; window retirement does
+  // not destroy resources shared by the DXVK device.
 }
 
 extern "C" void snapframe_dxvk262_release_device(void* device_token) {
