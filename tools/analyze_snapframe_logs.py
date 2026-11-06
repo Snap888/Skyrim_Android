@@ -44,7 +44,7 @@ def analyze(root):
     log="\n".join((root/name).read_text(encoding="utf-8",errors="replace") for name in FILES[4:6] if (root/name).is_file())
     config=(root/FILES[6]).read_text(encoding="utf-8",errors="replace") if (root/FILES[6]).is_file() else ""
     config_values={k:int(v) for k,v in re.findall(r"^\s*(motion_analysis|profiling_enabled)\s*=\s*([01])\s*(?:#.*)?$",config,re.M)}
-    motion_analysis=config_values.get("motion_analysis",0)
+    motion_analysis=config_values.get("motion_analysis",1)
     profiling_enabled=config_values.get("profiling_enabled",0)
     counts=Counter(x.get("event","unknown") for x in events); results=Counter(); reasons=Counter()
     backpressure=Counter()
