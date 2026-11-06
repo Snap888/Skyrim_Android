@@ -208,6 +208,8 @@ jobs:
           grep -q 'vkCreateAndroidSurfaceKHR' "$RUNNER_TEMP/dxvk-native-262/src/wsi/sdl2/wsi_platform_sdl2.cpp"
           grep -q 'VK_KHR_android_surface' "$RUNNER_TEMP/dxvk-native-262/src/wsi/sdl2/wsi_platform_sdl2.cpp"
           test -s "$RUNNER_TEMP/dxvk-native-262/src/wsi/sdl2/wsi_native_surface.cpp"
+          git -C "$RUNNER_TEMP/dxvk-native-262" diff --check
+          bash -n tools/dxvk/checkout_native_262_source.sh
           echo "DXVK_NATIVE_262_ANDROID_PRESENTER_PATCH_OK"
 
       - name: Generate and validate Android source inventory
