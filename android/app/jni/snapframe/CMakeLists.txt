@@ -31,6 +31,22 @@ else()
   file(REMOVE "${SNAPFRAME_GENERATED_SHADER_HEADER}")
   message(WARNING "SnapFrame shader tools not found on build host (Python3, glslangValidator, spirv-val); capture remains available but SnapFrame compute dispatches are disabled.")
 endif()
+
+# The 2.6.2 host is compiled into the matching DXVK DSO. It is deliberately
+# separate from snapframe_host (which uses the legacy DXVK 1.9.2b C++ API).
+if(TARGET dxvk_d3d9_262)
+  if(NOT EXISTS "${SNAPFRAME_GENERATED_SHADER_HEADER}")
+    message(FATAL_ERROR
+      "DXVK 2.6.2 SnapFrame host requires the validated generated shader header; install glslangValidator and spirv-val")
+  endif()
+  target_sources(dxvk_d3d9_262 PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/snapframe_host_262.cpp")
+  target_include_directories(dxvk_d3d9_262 PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/generated")
+  target_compile_definitions(dxvk_d3d9_262 PRIVATE SNAPFRAME_DXVK262_HOST=1)
+  message(STATUS "SnapFrame DXVK 2.6.2 luma host enabled (legacy host remains isolated)")
+endif()
 target_include_directories(snapframe_host PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(snapframe_host PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../dxvk
