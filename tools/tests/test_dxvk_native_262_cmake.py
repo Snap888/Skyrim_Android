@@ -278,6 +278,11 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("entry.submit.cmdList->submit(", self.patcher)
         self.assertIn("entry.present.presenter->presentImage(", self.patcher)
         self.assertIn("entry.present.presenter->signalFrame(", self.patcher)
+        self.assertIn("Presenter::presentImage boundaries changed; re-review WSI blocking behavior", self.patcher)
+        self.assertIn("waitForSwapchainFence(nextSync);", self.patcher)
+        self.assertIn("std::numeric_limits<uint64_t>::max(),", self.patcher)
+        self.assertIn("vkAcquireNextImageKHR(", self.patcher)
+        self.assertIn("blocking pre-acquire behavior changed", self.patcher)
         self.assertIn("SnapFrame generated present: DISABLED pending a DXVK-owned asynchronous transaction scheduler.", self.patcher)
 
     def test_legacy_snapframe_host_is_not_linked_to_262_candidate(self):
