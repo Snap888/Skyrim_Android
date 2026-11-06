@@ -232,8 +232,6 @@ class PresenterTransactionModelTests(unittest.TestCase):
             TransactionPool(1)
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 
@@ -301,3 +299,6 @@ class SourcePrioritySchedulerTests(unittest.TestCase):
         # This model does not pretend it can preempt a Vulkan call already in
         # progress; production must not label this as a hard latency guarantee.
         self.assertTrue(self.scheduler.generated_running)
+
+if __name__ == "__main__":
+    unittest.main()
