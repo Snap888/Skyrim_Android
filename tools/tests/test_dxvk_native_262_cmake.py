@@ -33,14 +33,19 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("d3d9_shaders dxvk_shaders", self.text)
         self.assertIn("generate_native_262_android_manifest.py", self.text)
         self.assertIn("glslangValidator", self.text)
+        self.assertIn("--depfile", self.text)
+        self.assertIn('DEPFILE "${_header}.d"', self.text)
 
     def test_android_link_dependencies_fail_fast(self):
         for dependency in (
-            'pkg_check_modules(DISPLAY_INFO REQUIRED IMPORTED_TARGET "libdisplay-info<0.2.0")',
+            "GIT_TAG 92b031749c0fe84ef5cdf895067b84a829920e25",
+            "snap_display_info STATIC",
+            "gen-search-table.py",
+            "find_package(Threads REQUIRED)",
             "find_library(SNAP_VULKAN_LIBRARY vulkan REQUIRED)",
             "find_library(SNAP_ANDROID_LIBRARY android REQUIRED)",
             "find_library(SNAP_LOG_LIBRARY log REQUIRED)",
-            "SDL2 PkgConfig::DISPLAY_INFO",
+            "SDL2 snap_display_info Threads::Threads",
         ):
             self.assertIn(dependency, self.text)
 
