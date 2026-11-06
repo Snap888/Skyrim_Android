@@ -199,7 +199,7 @@ extern "C" int snapframe_dxvk262_record_source(
 
   Rc<DxvkImageView> sourceView = *sourceViewRef;
   if (sourceView->info().viewType != VK_IMAGE_VIEW_TYPE_2D
-      || !(sourceView->info().usage & VK_IMAGE_USAGE_SAMPLED_BIT)
+      || !(sourceView->image()->info().usage & VK_IMAGE_USAGE_SAMPLED_BIT)
       || sourceView->image()->info().sampleCount != VK_SAMPLE_COUNT_1_BIT)
     return 1;
 
