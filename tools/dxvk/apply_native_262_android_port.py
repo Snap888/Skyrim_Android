@@ -195,6 +195,20 @@ namespace dxvk::wsi {
 """
     replace_once(swapchain, old_callback, new_callback)
 
+    # Guard the lifetime assumption against upstream Presenter refactors:
+    # the callback member must remain alive through surface destruction.
+    presenter_cpp = root / "src/dxvk/dxvk_presenter.cpp"
+    presenter_text = presenter_cpp.read_text(encoding="utf-8")
+    destructor_anchor = """  Presenter::~Presenter() {
+    destroySwapchain();
+    destroySurface();
+"""
+    if presenter_text.count(destructor_anchor) != 1:
+        raise SystemExit("upstream Presenter destruction order changed; re-review native-window lease lifetime")
+    presenter_header = (root / "src/dxvk/dxvk_presenter.h").read_text(encoding="utf-8")
+    if "PresenterSurfaceProc        m_surfaceProc;" not in presenter_header:
+        raise SystemExit("Presenter no longer owns PresenterSurfaceProc; re-review lease lifetime")
+
     print("DXVK_NATIVE_262_ANDROID_PRESENTER_WSI_PATCH_OK")
     print("Changes: Presenter-owned ANativeWindow lease; Android surface create; instance extension.")
     print("Build status: NOT_BUILT")
