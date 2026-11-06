@@ -234,3 +234,70 @@ class PresenterTransactionModelTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+class SourcePrioritySchedulerModel:
+    """Admission policy model; not a Vulkan queue or driver non-blocking proof."""
+
+    def __init__(self):
+        self.source_pending = 0
+        self.generated_running = False
+        self.generated_dropped = 0
+
+    def enqueue_source(self):
+        self.source_pending += 1
+
+    def source_submitted(self):
+        if self.source_pending <= 0:
+            raise RuntimeError("no pending source work")
+        self.source_pending -= 1
+
+    def try_start_generated(self):
+        # Optional FG is admitted only in a source-idle window. It never waits
+        # for source work and never creates a backlog of stale interpolated frames.
+        if self.source_pending or self.generated_running:
+            self.generated_dropped += 1
+            return False
+        self.generated_running = True
+        return True
+
+    def generated_finished(self):
+        if not self.generated_running:
+            raise RuntimeError("no generated operation is running")
+        self.generated_running = False
+
+
+class SourcePrioritySchedulerTests(unittest.TestCase):
+    def setUp(self):
+        self.scheduler = SourcePrioritySchedulerModel()
+
+    def test_generated_work_is_rejected_while_source_is_pending(self):
+        self.scheduler.enqueue_source()
+        self.assertFalse(self.scheduler.try_start_generated())
+        self.assertEqual(self.scheduler.generated_dropped, 1)
+        self.assertEqual(self.scheduler.source_pending, 1)
+
+    def test_source_queue_is_drained_before_generated_admission(self):
+        self.scheduler.enqueue_source()
+        self.scheduler.enqueue_source()
+        self.assertFalse(self.scheduler.try_start_generated())
+        self.scheduler.source_submitted()
+        self.assertFalse(self.scheduler.try_start_generated())
+        self.scheduler.source_submitted()
+        self.assertTrue(self.scheduler.try_start_generated())
+
+    def test_generated_work_never_accumulates_a_backlog(self):
+        self.assertTrue(self.scheduler.try_start_generated())
+        self.assertFalse(self.scheduler.try_start_generated())
+        self.assertEqual(self.scheduler.generated_dropped, 1)
+        self.scheduler.generated_finished()
+        self.assertTrue(self.scheduler.try_start_generated())
+
+    def test_source_arrival_is_visible_even_when_generated_is_admitted(self):
+        self.assertTrue(self.scheduler.try_start_generated())
+        self.scheduler.enqueue_source()
+        self.assertEqual(self.scheduler.source_pending, 1)
+        # This model does not pretend it can preempt a Vulkan call already in
+        # progress; production must not label this as a hard latency guarantee.
+        self.assertTrue(self.scheduler.generated_running)
