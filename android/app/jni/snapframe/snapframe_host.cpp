@@ -1922,8 +1922,18 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
             if (g_snapAi)
                 aiStatus = snap_ai_update(g_snapAi, &aiMetrics, &decision);
         }
-        if (aiStatus == SNAP_AI_OK && decision.mode != SNAP_AI_MODE_BYPASS
-            && std::isfinite(decision.flow_scale)) {
+        const bool decisionMetadataValid =
+            decision.struct_size >= sizeof(SnapAIDecision)
+            && decision.api_version == SNAP_AI_API_VERSION
+            && decision.frame_id == aiMetrics.frame_id
+            && decision.mode >= SNAP_AI_MODE_BYPASS
+            && decision.mode <= SNAP_AI_MODE_QUALITY;
+        const bool decisionScaleValid = std::isfinite(decision.flow_scale)
+            && (decision.mode == SNAP_AI_MODE_BYPASS
+                || (decision.flow_scale >= 0.50f
+                    && decision.flow_scale <= 0.75f));
+        if (aiStatus == SNAP_AI_OK && decisionMetadataValid
+            && decisionScaleValid && decision.mode != SNAP_AI_MODE_BYPASS) {
             const int requestedScale = std::max(50, std::min(75,
                 static_cast<int>(std::lround(decision.flow_scale * 100.0f))));
             const bool scaleDiffers =
@@ -1987,6 +1997,15 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                     aiMetrics.gpu_time_ms, aiMetrics.gpu_pressure,
                     aiMetrics.flow_confidence, aiMetrics.motion_complexity,
                     aiMetrics.artifact_risk);
+        } else if (aiStatus == SNAP_AI_OK
+            && (!decisionMetadataValid || !decisionScaleValid)) {
+            snapframeEvent(aiMetrics.frame_id, "ai_decision_rejected",
+                width, height, !decisionMetadataValid
+                    ? "decision_version_mode_or_frame_id_mismatch"
+                    : "decision_flow_scale_outside_capabilities");
+        } else if (aiStatus != SNAP_AI_OK) {
+            snapframeEvent(aiMetrics.frame_id, "ai_update_failed",
+                width, height, "snap_ai_update_returned_error");
         }
     } else if (aiMetricsSnapshot.frame != 0
         && aiTimingFrame > aiMetricsSnapshot.frame) {
