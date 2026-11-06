@@ -35,13 +35,13 @@ ANDROID_WSI = {
 def extract_array(root: Path, relative: str, name: str) -> list[str]:
     text = (root / relative).read_text(encoding="utf-8")
     match = re.search(
-        rf"(?m)^\\s*{re.escape(name)}\\s*=\\s*\\[(.*?)^\\s*\\]",
+        rf"(?m)^\s*{re.escape(name)}\s*=\s*\[(.*?)^\s*\]",
         text,
         flags=re.DOTALL,
     )
     if not match:
         raise ValueError(f"Meson array {name!r} not found in {relative}")
-    values = re.findall(r"""['"]([^'"]+\\.(?:cpp|c))['"]""", match.group(1))
+    values = re.findall(r"""['"]([^'"]+\.(?:cpp|c))['"]""", match.group(1))
     if not values:
         raise ValueError(f"Meson array {name!r} in {relative} contains no C/C++ sources")
     return values
@@ -62,13 +62,11 @@ def main() -> int:
         paths = [str(prefix / value) for value in values]
 
         if group == "wsi_upstream":
-            # The upstream Meson array mixes common, SDL2, SDL3, GLFW and
-            # Win32 sources. Android's inventory must not accidentally compile
-            # desktop backends or list the SDL2 sources twice.
+            # Upstream mixes common, SDL2, SDL3, GLFW and Win32 sources.
             relative = [value for value in values if value in ANDROID_WSI]
-            unexpected = sorted(set(ANDROID_WSI) - set(relative))
-            if unexpected:
-                errors.append(f"wsi_upstream: required Android WSI entries missing: {unexpected}")
+            missing = sorted(ANDROID_WSI - set(relative))
+            if missing:
+                errors.append(f"wsi_upstream: required Android WSI entries missing: {missing}")
             groups["wsi_common"] = [
                 str(prefix / value) for value in relative
                 if value in {"wsi_edid.cpp", "wsi_platform.cpp"}
@@ -77,12 +75,11 @@ def main() -> int:
                 str(prefix / value) for value in relative
                 if value.startswith("sdl2/")
             ]
-            desktop = [value for value in values if value not in ANDROID_WSI]
             groups["wsi_excluded_desktop"] = [
-                str(prefix / value) for value in desktop
+                str(prefix / value) for value in values if value not in ANDROID_WSI
             ]
-            # Validate all upstream entries exist, including excluded entries:
-            # this catches stale source manifests when the pinned revision drifts.
+            # Validate excluded upstream files too, so the inventory reflects
+            # the complete pinned Meson array rather than a hand-written subset.
             for path in paths:
                 if not (root / path).is_file():
                     errors.append(f"{group}: missing upstream source {path}")
@@ -100,10 +97,8 @@ def main() -> int:
             errors.append(f"{group}: empty Android source list")
 
     if errors:
-        raise SystemExit("\\n".join(errors))
+        raise SystemExit("\n".join(errors))
 
-    # The desktop WSI group is explicitly excluded from the Android build
-    # candidate. Duplicates across build groups are fatal.
     build_groups = [
         "d3d9", "dxvk", "dxso", "util", "vulkan", "wsi_common", "android_wsi"
     ]
@@ -130,7 +125,7 @@ def main() -> int:
             "Do not package this inventory until an Android build and ABI-pair verification pass.",
         ],
     }
-    rendered = json.dumps(manifest, indent=2) + "\\n"
+    rendered = json.dumps(manifest, indent=2) + "\n"
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(rendered, encoding="utf-8")
