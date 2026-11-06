@@ -375,6 +375,40 @@ namespace dxvk::wsi {
     if "m_presentPending = false;" not in presenter_text:
         raise SystemExit("Presenter pending-state retirement changed; re-review generated-present scheduling")
 
+    # WSI acquire/present semaphores are attached to the command list:
+    # acquire is waited before graphics work and present is signalled after it.
+    # Any transaction refactor must preserve this GPU-side dependency chain.
+    cmdlist_header = (dxvk_dir / "dxvk_cmdlist.h").read_text(encoding="utf-8")
+    cmdlist_cpp = (dxvk_dir / "dxvk_cmdlist.cpp").read_text(encoding="utf-8")
+    context_header = (dxvk_dir / "dxvk_context.h").read_text(encoding="utf-8")
+    presenter_header = (dxvk_dir / "dxvk_presenter.h").read_text(encoding="utf-8")
+    presenter_sync = (dxvk_dir / "dxvk_presenter.h").read_text(encoding="utf-8")
+    wsi_gpu_contract = (
+        ("context hands WSI sync to command list",
+         "void synchronizeWsi(PresenterSync sync)" in context_header
+         and "m_cmd->setWsiSemaphores(sync);" in context_header),
+        ("command list owns WSI semaphore pair",
+         "PresenterSync             m_wsiSemaphores = { };" in cmdlist_header
+         and "void setWsiSemaphores(const PresenterSync& wsiSemaphores)" in cmdlist_header),
+        ("graphics waits acquire semaphore",
+         "m_commandSubmission.waitSemaphore(m_wsiSemaphores.acquire," in cmdlist_cpp),
+        ("graphics signals present semaphore",
+         "m_commandSubmission.signalSemaphore(m_wsiSemaphores.present," in cmdlist_cpp),
+        ("presenter sync pair contains binary semaphores",
+         "VkSemaphore acquire;" in presenter_sync
+         and "VkSemaphore present;" in presenter_sync),
+        ("presenter keeps mutable ring state",
+         "std::vector<PresenterSync>  m_semaphores;" in presenter_header
+         and "uint32_t                    m_imageIndex = 0;" in presenter_header
+         and "uint32_t                    m_frameIndex = 0;" in presenter_header),
+    )
+    for description, valid in wsi_gpu_contract:
+        if not valid:
+            raise SystemExit(
+                f"DXVK WSI command-list contract changed ({description}); "
+                "re-review transaction ownership and semaphore retirement"
+            )
+
     # Verify the actual submission queue implementation, not a guessed
     # dxvk_submission_queue.* path. In this pinned revision it is dxvk_queue.*.
     # A generated-present scheduler must preserve the submit-thread ordering,
