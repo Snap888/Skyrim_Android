@@ -94,6 +94,21 @@ typedef struct VkSurfaceFullScreenExclusiveInfoEXT {
 """,
     )
 
+    # The loader header normally gets HMODULE from Vulkan's Win32 platform
+    # declarations. Android must not enable VK_USE_PLATFORM_WIN32_KHR, but the
+    # loader still uses the compatibility HMODULE/dlopen abstraction. Include
+    # that abstraction explicitly so LibraryFn remains well-formed.
+    replace_once(
+        vulkan_loader,
+        """#include "../util/rc/util_rc_ptr.h"
+
+""",
+        """#include "../util/rc/util_rc_ptr.h"
+#include "../util/util_win32_compat.h"
+
+""",
+    )
+
     # DXVK's shared semaphore HANDLE import/export path is Win32-only.
     # Android uses native Vulkan synchronization and must not compile Win32
     # handle structures or DeviceFn entry points from dxvk_fence.cpp.
