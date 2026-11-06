@@ -74,6 +74,18 @@ Keep native-1.9.2b as the default and fallback. Do not expose 2.6.2 until the co
 5. Run device tests on Adreno 740/Turnip, first with FG disabled, then enabled. Compare source FPS, source submission wait, CPU Present P95, GPU stage timing, acquire failures, and long-run stability. A queued/accepted present is not proof of physical scan-out.
 6. Only after all gates pass, expose `native-2.6.2` in the launcher selector. Keep native-1.9.2b as the default/fallback.
 
+## Versioned 2.6.2 source-capture seam
+
+The patcher now copies `snapframe_dxvk262_api.h` into the pinned upstream `src/d3d9` tree and inserts an optional weak C-ABI call in `D3D9SwapChainEx::PresentImage`:
+
+- The hook is invoked on the DXVK command-stream worker after color-space compatibility is prepared and before the source backbuffer is consumed by the WSI blitter.
+- It receives the exact 2.6.2 `DxvkContext`, `DxvkDevice`, and source `DxvkImageView` as opaque pointers, plus a size/version-tagged frame descriptor (frame ID, extent and Vulkan format).
+- Opaque DXVK pointers are valid only for a host compiled against the pinned 2.6.2 headers. They must never be passed to the legacy 1.9.2b host.
+- The weak hook is optional. If the matching host is not linked, DXVK follows the normal source-present path without changing behavior.
+- A future implementation must record work into the supplied context, without flushing/submitting it, waiting on fences, or reading pixels/flow back to CPU. This preserves ordering with the source blit.
+
+This is a source-capture/compute-recording seam only. It does **not** yet generate or present a midpoint, does not establish completion/scan-out, and does not mean a `snapframe_host_262` implementation exists. The next stage is to implement the hook in a separate host compiled against the pinned upstream headers, then add per-window history/resource lifetime and generated-frame scheduling inside the same command stream. The runtime selector remains gated on a fully built matching pair.
+
 ## Android WSI and native-window lifetime
 
 The patcher `tools/dxvk/apply_native_262_android_port.py` applies the Android overlay to the exact pinned upstream checkout:
