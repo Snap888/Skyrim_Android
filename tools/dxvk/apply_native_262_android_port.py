@@ -73,7 +73,7 @@ def main() -> int:
         raise SystemExit("unexpected DXVK device worker-stop lifecycle; re-review device retirement")
     # Device-owned GPU resources may be retired only after queued submissions
     # have drained and pipeline workers have stopped.
-    wait_offset = device_text.rfind("m_objects.waitForIdle();", 0, stop_offset)
+    wait_offset = device_text.rfind("this->waitForIdle();", 0, stop_offset)
     if wait_offset < 0:
         raise SystemExit("DXVK device teardown no longer drains submissions before worker shutdown")
     replace_once(
