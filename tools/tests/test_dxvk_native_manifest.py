@@ -24,10 +24,10 @@ class DxvkNativeManifestParserTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "meson.build").write_text(
-                "unit_src = files([\\n"
-                "  'one.cpp',\\n"
-                "  'two.c',\\n"
-                "])\\n",
+                "unit_src = files([\n"
+                "  'one.cpp',\n"
+                "  'two.c',\n"
+                "])\n",
                 encoding="utf-8",
             )
             self.assertEqual(
