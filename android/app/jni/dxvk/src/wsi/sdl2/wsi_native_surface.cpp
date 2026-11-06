@@ -1,6 +1,7 @@
 #include "wsi_native_surface.h"
 
 #include <mutex>
+#include <utility>
 
 #ifdef __ANDROID__
 #include <android/native_window.h>
@@ -50,6 +51,43 @@ namespace dxvk::wsi {
     pSurface->window = nullptr;
     pSurface->width = 0;
     pSurface->height = 0;
+  }
+
+  bool nativeSurfaceLease(HWND hWindow, NativeSurfaceLease* pOut) {
+    if (!pOut)
+      return false;
+
+    void* window = nullptr;
+    uint32_t width = 0;
+    uint32_t height = 0;
+    {
+      std::lock_guard<std::mutex> lock(g_lock);
+      if (!g_hwnd || (void*)hWindow != g_hwnd || !g_surface.window)
+        return false;
+
+      window = g_surface.window;
+      width = g_surface.width;
+      height = g_surface.height;
+      // Acquire while the registry lock still protects this generation.
+      acquireWindow(window);
+    }
+
+    // Build/replace the shared lease outside the registry lock. Its deleter
+    // may invoke native-window callbacks and must never run under g_lock.
+    std::shared_ptr<void> owned;
+    try {
+      owned = std::shared_ptr<void>(window, [](void* value) {
+        releaseWindow(value);
+      });
+    } catch (...) {
+      releaseWindow(window);
+      throw;
+    }
+
+    pOut->window = std::move(owned);
+    pOut->width = width;
+    pOut->height = height;
+    return true;
   }
 }
 
