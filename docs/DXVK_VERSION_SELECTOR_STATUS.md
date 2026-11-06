@@ -60,7 +60,7 @@ The 2.6.2 native D3D9 swapchain is not source-compatible with the current adapte
 The launcher/runtime selection scaffold is now implemented:
 
 - `DxvkRuntimeSelector` defines complete runtime pairs and checks that both shared objects are present in the APK's native library directory.
-- The launcher displays only variants that are actually packaged. It stores the selected index in the existing `launcher` preferences.
+- The launcher displays only variants that are actually packaged. It stores the selected stable variant ID in the existing `launcher` preferences; the old index preference is migrated once for compatibility.
 - `SkyrimActivity.getLibraries()` resolves the selected pair before SDL loads libraries, loads the matching DXVK library before the matching game runtime, and logs the selected pair.
 - The current Android Native 1.9.2b pair remains the mandatory fallback.
 - The 2.6.2 pair is reserved as `libdxvk_d3d9_262.so` + `libmain_262.so`; it is not shown until both are included in the APK.
