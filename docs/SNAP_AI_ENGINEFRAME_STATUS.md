@@ -752,3 +752,13 @@ compilation can cause long frame-time spikes.
 - Event details now include the trigger reason, both waits, and both thresholds. This will make the next device capture distinguish generated-queue pressure from severe source-present pressure.
 - Skyrim CI run [#42194653430](https://github.com/Snap888/Skyrim_Android/actions/runs/42194653430) completed successfully: portable ARM64 build, API tests, Android Java compile, DXVK/SnapFrame host ARM64 compile and log analyzer tests all passed. Full APK build was skipped.
 - The asymmetric threshold change is not yet device-validated. It is intended to avoid the previous false-positive behavior where source-only waits in the 8–16 ms range repeatedly triggered a long FG cooldown; compare source FPS, generated queued ratio, both submission waits, and visual quality in the same MAILBOX scene.
+
+
+## CI and diagnostic-report follow-up — 2026-11-06
+
+- Android CI run [#42195450809](https://github.com/Snap888/Skyrim_Android/actions/runs/42195450809) passed on branch `Snap-AI-EngineFrame`, commit `3a8d1f83ad384d2e6ab762fbda73704137d95bf9`.
+- Passed jobs: Android Java compilation, SnapFrame log analyzer tests, DXVK/SnapFrame host ARM64 compilation, portable Snap AI + SnapFrame ARM64 build, and portable API tests.
+- Full arm64 APK build was skipped. This run did not produce an installable APK and does not establish device-side behavior.
+- The Markdown diagnostic report now prints the `ai_wsi_backpressure` reason histogram (`generated_wait`, `severe_source_wait`, and legacy/unspecified records). Previously the JSON report carried this information but the human-readable report omitted it.
+- A regression test now verifies that the reason histogram is rendered in Markdown, not merely present in the internal JSON object.
+- The asymmetric WSI thresholds remain provisional until a same-scene device A/B capture confirms source FPS, generated queued ratio, and the separate source/generated waits. Do not retune from CI-only evidence.
