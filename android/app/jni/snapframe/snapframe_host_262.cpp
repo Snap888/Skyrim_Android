@@ -69,19 +69,38 @@ void logOnce(const char* message) {
   __android_log_print(ANDROID_LOG_INFO, kLogTag, "%s", message);
 }
 
+VkFormatProperties queryFormatProperties(DxvkDevice* device, VkFormat format) {
+  VkFormatProperties properties{};
+  device->adapter()->vki()->vkGetPhysicalDeviceFormatProperties(
+    device->adapter()->handle(), format, &properties);
+  return properties;
+}
+
+VkResult queryImageFormatProperties(
+    DxvkDevice* device,
+    VkFormat format,
+    VkImageType type,
+    VkImageTiling tiling,
+    VkImageUsageFlags usage,
+    VkImageCreateFlags flags,
+    VkImageFormatProperties& properties) {
+  return device->adapter()->vki()->vkGetPhysicalDeviceImageFormatProperties(
+    device->adapter()->handle(), format, type, tiling, usage, flags, &properties);
+}
+
 bool supportsLumaFormat(DxvkDevice* device, uint32_t width, uint32_t height) {
   if (!device || !device->features().core.features.shaderStorageImageExtendedFormats)
     return false;
 
   const VkFormatProperties formatProperties =
-    device->adapter()->formatProperties(VK_FORMAT_R16_SFLOAT);
+    queryFormatProperties(device, VK_FORMAT_R16_SFLOAT);
   const VkFormatFeatureFlags required =
     VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
   if ((formatProperties.optimalTilingFeatures & required) != required)
     return false;
 
   VkImageFormatProperties imageProperties{};
-  const VkResult result = device->adapter()->imageFormatProperties(
+  const VkResult result = queryImageFormatProperties(device, 
     VK_FORMAT_R16_SFLOAT, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 0, imageProperties);
 
@@ -160,11 +179,11 @@ bool initializeDeviceState(DeviceState& state, DxvkDevice* device,
   state.flowWidth = (lumaWidth + flowStride - 1u) / flowStride;
   state.flowHeight = (lumaHeight + flowStride - 1u) / flowStride;
   const VkFormat flowFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
-  const VkFormatProperties flowProperties = device->adapter()->formatProperties(flowFormat);
+  const VkFormatProperties flowProperties = queryFormatProperties(device, flowFormat);
   const VkFormatFeatureFlags flowRequired =
     VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
   VkImageFormatProperties flowImageProperties{};
-  const VkResult flowResult = device->adapter()->imageFormatProperties(
+  const VkResult flowResult = queryImageFormatProperties(device, 
     flowFormat, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 0, flowImageProperties);
   if ((flowProperties.optimalTilingFeatures & flowRequired) != flowRequired
@@ -264,11 +283,11 @@ bool initializeDeviceState(DeviceState& state, DxvkDevice* device,
     return false;
 
   const VkFormat colorFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
-  const VkFormatProperties colorProperties = device->adapter()->formatProperties(colorFormat);
+  const VkFormatProperties colorProperties = queryFormatProperties(device, colorFormat);
   const VkFormatFeatureFlags colorRequired =
     VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
   VkImageFormatProperties colorImageProperties{};
-  const VkResult colorResult = device->adapter()->imageFormatProperties(
+  const VkResult colorResult = queryImageFormatProperties(device, 
     colorFormat, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 0, colorImageProperties);
   if ((colorProperties.optimalTilingFeatures & colorRequired) != colorRequired
