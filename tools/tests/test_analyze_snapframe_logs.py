@@ -4,7 +4,7 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from analyze_snapframe_logs import analyze, read_csv
+from analyze_snapframe_logs import analyze, read_csv, to_markdown
 
 
 class AnalyzerTests(unittest.TestCase):
@@ -121,6 +121,11 @@ class AnalyzerTests(unittest.TestCase):
                 "severe_source_wait": 1,
                 "legacy_or_unspecified": 1,
             })
+            rendered = to_markdown(report)
+            self.assertIn("## WSI throttle reasons", rendered)
+            self.assertIn("- generated_wait: 1", rendered)
+            self.assertIn("- severe_source_wait: 1", rendered)
+            self.assertIn("- legacy_or_unspecified: 1", rendered)
 
 if __name__ == "__main__":
     unittest.main()
