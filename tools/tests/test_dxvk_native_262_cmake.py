@@ -21,6 +21,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("add_subdirectory(dxvk_native_262)", self.root_text)
         self.assertRegex(self.text, r"add_library\(dxvk_d3d9_262 SHARED")
         self.assertIn("DXVK source revision mismatch", self.text)
+        self.assertNotIn("target_link_libraries(dxvk_d3d9_262 PRIVATE\n    SDL2", self.text)
 
     def test_android_arm64_soname_contract_is_unversioned(self):
         self.assertIn('OUTPUT_NAME "dxvk_d3d9_262"', self.text)
@@ -48,7 +49,8 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
             "find_library(SNAP_VULKAN_LIBRARY vulkan REQUIRED)",
             "find_library(SNAP_ANDROID_LIBRARY android REQUIRED)",
             "find_library(SNAP_LOG_LIBRARY log REQUIRED)",
-            "SDL2 snap_display_info Threads::Threads",
+            "snap_display_info Threads::Threads",
+            "$<TARGET_PROPERTY:SDL2,INTERFACE_INCLUDE_DIRECTORIES>",
         ):
             self.assertIn(dependency, self.text)
 
