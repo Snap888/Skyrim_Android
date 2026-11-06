@@ -1,0 +1,64 @@
+{
+  "schema": "snap-dxvk-android-candidates-v1",
+  "baseline": {
+    "id": "native-1.9.2b",
+    "version": "1.9.2",
+    "source": "in-tree Android-adapted DXVK Native",
+    "libraries": ["libdxvk_d3d9.so", "libmain.so"],
+    "status": "packaged-fallback",
+    "default": true
+  },
+  "candidates": [
+    {
+      "id": "native-2.6.2",
+      "version": "2.6.2",
+      "repository": "https://github.com/doitsujin/dxvk",
+      "tag": "v2.6.2",
+      "tag_object": "e2373f9421f2c70583aea75c54219fbdcd67959c",
+      "commit": "9d6f54a1ade20d1d27dd421024717a636f3d8c68",
+      "tag_signature_verified": true,
+      "libraries": ["libdxvk_d3d9_262.so", "libmain_262.so"],
+      "vulkan_floor": "No new Vulkan feature requirement introduced by this maintenance release",
+      "priority": 1,
+      "status": "source-pinned-port-required",
+      "notes": "First Android port target; lowest compatibility risk among the selected upstream candidates."
+    },
+    {
+      "id": "native-2.7.1",
+      "version": "2.7.1",
+      "repository": "https://github.com/doitsujin/dxvk",
+      "tag": "v2.7.1",
+      "tag_object": "ab3631f80d9cd493676d4342bf614028c72e7484",
+      "commit": "c3dd74be6baec53786d4e064a572185b70347a17",
+      "tag_signature_verified": true,
+      "libraries": ["libdxvk_d3d9_271.so", "libmain_271.so"],
+      "vulkan_floor": "VK_KHR_maintenance5",
+      "priority": 2,
+      "status": "source-pinned-port-required",
+      "notes": "Candidate only after verifying maintenance5 exposure on the target Adreno 740/Turnip driver."
+    },
+    {
+      "id": "native-3.1.1",
+      "version": "3.1.1",
+      "repository": "https://github.com/doitsujin/dxvk",
+      "tag": "v3.1.1",
+      "tag_object": "1e0f92318d6ec7b7286e050d9e24fd01a2d09c92",
+      "commit": "b1a1c99ab52b687cf950d62c88bc2fa316b41663",
+      "tag_signature_verified": true,
+      "libraries": ["libdxvk_d3d9_311.so", "libmain_311.so"],
+      "vulkan_floor": "Vulkan 1.4-class driver support required by upstream DXVK 3.1",
+      "priority": 3,
+      "status": "source-pinned-port-required",
+      "notes": "High-risk experimental target; do not enable by default on Adreno 740 without explicit extension and device validation."
+    }
+  ],
+  "activation_gate": [
+    "Android ARM64 DXVK library builds from the exact pinned source",
+    "Matching Skyrim runtime is linked against that exact versioned DXVK SONAME",
+    "ELF AArch64, SONAME, D3D9 exports and DT_NEEDED checks pass",
+    "SnapFrame source capture and generated present hooks are ported without changing semaphore ownership",
+    "Snap AI source/generated pressure telemetry remains nonblocking",
+    "Device test passes with SnapFrame OFF before ON",
+    "Only complete runtime pairs are copied into APK jniLibs"
+  ]
+}
