@@ -85,3 +85,21 @@ The updated measurements subtract both nested submission-wait deltas from the en
 The Android CI now uses `tools/ci/verify_dxvk_runtime_pair.sh` for the candidate pair acceptance checks. It accepts a DXVK shared object, its matching game runtime, the NDK `llvm-readelf` and `llvm-nm` tools, and the expected DXVK SONAME. It checks both files are AArch64 ELF, verifies the DXVK SONAME, requires the D3D9 creation exports, and verifies that the runtime's dynamic section has an exact `DT_NEEDED` entry for that SONAME.
 
 The current CI feeds the existing baseline DXVK and the small ABI-linkage probe into this verifier because generated Skyrim C sources are not present in the repository checkout. That proves the baseline DXVK ABI and the link edge in isolation; it does **not** claim the probe is a real `libmain.so`. When the 2.6.2 port produces both candidate objects, run the same verifier with `libdxvk_d3d9_262.so` and the actual `libmain_262.so` before allowing the launcher selector to expose the variant.
+
+
+## Reproducible upstream source audit (2026-11-06)
+
+The exact 2.6.2 upstream source is now materialized by
+`tools/dxvk/checkout_native_262_source.sh`. The script fetches the signed
+`v2.6.2` tag, rejects any resolved commit other than
+`9d6f54a1ade20d1d27dd421024717a636f3d8c68`, checks the reviewed D3D9,
+presenter, SDL2 WSI and Meson source files, and verifies the key
+`acquireNextImage` / `EmitCs` / `synchronizeWsi` / `presentImage`
+integration anchors. Android CI runs this audit on every branch update.
+
+This makes the reviewed upstream source reproducible and catches accidental
+tag drift or changes in the presenter contract before port work proceeds.
+It deliberately reports `NOT_PORTED` / `SOURCE_ONLY`: no upstream DXVK
+binary is built or packaged by this audit. The next engineering stage is the
+Android-native WSI and SnapFrame present-adapter port, followed by a matching
+Skyrim runtime link.
