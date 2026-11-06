@@ -67,6 +67,18 @@ foreach(_group IN ITEMS d3d9 dxvk dxso util spirv vulkan wsi_common android_wsi 
     endforeach()
 endforeach()
 
+# Meson's non-Windows resource generator is a no-op touch() rule for
+# version.rc. Mirror its generated dependency so the D3D9 target has the same
+# resource-generation edge instead of silently dropping it from the source graph.
+set(_d3d9_resource_header "${CMAKE_CURRENT_BINARY_DIR}/generated/version_ignored.h")
+add_custom_command(
+    OUTPUT "${_d3d9_resource_header}"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/generated"
+    COMMAND "${CMAKE_COMMAND}" -E touch "${_d3d9_resource_header}"
+    DEPENDS "${SNAP_DXVK_NATIVE_262_SOURCE_DIR}/src/d3d9/version.rc"
+    VERBATIM)
+list(APPEND _dxvk_sources "${_d3d9_resource_header}")
+
 # Compile upstream GLSL to the same generated C++ headers used by Meson.
 set(_shader_headers)
 foreach(_group IN ITEMS d3d9_shaders dxvk_shaders)
