@@ -178,6 +178,70 @@ typedef struct VkSurfaceFullScreenExclusiveInfoEXT {
 """,
     )
 
+    # DXVK shared-image HANDLE import is a Win32-only interop path. Android
+    # Vulkan exposes FD imports, but DXVK's DxvkSharedImageInfo carries a Win32
+    # HANDLE and Win32 handle type; silently treating it as an FD is invalid.
+    # Keep ordinary image allocation intact and reject this optional interop
+    # path explicitly on Android.
+    image_cpp = dxvk_dir / "dxvk_image.cpp"
+    replace_once(
+        image_cpp,
+        """    // Set up external memory parameters for shared images
+    VkExternalMemoryImageCreateInfo externalInfo = { VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO };
+
+    if (m_shared) {
+      externalInfo.pNext = std::exchange(imageInfo.pNext, &externalInfo);
+      externalInfo.handleTypes = m_info.sharing.type;
+    }
+
+    // Set up shared memory properties
+    void* sharedMemoryInfo = nullptr;
+
+    VkExportMemoryAllocateInfo sharedExport = { VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO };
+    VkImportMemoryWin32HandleInfoKHR sharedImportWin32 = { VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHR };
+
+    if (m_shared && m_info.sharing.mode == DxvkSharedHandleMode::Export) {
+      sharedExport.pNext = std::exchange(sharedMemoryInfo, &sharedExport);
+      sharedExport.handleTypes = m_info.sharing.type;
+    }
+
+    if (m_shared && m_info.sharing.mode == DxvkSharedHandleMode::Import) {
+      sharedImportWin32.pNext = std::exchange(sharedMemoryInfo, &sharedImportWin32);
+      sharedImportWin32.handleType = m_info.sharing.type;
+      sharedImportWin32.handle = m_info.sharing.handle;
+    }
+""",
+        """    // Set up external memory parameters for shared images. DXVK's shared
+    // image handle is a Win32 HANDLE, not an Android native FD.
+    void* sharedMemoryInfo = nullptr;
+#ifdef _WIN32
+    VkExternalMemoryImageCreateInfo externalInfo = { VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO };
+
+    if (m_shared) {
+      externalInfo.pNext = std::exchange(imageInfo.pNext, &externalInfo);
+      externalInfo.handleTypes = m_info.sharing.type;
+    }
+
+    VkExportMemoryAllocateInfo sharedExport = { VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO };
+    VkImportMemoryWin32HandleInfoKHR sharedImportWin32 = { VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHR };
+
+    if (m_shared && m_info.sharing.mode == DxvkSharedHandleMode::Export) {
+      sharedExport.pNext = std::exchange(sharedMemoryInfo, &sharedExport);
+      sharedExport.handleTypes = m_info.sharing.type;
+    }
+
+    if (m_shared && m_info.sharing.mode == DxvkSharedHandleMode::Import) {
+      sharedImportWin32.pNext = std::exchange(sharedMemoryInfo, &sharedImportWin32);
+      sharedImportWin32.handleType = m_info.sharing.type;
+      sharedImportWin32.handle = m_info.sharing.handle;
+    }
+#else
+    if (m_shared)
+      Logger::warn("DXVK Win32 shared-image handles are unavailable on Android");
+#endif
+""",
+    )
+
     # Carry immutable identity for the source WSI acquire all the way from
     # Presenter -> command list -> queued present. This is deliberately the
     # first safe transaction step: one source transaction remains in flight,
