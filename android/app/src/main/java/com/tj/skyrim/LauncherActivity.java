@@ -250,6 +250,17 @@ public class LauncherActivity extends Activity {
         spinner(root, "snapFramePresentMode", "Presentation mode",
                 new String[] {"Auto", "FIFO", "MAILBOX", "IMMEDIATE"}, 0);
         text(root, "Controls the shared DXVK output swapchain for both game and generated frames. Unsupported modes safely fall back to FIFO. Applied on next launch.", 13, false);
+        spinner(root, "snapFrameAiMode", "Snap AI operating mode",
+                new String[] {"Standard — fixed load", "Intelligent — adaptive AI", "Manual — custom thresholds"}, 1);
+        text(root, "Standard keeps the selected Flow Scale fixed. Intelligent adapts quality from GPU timing and motion telemetry. Manual uses the thresholds below to decide when to reduce or increase workload.", 13, false);
+        spinner(root, "snapFrameAiBudget", "Manual target GPU budget",
+                new String[] {"4.0 ms", "5.0 ms", "6.0 ms", "7.0 ms", "8.0 ms", "10.0 ms"}, 2);
+        spinner(root, "snapFrameAiPressure", "Reduce load at GPU pressure",
+                new String[] {"0.60", "0.70", "0.75", "0.80", "0.90"}, 2);
+        spinner(root, "snapFrameAiHeadroom", "Allow quality increase below pressure",
+                new String[] {"0.40", "0.50", "0.55", "0.60", "0.70"}, 2);
+        spinner(root, "snapFrameAiArtifact", "Maximum artifact risk for quality increase",
+                new String[] {"0.10", "0.15", "0.25", "0.35", "0.45"}, 2);
 
         text(root, "Vulkan GPU driver", 20, true);
         text(root, "System uses the Android device driver. Import a compatible Turnip ZIP to use a custom Adreno driver.", 13, false);
@@ -536,16 +547,27 @@ public class LauncherActivity extends Activity {
         if (!port.exists() && !port.mkdirs())
             throw new java.io.IOException("cannot create SnapFrame config folder");
         File config = new File(port, "snapframe.conf");
+        Map<String, String> settings = new LinkedHashMap<>();
+        settings.put("present_mode", String.valueOf(sel("snapFramePresentMode")));
+        settings.put("ai_mode", String.valueOf(sel("snapFrameAiMode")));
+        settings.put("ai_gpu_budget_ms", new String[] {"4.0", "5.0", "6.0", "7.0", "8.0", "10.0"}[sel("snapFrameAiBudget")]);
+        settings.put("ai_pressure_threshold", new String[] {"0.60", "0.70", "0.75", "0.80", "0.90"}[sel("snapFrameAiPressure")]);
+        settings.put("ai_headroom_threshold", new String[] {"0.40", "0.50", "0.55", "0.60", "0.70"}[sel("snapFrameAiHeadroom")]);
+        settings.put("ai_artifact_threshold", new String[] {"0.10", "0.15", "0.25", "0.35", "0.45"}[sel("snapFrameAiArtifact")]);
+
         List<String> lines = new ArrayList<>();
-        boolean replaced = false;
+        Map<String, Boolean> written = new LinkedHashMap<>();
+        for (String key : settings.keySet()) written.put(key, false);
         if (config.isFile()) {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(config)))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    if (line.trim().startsWith("present_mode=")) {
-                        if (!replaced) {
-                            lines.add("present_mode=" + sel("snapFramePresentMode"));
-                            replaced = true;
+                    int equals = line.indexOf('=');
+                    String key = equals > 0 ? line.substring(0, equals).trim() : "";
+                    if (settings.containsKey(key)) {
+                        if (!written.get(key)) {
+                            lines.add(key + "=" + settings.get(key));
+                            written.put(key, true);
                         }
                     } else {
                         lines.add(line);
@@ -553,7 +575,10 @@ public class LauncherActivity extends Activity {
                 }
             }
         }
-        if (!replaced) lines.add("present_mode=" + sel("snapFramePresentMode"));
+        for (Map.Entry<String, String> entry : settings.entrySet()) {
+            if (!written.get(entry.getKey()))
+                lines.add(entry.getKey() + "=" + entry.getValue());
+        }
         try (Writer writer = new OutputStreamWriter(new FileOutputStream(config))) {
             for (String line : lines) writer.write(line + "\n");
         }
