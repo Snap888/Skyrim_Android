@@ -352,6 +352,26 @@ namespace dxvk::wsi {
         raise SystemExit("Presenter semaphore ring changed; re-review generated-present scheduling")
     if "waitForSwapchainFence(nextSync);" not in presenter_text:
         raise SystemExit("Presenter next-slot fence reuse changed; re-review generated-present scheduling")
+
+    # The pinned presentImage implementation performs a potentially blocking
+    # next-slot fence wait and an infinite-timeout acquire on the submit worker.
+    # A generated present must not be inserted into this worker until that
+    # blocking WSI path is replaced by independently owned non-blocking slots.
+    present_begin = presenter_text.find("VkResult Presenter::presentImage(")
+    present_end = presenter_text.find("void Presenter::signalFrame(", present_begin)
+    if present_begin < 0 or present_end <= present_begin:
+        raise SystemExit("Presenter::presentImage boundaries changed; re-review WSI blocking behavior")
+    present_body = presenter_text[present_begin:present_end]
+    for blocking_anchor in (
+        "waitForSwapchainFence(nextSync);",
+        "std::numeric_limits<uint64_t>::max(),",
+        "vkAcquireNextImageKHR(",
+    ):
+        if blocking_anchor not in present_body:
+            raise SystemExit(
+                "Presenter blocking pre-acquire behavior changed; re-review generated-present scheduling"
+            )
+
     if "m_presentPending = false;" not in presenter_text:
         raise SystemExit("Presenter pending-state retirement changed; re-review generated-present scheduling")
 
