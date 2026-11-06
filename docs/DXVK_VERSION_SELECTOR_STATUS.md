@@ -17,13 +17,22 @@ This provides a valid selection point before game startup, but changing only a c
 
 ## Candidate matrix
 
-| Variant | Source | Status | Decision |
-|---|---|---|---|
-| Android baseline | In-tree native-1.9.2b + Skyrim patches | Existing fallback | Keep unchanged |
-| DXVK Native 2.6.2 | Official `doitsujin/dxvk` tag `v2.6.2`, commit `9d6f54a1ade20d1d27dd421024717a636f3d8c68`, built with `DXVK_NATIVE` + SDL2 WSI | Candidate; not yet ported or built for Android | First upgrade target |
-| DXVK 3.1.1 | Current Snap888/dxvk master lineage | Not a native Android drop-in; higher compatibility risk | Do not expose yet |
+Pinned upstream release tags are recorded in `tools/dxvk/android_candidates.json`. All three upstream tags have verified signatures and immutable commit pins.
 
-Important distinction: DXVK Native is built from the official `doitsujin/dxvk` source tree with its native build configuration and a selected WSI backend; it is not a separate downloadable Android binary. The candidate must be built from source at the pinned tag with `DXVK_NATIVE` and `DXVK_WSI_SDL2`, not taken from the Windows/Wine release assets. The upstream README documents SDL2, SDL3, and GLFW native WSI backends. Its release notes describe 2.6.2 as a maintenance release without new Vulkan feature requirements and mention improved dxvk-native WSI backend selection. This makes it a more defensible first candidate than jumping directly to 3.1.1.
+| Variant | Pinned upstream source | Android status | Compatibility decision |
+|---|---|---|---|
+| Android baseline | In-tree native-1.9.2b + Skyrim patches | Packaged and selectable | Guaranteed rollback/default |
+| DXVK Native 2.6.2 | `v2.6.2` / `9d6f54a1ade20d1d27dd421024717a636f3d8c68` | Registered in selector; Android port and pair build pending | First port target; maintenance release adds no new Vulkan feature requirement |
+| DXVK Native 2.7.1 | `v2.7.1` / `c3dd74be6baec53786d4e064a572185b70347a17` | Registered in selector; Android port and pair build pending | Requires `VK_KHR_maintenance5`; validate Turnip support before packaging |
+| DXVK Native 3.1.1 | `v3.1.1` / `b1a1c99ab52b687cf950d62c88bc2fa316b41663` | Registered in selector; Android port and pair build pending | Experimental; upstream DXVK 3.1 requires Vulkan 1.4-class driver support |
+
+The launcher selector now knows the three versioned library pairs:
+
+- 2.6.2: `libdxvk_d3d9_262.so` + `libmain_262.so`
+- 2.7.1: `libdxvk_d3d9_271.so` + `libmain_271.so`
+- 3.1.1: `libdxvk_d3d9_311.so` + `libmain_311.so`
+
+The selector still exposes only pairs actually packaged in the APK and passing its ARM64 ELF sanity gate. This is intentional: registering a version is not the same as having a working Android binary. No candidate is selectable until its matching DXVK and Skyrim runtime are both built and pass the full linkage and device gates.
 
 ## Required architecture for a real selector
 
@@ -79,7 +88,7 @@ This prevents a misleading version selector: the UI cannot select a version whos
 
 ## Current readiness
 
-**Not ready for multi-version device testing.** The selector framework's Java compilation passed in Android CI run `42178305096`. Only the baseline pair is currently packaged, so the launcher correctly exposes no alternative yet. DXVK-Native 2.6.2 still needs the Android ARM64 port, SnapFrame/Snap AI adapter migration, the matching `main_262` runtime build, and packaging. The expanded native CI gate that also builds `main` and checks its exact DXVK `DT_NEEDED` dependency has been added; its validation is pending in the current branch CI run.
+**Not ready for multi-version device testing.** The selector framework registers 2.6.2, 2.7.1 and 3.1.1, but only the baseline pair is currently packaged; therefore no newer version is selectable yet. Each candidate still needs its Android ARM64 port, SnapFrame/Snap AI adapter migration, matching versioned Skyrim runtime, ABI/linkage verification and device testing.
 ## Runtime package integrity gate (2026-11-06)
 
 The selector no longer treats the presence of two filenames as sufficient. Before advertising or resolving a pair, it checks that both files are regular files with a minimum ELF64 header and the expected Android ARM64 encoding (ELF magic, 64-bit class, little-endian data, and `e_machine=EM_AARCH64`). This prevents an empty placeholder, wrong-ABI object, or partially copied library from making the candidate selectable.
