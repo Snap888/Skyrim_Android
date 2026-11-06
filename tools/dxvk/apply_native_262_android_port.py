@@ -328,7 +328,36 @@ namespace dxvk::wsi {
     if "PresenterSurfaceProc        m_surfaceProc;" not in presenter_header:
         raise SystemExit("Presenter no longer owns PresenterSurfaceProc; re-review lease lifetime")
 
+    # SnapFrame's generated-present scheduler is not enabled by this Android
+    # port patch. Pin the exact single-transaction assumptions so an upstream
+    # Presenter refactor cannot silently invalidate the reviewed design.
+    acquire_cpp = """    // Don't acquire more than one image at a time
+    VkResult status = VK_SUCCESS;
+
+    m_surfaceCond.wait(lock, [this, &status] {
+      status = m_device->getDeviceStatus();
+      return !m_presentPending || status < 0;
+    });"""
+    if presenter_text.count(acquire_cpp) != 1:
+        raise SystemExit("Presenter acquire serialization changed; re-review generated-present scheduling")
+
+    present_cpp = """    VkResult status = m_vkd->vkQueuePresentKHR(
+      m_device->queues().graphics.queueHandle, &info);"""
+    if presenter_text.count(present_cpp) != 1:
+        raise SystemExit("Presenter present queue path changed; re-review generated-present scheduling")
+
+    if "m_acquireStatus = m_vkd->vkAcquireNextImageKHR" not in presenter_text:
+        raise SystemExit("Presenter no longer pre-acquires after present; re-review slot ownership")
+    if "m_frameIndex %= m_semaphores.size();" not in presenter_text:
+        raise SystemExit("Presenter semaphore ring changed; re-review generated-present scheduling")
+    if "waitForSwapchainFence(nextSync);" not in presenter_text:
+        raise SystemExit("Presenter next-slot fence reuse changed; re-review generated-present scheduling")
+    if "m_presentPending = false;" not in presenter_text:
+        raise SystemExit("Presenter pending-state retirement changed; re-review generated-present scheduling")
+
     print("DXVK_NATIVE_262_ANDROID_PRESENTER_WSI_PATCH_OK")
+    print("Verified: one outstanding acquire/present transaction; pre-acquire advances semaphore ring.")
+    print("SnapFrame generated present: DISABLED pending a DXVK-owned asynchronous transaction scheduler.")
     print("Changes: Presenter-owned ANativeWindow lease; Android surface create; instance extension.")
     print("Build status: NOT_BUILT")
     return 0
