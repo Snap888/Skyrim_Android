@@ -387,3 +387,18 @@ semaphore reuse rules on devices both with and without
 Do not remove the blocking pre-acquire as an isolated patch. Until the
 per-transaction state and semaphore retirement are implemented together,
 the current source present path remains untouched.
+
+
+## Reference-model cleanup and non-blocking acquire outcomes
+
+The transaction reference tests now model the result of an optional generated
+acquire explicitly. A not-ready/timeout result drops the generated frame
+without changing slot ownership; out-of-date and surface-lost retire the
+current generation; device-lost abandons all device-owned slots. Additional
+tests cover these paths.
+
+The same update removes a duplicated scheduler implementation and duplicate
+test class that had shadowed earlier source-priority tests in the Python
+module. The remaining source-priority model is an admission-policy test only.
+Neither model claims to exercise Vulkan or prove the Android driver's acquire
+latency.
