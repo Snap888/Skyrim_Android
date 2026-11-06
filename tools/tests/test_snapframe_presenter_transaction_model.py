@@ -18,6 +18,8 @@ class State(Enum):
 
 class PresentResult(Enum):
     SUCCESS = auto()
+    NOT_READY = auto()
+    TIMEOUT = auto()
     OUT_OF_DATE = auto()
     SURFACE_LOST = auto()
     DEVICE_LOST = auto()
