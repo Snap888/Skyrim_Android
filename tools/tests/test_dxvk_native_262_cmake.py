@@ -251,6 +251,35 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, host)
 
+    def test_pinned_dxvk_submission_queue_contract_is_guarded(self):
+        # The pinned tree implements DxvkSubmissionQueue in dxvk_queue.*.
+        # The Android patcher must validate this exact queue architecture
+        # before applying any SnapFrame integration.
+        self.assertIn('queue_header = (dxvk_dir / "dxvk_queue.h")', self.patcher)
+        self.assertIn('queue_cpp = (dxvk_dir / "dxvk_queue.cpp")', self.patcher)
+        for required in (
+            "m_submitThread",
+            "m_finishThread",
+            "m_submitQueue",
+            "m_mutexQueue",
+            "entry.present.presenter->presentImage(",
+            "entry.present.presenter->signalFrame(",
+            "m_finishQueue.push(std::move(entry));",
+            "m_finishQueue.pop();",
+            "D3D9 source submit/present ordering changed",
+            "DxvkSubmissionQueue FIFO submit worker + finish-thread retirement.",
+        ):
+            self.assertIn(required, self.patcher)
+
+        # Current source closure queues command submission and then present;
+        # the submission queue's submit thread serializes the Vulkan calls.
+        self.assertIn("m_submitQueue.push(std::move(entry));", self.patcher)
+        self.assertIn("std::lock_guard<dxvk::mutex> lock(m_mutexQueue);", self.patcher)
+        self.assertIn("entry.submit.cmdList->submit(", self.patcher)
+        self.assertIn("entry.present.presenter->presentImage(", self.patcher)
+        self.assertIn("entry.present.presenter->signalFrame(", self.patcher)
+        self.assertIn("SnapFrame generated present: DISABLED pending a DXVK-owned asynchronous transaction scheduler.", self.patcher)
+
     def test_legacy_snapframe_host_is_not_linked_to_262_candidate(self):
         # The current SnapFrame host consumes DXVK-internal C++ types from the
         # 1.9.2b tree. Keep the candidate isolated until a 2.6.2-native host
