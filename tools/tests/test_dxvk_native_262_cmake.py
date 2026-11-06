@@ -5,6 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 CMAKE = ROOT / "android/app/jni/dxvk_native_262/CMakeLists.txt"
 JNI_CMAKE = ROOT / "android/app/jni/CMakeLists.txt"
+BUILD_SCRIPT = ROOT / "tools/dxvk/build_native_262_android_candidate.sh"
 
 
 class DxvkNative262CMakeContractTests(unittest.TestCase):
@@ -12,6 +13,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
     def setUpClass(cls):
         cls.text = CMAKE.read_text(encoding="utf-8")
         cls.root_text = JNI_CMAKE.read_text(encoding="utf-8")
+        cls.build_script = BUILD_SCRIPT.read_text(encoding="utf-8")
 
     def test_candidate_is_opt_in_and_keeps_baseline_default(self):
         self.assertIn("option(SNAP_BUILD_DXVK_NATIVE_262", self.root_text)
@@ -48,6 +50,16 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
             "SDL2 snap_display_info Threads::Threads",
         ):
             self.assertIn(dependency, self.text)
+
+
+    def test_arm64_build_script_checks_elf_soname_and_exports(self):
+        self.assertIn("android.toolchain.cmake", self.build_script)
+        self.assertIn('ABI=${ANDROID_ABI:-arm64-v8a}', self.build_script)
+        self.assertIn("llvm-readelf", self.build_script)
+        self.assertIn("llvm-nm", self.build_script)
+        self.assertIn("Library soname: [libdxvk_d3d9_262.so]", self.build_script)
+        self.assertIn("Direct3DCreate9", self.build_script)
+        self.assertIn("Direct3DCreate9Ex", self.build_script)
 
     def test_candidate_does_not_replace_production_runtime(self):
         self.assertIn("SNAP_BUILD_DXVK_NATIVE_262", self.root_text)
