@@ -259,3 +259,14 @@ destroys the swapchain and surface before member destruction. This gives the
 This replaces the earlier broad assumption that the current registry's
 active-registration reference alone could cover surface lifetime. The
 presenter-owned lease is the required 2.6.2 lifetime mechanism.
+
+### Android source-inventory split (2026-11-06)
+
+The pinned Meson source inventory is now split into explicit candidate groups:
+- `wsi_common`: `wsi_edid.cpp` and `wsi_platform.cpp`.
+- `android_wsi`: the three SDL2 WSI translation units.
+- `wsi_excluded_desktop`: upstream Win32, SDL3 and GLFW translation units, retained in the manifest for audit but excluded from the Android build groups.
+
+The generator checks that all five expected Android WSI entries are present in the upstream `wsi_src` array, verifies that every upstream WSI source exists at the pinned revision, and rejects duplicate paths across the proposed Android build groups. This avoids treating the upstream mixed-platform WSI array as a ready-made Android source list.
+
+This remains a source inventory only. The generated shader/resource pipeline, SDL2 dependency configuration, Android Vulkan surface adapter, compiler definitions and linker setup still need to be ported and built before a 2.6.2 Android library can be claimed.
