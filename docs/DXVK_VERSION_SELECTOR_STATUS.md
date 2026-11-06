@@ -73,4 +73,4 @@ This prevents a misleading version selector: the UI cannot select a version whos
 
 ## Current readiness
 
-**Not ready for multi-version device testing.** The selector framework is committed and Java CI must validate it, but only the baseline pair is currently packaged. DXVK-Native 2.6.2 still needs the Android ARM64 port, SnapFrame/Snap AI adapter migration, the matching `main_262` runtime build, and packaging.
+**Not ready for multi-version device testing.** The selector framework's Java compilation passed in Android CI run `42178305096`. Only the baseline pair is currently packaged, so the launcher correctly exposes no alternative yet. DXVK-Native 2.6.2 still needs the Android ARM64 port, SnapFrame/Snap AI adapter migration, the matching `main_262` runtime build, and packaging. The expanded native CI gate that also builds `main` and checks its exact DXVK `DT_NEEDED` dependency is pending validation in run `42180093061`.
