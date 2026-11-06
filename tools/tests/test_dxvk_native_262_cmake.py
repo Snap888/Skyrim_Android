@@ -98,6 +98,8 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("void* context", self.dxvk262_api)
         self.assertIn("void* device", self.dxvk262_api)
         self.assertIn("void* source_view", self.dxvk262_api)
+        self.assertIn("void* window_token", self.dxvk262_api)
+        self.assertIn("static_cast<void*>(cPresenter.ptr())", self.patcher)
         self.assertIn("__attribute__((weak))", self.dxvk262_api)
         self.assertIn("must not submit/flush it", self.dxvk262_api)
         self.assertIn('snapframe_api = project / "android/app/jni/snapframe/snapframe_dxvk262_api.h"', self.patcher)
