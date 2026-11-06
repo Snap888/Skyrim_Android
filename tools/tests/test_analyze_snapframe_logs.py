@@ -110,10 +110,10 @@ class AnalyzerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / "snapframe_events.csv").write_text(
-                "frame,event,width,height,detail\\n"
-                '1,ai_wsi_backpressure,2448,1080,"reason=generated_wait;source_wait_ms=2.0;generated_wait_ms=9.0"\\n'
-                '2,ai_wsi_backpressure,2448,1080,"reason=severe_source_wait;source_wait_ms=17.0;generated_wait_ms=0.4"\\n'
-                '3,ai_wsi_backpressure,2448,1080,"source_wait_ms=10.0;generated_wait_ms=9.0"\\n',
+                "frame,event,width,height,detail\n"
+                '1,ai_wsi_backpressure,2448,1080,"reason=generated_wait;source_wait_ms=2.0;generated_wait_ms=9.0"\n'
+                '2,ai_wsi_backpressure,2448,1080,"reason=severe_source_wait;source_wait_ms=17.0;generated_wait_ms=0.4"\n'
+                '3,ai_wsi_backpressure,2448,1080,"source_wait_ms=10.0;generated_wait_ms=9.0"\n',
                 encoding="utf-8")
             report = analyze(root)
             self.assertEqual(report["wsi_throttle_reasons"], {
