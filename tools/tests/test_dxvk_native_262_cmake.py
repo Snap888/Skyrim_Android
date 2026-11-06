@@ -94,6 +94,10 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("snapframe_dxvk262_record_source", self.build_script)
         self.assertIn("ELF_DEFINED", self.build_script)
         self.assertIn("DXVK_NATIVE_262_SNAPFRAME_HOST_COMPILED_OK", self.build_script)
+        self.assertIn("#if defined(_WIN32) && !defined(__ANDROID__)", self.patcher)
+        self.assertIn("VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME", self.patcher)
+        self.assertIn("VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME", self.patcher)
+        self.assertIn("VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME", self.patcher)
 
     def test_candidate_does_not_replace_production_runtime(self):
         self.assertIn("SNAP_BUILD_DXVK_NATIVE_262", self.root_text)
@@ -175,6 +179,10 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
             "VK_FORMAT_R16_SFLOAT",
             "SNAPFRAME_DXVK262_ABI_VERSION",
             "snapframe_dxvk262_release_device",
+            "queryFormatProperties",
+            "queryImageFormatProperties",
+            "vkGetPhysicalDeviceFormatProperties",
+            "vkGetPhysicalDeviceImageFormatProperties",
         ):
             self.assertIn(required, host_text)
         for forbidden in (
@@ -186,6 +194,8 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
             "mapPtr(",
         ):
             self.assertNotIn(forbidden, host_text)
+        self.assertNotIn("adapter()->formatProperties(", host_text)
+        self.assertNotIn("adapter()->imageFormatProperties(", host_text)
         self.assertIn("source_view_ref", host_text)
         self.assertIn("Rc<DxvkImageView>", host_text)
 
