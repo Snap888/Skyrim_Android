@@ -335,7 +335,8 @@ The candidate:
   `glslangValidator --target-env vulkan1.3`.
 - Generates upstream `buildenv.h` and `version.h`, links with the upstream
   `d3d9.sym` export map, and emits a separately named
-  `libdxvk_d3d9_262.so` candidate.
+  `libdxvk_d3d9_262.so` candidate with an unversioned Android SONAME
+  matching the runtime selector (no versioned `.so.0` dependency).
 
 The candidate also mirrors Meson's non-Windows `wrc_generator` behavior for `src/d3d9/version.rc`: CMake creates the generated `version_ignored.h` dependency with a `cmake -E touch` rule, rather than silently omitting that resource-generation edge.
 
