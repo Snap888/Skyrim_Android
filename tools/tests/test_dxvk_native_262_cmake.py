@@ -328,6 +328,16 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("if self.source_pending or self.generated_running:", model)
         self.assertIn("generated_dropped", model)
 
+    def test_main_262_runtime_target_links_only_to_matching_dxvk(self):
+        game = self.game_text
+        self.assertIn("if(TARGET dxvk_d3d9_262)", game)
+        self.assertIn("add_library(main_262 SHARED", game)
+        self.assertIn("target_link_libraries(main_262 PRIVATE SDL2 dxvk_d3d9_262", game)
+        self.assertNotIn("target_link_libraries(main_262 PRIVATE SDL2 dxvk_d3d9 snapframe_host", game)
+        self.assertIn('OUTPUT_NAME "main_262"', game)
+        self.assertIn("if(LB_HAS_FFMPEG)", game)
+        self.assertIn("target_sources(main_262 PRIVATE", game)
+
     def test_legacy_snapframe_host_is_not_linked_to_262_candidate(self):
         # The current SnapFrame host consumes DXVK-internal C++ types from the
         # 1.9.2b tree. Keep the candidate isolated until a 2.6.2-native host
