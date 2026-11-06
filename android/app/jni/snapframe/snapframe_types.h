@@ -19,16 +19,27 @@ typedef enum SnapFramePresentMode {
     SNAPFRAME_PRESENT_MODE_IMMEDIATE = 3
 } SnapFramePresentMode;
 
-typedef enum SnapFrameAIMode {\n    SNAPFRAME_AI_STANDARD = 0,\n    SNAPFRAME_AI_INTELLIGENT = 1,\n    SNAPFRAME_AI_MANUAL = 2\n} SnapFrameAIMode;\n\ntypedef struct SnapFrameConfig {
+typedef enum SnapFrameAIMode {
+    SNAPFRAME_AI_STANDARD = 0,
+    SNAPFRAME_AI_INTELLIGENT = 1,
+    SNAPFRAME_AI_MANUAL = 2
+} SnapFrameAIMode;
+
+typedef struct SnapFrameConfig {
     int enabled;
     int present_mode;     /* SnapFramePresentMode; applies to the shared DXVK swapchain. */
     int multiplier;       /* Initially only 1 (off) or 2 (one generated frame). */
     int quality;          /* SnapFrameQuality */
     int flow_scale_percent;
-    int motion_analysis; /* Enables luma, bidirectional flow and consistency. */
+    int motion_analysis;  /* Enables luma, bidirectional flow and consistency. */
     int profiling_enabled;
     int diagnostic_suite;
     int diagnostic_phase_frames;
+    int ai_mode;           /* SnapFrameAIMode */
+    float ai_gpu_budget_ms;
+    float ai_pressure_threshold;
+    float ai_headroom_threshold;
+    float ai_artifact_threshold;
 } SnapFrameConfig;
 
 typedef struct SnapFrameFrameInfo {
