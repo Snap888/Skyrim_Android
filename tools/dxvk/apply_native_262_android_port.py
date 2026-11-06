@@ -614,8 +614,8 @@ namespace dxvk::wsi {
         ("graphics signals present semaphore",
          "m_commandSubmission.signalSemaphore(m_wsiSemaphores.present," in cmdlist_cpp),
         ("presenter sync pair contains binary semaphores",
-         "VkSemaphore acquire;" in presenter_sync
-         and "VkSemaphore present;" in presenter_sync),
+         "VkSemaphore acquire = VK_NULL_HANDLE;" in presenter_sync
+         and "VkSemaphore present = VK_NULL_HANDLE;" in presenter_sync),
         ("presenter keeps mutable ring state",
          "std::vector<PresenterSync>  m_semaphores;" in presenter_header
          and "uint32_t                    m_imageIndex = 0;" in presenter_header
