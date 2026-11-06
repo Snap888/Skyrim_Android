@@ -31,7 +31,7 @@ def stats(values):
             "p95":pct(.95),"p99":pct(.99),"max":v[-1]}
 
 def key_values(line):
-    return {k: num(v) for k,v in re.findall(r"([a-z_]+)=(-?\\d+(?:\\.\\d+)?)", line)}
+    return {k: num(v) for k,v in re.findall(r"([a-z_]+)=(-?\d+(?:\.\d+)?)", line)}
 
 def timing_group(rows, fields):
     return {name: value for field, name in fields.items()
