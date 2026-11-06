@@ -71,7 +71,7 @@ namespace dxvk::wsi {
     replace_once(
         platform_cpp,
         include_anchor,
-        include_anchor + '#include "wsi_native_surface.h"\n\n#include <algorithm>\n',
+        include_anchor + '#include "wsi_native_surface.h"\n\n#include <algorithm>\n#include <cstring>\n',
     )
     namespace_anchor = "namespace dxvk::wsi {\n\n"
     helper = r'''namespace dxvk::wsi {
@@ -130,7 +130,7 @@ namespace dxvk::wsi {
     // before creating the instance, so unsupported devices still fail cleanly.
     bool hasAndroidSurfaceExtension = false;
     for (const char* extensionName : extensionNames) {
-      if (std::strcmp(extensionName, "VK_KHR_android_surface") == 0) {
+      if (extensionName && std::strcmp(extensionName, "VK_KHR_android_surface") == 0) {
         hasAndroidSurfaceExtension = true;
         break;
       }
