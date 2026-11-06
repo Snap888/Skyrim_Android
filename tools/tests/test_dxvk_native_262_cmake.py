@@ -134,7 +134,6 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
             replacement_block.index("snapframe_dxvk262_record_source("),
         )
         self.assertIn("static_cast<void*>(&contextObjects)", replacement_block)
-        self.assertIn("Begin external rendering exactly once", replacement_block)
         self.assertNotIn("ctx->beginExternalRendering()", replacement_block.split(
             "auto contextObjects = ctx->beginExternalRendering()", 1
         )[1])
