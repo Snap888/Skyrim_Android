@@ -630,6 +630,7 @@ namespace dxvk::wsi {
 
     # Fail closed unless the exact source-acquire token reaches the
     # queued present entry and Presenter consumes its captured image index.
+    queue_cpp = (dxvk_dir / "dxvk_queue.cpp").read_text(encoding="utf-8")
     presenter_header_text = presenter_h.read_text(encoding="utf-8")
     presenter_source_text = presenter_cpp.read_text(encoding="utf-8")
     queue_header_text = queue_h.read_text(encoding="utf-8")
@@ -675,7 +676,6 @@ namespace dxvk::wsi {
     # A generated-present scheduler must preserve the submit-thread ordering,
     # finish-thread retirement, and queue mutex ownership shown below.
     queue_header = (dxvk_dir / "dxvk_queue.h").read_text(encoding="utf-8")
-    queue_cpp = (dxvk_dir / "dxvk_queue.cpp").read_text(encoding="utf-8")
     queue_contract = (
         ("queue owns submit and finish workers",
          "dxvk::thread                m_submitThread;" in queue_header
