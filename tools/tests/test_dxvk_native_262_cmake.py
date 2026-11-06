@@ -34,7 +34,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("initialize upstream submodules", self.text)
         self.assertIn("include/native/directx/d3d9.h", self.text)
         self.assertIn("include/vulkan/include/vulkan/vulkan.h", self.text)
-        self.assertNotIn("target_link_libraries(dxvk_d3d9_262 PRIVATE\\n    SDL2", self.text)
+        self.assertNotIn("target_link_libraries(dxvk_d3d9_262 PRIVATE\n    SDL2", self.text)
 
     def test_android_arm64_soname_contract_is_unversioned(self):
         self.assertIn('OUTPUT_NAME "dxvk_d3d9_262"', self.text)
@@ -103,7 +103,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("snapframe_dxvk262_release_window", self.patcher)
         self.assertIn("snapframe_dxvk262_release_window(void* window_token)", self.dxvk262_api)
         self.assertIn(
-            "if (snapframe_dxvk262_release_window)\\n          snapframe_dxvk262_release_window(static_cast<void*>(entry->second.presenter.ptr()));\\n        entry->second.presenter->destroyResources();",
+            "if (snapframe_dxvk262_release_window)\n          snapframe_dxvk262_release_window(static_cast<void*>(entry->second.presenter.ptr()));\n        entry->second.presenter->destroyResources();",
             self.patcher,
         )
         self.assertIn("__attribute__((weak))", self.dxvk262_api)
