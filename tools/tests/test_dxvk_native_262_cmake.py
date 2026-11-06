@@ -102,6 +102,11 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("static_cast<void*>(cPresenter.ptr())", self.patcher)
         self.assertIn("snapframe_dxvk262_release_window", self.patcher)
         self.assertIn("snapframe_dxvk262_release_window(void* window_token)", self.dxvk262_api)
+        self.assertIn("snapframe_dxvk262_release_device(void* device_token)", self.dxvk262_api)
+        self.assertIn('shutil.copyfile(snapframe_api, dxvk_dir / "snapframe_dxvk262_api.h")', self.patcher)
+        self.assertIn("snapframe_dxvk262_release_device(static_cast<void*>(this));", self.patcher)
+        self.assertIn("m_objects.pipelineManager().stopWorkerThreads();", self.patcher)
+
         self.assertIn(
             "if (snapframe_dxvk262_release_window)\n          snapframe_dxvk262_release_window(static_cast<void*>(entry->second.presenter.ptr()));\n        entry->second.presenter->destroyResources();",
             self.patcher,

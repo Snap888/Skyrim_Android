@@ -86,6 +86,15 @@ The patcher now copies `snapframe_dxvk262_api.h` into the pinned upstream `src/d
 
 This is a source-capture/compute-recording seam only. It does **not** yet generate or present a midpoint, does not establish completion/scan-out, and does not mean a `snapframe_host_262` implementation exists. The next stage is to implement the hook in a separate host compiled against the pinned upstream headers, then add per-window history/resource lifetime and generated-frame scheduling inside the same command stream. The runtime selector remains gated on a fully built matching pair.
 
+## SnapFrame host resource retirement
+
+The 2.6.2 capture ABI includes two optional weak lifecycle callbacks in addition to the source hook:
+
+- snapframe_dxvk262_release_window(window_token) is injected into D3D9SwapChainEx::Invalidate before the Presenter is destroyed and erased. The token is the same Presenter identity passed in frame_info.window_token.
+- snapframe_dxvk262_release_device(device_token) is injected into DxvkDevice::~DxvkDevice after waitForIdle() and stopWorkerThreads(). Its token is the same device pointer passed to record_source, so device-scoped pipelines and caches can be retired after submissions have drained.
+
+Both callbacks must remain non-blocking: do not wait, submit, or flush. The window callback must retire only that presenter's temporal history; the device callback is the final cleanup for device-owned state. A future host should enqueue retirement or drop references whose destruction is already safe, and must not free raw Vulkan objects still referenced by in-flight command lists. The weak symbols preserve ordinary DXVK behavior when no matching 2.6.2 host is linked.
+
 ## Android WSI and native-window lifetime
 
 The patcher `tools/dxvk/apply_native_262_android_port.py` applies the Android overlay to the exact pinned upstream checkout:

@@ -60,6 +60,14 @@ void snapframe_dxvk262_release_window(void* window_token)
 #endif
     ;
 
+/* Optional final notification after DXVK has drained the device and
+ * stopped its pipeline workers. Must not wait, submit, or flush. */
+void snapframe_dxvk262_release_device(void* device_token)
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((weak))
+#endif
+    ;
+
 #ifdef __cplusplus
 }
 #endif

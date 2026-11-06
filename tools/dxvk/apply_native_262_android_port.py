@@ -49,6 +49,36 @@ def main() -> int:
         raise SystemExit(f"missing versioned SnapFrame 2.6.2 API: {snapframe_api}")
     shutil.copyfile(snapframe_api, d3d9_dir / "snapframe_dxvk262_api.h")
 
+    # Device teardown runs after DXVK has drained submissions and stopped
+    # pipeline workers. Notify the matching host so device-scoped GPU state
+    # can be retired without stale device keys.
+    dxvk_dir = root / "src/dxvk"
+    dxvk_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(snapframe_api, dxvk_dir / "snapframe_dxvk262_api.h")
+    device_cpp = dxvk_dir / "dxvk_device.cpp"
+    replace_once(
+        device_cpp,
+        """#include "dxvk_device.h"
+#include "dxvk_instance.h"
+""",
+        """#include "dxvk_device.h"
+#include "snapframe_dxvk262_api.h"
+#include "dxvk_instance.h"
+""",
+    )
+    replace_once(
+        device_cpp,
+        """    m_objects.pipelineManager().stopWorkerThreads();
+  }
+""",
+        """    m_objects.pipelineManager().stopWorkerThreads();
+
+    if (snapframe_dxvk262_release_device)
+      snapframe_dxvk262_release_device(static_cast<void*>(this));
+  }
+""",
+    )
+
     native_dir = root / "src/wsi/sdl2"
     native_dir.mkdir(parents=True, exist_ok=True)
     for name in ("wsi_native_surface.h", "wsi_native_surface.cpp"):
