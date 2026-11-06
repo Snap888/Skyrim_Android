@@ -339,7 +339,9 @@ jobs:
           else
             mkdir -p /tmp/gen
             curl --fail --location --retry 3 "${GEN_URL}" -o /tmp/gen/archive
-            echo "5c03d4d21737ff50514433f775a3e4b0a6f2c68b282bc29a4fbcbb344683623c  /tmp/gen/archive" | sha256sum --check
+            if [[ "$GEN_URL" == "https://github.com/Snap888/fexdroid-1/releases/download/gen/gen.tar.xz" ]]; then
+              echo "5c03d4d21737ff50514433f775a3e4b0a6f2c68b282bc29a4fbcbb344683623c  /tmp/gen/archive" | sha256sum --check
+            fi
             if file /tmp/gen/archive | grep -qi 'zip'; then
               unzip -q /tmp/gen/archive -d /tmp/gen/unpacked
             elif file /tmp/gen/archive | grep -qi 'gzip'; then
@@ -349,8 +351,9 @@ jobs:
               mkdir -p /tmp/gen/unpacked
               tar -xJf /tmp/gen/archive -C /tmp/gen/unpacked
             fi
-            if [ -d /tmp/gen/unpacked/gen ]; then
-              cp -a /tmp/gen/unpacked/gen ./gen
+            GEN_DIR=$(find /tmp/gen/unpacked -type d -name gen -print -quit)
+            if [ -n "$GEN_DIR" ]; then
+              cp -a "$GEN_DIR" ./gen
             elif [ -n "$(find /tmp/gen/unpacked -type f -name '*.c' -print -quit)" ]; then
               mkdir -p gen
               find /tmp/gen/unpacked -type f -name '*.c' -exec cp {} gen/ \;
