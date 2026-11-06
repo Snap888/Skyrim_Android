@@ -162,9 +162,10 @@ class PresenterTransactionModelTests(unittest.TestCase):
         self.assertIsNotNone(self.pool.acquire())
 
     def test_slot_cannot_be_reacquired_before_completion(self):
-        token = self.pool.acquire()
+        tokens = [self.pool.acquire() for _ in range(3)]
+        token = tokens[0]
         self._queue(token)
-        self.assertIsNone(self.pool.acquire())  # other two slots are still free
+        self.assertIsNone(self.pool.acquire())
         same_slot = self.pool.pools[token.generation][token.image_index]
         self.assertIs(same_slot.state, State.PRESENT_QUEUED)
         self.pool.complete_present(token)
@@ -189,7 +190,7 @@ class PresenterTransactionModelTests(unittest.TestCase):
         self.pool.recreate(2)
         self.assertIn(old_generation, self.pool.pools)
         self.assertEqual(len(self.pool.slots), 2)
-        self.assertIsNone(self.pool.acquire() if self.pool.device_lost else None)
+        self.assertIsNotNone(self.pool.acquire())
         self.pool.complete_present(token)
         self.assertNotIn(old_generation, self.pool.pools)
         self.assertIsNotNone(self.pool.acquire())
