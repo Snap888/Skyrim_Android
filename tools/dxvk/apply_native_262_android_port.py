@@ -355,8 +355,56 @@ namespace dxvk::wsi {
     if "m_presentPending = false;" not in presenter_text:
         raise SystemExit("Presenter pending-state retirement changed; re-review generated-present scheduling")
 
+    # Verify the actual submission queue implementation, not a guessed
+    # dxvk_submission_queue.* path. In this pinned revision it is dxvk_queue.*.
+    # A generated-present scheduler must preserve the submit-thread ordering,
+    # finish-thread retirement, and queue mutex ownership shown below.
+    queue_header = (dxvk_dir / "dxvk_queue.h").read_text(encoding="utf-8")
+    queue_cpp = (dxvk_dir / "dxvk_queue.cpp").read_text(encoding="utf-8")
+    queue_contract = (
+        ("queue owns submit and finish workers",
+         "dxvk::thread                m_submitThread;" in queue_header
+         and "dxvk::thread                m_finishThread;" in queue_header),
+        ("submit queue is FIFO",
+         "std::queue<DxvkSubmitEntry> m_submitQueue;" in queue_header),
+        ("present enqueued under queue mutex",
+         "std::unique_lock<dxvk::mutex> lock(m_mutex);" in queue_cpp
+         and "m_submitQueue.push(std::move(entry));" in queue_cpp),
+        ("submit worker serializes Vulkan queue access",
+         "std::lock_guard<dxvk::mutex> lock(m_mutexQueue);" in queue_cpp),
+        ("present operation runs on submit worker",
+         "entry.present.presenter->presentImage(" in queue_cpp),
+        ("present completion is retired by finish worker",
+         "entry.present.presenter->signalFrame(" in queue_cpp),
+        ("finish queue owns command completion",
+         "m_finishQueue.push(std::move(entry));" in queue_cpp
+         and "m_finishQueue.pop();" in queue_cpp),
+    )
+    for description, valid in queue_contract:
+        if not valid:
+            raise SystemExit(
+                f"DXVK submission queue contract changed ({description}); "
+                "re-review asynchronous generated-present integration"
+            )
+
+    # The frontend currently enqueues exactly one command list followed by
+    # one present entry from its CS closure. Keep that ordering explicit.
+    swapchain_text = swapchain.read_text(encoding="utf-8")
+    present_sequence = (
+        "ctx->synchronizeWsi(cSync);",
+        "ctx->flushCommandList(nullptr, nullptr);",
+        "cDevice->presentImage(cPresenter, cLatency, cFrameId, nullptr);",
+    )
+    positions = [swapchain_text.find(item) for item in present_sequence]
+    if any(position < 0 for position in positions) or positions != sorted(positions):
+        raise SystemExit(
+            "D3D9 source submit/present ordering changed; re-review SnapFrame transaction insertion"
+        )
+
     print("DXVK_NATIVE_262_ANDROID_PRESENTER_WSI_PATCH_OK")
     print("Verified: one outstanding acquire/present transaction; pre-acquire advances semaphore ring.")
+    print("Verified: DxvkSubmissionQueue FIFO submit worker + finish-thread retirement.")
+    print("Verified: D3D9 WSI semaphore handoff -> command-list enqueue -> present enqueue order.")
     print("SnapFrame generated present: DISABLED pending a DXVK-owned asynchronous transaction scheduler.")
     print("Changes: Presenter-owned ANativeWindow lease; Android surface create; instance extension.")
     print("Build status: NOT_BUILT")
