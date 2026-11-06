@@ -9,7 +9,7 @@ FetchContent_Declare(adrenotools
 )
 FetchContent_MakeAvailable(adrenotools)
 
-# Portable Snap AI + SnapFrame cores. Pin to the reviewed SnapMotionV2 feature
+# Portable Snap AI + SnapFrame cores. Pin to the reviewed SnapMotionV2 + adaptive Flow Scale
 # commit rather than tracking a moving branch. DXVK-specific GPU work remains
 # in the Skyrim adapter; the portable libraries do not own Vulkan resources.
 set(SNAP_AI_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -20,7 +20,7 @@ set(SNAP_FRAME_BUILD_DXVK_LEGACY OFF CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS ON CACHE BOOL "Build Snap AI and SnapFrame as separate shared libraries" FORCE)
 FetchContent_Declare(snap_ai_engine
     GIT_REPOSITORY https://github.com/Snap888/Snap_AI_Engine.git
-    GIT_TAG ccf4589ca19d5f788adc56c7248d94f83ca0a506
+    GIT_TAG 9621c32981ad818d2ff3c01dcecaa127da107c64
     GIT_SHALLOW FALSE
 )
 FetchContent_MakeAvailable(snap_ai_engine)
