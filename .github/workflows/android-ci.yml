@@ -198,6 +198,18 @@ jobs:
           git -C "$RUNNER_TEMP/dxvk-native-262" checkout --detach 9d6f54a1ade20d1d27dd421024717a636f3d8c68
           test "$(git -C "$RUNNER_TEMP/dxvk-native-262" rev-parse HEAD)" = "9d6f54a1ade20d1d27dd421024717a636f3d8c68"
 
+      - name: Apply Android Presenter and WSI overlay
+        run: |
+          python3 -m py_compile tools/dxvk/apply_native_262_android_port.py
+          python3 tools/dxvk/apply_native_262_android_port.py \
+            "$RUNNER_TEMP/dxvk-native-262" --project-root "$GITHUB_WORKSPACE"
+          grep -q 'cNativeWindow = nativeWindow' "$RUNNER_TEMP/dxvk-native-262/src/d3d9/d3d9_swapchain.cpp"
+          grep -q 'cHasNativeWindow' "$RUNNER_TEMP/dxvk-native-262/src/d3d9/d3d9_swapchain.cpp"
+          grep -q 'vkCreateAndroidSurfaceKHR' "$RUNNER_TEMP/dxvk-native-262/src/wsi/sdl2/wsi_platform_sdl2.cpp"
+          grep -q 'VK_KHR_android_surface' "$RUNNER_TEMP/dxvk-native-262/src/wsi/sdl2/wsi_platform_sdl2.cpp"
+          test -s "$RUNNER_TEMP/dxvk-native-262/src/wsi/sdl2/wsi_native_surface.cpp"
+          echo "DXVK_NATIVE_262_ANDROID_PRESENTER_PATCH_OK"
+
       - name: Generate and validate Android source inventory
         run: |
           python3 -m py_compile tools/dxvk/generate_native_262_android_manifest.py
@@ -217,6 +229,8 @@ jobs:
           assert "wsi_excluded_desktop" not in build_groups
           assert len(groups["wsi_common"]) == 2
           assert len(groups["android_wsi"]) == 3
+          assert groups["android_wsi_overlay"] == ["src/wsi/sdl2/wsi_native_surface.cpp"]
+          assert "android_wsi_overlay" in build_groups
           assert len(manifest["duplicate_android_build_sources"]) == 0
           assert all(path.startswith("src/wsi/") for path in groups["android_wsi"])
           assert all(
