@@ -672,3 +672,40 @@ Save the base64 output as ANDROID_SIGNING_KEYSTORE_BASE64 and save the keystore 
 - If that wait reaches 8 ms, Snap AI enters a 30-source-frame generation cooldown. During the cooldown the game continues presenting real frames; capture and luma history continue, while bidirectional flow, consistency, midpoint warp, V2 diagnostics and generated presents are skipped. The controller then resumes generation automatically from the rolling two-frame history.
 - This is a backpressure guard, not a claim that the WSI stall itself is fixed. It prevents repeated generated presents from continuously extending a slow generated-present queue and prioritizes source-frame cadence during overload.
 - The throttle uses atomics only; it does not add waits, allocate resources, reset temporal history, or alter semaphore ownership. Keeping capture/luma active means the first resumed flow pass can use the most recent real-frame pair. Events ai_wsi_backpressure and ai_wsi_backpressure_recovered make each throttle cycle visible in snapframe_events.csv.
+
+## 2026-11-06: AI policies and source-submission backpressure
+
+Latest uploaded diagnostic bundle (Logs/) reports 2448x1080, MAILBOX, Flow Scale 50%.
+The analyzer summary reports SnapFrame GPU-chain mean 2.47 ms, median 2.82 ms,
+P95 5.51 ms and maximum 8.44 ms. CPU Present mean is 6.25 ms (P95 16.49 ms);
+source-submission wait averages 4.79 ms with P95 15.61 ms and maximum 18.43 ms.
+The dedicated SnapFrame log contains individual Present spikes up to 103.61 ms.
+Generated-present events were accepted 20/20 with no reported failures; this is
+submission acceptance, not proof of physical scan-out.
+
+The prior WSI feedback path observed only generated-submission wait. The DXVK
+present path now feeds the larger per-handoff source/generated submission wait
+into Snap AI at both synchronization points. This allows the AI cooldown to react
+to stalls that block the game's original frame, not only generated-frame stalls.
+The cooldown is reduced to 24 source frames; device A/B measurements are still
+required to tune the threshold and duration.
+
+The launcher now exposes three Snap AI policies:
+- Standard: fixed configured Flow Scale; adaptive quality changes are disabled.
+- Intelligent: adaptive Snap AI with the default 6 ms GPU budget and conservative
+  headroom/pressure/artifact gates.
+- Manual: the same controller with user-selected GPU budget, pressure,
+  headroom and artifact-risk thresholds.
+
+All modes retain WSI backpressure protection. The config keys are
+ai_mode, ai_gpu_budget_ms, ai_pressure_threshold,
+ai_headroom_threshold, and ai_artifact_threshold.
+
+Turnip Gen8 V38 is selected in the uploaded gpu-driver.conf. The log confirms
+R16F support and successful creation of the luma, flow and midpoint resources.
+There is no driver error evidence in this bundle. The remaining large stalls are
+host-side DXVK submission waits; do not apply speculative Turnip driver flags or
+change driver binaries without a same-scene A/B and Vulkan/thermal telemetry.
+The uploaded runtime_tuning.conf has synchronous pipeline compilation enabled;
+keep that option disabled for normal gameplay because first-use pipeline
+compilation can cause long frame-time spikes.
