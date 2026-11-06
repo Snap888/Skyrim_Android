@@ -20,10 +20,10 @@ This provides a valid selection point before game startup, but changing only a c
 | Variant | Source | Status | Decision |
 |---|---|---|---|
 | Android baseline | In-tree native-1.9.2b + Skyrim patches | Existing fallback | Keep unchanged |
-| DXVK-Native 2.6.2 | Upstream `v2.6.2` tag | Candidate; not yet ported or built for Android | First upgrade target |
+| DXVK Native 2.6.2 | Official `doitsujin/dxvk` tag `v2.6.2`, commit `9d6f54a1ade20d1d27dd421024717a636f3d8c68`, built with `DXVK_NATIVE` + SDL2 WSI | Candidate; not yet ported or built for Android | First upgrade target |
 | DXVK 3.1.1 | Current Snap888/dxvk master lineage | Not a native Android drop-in; higher compatibility risk | Do not expose yet |
 
-Important distinction: upstream DXVK 2.6.2 has both the Wine/Windows DXVK release and a separate DXVK-Native code path. The candidate must be built from the native code path, not the Windows release binaries. Its release notes describe 2.6.2 as a maintenance release without new Vulkan feature requirements and mention improved dxvk-native WSI backend selection. This makes it a more defensible first candidate than jumping directly to 3.1.1.
+Important distinction: DXVK Native is built from the official `doitsujin/dxvk` source tree with its native build configuration and a selected WSI backend; it is not a separate downloadable Android binary. The candidate must be built from source at the pinned tag with `DXVK_NATIVE` and `DXVK_WSI_SDL2`, not taken from the Windows/Wine release assets. The upstream README documents SDL2, SDL3, and GLFW native WSI backends. Its release notes describe 2.6.2 as a maintenance release without new Vulkan feature requirements and mention improved dxvk-native WSI backend selection. This makes it a more defensible first candidate than jumping directly to 3.1.1.
 
 ## Required architecture for a real selector
 
@@ -54,6 +54,10 @@ The 2.6.2 native D3D9 swapchain is not source-compatible with the current adapte
 - No renaming the same source build as a second version.
 - No dropping SnapFrame/Snap AI hooks or weakening synchronization to make a port compile.
 - No signing-key requirement for APK builds.
+
+## CI build coverage update
+
+The Android CI host job previously built the SnapFrame host and JNI bridge but did not explicitly build the `dxvk_d3d9` shared-library target. The workflow now includes that target and checks the resulting ELF header for AArch64 and its dynamic section for `SONAME=libdxvk_d3d9.so`. This validates the current baseline DXVK Android build artifact; it does not yet validate a second version or prove device runtime behavior.
 
 ## Selector framework committed
 
