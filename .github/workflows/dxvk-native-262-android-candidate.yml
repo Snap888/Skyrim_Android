@@ -48,6 +48,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake ninja-build python3 glslang-tools spirv-tools
 
+      - name: Run DXVK 2.6.2 port contract tests
+        run: |
+          python3 tools/tests/test_dxvk_native_262_cmake.py
+          python3 tools/tests/test_snapframe_presenter_transaction_model.py
+
       - name: Checkout pinned DXVK Native 2.6.2
         shell: bash
         run: |
