@@ -163,3 +163,10 @@ proves.
 6. Enable Snap AI pressure feedback only after the preceding stages pass.
 
 No Android 2.6.2 source files or binary are claimed as ported by this audit.
+
+
+### Native-window reference ownership hardening (2026-11-06)
+
+The current Android WSI registry now owns an `ANativeWindow` reference for its active registration. `nativeSurface()` acquires a temporary reference while holding the registry mutex and the caller releases that lease immediately after `vkCreateAndroidSurfaceKHR` returns. Replacing/unregistering a registration acquires the new window before publishing it and releases the old registry reference after dropping the mutex, so native-window callbacks are not invoked under the registry lock.
+
+This specifically closes the lookup-versus-replacement race during Vulkan surface creation. It does **not** by itself prove that an already-created `VkSurfaceKHR` no longer uses the old native window. The Android caller must still retire the presenter/swapchain and destroy the Vulkan surface before unregistering/replacing the old registration. A follow-up 2.6.2 WSI port must preserve that ordering and add an explicit surface-lifetime test; no claim is made here that the full surface lifetime is reference-counted by this registry.
