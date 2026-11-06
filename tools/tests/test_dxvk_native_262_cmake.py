@@ -96,6 +96,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         # It must never make the legacy host appear compatible with 2.6.2.
         self.assertIn("SNAPFRAME_DXVK262_ABI_VERSION 1u", self.dxvk262_api)
         self.assertIn("void* context", self.dxvk262_api)
+        self.assertIn("void* context_objects", self.dxvk262_api)
         self.assertIn("void* device", self.dxvk262_api)
         self.assertIn("void* source_view", self.dxvk262_api)
         self.assertIn("void* window_token", self.dxvk262_api)
@@ -129,9 +130,14 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
             "        // Record optional SnapFrame source work", 1
         )[1].split('        """', 1)[0]
         self.assertLess(
-            replacement_block.index("snapframe_dxvk262_record_source("),
             replacement_block.index("auto contextObjects = ctx->beginExternalRendering()"),
+            replacement_block.index("snapframe_dxvk262_record_source("),
         )
+        self.assertIn("static_cast<void*>(&contextObjects)", replacement_block)
+        self.assertIn("Begin external rendering exactly once", replacement_block)
+        self.assertNotIn("ctx->beginExternalRendering()", replacement_block.split(
+            "auto contextObjects = ctx->beginExternalRendering()", 1
+        )[1])
         self.assertNotIn("snapframe_host_262", self.game_text + self.snapframe_text)
 
     def test_legacy_snapframe_host_is_not_linked_to_262_candidate(self):
