@@ -15,7 +15,7 @@
 /* SnapFrame owns source capture and midpoint generation in this DXVK path. */
 using SnapFrameCopyHook = void (*)(void*, void*, void*, uint32_t, uint32_t, uint32_t);
 using SnapFramePresentModeHook = int (*)(int*);
-using SnapFrameSubmissionPressureHook = void (*)(float);
+using SnapFrameSubmissionPressureHook = void (*)(float, float);
 static std::atomic<SnapFramePresentModeHook> g_snapFramePresentModeHook{nullptr};
 static std::atomic<SnapFrameSubmissionPressureHook> g_snapFrameSubmissionPressureHook{nullptr};
 extern "C" void snapframe_dxvk_set_submission_pressure_hook(
@@ -1048,7 +1048,7 @@ namespace dxvk {
          * submission stalls were invisible to the WSI throttle. */
         if (const SnapFrameSubmissionPressureHook pressureHook =
               g_snapFrameSubmissionPressureHook.load(std::memory_order_acquire))
-          pressureHook(static_cast<float>(std::max(sourceWait, generatedWait)));
+          pressureHook(static_cast<float>(sourceWait), static_cast<float>(generatedWait));
       }
 
       // Presentation semaphores and WSI swap chain image
@@ -1172,7 +1172,7 @@ namespace dxvk {
         const double generatedWait = perfGeneratedSubmissionWaitMs - generatedWaitBefore;
         if (const SnapFrameSubmissionPressureHook pressureHook =
               g_snapFrameSubmissionPressureHook.load(std::memory_order_acquire))
-          pressureHook(static_cast<float>(std::max(sourceWait, generatedWait)));
+          pressureHook(static_cast<float>(sourceWait), static_cast<float>(generatedWait));
       }
 
       for (uint32_t generation = 0; generation < generationCount; generation++) {
