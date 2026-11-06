@@ -10,6 +10,7 @@ SNAPFRAME_CMAKE = ROOT / "android/app/jni/snapframe/CMakeLists.txt"
 SELECTOR = ROOT / "android/app/src/main/java/com/tj/skyrim/DxvkRuntimeSelector.java"
 BUILD_SCRIPT = ROOT / "tools/dxvk/build_native_262_android_candidate.sh"
 PATCHER = ROOT / "tools/dxvk/apply_native_262_android_port.py"
+DXVK262_API = ROOT / "android/app/jni/snapframe/snapframe_dxvk262_api.h"
 
 
 class DxvkNative262CMakeContractTests(unittest.TestCase):
@@ -22,6 +23,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         cls.selector_text = SELECTOR.read_text(encoding="utf-8")
         cls.build_script = BUILD_SCRIPT.read_text(encoding="utf-8")
         cls.patcher = PATCHER.read_text(encoding="utf-8")
+        cls.dxvk262_api = DXVK262_API.read_text(encoding="utf-8")
 
     def test_candidate_is_opt_in_and_keeps_baseline_default(self):
         self.assertIn("option(SNAP_BUILD_DXVK_NATIVE_262", self.root_text)
@@ -87,6 +89,26 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn('return isArm64Elf(new File(dir, "lib" + variant.dxvkLibrary + ".so"))', self.selector_text)
         self.assertIn('&& isArm64Elf(new File(dir, "lib" + variant.mainLibrary + ".so"))', self.selector_text)
         self.assertIn('"dxvk_d3d9_262", "main_262"', self.selector_text)
+
+    def test_262_present_hook_is_versioned_optional_and_command_stream_local(self):
+        # The 2.6.2 hook receives opaque objects from the exact pinned DXVK
+        # build and is called before the source WSI blit in the same context.
+        # It must never make the legacy host appear compatible with 2.6.2.
+        self.assertIn("SNAPFRAME_DXVK262_ABI_VERSION 1u", self.dxvk262_api)
+        self.assertIn("void* context", self.dxvk262_api)
+        self.assertIn("void* device", self.dxvk262_api)
+        self.assertIn("void* source_view", self.dxvk262_api)
+        self.assertIn("__attribute__((weak))", self.dxvk262_api)
+        self.assertIn("must not submit/flush it", self.dxvk262_api)
+        self.assertIn('snapframe_api = project / "android/app/jni/snapframe/snapframe_dxvk262_api.h"', self.patcher)
+        self.assertIn("if (snapframe_dxvk262_record_source)", self.patcher)
+        self.assertIn("SNAPFRAME_DXVK262_ABI_VERSION", self.patcher)
+        self.assertIn("cSrcView.ptr()", self.patcher)
+        self.assertLess(
+            self.patcher.index("snapframe_dxvk262_record_source("),
+            self.patcher.index("auto contextObjects = ctx->beginExternalRendering()"),
+        )
+        self.assertNotIn("snapframe_host_262", self.game_text + self.snapframe_text)
 
     def test_legacy_snapframe_host_is_not_linked_to_262_candidate(self):
         # The current SnapFrame host consumes DXVK-internal C++ types from the
