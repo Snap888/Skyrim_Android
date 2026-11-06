@@ -55,6 +55,18 @@ The 2.6.2 native D3D9 swapchain is not source-compatible with the current adapte
 - No dropping SnapFrame/Snap AI hooks or weakening synchronization to make a port compile.
 - No signing-key requirement for APK builds.
 
+## Selector framework committed
+
+The launcher/runtime selection scaffold is now implemented:
+
+- `DxvkRuntimeSelector` defines complete runtime pairs and checks that both shared objects are present in the APK's native library directory.
+- The launcher displays only variants that are actually packaged. It stores the selected index in the existing `launcher` preferences.
+- `SkyrimActivity.getLibraries()` resolves the selected pair before SDL loads libraries, loads the matching DXVK library before the matching game runtime, and logs the selected pair.
+- The current Android Native 1.9.2b pair remains the mandatory fallback.
+- The 2.6.2 pair is reserved as `libdxvk_d3d9_262.so` + `libmain_262.so`; it is not shown until both are included in the APK.
+
+This prevents a misleading version selector: the UI cannot select a version whose DXVK library or matching game runtime is absent. Selection applies only at process startup; there is no hot swap.
+
 ## Current readiness
 
-**Not ready for device testing.** Baseline remains the only integrated implementation. The SDL selection point is confirmed, and DXVK-Native 2.6.2 is the selected porting candidate, but no second Android library pair or selector UI has been committed.
+**Not ready for multi-version device testing.** The selector framework is committed and Java CI must validate it, but only the baseline pair is currently packaged. DXVK-Native 2.6.2 still needs the Android ARM64 port, SnapFrame/Snap AI adapter migration, the matching `main_262` runtime build, and packaging.
