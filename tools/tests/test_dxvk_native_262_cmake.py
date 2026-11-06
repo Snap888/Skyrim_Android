@@ -99,6 +99,14 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME", self.patcher)
         self.assertIn("VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME", self.patcher)
 
+    def test_android_loader_keeps_compat_types_without_win32_vulkan_platform(self):
+        # HMODULE comes from DXVK's Win32 compatibility layer, not Vulkan's
+        # platform declarations. The loader header must include it explicitly.
+        self.assertIn('vulkan_loader = root / "src/vulkan/vulkan_loader.h"', self.patcher)
+        self.assertIn('#include "../util/util_win32_compat.h"', self.patcher)
+        self.assertIn('#if defined(_WIN32) && !defined(__ANDROID__)', self.patcher)
+        self.assertNotIn('#define VK_USE_PLATFORM_WIN32_KHR 1\\n', self.patcher)
+
     def test_android_fence_excludes_win32_semaphore_handle_api(self):
         # DXVK's HANDLE import/export bridge is Win32-only. Android must keep
         # native Vulkan semaphore operation and compile no Win32 Vk structs.
