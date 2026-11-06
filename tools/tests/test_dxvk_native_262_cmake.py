@@ -27,7 +27,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("option(SNAP_BUILD_DXVK_NATIVE_262", self.root_text)
         self.assertIn("if(SNAP_BUILD_DXVK_NATIVE_262)", self.root_text)
         self.assertIn("add_subdirectory(dxvk_native_262)", self.root_text)
-        self.assertRegex(self.text, r"add_library\\(dxvk_d3d9_262 SHARED")
+        self.assertRegex(self.text, r"add_library\(dxvk_d3d9_262 SHARED")
         self.assertIn("DXVK source revision mismatch", self.text)
         self.assertIn("initialize upstream submodules", self.text)
         self.assertIn("include/native/directx/d3d9.h", self.text)
@@ -37,7 +37,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
     def test_android_arm64_soname_contract_is_unversioned(self):
         self.assertIn('OUTPUT_NAME "dxvk_d3d9_262"', self.text)
         self.assertIn("NO_SONAME FALSE", self.text)
-        self.assertNotRegex(self.text, r"\\b(?:VERSION|SOVERSION)\\b")
+        self.assertNotRegex(self.text, r"\b(?:VERSION|SOVERSION)\b")
 
     def test_upstream_source_and_shader_inventory_are_used(self):
         self.assertIn(
