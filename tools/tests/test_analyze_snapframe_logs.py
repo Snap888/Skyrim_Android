@@ -70,6 +70,26 @@ class AnalyzerTests(unittest.TestCase):
             self.assertIn("WSI_IMAGE_COUNT_BELOW_TARGET", codes)
 
 
+    def test_reports_thresholded_dxvk_present_spike_components(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "snapframe.log").write_text(
+                "SnapFrame: DXVK present spike frame=10 total=50.000ms "
+                "source_submission_wait=42.000ms generated_handoff=41.000ms "
+                "generate_record=0.100ms untracked=7.000ms fg_requested=1 fg_queued=1\\n"
+                "SnapFrame: DXVK present spike frame=20 total=30.000ms "
+                "source_submission_wait=20.000ms generated_handoff=19.000ms "
+                "generate_record=0.200ms untracked=9.000ms fg_requested=1 fg_queued=1\\n",
+                encoding="utf-8")
+            report = analyze(root)
+            spikes = report["present_spikes"]
+            self.assertEqual(spikes["rows"], 2)
+            self.assertEqual(spikes["timings_ms"]["total"]["max"], 50.0)
+            self.assertEqual(spikes["timings_ms"]["source_submission_wait"]["median"], 31.0)
+            rendered = to_markdown(report)
+            self.assertIn("thresholded log events; not all frames", rendered)
+            self.assertIn("source_submission_wait", rendered)
+
     def test_reports_dxvk_queue_and_vulkan_wsi_stalls(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
