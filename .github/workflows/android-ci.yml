@@ -177,20 +177,11 @@ jobs:
             --target dxvk_d3d9 dxvk_linkage_check snapframe_host snapframe_jni_compile_check --parallel 2
           DXVK_SO=$(find "$RUNNER_TEMP/skyrim-native-build" -type f -name 'libdxvk_d3d9.so' -print -quit)
           LINK_CHECK_SO=$(find "$RUNNER_TEMP/skyrim-native-build" -type f -name 'libdxvk_linkage_check.so' -print -quit)
-          test -n "$DXVK_SO" || { echo "::error::DXVK shared library was not produced"; exit 1; }
-          test -n "$LINK_CHECK_SO" || { echo "::error::DXVK linkage probe was not produced"; exit 1; }
           READELF="$ANDROID_HOME/ndk/$NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
-          "$READELF" -h "$DXVK_SO" | grep -q 'AArch64'
-          "$READELF" -h "$LINK_CHECK_SO" | grep -q 'AArch64'
-          "$READELF" -d "$DXVK_SO" | tee "$RUNNER_TEMP/dxvk-dynamic.txt"
-          grep -q 'SONAME.*libdxvk_d3d9.so' "$RUNNER_TEMP/dxvk-dynamic.txt"
           NM="$ANDROID_HOME/ndk/$NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
-          "$NM" -D --defined-only "$DXVK_SO" | tee "$RUNNER_TEMP/dxvk-exports.txt"
-          grep -Eq '[[:space:]]Direct3DCreate9$' "$RUNNER_TEMP/dxvk-exports.txt"
-          grep -Eq '[[:space:]]Direct3DCreate9Ex$' "$RUNNER_TEMP/dxvk-exports.txt"
-          "$READELF" -d "$LINK_CHECK_SO" | tee "$RUNNER_TEMP/link-check-dynamic.txt"
-          grep -Fq 'Shared library: [libdxvk_d3d9.so]' "$RUNNER_TEMP/link-check-dynamic.txt"
-          echo "Verified ARM64 DXVK SONAME, D3D9 exports, and ELF DT_NEEDED linkage probe."
+          bash -n tools/ci/verify_dxvk_runtime_pair.sh
+          bash tools/ci/verify_dxvk_runtime_pair.sh \
+            "$DXVK_SO" "$LINK_CHECK_SO" "$READELF" "$NM" "libdxvk_d3d9.so"
 
   apk:
     name: Full arm64 APK build
