@@ -110,9 +110,9 @@ class AnalyzerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / "snapframe_events.csv").write_text(
-                "frame,event,width,height,detail\\n"
-                '30,gpu_metrics_published,2448,1080,"async_readback age_frames=1 callback_us=420 validated=1"\\n'
-                '60,gpu_metrics_rejected,2448,1080,"async_readback age_frames=2 callback_us=900 reason=low_valid_flow_coverage"\\n',
+                "frame,event,width,height,detail\n"
+                '30,gpu_metrics_published,2448,1080,"async_readback age_frames=1 callback_us=420 validated=1"\n'
+                '60,gpu_metrics_rejected,2448,1080,"async_readback age_frames=2 callback_us=900 reason=low_valid_flow_coverage"\n',
                 encoding="utf-8")
             report = analyze(root)
             self.assertEqual(report["ai_telemetry_async"]["callback_latency_us"]["median"], 660.0)
