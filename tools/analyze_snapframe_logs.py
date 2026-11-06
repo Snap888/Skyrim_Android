@@ -48,9 +48,13 @@ def analyze(root):
     profiling_enabled=config_values.get("profiling_enabled",0)
     counts=Counter(x.get("event","unknown") for x in events); results=Counter(); reasons=Counter()
     backpressure=Counter(); wsi_throttle_reasons=Counter(); telemetry_callback_us=[]; telemetry_age_frames=[]
+    telemetry_ring_busy_skips=0; telemetry_other_skips=0
     for row in events:
         event=row.get("event")
         d=row.get("detail","")
+        if event=="gpu_metrics_skipped":
+            if "readback_ring_busy" in d: telemetry_ring_busy_skips+=1
+            else: telemetry_other_skips+=1
         if event=="ai_wsi_backpressure":
             reason=re.search(r"(?:^|;)reason=([^;]+)",d)
             wsi_throttle_reasons[reason.group(1) if reason else "legacy_or_unspecified"]+=1
@@ -135,7 +139,10 @@ def analyze(root):
         "backpressure_vk_results":dict(backpressure),
         "failure_vk_results":dict(results),"failure_reasons":dict(reasons)},
       "wsi_throttle_reasons":dict(wsi_throttle_reasons),
-      "ai_telemetry_async":{"callback_latency_us":stats(telemetry_callback_us),"age_frames":stats(telemetry_age_frames)},
+      "ai_telemetry_async":{"callback_latency_us":stats(telemetry_callback_us),"age_frames":stats(telemetry_age_frames),
+        "ring_busy_skips":telemetry_ring_busy_skips,"other_skips":telemetry_other_skips,
+        "recorded_samples":counts.get("gpu_metrics_copy_recorded",0),
+        "skip_rate_percent":(100.0*telemetry_ring_busy_skips/(counts.get("gpu_metrics_copy_recorded",0)+telemetry_ring_busy_skips) if counts.get("gpu_metrics_copy_recorded",0)+telemetry_ring_busy_skips else 0.0)},
       "present_modes_seen_in_log":dict(modes),"actual_wsi_configurations":actual_wsi,"performance":perfstats,
       "diagnostic_config":{"motion_analysis":bool(motion_analysis),"profiling_enabled":bool(profiling_enabled)},
       "dxvk_wsi":{"wsi_rows":len(wsi_rows),"queue_rows":len(queue_rows),
@@ -165,11 +172,15 @@ def to_markdown(r):
         out.append("- No ai_wsi_backpressure events recorded.")
     out += ["","## Asynchronous AI telemetry",""]
     async_metrics=r["ai_telemetry_async"]
-    for key, value in async_metrics.items():
+    for key in ("callback_latency_us","age_frames"):
+        value=async_metrics[key]
         if value:
             out.append(f"- {key}: mean {value['mean']:.1f}, median {value['median']:.1f}, p95 {value['p95']:.1f}, max {value['max']:.1f} (n={value['n']})")
         else:
             out.append(f"- {key}: no samples")
+    out += [f"- readback ring busy skips: {async_metrics['ring_busy_skips']}",
+            f"- other telemetry skips: {async_metrics['other_skips']}",
+            f"- telemetry skip rate: {async_metrics['skip_rate_percent']:.2f}% of recorded + ring-busy attempts"]
     out += ["","## Event counts",""]
     out += [f"- {k}: {v}" for k,v in sorted(r["event_counts"].items())]
     out += ["","## Performance (ms unless noted)",""]
