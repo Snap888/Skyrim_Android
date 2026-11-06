@@ -103,3 +103,63 @@ It deliberately reports `NOT_PORTED` / `SOURCE_ONLY`: no upstream DXVK
 binary is built or packaged by this audit. The next engineering stage is the
 Android-native WSI and SnapFrame present-adapter port, followed by a matching
 Skyrim runtime link.
+
+
+## Android WSI adapter seam audit (2026-11-06)
+
+The current Android implementation points are now identified by their actual
+source paths (the SDL2 WSI files live under `src/wsi/sdl2/`):
+
+| Current Android file | Responsibility that must survive the 2.6.2 port |
+|---|---|
+| `src/wsi/sdl2/wsi_native_surface.h/.cpp` | Registers the game-provided `ANativeWindow*` behind the synthetic HWND; serializes registration/lookups with a mutex |
+| `src/wsi/sdl2/wsi_presenter_sdl2.cpp` | Resolves the registered native surface and calls `vkCreateAndroidSurfaceKHR`; otherwise retains SDL Vulkan surface creation |
+| `src/d3d9/d3d9_swapchain.cpp` | Owns source capture, generated-image second present, present-mode hook, source/generated completion and pressure telemetry |
+| `CMakeLists.txt` | Explicitly compiles the Android WSI adapter and defines `DXVK_NATIVE`, `DXVK_WSI_SDL2`, Android linkage and Vulkan/SDL dependencies |
+
+### Port boundary decision
+
+Do not copy the current `wsi_presenter_sdl2.cpp` directly over upstream
+2.6.2. First port the native-window registry as a small platform adapter,
+then connect it to the 2.6.2 SDL2 WSI surface-creation path. The registry API
+is deliberately narrow: synthetic HWND in, native window + extent out.
+The 2.6.2 WSI port must additionally verify that
+`VK_KHR_android_surface` is enabled at instance creation, that the window
+remains alive until surface destruction, and that resize/replacement cannot
+race a presenter using the previous native window.
+
+The current registry mutex protects only the registry data; it does not own
+or reference-count the `ANativeWindow`. The Android integration therefore
+must keep the window reference alive across all surface/presenter users and
+release it only after the Vulkan surface and swapchain are retired. This
+lifetime contract is a required port item, not something the registry mutex
+proves.
+
+### Current source vs upstream source
+
+- Current Android source list is a manually curated CMake target; upstream
+  2.6.2 is Meson-based. Reusing the old CMake source list would silently omit
+  new/renamed upstream translation units and is not an acceptable port.
+- The source audit script pins upstream and checks the reviewed D3D9 and
+  presenter anchors. Android-specific source adaptation remains a separate
+  patch series so upstream files can be compared without losing provenance.
+- The first buildable milestone is **2.6.2 D3D9 + SDL2 WSI on Android with
+  SnapFrame disabled**, using the existing NativeSurface lifetime contract.
+  Only after that passes should the SnapFrame capture hook and separate
+  generated present be introduced.
+
+### Acceptance tests to add with the port
+
+1. Register native window, create Vulkan surface, unregister only after
+   presenter/swapchain teardown; verify no stale surface use.
+2. Replace/resize the native window while the game is paused; verify the old
+   swapchain is retired before the old window reference is released.
+3. Run baseline game presentation with SnapFrame disabled; compare surface
+   creation, source FPS and stability against native-1.9.2b.
+4. Add source capture only and confirm the source image is captured before HUD.
+5. Add generated presentation and verify source/generated result accounting
+   independently, with no synchronous acquire or queue wait added to the
+   generated path.
+6. Enable Snap AI pressure feedback only after the preceding stages pass.
+
+No Android 2.6.2 source files or binary are claimed as ported by this audit.
