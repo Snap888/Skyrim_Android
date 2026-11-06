@@ -94,11 +94,11 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         # The 2.6.2 hook receives opaque objects from the exact pinned DXVK
         # build and is called before the source WSI blit in the same context.
         # It must never make the legacy host appear compatible with 2.6.2.
-        self.assertIn("SNAPFRAME_DXVK262_ABI_VERSION 2u", self.dxvk262_api)
+        self.assertIn("SNAPFRAME_DXVK262_ABI_VERSION 3u", self.dxvk262_api)
         self.assertIn("void* context", self.dxvk262_api)
         self.assertIn("void* context_objects", self.dxvk262_api)
         self.assertIn("void* device", self.dxvk262_api)
-        self.assertIn("void* source_view", self.dxvk262_api)
+        self.assertIn("void* source_view_ref", self.dxvk262_api)
         self.assertIn("void* window_token", self.dxvk262_api)
         self.assertIn("static_cast<void*>(cPresenter.ptr())", self.patcher)
         self.assertIn("snapframe_dxvk262_release_window", self.patcher)
@@ -125,7 +125,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn('snapframe_api = project / "android/app/jni/snapframe/snapframe_dxvk262_api.h"', self.patcher)
         self.assertIn("if (snapframe_dxvk262_record_source)", self.patcher)
         self.assertIn("SNAPFRAME_DXVK262_ABI_VERSION", self.patcher)
-        self.assertIn("cSrcView.ptr()", self.patcher)
+        self.assertIn("static_cast<void*>(&cSrcView)", self.patcher)
         replacement_block = self.patcher.split(
             "        // Record optional SnapFrame source work", 1
         )[1].split('        """', 1)[0]
