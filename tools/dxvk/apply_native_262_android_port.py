@@ -225,11 +225,12 @@ namespace dxvk::wsi {
         """        // Blit back buffer onto Vulkan swap chain
         auto contextObjects = ctx->beginExternalRendering();
 """,
-        """        // Record optional SnapFrame source work in this exact DXVK 2.6.2
-        // command context, before the source image is consumed by the WSI
-        // blitter. The hook must be non-blocking and must not flush/submit.
-        // If the matching host is absent, the weak symbol is null and the
-        // ordinary DXVK present path is unchanged.
+        """        // Begin external rendering exactly once. SnapFrame records into
+        // these same DXVK 2.6.2 command-list/descriptor-pool objects before
+        // the WSI blit consumes the source. It must not submit or flush.
+        auto contextObjects = ctx->beginExternalRendering();
+
+        // Optional host: absent symbol leaves the normal DXVK path unchanged.
         if (snapframe_dxvk262_record_source) {
           const auto extent = cSrcView->image()->info().extent;
           const SnapFrameDxvk262FrameInfo frameInfo = {
@@ -244,13 +245,11 @@ namespace dxvk::wsi {
           };
           (void)snapframe_dxvk262_record_source(
             static_cast<void*>(ctx),
+            static_cast<void*>(&contextObjects),
             static_cast<void*>(cDevice.ptr()),
             static_cast<void*>(cSrcView.ptr()),
             &frameInfo);
         }
-
-        // Blit back buffer onto Vulkan swap chain
-        auto contextObjects = ctx->beginExternalRendering();
 """,
     )
     old_callback = """  Rc<Presenter> presenter = new Presenter(m_device, Signal, presenterDesc, [
