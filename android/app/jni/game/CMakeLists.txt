@@ -86,3 +86,37 @@ else()
     message(STATUS "xWMA: FFmpeg disabled (voices/music in xWMA play silent)")
   endif()
 endif()
+
+# DXVK Native 2.6.2 runtime pair. This target is created only when the
+# pinned 2.6.2 DXVK target exists; it shares the generated game objects and
+# runtime sources but links exclusively to the matching DXVK DSO. The
+# SnapFrame 2.6.2 host is already compiled into libdxvk_d3d9_262.so.
+if(TARGET dxvk_d3d9_262)
+  if(NOT SNAP_DXVK_NATIVE_262_SOURCE_DIR)
+    message(FATAL_ERROR "DXVK 2.6.2 source root is required for main_262")
+  endif()
+
+  add_library(main_262 SHARED ${RT_SRC} ${RT_CXX} $<TARGET_OBJECTS:lbgen>)
+  target_include_directories(main_262 PRIVATE
+      ${PORT}/runtime ${PORT}/gen ../sdlinc ../snapframe
+      ${SNAP_DXVK_NATIVE_262_SOURCE_DIR}/include/native/directx
+      ${SNAP_DXVK_NATIVE_262_SOURCE_DIR}/include/native/windows
+      ${SNAP_DXVK_NATIVE_262_SOURCE_DIR}/include/native)
+  target_compile_definitions(main_262 PRIVATE DXVK_NATIVE GAME_SKYRIM)
+  target_compile_options(main_262 PRIVATE -O2 -fno-strict-aliasing -fwrapv
+      -fsigned-char -Wno-everything
+      $<$<COMPILE_LANGUAGE:C>:-std=gnu11>)
+  target_link_libraries(main_262 PRIVATE SDL2 dxvk_d3d9_262
+      SnapAI::Engine SnapFrame::Engine SnapFrame::MotionV2
+      m $<$<BOOL:${ANDROID}>:log> $<$<BOOL:${ANDROID}>:android>)
+
+  if(LB_HAS_FFMPEG)
+    target_sources(main_262 PRIVATE ${PORT}/runtime/xwma_ffmpeg.c)
+    target_include_directories(main_262 PRIVATE ${FFMPEG_DIR}/include)
+    target_compile_definitions(main_262 PRIVATE LB_HAS_FFMPEG)
+    target_link_libraries(main_262 PRIVATE "${_ffmpeg_avcodec}" "${_ffmpeg_avutil}")
+  endif()
+
+  set_target_properties(main_262 PROPERTIES OUTPUT_NAME "main_262")
+  message(STATUS "DXVK Native 2.6.2 runtime pair enabled: main_262 -> dxvk_d3d9_262")
+endif()
