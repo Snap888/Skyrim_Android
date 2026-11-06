@@ -11,6 +11,7 @@ SELECTOR = ROOT / "android/app/src/main/java/com/tj/skyrim/DxvkRuntimeSelector.j
 BUILD_SCRIPT = ROOT / "tools/dxvk/build_native_262_android_candidate.sh"
 PATCHER = ROOT / "tools/dxvk/apply_native_262_android_port.py"
 DXVK262_API = ROOT / "android/app/jni/snapframe/snapframe_dxvk262_api.h"
+PRESENTATION_DESIGN = ROOT / "docs/SNAPFRAME_DXVK262_PRESENTATION_DESIGN.md"
 
 
 class DxvkNative262CMakeContractTests(unittest.TestCase):
@@ -220,6 +221,29 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
             "mapPtr(",
         ):
             self.assertNotIn(forbidden, host_text)
+
+    def test_generated_present_is_blocked_until_presenter_owns_separate_wsi_transaction(self):
+        design = PRESENTATION_DESIGN.read_text(encoding="utf-8")
+        host = (ROOT / "android/app/jni/snapframe/snapframe_host_262.cpp").read_text(encoding="utf-8")
+        # DXVK 2.6.2 currently has one acquire and one present in the D3D9
+        # transaction. Do not regress into reusing its mutable image/semaphore
+        # state for a synthetic second present.
+        self.assertIn("m_presentPending", design)
+        self.assertIn("m_frameIndex", design)
+        self.assertIn("single acquire / single command-list submission / single present", design)
+        self.assertIn("distinct WSI image", design)
+        self.assertIn("semaphore slot", design)
+        self.assertIn("current hook does not claim a generated frame was presented", design)
+        self.assertIn("hook still skips FG until the midpoint image is wired into the WSI blit source", host)
+        for forbidden in (
+            "vkQueuePresentKHR",
+            "presentImage(",
+            "acquireNextImage(",
+            "vkQueueSubmit",
+            "vkDeviceWaitIdle",
+            "vkWaitForFences",
+        ):
+            self.assertNotIn(forbidden, host)
 
     def test_legacy_snapframe_host_is_not_linked_to_262_candidate(self):
         # The current SnapFrame host consumes DXVK-internal C++ types from the
