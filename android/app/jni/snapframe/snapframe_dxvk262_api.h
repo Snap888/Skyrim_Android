@@ -49,7 +49,7 @@ int snapframe_dxvk262_record_source(
     void* context,
     void* context_objects,
     void* device,
-    void* source_view_ref,
+    const void* source_view_ref,
     const SnapFrameDxvk262FrameInfo* frame_info)
 #if defined(__GNUC__) || defined(__clang__)
     __attribute__((weak))
