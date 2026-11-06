@@ -155,3 +155,25 @@ all non-success present/acquire results.
 The Android patcher now verifies the pinned single-transaction Presenter
 assumptions and fails closed if upstream changes those anchors. This is a
 compatibility guard, not a generated-present implementation.
+
+## Expanded transaction model coverage
+
+The reference model has been extended to cover scheduler failure and lifecycle
+cases without changing the production Presenter path:
+
+- immutable transaction tokens carry swapchain generation, image index, and a
+  per-slot serial, so stale callbacks cannot complete a later reuse;
+- acquisition is non-blocking in the model and returns no token when all slots
+  are owned, representing the required "skip generated frame" behavior;
+- resize creates a new generation while old-generation slots remain retained
+  until their outstanding present transactions complete;
+- OUT_OF_DATE and SURFACE_LOST retire the affected generation;
+- DEVICE_LOST abandons all handles as terminal teardown and never makes them
+  available for reuse;
+- completion is distinct from present enqueue, and duplicate/stale completion
+  is rejected.
+
+These tests remain a reference contract. In particular, the model's
+completion callback must eventually be mapped to a real DXVK/Vulkan completion
+signal; a return from `vkQueuePresentKHR` alone is not sufficient. The
+production generated-present path remains disabled.
