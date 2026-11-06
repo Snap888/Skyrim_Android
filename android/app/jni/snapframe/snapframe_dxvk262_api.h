@@ -32,6 +32,7 @@ typedef struct SnapFrameDxvk262FrameInfo {
   uint32_t width;
   uint32_t height;
   VkFormat format;
+  void* window_token;
   uint32_t reserved;
 } SnapFrameDxvk262FrameInfo;
 
