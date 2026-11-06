@@ -99,3 +99,59 @@ the exact upstream acquire, command submission, present, and completion
 signals at the pinned revision. In particular, a successful
 `vkQueuePresentKHR` return is not by itself treated as physical scanout or
 as permission to recycle every object referenced by the transaction.
+
+
+## Pinned Presenter source review: serialized double-present is not yet safe
+
+At pinned DXVK revision `9d6f54a1ade20d1d27dd421024717a636f3d8c68`,
+the following implementation details were checked directly:
+
+- `Presenter::acquireNextImage` waits on `m_surfaceCond` until
+  `m_presentPending` becomes false, then returns the currently acquired
+  `m_imageIndex` and semaphore pair at `m_frameIndex`.
+- `Presenter::presentImage` calls `vkQueuePresentKHR`, advances
+  `m_frameIndex` on non-negative status, and on exact success immediately
+  calls `waitForSwapchainFence(nextSync)` followed by another
+  `vkAcquireNextImageKHR`.
+- The present path then clears `m_presentPending` and wakes acquire waiters.
+- `waitForSwapchainFence` may call `vkWaitForFences(..., ~0ull)`; it is a
+  real CPU-side wait, not a non-blocking slot poll.
+- `DxvkDevice::presentImage` enqueues a present operation on
+  `DxvkSubmissionQueue`; it does not synchronously complete the WSI present.
+- `DxvkContext::flushCommandList` enqueues a command-list submission and
+  immediately begins a fresh recording command list.
+
+This confirms that a naïve second call from the current D3D9 CS closure is not
+acceptable. It may wait on `m_presentPending` or a WSI fence from the CS thread,
+and it can disturb source-frame latency tracking. Merely observing that the
+Presenter advances its semaphore ring does not make a second present
+non-blocking or correctly associated with its own frame ID.
+
+### Required next change in DXVK (not in SnapFrame host)
+
+The next implementation must move generated-frame scheduling into
+`DxvkSubmissionQueue` / `Presenter` as an asynchronous queued operation.
+It must carry an immutable transaction record containing at least:
+
+- swapchain generation;
+- acquired WSI image index and retained image reference;
+- exact acquire and present semaphore pair;
+- generated/source frame IDs and present mode snapshot;
+- completion primitive / reuse state for that slot;
+- retained generated-image reference until the command list and present
+  operation no longer reference it.
+
+The scheduler must not call the public blocking `acquireNextImage` from the
+CS thread. It must also avoid `waitForSwapchainFence` on the source-frame
+critical path. If no free WSI slot is available, it should skip that generated
+frame and preserve the ordinary game present.
+
+The source present and generated present must be ordered by the existing
+submission queue, while their independent WSI transactions retain independent
+image/semaphore ownership. Completion, not present enqueue, retires a slot.
+The implementation must explicitly handle swapchain generation changes and
+all non-success present/acquire results.
+
+The Android patcher now verifies the pinned single-transaction Presenter
+assumptions and fails closed if upstream changes those anchors. This is a
+compatibility guard, not a generated-present implementation.
