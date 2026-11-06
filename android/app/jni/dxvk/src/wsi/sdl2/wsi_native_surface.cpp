@@ -74,15 +74,11 @@ namespace dxvk::wsi {
 
     // Build/replace the shared lease outside the registry lock. Its deleter
     // may invoke native-window callbacks and must never run under g_lock.
-    std::shared_ptr<void> owned;
-    try {
-      owned = std::shared_ptr<void>(window, [](void* value) {
-        releaseWindow(value);
-      });
-    } catch (...) {
-      releaseWindow(window);
-      throw;
-    }
+    // shared_ptr invokes the supplied deleter itself if control-block
+    // allocation fails, so do not add a second release in an exception path.
+    std::shared_ptr<void> owned(window, [](void* value) {
+      releaseWindow(value);
+    });
 
     pOut->window = std::move(owned);
     pOut->width = width;
