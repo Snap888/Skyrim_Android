@@ -142,12 +142,20 @@ def main() -> int:
       // selected from whichever mutable ring index happens to be current.
       if (!transaction.transactionId
        || transaction.transactionId != m_activeTransactionId
-       || !m_presentPending
-       || transaction.swapchainGeneration != m_swapchainGeneration
+       || !m_presentPending)
+        return VK_ERROR_OUT_OF_DATE_KHR;
+
+      // If this is still the active transaction but its captured WSI
+      // ownership is malformed, retire it so acquire waiters cannot deadlock.
+      if (transaction.swapchainGeneration != m_swapchainGeneration
        || transaction.semaphoreIndex >= m_semaphores.size()
        || transaction.imageIndex >= m_images.size()
-       || !m_swapchain)
+       || !m_swapchain) {
+        m_activeTransactionId = 0u;
+        m_presentPending = false;
+        m_surfaceCond.notify_one();
         return VK_ERROR_OUT_OF_DATE_KHR;
+      }
 
       const PresenterSync& ownedSync = m_semaphores.at(transaction.semaphoreIndex);
       if (ownedSync.acquire != transaction.acquire
@@ -178,6 +186,19 @@ def main() -> int:
     )
     # Generation advances only after a new swapchain has been created and its
     # images imported. No old transaction may be silently retargeted.
+    replace_once(
+        presenter_cpp,
+        """    m_presentPending = false;
+    m_surfaceCond.notify_one();
+    return status;
+""",
+        """    m_activeTransactionId = 0u;
+    m_presentPending = false;
+    m_surfaceCond.notify_one();
+    return status;
+""",
+    )
+
     replace_once(
         presenter_cpp,
         """    // Create one set of semaphores per swap image, as well as a fence
@@ -649,7 +670,8 @@ namespace dxvk::wsi {
          and "m_swapchainGeneration++;" in presenter_source_text),
         ("present retires active token",
          "m_activeTransactionId = 0u;" in presenter_source_text
-         and "m_presentPending = false;" in presenter_source_text),
+         and "m_presentPending = false;" in presenter_source_text
+         and presenter_source_text.find("m_activeTransactionId = 0u;", presenter_source_text.find("VkResult Presenter::presentImage(")) < presenter_source_text.find("m_presentPending = false;", presenter_source_text.find("VkResult Presenter::presentImage("))),
         ("present validates active token",
          "transaction.transactionId != m_activeTransactionId" in presenter_source_text
          and "transaction.swapchainGeneration != m_swapchainGeneration" in presenter_source_text),
