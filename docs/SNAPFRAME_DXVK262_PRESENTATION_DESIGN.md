@@ -311,3 +311,28 @@ enabling generated presentation, the DXVK implementation still needs a
 non-blocking WSI path or a platform-validated mechanism that prevents
 generated queue operations from holding the source-critical queue lock.
 Until that exists, the production hook remains skip-only.
+
+
+## Source-priority scheduling contract
+
+The reference model now includes a bounded optional-work scheduler. Source
+command submissions and source presents are always dequeued before generated
+presents. Generated work has a fixed queue capacity; when it is full, new
+generated frames are dropped instead of adding latency or building an
+unbounded backlog. Continuous source work cannot be preempted by generated
+work.
+
+This policy is intentionally separate from the WSI slot-ownership model:
+priority alone does not make Vulkan presentation non-blocking. The eventual
+DXVK implementation must satisfy both contracts simultaneously:
+
+- acquire a distinct WSI image and semaphore pair without waiting;
+- enqueue only immutable generated transactions;
+- keep source submit/present work ahead of generated work;
+- ensure the generated transaction's submit/present path itself cannot block
+the source queue;
+- drop generated work if no immediately available WSI slot exists;
+- retire the slot only from a real completion/reuse signal.
+
+The scheduler tests validate policy only; they are not evidence of a live
+DXVK worker or Android WSI implementation.
