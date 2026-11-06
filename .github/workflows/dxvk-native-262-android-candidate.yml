@@ -1,0 +1,75 @@
+name: DXVK Native 2.6.2 Android ARM64 candidate
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - Snap-AI-EngineFrame
+    paths:
+      - ".github/workflows/dxvk-native-262-android-candidate.yml"
+      - "android/app/jni/dxvk_native_262/**"
+      - "android/app/jni/dxvk/**"
+      - "android/app/jni/snapframe/**"
+      - "tools/dxvk/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dxvk-native-262-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-arm64:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Checkout Skyrim_Android with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Android SDK and NDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android NDK 27.2 and API 28
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager "ndk;27.2.12479018" "platforms;android-28"
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/27.2.12479018" >> "$GITHUB_ENV"
+          echo "ANDROID_PLATFORM=android-28" >> "$GITHUB_ENV"
+          echo "ANDROID_ABI=arm64-v8a" >> "$GITHUB_ENV"
+
+      - name: Install shader and build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build python3 glslang-tools spirv-tools
+
+      - name: Checkout pinned DXVK Native 2.6.2
+        shell: bash
+        run: |
+          git clone https://github.com/doitsujin/dxvk.git "$RUNNER_TEMP/dxvk-2.6.2"
+          git -C "$RUNNER_TEMP/dxvk-2.6.2" checkout 9d6f54a1ade20d1d27dd421024717a636f3d8c68
+          git -C "$RUNNER_TEMP/dxvk-2.6.2" submodule update --init --recursive
+
+      - name: Apply Android ARM64 and WSI overlay
+        run: |
+          python3 tools/dxvk/apply_native_262_android_port.py \
+            "$RUNNER_TEMP/dxvk-2.6.2" --project-root "$GITHUB_WORKSPACE"
+
+      - name: Build and verify DXVK Native 2.6.2
+        env:
+          BUILD_JOBS: "2"
+        run: |
+          tools/dxvk/build_native_262_android_candidate.sh \
+            "$RUNNER_TEMP/dxvk-2.6.2" "$RUNNER_TEMP/dxvk-262-build" "$GITHUB_WORKSPACE"
+
+      - name: Upload verified ARM64 candidate library
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dxvk-native-2.6.2-android-arm64
+          path: ${{ runner.temp }}/dxvk-262-build/build/dxvk_native_262/libdxvk_d3d9_262.so
+          if-no-files-found: error
+          retention-days: 14
