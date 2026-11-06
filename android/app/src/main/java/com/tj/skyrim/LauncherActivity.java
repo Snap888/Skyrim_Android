@@ -262,6 +262,11 @@ public class LauncherActivity extends Activity {
         spinner(root, "snapFrameAiArtifact", "Maximum artifact risk for quality increase",
                 new String[] {"0.10", "0.15", "0.25", "0.35", "0.45"}, 2);
 
+        text(root, "DXVK runtime version", 20, true);
+        spinner(root, DxvkRuntimeSelector.PREF_VERSION_INDEX, "DXVK implementation",
+                DxvkRuntimeSelector.labels(this), 0);
+        text(root, "The launcher lists only complete DXVK + Skyrim runtime pairs packaged in this APK. The current Android Native 1.9.2b remains the fallback. DXVK Native 2.6.2 will appear here only after its Android port and matching game runtime are built and included.", 13, false);
+
         text(root, "Vulkan GPU driver", 20, true);
         text(root, "System uses the Android device driver. Import a compatible Turnip ZIP to use a custom Adreno driver.", 13, false);
         gpuDriverSpinner = new Spinner(this);
