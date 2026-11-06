@@ -128,12 +128,14 @@ The 2.6.2 WSI port must additionally verify that
 remains alive until surface destruction, and that resize/replacement cannot
 race a presenter using the previous native window.
 
-The current registry mutex protects only the registry data; it does not own
-or reference-count the `ANativeWindow`. The Android integration therefore
-must keep the window reference alive across all surface/presenter users and
-release it only after the Vulkan surface and swapchain are retired. This
-lifetime contract is a required port item, not something the registry mutex
-proves.
+The registry now owns one `ANativeWindow` reference for the active
+registration, and `nativeSurface()` acquires a temporary lease for the
+surface-creation call. This closes the lookup-versus-replacement race while
+`vkCreateAndroidSurfaceKHR` is executing. It does **not** pin the window for
+the lifetime of an already-created `VkSurfaceKHR`: the caller must still
+retire the presenter/swapchain and destroy that surface before unregistering
+or replacing the old registration. The 2.6.2 port must preserve this ordering
+and add an explicit surface-lifetime test.
 
 ### Current source vs upstream source
 
