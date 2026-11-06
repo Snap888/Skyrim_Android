@@ -19,6 +19,7 @@ ARRAYS = {
     "dxvk": ("src/dxvk/meson.build", "dxvk_src"),
     "dxso": ("src/dxso/meson.build", "dxso_src"),
     "util": ("src/util/meson.build", "util_src"),
+    "spirv": ("src/spirv/meson.build", "spirv_src"),
     "vulkan": ("src/vulkan/meson.build", "vkcommon_src"),
     "wsi_upstream": ("src/wsi/meson.build", "wsi_src"),
 }
@@ -107,7 +108,7 @@ def main() -> int:
         raise SystemExit("\n".join(errors))
 
     build_groups = [
-        "d3d9", "dxvk", "dxso", "util", "vulkan", "wsi_common", "android_wsi", "android_wsi_overlay"
+        "d3d9", "dxvk", "dxso", "util", "spirv", "vulkan", "wsi_common", "android_wsi", "android_wsi_overlay"
     ]
     flattened = [p for key in build_groups for p in groups[key]]
     duplicates = sorted({p for p in flattened if flattened.count(p) > 1})
