@@ -29,8 +29,13 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install Android SDK and NDK
+      - name: Install Android SDK command-line tools
         uses: android-actions/setup-android@v3
+        with:
+          # The legacy SDK package "tools" was removed from Google's package
+          # repository; setup-android's default requests it and aborts before
+          # the NDK installation. Command-line tools are installed by the action.
+          packages: platform-tools
 
       - name: Install Android NDK 27.2 and API 28
         shell: bash
