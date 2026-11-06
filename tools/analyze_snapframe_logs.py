@@ -47,13 +47,19 @@ def analyze(root):
     motion_analysis=config_values.get("motion_analysis",1)
     profiling_enabled=config_values.get("profiling_enabled",0)
     counts=Counter(x.get("event","unknown") for x in events); results=Counter(); reasons=Counter()
-    backpressure=Counter(); wsi_throttle_reasons=Counter()
+    backpressure=Counter(); wsi_throttle_reasons=Counter(); telemetry_callback_us=[]; telemetry_age_frames=[]
     for row in events:
         event=row.get("event")
         d=row.get("detail","")
         if event=="ai_wsi_backpressure":
             reason=re.search(r"(?:^|;)reason=([^;]+)",d)
             wsi_throttle_reasons[reason.group(1) if reason else "legacy_or_unspecified"]+=1
+        if event in ("gpu_metrics_published", "gpu_metrics_rejected"):
+            telemetry_values=key_values(d)
+            if "callback_us" in telemetry_values:
+                telemetry_callback_us.append(telemetry_values["callback_us"])
+            if "age_frames" in telemetry_values:
+                telemetry_age_frames.append(telemetry_values["age_frames"])
         m=re.search(r"result=(-?\d+)",d)
         result=m.group(1) if m else "unknown"
         # Older logs used midpoint_present_failed for VK_NOT_READY/TIMEOUT.
@@ -128,7 +134,7 @@ def analyze(root):
         "skipped_backpressure":backpressure_count,"failed":sum(results.values()),
         "backpressure_vk_results":dict(backpressure),
         "failure_vk_results":dict(results),"failure_reasons":dict(reasons)},
-      "wsi_throttle_reasons":dict(wsi_throttle_reasons),
+      "wsi_throttle_reasons":dict(wsi_throttle_reasons),\n      "ai_telemetry_async":{"callback_latency_us":stats(telemetry_callback_us),"age_frames":stats(telemetry_age_frames)},
       "present_modes_seen_in_log":dict(modes),"actual_wsi_configurations":actual_wsi,"performance":perfstats,
       "diagnostic_config":{"motion_analysis":bool(motion_analysis),"profiling_enabled":bool(profiling_enabled)},
       "dxvk_wsi":{"wsi_rows":len(wsi_rows),"queue_rows":len(queue_rows),
@@ -156,6 +162,13 @@ def to_markdown(r):
         out += [f"- {k}: {v}" for k,v in sorted(r["wsi_throttle_reasons"].items())]
     else:
         out.append("- No ai_wsi_backpressure events recorded.")
+    out += ["","## Asynchronous AI telemetry",""]
+    async_metrics=r["ai_telemetry_async"]
+    for key, value in async_metrics.items():
+        if value:
+            out.append(f"- {key}: mean {value['mean']:.1f}, median {value['median']:.1f}, p95 {value['p95']:.1f}, max {value['max']:.1f} (n={value['n']})")
+        else:
+            out.append(f"- {key}: no samples")
     out += ["","## Event counts",""]
     out += [f"- {k}: {v}" for k,v in sorted(r["event_counts"].items())]
     out += ["","## Performance (ms unless noted)",""]
