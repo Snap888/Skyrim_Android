@@ -20,6 +20,21 @@ class DxvkNativeManifestParserTests(unittest.TestCase):
                 ["one.cpp", "two.c"],
             )
 
+    def test_extract_cpp_files_wrapper(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "meson.build").write_text(
+                "unit_src = files([\\n"
+                "  'one.cpp',\\n"
+                "  'two.c',\\n"
+                "])\\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                manifest.extract_array(root, "meson.build", "unit_src"),
+                ["one.cpp", "two.c"],
+            )
+
     def test_extract_shader_array(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
