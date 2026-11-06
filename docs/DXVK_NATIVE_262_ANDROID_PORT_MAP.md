@@ -288,3 +288,31 @@ surface-create lease, and the new token is not yet captured by an upstream
 the Vulkan surface from `lease.get()`, never by looking up the mutable active
 registry again. The presenter's destruction order must continue to destroy
 the Vulkan swapchain/surface before releasing the callback and its lease.
+
+### Upstream 2.6.2 Presenter patch (implemented as source overlay)
+
+A reproducible patcher now applies the Android WSI integration to the exact
+pinned 2.6.2 checkout:
+
+- Copies the project-owned `NativeSurfaceLease` implementation into
+  `src/wsi/sdl2/`.
+- Captures the lease by value in the upstream
+  `D3D9SwapChainEx::CreatePresenter` surface callback.
+- Creates Android surfaces from the captured lease pointer, without consulting
+  the mutable active-window registry.
+- Adds `VK_KHR_android_surface` to the SDL2 WSI instance extension list if
+  SDL did not already report it. DXVK's existing extension validation remains
+  responsible for rejecting unsupported implementations.
+- Leaves the normal SDL surface creation path intact when no native Android
+  lease was registered.
+
+The pinned upstream Presenter destructor calls `destroySwapchain()` and
+`destroySurface()` before its callback member is destroyed. Therefore the
+callback-held lease outlives the Vulkan surface and swapchain during ordinary
+Presenter destruction. `destroyResources()` also retires the swapchain and
+surface while keeping the callback/lease alive, which is conservative and safe.
+
+CI now applies this overlay to a disposable checkout and checks the resulting
+source anchors before generating the source inventory. This is a source-level
+integration test only. It is not yet a successful Android compile, runtime
+surface test, or packaged DXVK 2.6.2 library.
