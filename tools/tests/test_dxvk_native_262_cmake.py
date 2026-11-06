@@ -110,6 +110,12 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("m_objects.pipelineManager().stopWorkerThreads();", self.patcher)
         self.assertIn('device_text.rfind("this->waitForIdle();", 0, stop_offset)', self.patcher)
         self.assertIn("DXVK device teardown no longer drains submissions", self.patcher)
+        self.assertIn("Presenter acquire serialization changed; re-review generated-present scheduling", self.patcher)
+        self.assertIn("Presenter present queue path changed; re-review generated-present scheduling", self.patcher)
+        self.assertIn("Presenter no longer pre-acquires after present; re-review slot ownership", self.patcher)
+        self.assertIn("Presenter semaphore ring changed; re-review generated-present scheduling", self.patcher)
+        self.assertIn("Presenter next-slot fence reuse changed; re-review generated-present scheduling", self.patcher)
+        self.assertIn("SnapFrame generated present: DISABLED pending a DXVK-owned asynchronous transaction scheduler.", self.patcher)
         # Device resources may be retired only after DXVK stops its pipeline
         # workers. Assert the exact replacement block, not loose token presence.
         self.assertIn(
