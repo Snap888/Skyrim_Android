@@ -151,8 +151,9 @@ target_link_options(dxvk_d3d9_262 PRIVATE
 target_link_libraries(dxvk_d3d9_262 PRIVATE
     SDL2 PkgConfig::DISPLAY_INFO "${SNAP_VULKAN_LIBRARY}"
     "${SNAP_ANDROID_LIBRARY}" "${SNAP_LOG_LIBRARY}")
+# Android packages the exact filename and SONAME consumed by the runtime
+# selector; versioned ELF sonames/symlinks are not suitable APK ABI assets.
 set_target_properties(dxvk_d3d9_262 PROPERTIES
     OUTPUT_NAME "dxvk_d3d9_262"
-    VERSION "0.2602.0"
-    SOVERSION "0")
+    NO_SONAME FALSE)
 message(STATUS "DXVK Native 2.6.2 candidate enabled (source revision ${_dxvk_actual_revision})")
