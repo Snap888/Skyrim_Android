@@ -86,6 +86,12 @@ The patcher now copies `snapframe_dxvk262_api.h` into the pinned upstream `src/d
 
 This is a source-capture/compute-recording seam only. It does **not** yet generate or present a midpoint, does not establish completion/scan-out, and does not mean a `snapframe_host_262` implementation exists. The next stage is to implement the hook in a separate host compiled against the pinned upstream headers, then add per-window history/resource lifetime and generated-frame scheduling inside the same command stream. The runtime selector remains gated on a fully built matching pair.
 
+## Per-Presenter history retirement
+
+The optional weak `snapframe_dxvk262_release_window` callback is paired with `record_source`. `frame_info.window_token` carries the owning `Presenter*`; the patcher injects a release notification into `D3D9SwapChainEx::Invalidate` before `destroyResources()` and before the Presenter is erased. This is the explicit retirement event for a future 2.6.2 host's per-window flow/history state and avoids relying on pointer disappearance or timeout cleanup.
+
+The callback contract is non-blocking. A host may drop references or defer resource retirement through DXVK ownership, but must not wait for the GPU or flush a command list. The weak symbol leaves the ordinary DXVK path intact when no matching 2.6.2 host is linked. This covers explicit Presenter invalidation; host shutdown/device teardown still requires its own lifetime path before generated presents are enabled.
+
 ## Android WSI and native-window lifetime
 
 The patcher `tools/dxvk/apply_native_262_android_port.py` applies the Android overlay to the exact pinned upstream checkout:
