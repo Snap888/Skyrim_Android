@@ -183,6 +183,35 @@ jobs:
           bash tools/ci/verify_dxvk_runtime_pair.sh \
             "$DXVK_SO" "$LINK_CHECK_SO" "$READELF" "$NM" "libdxvk_d3d9.so"
 
+  dxvk-native-262-source-inventory:
+    name: DXVK Native 2.6.2 Android source inventory
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Skyrim Android integration
+        uses: actions/checkout@v4
+
+      - name: Checkout pinned DXVK Native 2.6.2
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/doitsujin/dxvk.git "$RUNNER_TEMP/dxvk-native-262"
+          git -C "$RUNNER_TEMP/dxvk-native-262" fetch --depth=1 origin 9d6f54a1ade20d1d27dd421024717a636f3d8c68
+          git -C "$RUNNER_TEMP/dxvk-native-262" checkout --detach 9d6f54a1ade20d1d27dd421024717a636f3d8c68
+          test "$(git -C "$RUNNER_TEMP/dxvk-native-262" rev-parse HEAD)" = "9d6f54a1ade20d1d27dd421024717a636f3d8c68"
+
+      - name: Generate and validate Android source inventory
+        run: |
+          python3 tools/dxvk/generate_native_262_android_manifest.py \
+            "$RUNNER_TEMP/dxvk-native-262" \
+            --output "$RUNNER_TEMP/dxvk-native-262-android-source-manifest.json"
+          python3 -m json.tool "$RUNNER_TEMP/dxvk-native-262-android-source-manifest.json" >/dev/null
+
+      - name: Upload reviewed source inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: dxvk-native-2.6.2-android-source-inventory
+          path: ${{ runner.temp }}/dxvk-native-262-android-source-manifest.json
+          retention-days: 14
+
   apk:
     name: Full arm64 APK build
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_apk }}
