@@ -56,7 +56,7 @@ CMAKE
   -DSNAP_REPO_ROOT="$REPO_ROOT" \
   -DSNAP_DXVK_SOURCE_DIR="$DXVK_SOURCE_DIR"
 
-"$CMAKE_BIN" --build "$BUILD_DIR/build" --target dxvk_d3d9_262 --parallel "${BUILD_JOBS:-2}"
+"$CMAKE_BIN" --build "$BUILD_DIR/build" --target SDL2 dxvk_d3d9_262 --parallel "${BUILD_JOBS:-2}"
 
 DXVK_SO="$BUILD_DIR/build/dxvk_native_262/libdxvk_d3d9_262.so"
 if [[ ! -s "$DXVK_SO" ]]; then
