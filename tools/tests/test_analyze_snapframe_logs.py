@@ -106,6 +106,21 @@ class AnalyzerTests(unittest.TestCase):
             self.assertIn("FLOW_READBACK_MISSING", codes)
             self.assertNotIn("FLOW_READBACK_DISABLED_BY_CONFIG", codes)
 
+    def test_reports_async_ai_telemetry_latency_and_age(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "snapframe_events.csv").write_text(
+                "frame,event,width,height,detail\\n"
+                '30,gpu_metrics_published,2448,1080,"async_readback age_frames=1 callback_us=420 validated=1"\\n'
+                '60,gpu_metrics_rejected,2448,1080,"async_readback age_frames=2 callback_us=900 reason=low_valid_flow_coverage"\\n',
+                encoding="utf-8")
+            report = analyze(root)
+            self.assertEqual(report["ai_telemetry_async"]["callback_latency_us"]["median"], 660.0)
+            self.assertEqual(report["ai_telemetry_async"]["age_frames"]["max"], 2.0)
+            rendered = to_markdown(report)
+            self.assertIn("## Asynchronous AI telemetry", rendered)
+            self.assertIn("callback_latency_us", rendered)
+
     def test_reports_ai_wsi_throttle_reason(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
