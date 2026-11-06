@@ -66,6 +66,16 @@ def main() -> int:
 #include "dxvk_instance.h"
 """,
     )
+    device_text = device_cpp.read_text(encoding="utf-8")
+    stop_workers = "m_objects.pipelineManager().stopWorkerThreads();"
+    stop_offset = device_text.find(stop_workers)
+    if stop_offset < 0 or device_text.find(stop_workers, stop_offset + 1) >= 0:
+        raise SystemExit("unexpected DXVK device worker-stop lifecycle; re-review device retirement")
+    # Device-owned GPU resources may be retired only after queued submissions
+    # have drained and pipeline workers have stopped.
+    wait_offset = device_text.rfind("m_objects.waitForIdle();", 0, stop_offset)
+    if wait_offset < 0:
+        raise SystemExit("DXVK device teardown no longer drains submissions before worker shutdown")
     replace_once(
         device_cpp,
         """    m_objects.pipelineManager().stopWorkerThreads();
