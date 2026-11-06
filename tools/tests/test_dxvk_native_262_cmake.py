@@ -139,7 +139,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         )[1])
         self.assertIn("snapframe_host_262.cpp", self.snapframe_text)
         self.assertIn("target_sources(dxvk_d3d9_262 PRIVATE", self.snapframe_text)
-        self.assertIn("SnapFrame DXVK 2.6.2 luma host enabled", self.snapframe_text)
+        self.assertIn("SnapFrame DXVK 2.6.2 luma/flow/consistency/midpoint compute host enabled", self.snapframe_text)
         self.assertNotIn("snapframe_host_262", self.game_text)
 
     def test_262_host_records_luma_through_dxvk_context_without_manual_submit(self):
