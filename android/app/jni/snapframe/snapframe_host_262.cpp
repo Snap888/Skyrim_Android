@@ -41,9 +41,12 @@ struct DeviceState {
   std::array<Rc<DxvkImageView>, 2> lumaViews;
   std::array<Rc<DxvkImage>, 2> flowImages;
   std::array<Rc<DxvkImageView>, 2> flowViews;
+  Rc<DxvkImage> consistencyImage;
+  Rc<DxvkImageView> consistencyView;
   Rc<DxvkSampler> sampler;
   Rc<DxvkShader> lumaShader;
   Rc<DxvkShader> flowShader;
+  Rc<DxvkShader> consistencyShader;
   uint32_t flowWidth = 0;
   uint32_t flowHeight = 0;
   bool hasPreviousLuma = false;
@@ -218,6 +221,41 @@ bool initializeDeviceState(DeviceState& state, DxvkDevice* device,
   if (!state.flowShader)
     return false;
 
+  // Forward/backward cycle validation writes a soft R16F confidence mask.
+  DxvkImageCreateInfo consistencyInfo = flowInfo;
+  consistencyInfo.format = VK_FORMAT_R16_SFLOAT;
+  state.consistencyImage = device->createImage(
+    consistencyInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  if (!state.consistencyImage)
+    return false;
+  DxvkImageViewKey consistencyViewInfo = flowViewInfo;
+  consistencyViewInfo.format = VK_FORMAT_R16_SFLOAT;
+  state.consistencyView = state.consistencyImage->createView(consistencyViewInfo);
+  if (!state.consistencyView)
+    return false;
+
+  const DxvkBindingInfo consistencyBindings[] = {
+    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0,
+      VK_IMAGE_VIEW_TYPE_2D, VK_SHADER_STAGE_COMPUTE_BIT, VK_ACCESS_SHADER_READ_BIT },
+    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
+      VK_IMAGE_VIEW_TYPE_2D, VK_SHADER_STAGE_COMPUTE_BIT, VK_ACCESS_SHADER_READ_BIT },
+    { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 2,
+      VK_IMAGE_VIEW_TYPE_2D, VK_SHADER_STAGE_COMPUTE_BIT, VK_ACCESS_SHADER_WRITE_BIT },
+    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3,
+      VK_IMAGE_VIEW_TYPE_2D, VK_SHADER_STAGE_COMPUTE_BIT, VK_ACCESS_SHADER_READ_BIT },
+  };
+  DxvkShaderCreateInfo consistencyShaderInfo{};
+  consistencyShaderInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+  consistencyShaderInfo.bindingCount = uint32_t(std::size(consistencyBindings));
+  consistencyShaderInfo.bindings = consistencyBindings;
+  SpirvCodeBuffer consistencyShaderCode(
+    snapframe::shaders::k_flow_consistency_word_count,
+    snapframe::shaders::k_flow_consistency);
+  state.consistencyShader = new DxvkShader(
+    consistencyShaderInfo, std::move(consistencyShaderCode));
+  if (!state.consistencyShader)
+    return false;
+
   const DxvkBindingInfo bindings[] = {
     {
       VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0,
@@ -244,8 +282,11 @@ bool initializeDeviceState(DeviceState& state, DxvkDevice* device,
 }
 
 void resetDeviceState(DeviceState& state) {
+  state.consistencyShader = nullptr;
   state.flowShader = nullptr;
   state.lumaShader = nullptr;
+  state.consistencyView = nullptr;
+  state.consistencyImage = nullptr;
   state.sampler = nullptr;
   for (auto& view : state.flowViews)
     view = nullptr;
@@ -361,6 +402,24 @@ extern "C" int snapframe_dxvk262_record_source(
       Rc<DxvkImageView>(state.flowViews[1]));
     dxvkContext->dispatch((state.flowWidth + 7u) / 8u,
                           (state.flowHeight + 7u) / 8u, 1u);
+    dxvkContext->bindShader<VK_SHADER_STAGE_COMPUTE_BIT>(
+      Rc<DxvkShader>(state.consistencyShader));
+    dxvkContext->bindResourceImageView(VK_SHADER_STAGE_COMPUTE_BIT, 0,
+      Rc<DxvkImageView>(state.flowViews[0]));
+    dxvkContext->bindResourceSampler(VK_SHADER_STAGE_COMPUTE_BIT, 0,
+      Rc<DxvkSampler>(state.sampler));
+    dxvkContext->bindResourceImageView(VK_SHADER_STAGE_COMPUTE_BIT, 1,
+      Rc<DxvkImageView>(state.flowViews[1]));
+    dxvkContext->bindResourceSampler(VK_SHADER_STAGE_COMPUTE_BIT, 1,
+      Rc<DxvkSampler>(state.sampler));
+    dxvkContext->bindResourceImageView(VK_SHADER_STAGE_COMPUTE_BIT, 2,
+      Rc<DxvkImageView>(state.consistencyView));
+    dxvkContext->bindResourceImageView(VK_SHADER_STAGE_COMPUTE_BIT, 3,
+      Rc<DxvkImageView>(state.lumaViews[slot]));
+    dxvkContext->bindResourceSampler(VK_SHADER_STAGE_COMPUTE_BIT, 3,
+      Rc<DxvkSampler>(state.sampler));
+    dxvkContext->dispatch((state.flowWidth + 7u) / 8u,
+                          (state.flowHeight + 7u) / 8u, 1u);
     ++state.flowPairsRecorded;
   }
 
@@ -376,8 +435,8 @@ extern "C" int snapframe_dxvk262_record_source(
       state.flowWidth, state.flowHeight);
   }
 
-  // Luma and bidirectional flow are now recorded. The hook still skips FG:
-  // flow validation, midpoint warp and presentation are not connected.
+  // Luma, bidirectional flow and cycle consistency are now recorded. The
+  // hook still skips FG until midpoint warp and WSI presentation are connected.
   return 1;
 }
 
