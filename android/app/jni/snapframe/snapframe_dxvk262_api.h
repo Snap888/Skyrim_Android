@@ -24,7 +24,7 @@
 extern "C" {
 #endif
 
-#define SNAPFRAME_DXVK262_ABI_VERSION 2u
+#define SNAPFRAME_DXVK262_ABI_VERSION 3u
 
 typedef struct SnapFrameDxvk262FrameInfo {
   uint32_t struct_size;
@@ -40,15 +40,16 @@ typedef struct SnapFrameDxvk262FrameInfo {
 /*
  * Return 0 when the frame was accepted for asynchronous GPU processing.
  * Non-zero means SnapFrame skipped this frame; DXVK must still present the
- * original source image. context/device/source_view are DXVK 2.6.2 objects
- * and may only be consumed by a host compiled against the exact pinned
- * 2.6.2 headers.
+ * original source image. context/device are DXVK 2.6.2 objects. source_view_ref points to the
+ * retained Rc<DxvkImageView> wrapper in the PresentImage command-stream
+ * closure, not to a raw VkImageView. All are valid only inside the exact
+ * pinned 2.6.2 host and callback lifetime.
  */
 int snapframe_dxvk262_record_source(
     void* context,
     void* context_objects,
     void* device,
-    void* source_view,
+    void* source_view_ref,
     const SnapFrameDxvk262FrameInfo* frame_info)
 #if defined(__GNUC__) || defined(__clang__)
     __attribute__((weak))
