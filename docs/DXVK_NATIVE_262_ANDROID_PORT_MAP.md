@@ -79,7 +79,7 @@ Keep native-1.9.2b as the default and fallback. Do not expose 2.6.2 until the co
 The patcher now copies `snapframe_dxvk262_api.h` into the pinned upstream `src/d3d9` tree and inserts an optional weak C-ABI call in `D3D9SwapChainEx::PresentImage`:
 
 - The hook is invoked on the DXVK command-stream worker after color-space compatibility is prepared and before the source backbuffer is consumed by the WSI blitter.
-- It receives the exact 2.6.2 `DxvkContext`, `DxvkDevice`, and source `DxvkImageView` as opaque pointers, plus a size/version-tagged frame descriptor (frame ID, extent and Vulkan format).
+- It receives the exact 2.6.2 `DxvkContext`, `DxvkDevice`, and source `DxvkImageView` as opaque pointers, plus a size/version-tagged frame descriptor (frame ID, extent, Vulkan format, and the captured `Presenter` identity as a per-window history token).
 - Opaque DXVK pointers are valid only for a host compiled against the pinned 2.6.2 headers. They must never be passed to the legacy 1.9.2b host.
 - The weak hook is optional. If the matching host is not linked, DXVK follows the normal source-present path without changing behavior.
 - A future implementation must record work into the supplied context, without flushing/submitting it, waiting on fences, or reading pixels/flow back to CPU. This preserves ordering with the source blit.
