@@ -51,13 +51,13 @@ def extract_array(root: Path, relative: str, name: str) -> list[str]:
 def extract_shader_array(root: Path, relative: str, name: str) -> list[str]:
     text = (root / relative).read_text(encoding="utf-8")
     match = re.search(
-        rf"(?m)^\\s*{re.escape(name)}\\s*=\\s*\\[(.*?)^\\s*\\]",
+        rf"(?m)^\s*{re.escape(name)}\s*=\s*\\[(.*?)^\s*\\]",
         text,
         flags=re.DOTALL,
     )
     if not match:
         raise ValueError(f"Meson shader array {name!r} not found in {relative}")
-    values = re.findall(r"""['"]([^'"]+\\.(?:comp|frag|vert|geom))['"]""", match.group(1))
+    values = re.findall(r"""['"]([^'"]+\.(?:comp|frag|vert|geom))['"]""", match.group(1))
     if not values:
         raise ValueError(f"Meson shader array {name!r} in {relative} contains no shader sources")
     return values
