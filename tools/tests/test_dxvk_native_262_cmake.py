@@ -85,6 +85,16 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("Direct3DCreate9Ex", self.build_script)
         self.assertIn('"libSDL2.so"', self.patcher)
 
+    def test_candidate_build_compiles_the_version_matched_snapframe_host(self):
+        self.assertIn("tools/compile_snapframe_shaders.py", self.build_script)
+        self.assertIn("--spirv-val", self.build_script)
+        self.assertIn("snapframe_host_262.cpp", self.build_script)
+        self.assertIn("target_sources(dxvk_d3d9_262 PRIVATE", self.build_script)
+        self.assertIn("BUILD_SNAPFRAME_GENERATED_DIR", self.build_script)
+        self.assertIn("snapframe_dxvk262_record_source", self.build_script)
+        self.assertIn("ELF_DEFINED", self.build_script)
+        self.assertIn("DXVK_NATIVE_262_SNAPFRAME_HOST_COMPILED_OK", self.build_script)
+
     def test_candidate_does_not_replace_production_runtime(self):
         self.assertIn("SNAP_BUILD_DXVK_NATIVE_262", self.root_text)
         self.assertNotIn("SNAP_BUILD_DXVK_NATIVE_262 ON", self.root_text)
