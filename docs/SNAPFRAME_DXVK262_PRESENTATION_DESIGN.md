@@ -285,3 +285,29 @@ non-blocking, separately owned WSI acquisition/present transaction and a
 source-priority policy that cannot be held hostage by generated work. If the
 platform/driver cannot provide a free generated slot without waiting, drop
 that generated frame. The ordinary source present remains unchanged.
+
+
+## Source-priority admission policy (reference model)
+
+The current DXVK queue uses one submit worker and serializes graphics queue
+operations with m_mutexQueue. A generated present cannot be given a hard
+source-latency guarantee merely by putting it in a second software queue:
+once a Vulkan queue operation is executing under the queue mutex, a newly
+arriving source submission cannot preempt it.
+
+The reference model now includes a source-priority admission policy:
+
+- Do not admit generated work while any source command/present is pending.
+- Permit at most one generated operation in flight; do not build a backlog of
+  stale midpoint frames.
+- If source work arrives before generated work is admitted, drop the generated
+  frame immediately.
+- Keep source submissions independent of generated completion accounting.
+- Never describe this policy as preemption: it cannot interrupt a Vulkan or
+  driver call that has already started.
+
+This is a scheduler admission contract, not production Vulkan code. Before
+enabling generated presentation, the DXVK implementation still needs a
+non-blocking WSI path or a platform-validated mechanism that prevents
+generated queue operations from holding the source-critical queue lock.
+Until that exists, the production hook remains skip-only.
