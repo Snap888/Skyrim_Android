@@ -819,6 +819,17 @@ bool recordV1GpuMetrics(
     context->addCompletionCallback([readback, slot, generation, frame,
                                     width, height, flowWidth, flowHeight,
                                     timestampNs](VkResult completion) {
+        /* Completion callbacks run after the command list has completed. This
+         * timestamp is diagnostic only: never poll a fence or wait for GPU data
+         * on the render/present path to make telemetry available. */
+        const uint64_t callbackNs = static_cast<uint64_t>(
+            std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::steady_clock::now().time_since_epoch()).count());
+        const uint64_t callbackLatencyUs = callbackNs >= timestampNs
+            ? (callbackNs - timestampNs) / 1000u : 0u;
+        const uint64_t capturedNow = g_capturedFrames.load(std::memory_order_acquire);
+        const uint64_t callbackAgeFrames = capturedNow >= frame
+            ? capturedNow - frame : 0u;
         bool accepted = false;
         float loggedConfidence = 0.0f;
         float loggedComplexity = 0.0f;
@@ -945,11 +956,20 @@ bool recordV1GpuMetrics(
                 snapframeLog("SnapFrame: GPU metrics published frame=%llu confidence=%.3f complexity=%.3f artifact=%.3f\n",
                     static_cast<unsigned long long>(frame),
                     loggedConfidence, loggedComplexity, loggedArtifactRisk);
-            snapframeEvent(frame, "gpu_metrics_published", width, height,
-                "v1_scalar_record_validated_and_motion_v2_accepted");
+            char detail[160];
+            snprintf(detail, sizeof(detail),
+                "async_readback age_frames=%llu callback_us=%llu validated=1",
+                static_cast<unsigned long long>(callbackAgeFrames),
+                static_cast<unsigned long long>(callbackLatencyUs));
+            snapframeEvent(frame, "gpu_metrics_published", width, height, detail);
         } else {
-            snapframeEvent(frame, "gpu_metrics_rejected", width, height,
+            char detail[192];
+            snprintf(detail, sizeof(detail),
+                "async_readback age_frames=%llu callback_us=%llu reason=%s",
+                static_cast<unsigned long long>(callbackAgeFrames),
+                static_cast<unsigned long long>(callbackLatencyUs),
                 rejectReason ? rejectReason : "unknown");
+            snapframeEvent(frame, "gpu_metrics_rejected", width, height, detail);
         }
     });
     snapframeEvent(frame, "gpu_metrics_copy_recorded", width, height,
