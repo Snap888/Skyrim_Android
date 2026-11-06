@@ -106,6 +106,13 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn('shutil.copyfile(snapframe_api, dxvk_dir / "snapframe_dxvk262_api.h")', self.patcher)
         self.assertIn("snapframe_dxvk262_release_device(static_cast<void*>(this));", self.patcher)
         self.assertIn("m_objects.pipelineManager().stopWorkerThreads();", self.patcher)
+        # Device resources may be retired only after DXVK has drained queued
+        # submissions and stopped pipeline workers. Keep this exact order in
+        # the patch contract; a loose presence check would allow early teardown.
+        self.assertIn(
+            '"'"'        "  }\\n\\n    m_objects.waitForIdle();\\n\\n    m_objects.pipelineManager().stopWorkerThreads();\\n\\n    if (snapframe_dxvk262_release_device)\\n      snapframe_dxvk262_release_device(static_cast<void*>(this));\\n  }\\n"'"'"',
+            self.patcher,
+        )
 
         self.assertIn(
             "if (snapframe_dxvk262_release_window)\n          snapframe_dxvk262_release_window(static_cast<void*>(entry->second.presenter.ptr()));\n        entry->second.presenter->destroyResources();",
