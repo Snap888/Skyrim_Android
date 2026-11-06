@@ -687,6 +687,8 @@ namespace dxvk::wsi {
          and "m_submitQueue.push(std::move(entry));" in queue_cpp),
         ("submit worker serializes Vulkan queue access",
          "std::lock_guard<dxvk::mutex> lock(m_mutexQueue);" in queue_cpp),
+        ("submit worker submits command lists",
+         "entry.submit.cmdList->submit(" in queue_cpp),
         ("present operation runs on submit worker",
          "entry.present.presenter->presentImage(" in queue_cpp),
         ("present completion is retired by finish worker",
