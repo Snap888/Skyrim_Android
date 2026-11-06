@@ -18,7 +18,7 @@ ARRAYS = {
     "dxso": ("src/dxso/meson.build", "dxso_src"),
     "util": ("src/util/meson.build", "util_src"),
     "vulkan": ("src/vulkan/meson.build", "vkcommon_src"),
-    "wsi": ("src/wsi/meson.build", "wsi_src"),
+    "wsi_upstream": ("src/wsi/meson.build", "wsi_src"),
 }
 
 ANDROID_WSI = [
