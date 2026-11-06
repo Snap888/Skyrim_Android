@@ -40,6 +40,12 @@ for path in "${required_files[@]}"; do
   }
 done
 
+# Apply the pinned Android WSI/Presenter overlay in the disposable checkout.
+# This is a source transformation check only; it does not imply a successful
+# Android compile or a packaged runtime pair.
+python3 "$project_root/tools/dxvk/apply_native_262_android_port.py" \
+  "$dest" --project-root "$project_root"
+
 # Fail if the source-level presenter contract changes unexpectedly. These
 # anchors are reviewed integration points, not a substitute for compilation.
 grep -q 'acquireNextImage' "$dest/src/d3d9/d3d9_swapchain.cpp"
