@@ -19,7 +19,7 @@ typedef enum SnapFramePresentMode {
     SNAPFRAME_PRESENT_MODE_IMMEDIATE = 3
 } SnapFramePresentMode;
 
-typedef struct SnapFrameConfig {
+typedef enum SnapFrameAIMode {\n    SNAPFRAME_AI_STANDARD = 0,\n    SNAPFRAME_AI_INTELLIGENT = 1,\n    SNAPFRAME_AI_MANUAL = 2\n} SnapFrameAIMode;\n\ntypedef struct SnapFrameConfig {
     int enabled;
     int present_mode;     /* SnapFramePresentMode; applies to the shared DXVK swapchain. */
     int multiplier;       /* Initially only 1 (off) or 2 (one generated frame). */
