@@ -2089,6 +2089,8 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
     const unsigned slot = static_cast<unsigned>(g_frameIndex & 1u);
     const uint64_t nextCapturedFrame = g_capturedFrames.load(std::memory_order_relaxed) + 1u;
     logDiagnosticPhase(nextCapturedFrame);
+    const bool aiTelemetryEnabled =
+        g_aiMode.load(std::memory_order_acquire) != SNAPFRAME_AI_STANDARD;
     const bool profileThisFrame = g_profilingEnabled
         && (!g_diagnosticSuiteEnabled || !g_diagnosticSuiteComplete)
         && (nextCapturedFrame % kAiTelemetryIntervalFrames) == 0u;
@@ -2105,8 +2107,8 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
     // same frame cadence. Keep this one timestamp pair active in normal
     // gameplay even when verbose profiling and V2 diagnostics are disabled;
     // it is asynchronous and does not enable per-stage profiling/readback.
-    const bool telemetrySampleThisFrame =
-        (nextCapturedFrame % kAiTelemetryIntervalFrames) == 0u;
+    const bool telemetrySampleThisFrame = aiTelemetryEnabled
+        && (nextCapturedFrame % kAiTelemetryIntervalFrames) == 0u;
     const SnapFrameGpuTimer totalTimer = beginGpuTimer(
         context, device, "total_chain", nextCapturedFrame, width, height,
         profileThisFrame || telemetrySampleThisFrame);
@@ -2436,7 +2438,8 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                         width, height, consistencyDispatched ? "dispatch_accepted" : "dispatch_rejected");
                     if (consistencyDispatched) {
                         ++g_consistencyDispatchCount;
-                        if (g_metricsAvailable && (nextCapturedFrame % kAiTelemetryIntervalFrames) == 0u) {
+                        if (aiTelemetryEnabled && g_metricsAvailable
+                            && (nextCapturedFrame % kAiTelemetryIntervalFrames) == 0u) {
                             recordV1GpuMetrics(context, nextCapturedFrame,
                                 width, height, flowWidth, flowHeight);
                         }
