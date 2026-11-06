@@ -1,15 +1,16 @@
 #pragma once
 
-// Port: a second Android display (the HUD screen) is not an SDL window. The
-// game registers its ANativeWindow under a made-up HWND with
-// dxvk_native_surface(); the SDL2 WSI functions treat that HWND as a plain
-// Vulkan surface of the given size.
+// Android's game-provided ANativeWindow is registered behind a synthetic HWND.
+// The registry owns one native-window reference while the entry is active.
+// nativeSurface() returns a second, temporary reference which the caller must
+// release with releaseNativeSurface() after the Vulkan surface-create call.
 #include <windows.h>
 #include <cstdint>
 
 namespace dxvk::wsi {
   struct NativeSurface { void* window; uint32_t width, height; };
   bool nativeSurface(HWND hWindow, NativeSurface* pOut);
+  void releaseNativeSurface(NativeSurface* pSurface);
 }
 
 extern "C" void dxvk_native_surface(void* hwnd, void* window, uint32_t width, uint32_t height);
