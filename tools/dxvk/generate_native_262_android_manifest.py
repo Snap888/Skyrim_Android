@@ -48,6 +48,21 @@ def extract_array(root: Path, relative: str, name: str) -> list[str]:
     return values
 
 
+def extract_shader_array(root: Path, relative: str, name: str) -> list[str]:
+    text = (root / relative).read_text(encoding="utf-8")
+    match = re.search(
+        rf"(?m)^\\s*{re.escape(name)}\\s*=\\s*\\[(.*?)^\\s*\\]",
+        text,
+        flags=re.DOTALL,
+    )
+    if not match:
+        raise ValueError(f"Meson shader array {name!r} not found in {relative}")
+    values = re.findall(r"""['"]([^'"]+\\.(?:comp|frag|vert|geom))['"]""", match.group(1))
+    if not values:
+        raise ValueError(f"Meson shader array {name!r} in {relative} contains no shader sources")
+    return values
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("source_root", type=Path)
@@ -93,6 +108,19 @@ def main() -> int:
                 errors.append(f"{group}: missing source {path}")
         groups[group] = paths
 
+    # Inventory GLSL inputs separately from C/C++ translation units.
+    for group, meson_file, array_name in (
+        ("d3d9_shaders", "src/d3d9/meson.build", "d3d9_shaders"),
+        ("dxvk_shaders", "src/dxvk/meson.build", "dxvk_shaders"),
+    ):
+        values = extract_shader_array(root, meson_file, array_name)
+        prefix = Path(meson_file).parent
+        paths = [str(prefix / value) for value in values]
+        for path in paths:
+            if not (root / path).is_file():
+                errors.append(f"{group}: missing shader source {path}")
+        groups[group] = paths
+
     # Project-owned Android surface lifetime adapter, copied into the pinned
     # upstream tree by apply_native_262_android_port.py before inventory.
     overlay_source = "src/wsi/sdl2/wsi_native_surface.cpp"
@@ -129,7 +157,7 @@ def main() -> int:
             "Meson source arrays are an inventory, not a complete Android CMake target.",
             "Android candidate includes common WSI plus SDL2 WSI only.",
             "SDL3, GLFW and Win32 WSI sources are inventoried separately and excluded.",
-            "Generated GLSL headers, resources, compile definitions, dependencies and link flags require separate review.",
+            "GLSL shader inputs are inventoried separately; generated headers, resources, compile definitions, dependencies and link flags still require separate review.",
             "Do not package this inventory until an Android build and ABI-pair verification pass.",
         ],
     }
