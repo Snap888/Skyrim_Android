@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <iterator>
 #include <mutex>
 #include <unordered_map>
 
