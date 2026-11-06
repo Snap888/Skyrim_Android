@@ -66,6 +66,12 @@ Required integration points in a 2.6.2 port:
 7. **Device validation:** test FG off first, then FG on, on Adreno 740/Turnip. Compare source FPS, source submission wait, CPU Present P95, GPU stage timing, generated acquire failures, and long-run stability. Accepted presents are not a physical scan-out counter.
 8. **Expose selector entry:** only package and show 2.6.2 after both matching libraries and all build/device gates pass.
 
+## Present timing attribution correction (2026-11-06)
+
+The baseline DXVK present instrumentation now reports handoff residuals separately from nested source/generated submission waits. Previously, `source_handoff` and `generated_handoff` included time already counted by `source_submission_wait` / `generated_submission_wait`. Summing those fields therefore double-counted the same wall-clock interval and made `untracked` artificially small or negative-clamped.
+
+The updated measurements subtract both nested submission-wait deltas from the enclosing synchronization interval. The remaining handoff fields represent synchronization/dispatch overhead only; the submission wait fields remain independent. This makes the thresholded spike components disjoint for attribution. It does not change queue ordering, semaphore ownership, wait behavior, or AI throttle thresholds.
+
 ## Current status
 
 - Baseline Android DXVK runtime remains the only packaged runtime.
