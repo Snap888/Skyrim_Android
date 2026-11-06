@@ -43,7 +43,7 @@ endif()
 set(_manifest "${CMAKE_CURRENT_BINARY_DIR}/dxvk-native-262-android-manifest.json")
 execute_process(
     COMMAND "${Python3_EXECUTABLE}"
-        "${CMAKE_CURRENT_LIST_DIR}/../../../tools/dxvk/generate_native_262_android_manifest.py"
+        "${CMAKE_SOURCE_DIR}/tools/dxvk/generate_native_262_android_manifest.py"
         "${SNAP_DXVK_NATIVE_262_SOURCE_DIR}" --output "${_manifest}"
     RESULT_VARIABLE _manifest_result
     COMMAND_ERROR_IS_FATAL ANY)
