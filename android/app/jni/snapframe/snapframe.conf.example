@@ -11,6 +11,12 @@ profiling_enabled=0
 diagnostic_suite=0
 # 1800 frames ~= 30s at 60 FPS or 60s at 30 FPS
 diagnostic_phase_frames=1800
+# Snap AI: 0=Standard fixed load, 1=Intelligent adaptive, 2=Manual thresholds
+ai_mode=1
+ai_gpu_budget_ms=6.0
+ai_pressure_threshold=0.75
+ai_headroom_threshold=0.55
+ai_artifact_threshold=0.25
 
 # profiling_enabled=1 writes:
 #   port/snapframe_gpu.csv          GPU timestamps every 30 captured frames
@@ -29,6 +35,9 @@ diagnostic_phase_frames=1800
 # profiling_enabled=1 is for diagnostics only; keep it OFF for normal gameplay.
 
  
-# Snap AI controller policy is currently host-managed (not user-configurable):
-# 50..75% flow scale, 6 ms target GPU budget, 8-frame warmup and 8% hysteresis.
-# It uses only exact-frame GPU timestamps + validated flow scalar telemetry.
+# Standard keeps the configured flow scale fixed; Intelligent uses the adaptive
+# Snap AI policy; Manual applies the four thresholds above. Pressure is
+# normalized GPU time / target budget. Quality increases require pressure below
+# ai_headroom_threshold and artifact risk below ai_artifact_threshold.
+# Quality reductions require pressure at or above ai_pressure_threshold.
+# WSI backpressure protection remains active in all three modes.
