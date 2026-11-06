@@ -2696,7 +2696,7 @@ extern "C" void snapframe_dxvk_set_device_destroy_hook(void (*hook)(void*));
 extern "C" void snapframe_dxvk_set_log_hook(void (*hook)(const char*));
 extern "C" void snapframe_dxvk_set_present_mode_hook(int (*hook)(int*));
 extern "C" void snapframe_dxvk_set_submission_pressure_hook(void (*hook)(float));
-extern "C" void snapframe_host_report_submission_pressure(float waitMs);
+extern "C" void snapframe_host_report_submission_pressure(float sourceWaitMs, float generatedWaitMs);
 extern "C" void snapframe_dxvk_set_generation_hooks(
     bool (*canGenerateHook)(void),
     void* (*generateHook)(void*, void*, uint32_t, uint32_t, uint32_t),
