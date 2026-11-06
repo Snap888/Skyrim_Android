@@ -107,6 +107,14 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn('#if defined(_WIN32) && !defined(__ANDROID__)', self.patcher)
         self.assertNotIn('#define VK_USE_PLATFORM_WIN32_KHR 1\\n', self.patcher)
 
+    def test_presenter_path_is_initialized_before_android_mode_patch(self):
+        # The overlay applies the Android present-mode guard before the later
+        # WSI transaction block; its source path must already be initialized.
+        self.assertLess(
+            self.patcher.index('presenter_cpp = dxvk_dir / "dxvk_presenter.cpp"'),
+            self.patcher.index("presenter_modes = "),
+        )
+
     def test_android_presenter_uses_portable_present_mode_query(self):
         # Full-screen-exclusive present-mode query is Win32-only. Android
         # must compile only the portable KHR query and never load the EXT fn.
