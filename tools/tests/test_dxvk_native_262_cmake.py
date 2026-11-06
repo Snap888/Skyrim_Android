@@ -104,9 +104,12 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("if (snapframe_dxvk262_record_source)", self.patcher)
         self.assertIn("SNAPFRAME_DXVK262_ABI_VERSION", self.patcher)
         self.assertIn("cSrcView.ptr()", self.patcher)
+        replacement_block = self.patcher.split(
+            "        // Record optional SnapFrame source work", 1
+        )[1].split('        """', 1)[0]
         self.assertLess(
-            self.patcher.index("snapframe_dxvk262_record_source("),
-            self.patcher.index("auto contextObjects = ctx->beginExternalRendering()"),
+            replacement_block.index("snapframe_dxvk262_record_source("),
+            replacement_block.index("auto contextObjects = ctx->beginExternalRendering()"),
         )
         self.assertNotIn("snapframe_host_262", self.game_text + self.snapframe_text)
 
