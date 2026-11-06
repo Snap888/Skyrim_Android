@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[2]
 CMAKE = ROOT / "android/app/jni/dxvk_native_262/CMakeLists.txt"
 JNI_CMAKE = ROOT / "android/app/jni/CMakeLists.txt"
 BUILD_SCRIPT = ROOT / "tools/dxvk/build_native_262_android_candidate.sh"
+PATCHER = ROOT / "tools/dxvk/apply_native_262_android_port.py"
 
 
 class DxvkNative262CMakeContractTests(unittest.TestCase):
@@ -14,6 +15,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         cls.text = CMAKE.read_text(encoding="utf-8")
         cls.root_text = JNI_CMAKE.read_text(encoding="utf-8")
         cls.build_script = BUILD_SCRIPT.read_text(encoding="utf-8")
+        cls.patcher = PATCHER.read_text(encoding="utf-8")
 
     def test_candidate_is_opt_in_and_keeps_baseline_default(self):
         self.assertIn("option(SNAP_BUILD_DXVK_NATIVE_262", self.root_text)
@@ -63,6 +65,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("Library soname: [libdxvk_d3d9_262.so]", self.build_script)
         self.assertIn("Direct3DCreate9", self.build_script)
         self.assertIn("Direct3DCreate9Ex", self.build_script)
+        self.assertIn('"libSDL2.so"', self.patcher)
 
     def test_candidate_does_not_replace_production_runtime(self):
         self.assertIn("SNAP_BUILD_DXVK_NATIVE_262", self.root_text)
