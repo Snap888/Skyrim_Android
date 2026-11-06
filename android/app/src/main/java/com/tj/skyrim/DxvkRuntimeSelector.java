@@ -105,7 +105,34 @@ public final class DxvkRuntimeSelector {
     }
 
     private static boolean hasPair(File dir, Variant variant) {
-        return new File(dir, "lib" + variant.dxvkLibrary + ".so").isFile()
-                && new File(dir, "lib" + variant.mainLibrary + ".so").isFile();
+        return isArm64Elf(new File(dir, "lib" + variant.dxvkLibrary + ".so"))
+                && isArm64Elf(new File(dir, "lib" + variant.mainLibrary + ".so"));
+    }
+
+    /*
+     * File existence alone is not a safe availability gate: a stale, empty,
+     * wrong-ABI, or partially packaged library must never expose a variant.
+     * The build pipeline separately verifies SONAME, D3D9 exports, and the
+     * main runtime's exact DT_NEEDED edge to its matching DXVK library.
+     */
+    private static boolean isArm64Elf(File file) {
+        if (file == null || !file.isFile() || file.length() < 64) return false;
+        byte[] header = new byte[20];
+        try (java.io.FileInputStream input = new java.io.FileInputStream(file)) {
+            int offset = 0;
+            while (offset < header.length) {
+                int count = input.read(header, offset, header.length - offset);
+                if (count <= 0) return false;
+                offset += count;
+            }
+            return (header[0] & 0xff) == 0x7f
+                    && header[1] == 'E' && header[2] == 'L' && header[3] == 'F'
+                    && (header[4] & 0xff) == 2       // ELFCLASS64
+                    && (header[5] & 0xff) == 1       // ELFDATA2LSB
+                    && (header[18] & 0xff) == 0xb7   // EM_AARCH64, low byte
+                    && header[19] == 0;
+        } catch (java.io.IOException ignored) {
+            return false;
+        }
     }
 }
