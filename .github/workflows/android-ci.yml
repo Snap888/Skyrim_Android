@@ -235,6 +235,8 @@ jobs:
           assert len(groups["android_wsi"]) == 3
           assert groups["android_wsi_overlay"] == ["src/wsi/sdl2/wsi_native_surface.cpp"]
           assert "android_wsi_overlay" in build_groups
+          assert "spirv" in build_groups
+          assert len(groups["spirv"]) == 3
           assert len(manifest["duplicate_android_build_sources"]) == 0
           assert all(path.startswith("src/wsi/") for path in groups["android_wsi"])
           assert all(
