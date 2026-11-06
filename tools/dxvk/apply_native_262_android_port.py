@@ -73,6 +73,25 @@ namespace dxvk::wsi {
         include_anchor,
         include_anchor + '#include "wsi_native_surface.h"\n\n#include <algorithm>\n#include <cstring>\n',
     )
+    # SDL2's Android CMake target is named libSDL2.so; the desktop soname
+    # libSDL2-2.0.so.0 is not the packaged Android library name.
+    replace_once(
+        platform_cpp,
+        '''#elif defined(__APPLE__)
+        "libSDL2-2.0.0.dylib"
+#else
+        "libSDL2-2.0.so.0"
+#endif
+''',
+        '''#elif defined(__ANDROID__)
+        "libSDL2.so"
+#elif defined(__APPLE__)
+        "libSDL2-2.0.0.dylib"
+#else
+        "libSDL2-2.0.so.0"
+#endif
+''',
+    )
     namespace_anchor = "namespace dxvk::wsi {\n\n"
     helper = r'''namespace dxvk::wsi {
 
