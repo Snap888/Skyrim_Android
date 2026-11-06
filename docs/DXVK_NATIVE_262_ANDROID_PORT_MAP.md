@@ -270,3 +270,21 @@ The pinned Meson source inventory is now split into explicit candidate groups:
 The generator checks that all five expected Android WSI entries are present in the upstream `wsi_src` array, verifies that every upstream WSI source exists at the pinned revision, and rejects duplicate paths across the proposed Android build groups. This avoids treating the upstream mixed-platform WSI array as a ready-made Android source list.
 
 This remains a source inventory only. The generated shader/resource pipeline, SDL2 dependency configuration, Android Vulkan surface adapter, compiler definitions and linker setup still need to be ported and built before a 2.6.2 Android library can be claimed.
+
+### Presenter-generation lease primitive (2026-11-06)
+
+The existing Android WSI adapter now exposes `NativeSurfaceLease`, a copyable
+shared-ownership token acquired for the exact registered native-window
+generation. Its shared deleter releases the `ANativeWindow` reference only
+after the final copy is destroyed. Acquisition pins the pointer while holding
+the registry mutex, then creates/replaces the shared token after dropping the
+mutex so native-window release callbacks cannot run under the registry lock.
+
+This is a preparatory ownership primitive, not yet the complete DXVK 2.6.2
+integration: the current 1.9.2b surface callback still uses its temporary
+surface-create lease, and the new token is not yet captured by an upstream
+2.6.2 `PresenterSurfaceProc`. The 2.6.2 adapter must capture a
+`NativeSurfaceLease` by value in the presenter-generation callback and create
+the Vulkan surface from `lease.get()`, never by looking up the mutable active
+registry again. The presenter's destruction order must continue to destroy
+the Vulkan swapchain/surface before releasing the callback and its lease.
