@@ -16,6 +16,7 @@
 #include <iterator>
 #include <mutex>
 #include <unordered_map>
+#include <utility>
 
 #include "dxvk_context.h"
 #include "dxvk_device.h"
