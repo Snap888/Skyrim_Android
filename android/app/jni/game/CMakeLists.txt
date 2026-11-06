@@ -27,12 +27,13 @@ target_link_libraries(main PRIVATE SDL2 dxvk_d3d9 snapframe_host
     SnapAI::Engine SnapFrame::Engine SnapFrame::MotionV2
     m $<$<BOOL:${ANDROID}>:log> $<$<BOOL:${ANDROID}>:android>)
 
-# A small CI-only shared object verifies the exported D3D9 entry point and
-# the actual ELF DT_NEEDED edge without pretending that absent generated
-# Skyrim module tables can produce a complete libmain.so.
-add_library(dxvk_linkage_check SHARED ${PORT}/tools/ci/dxvk_linkage_check.c)
-target_link_libraries(dxvk_linkage_check PRIVATE dxvk_d3d9)
-target_compile_options(dxvk_linkage_check PRIVATE -fvisibility=default)
+# Optional CI-only ABI probe. Keep it out of normal APK builds.
+option(SNAP_DXVK_LINKAGE_CHECK "Build the DXVK D3D9 ABI linkage probe" OFF)
+if(SNAP_DXVK_LINKAGE_CHECK)
+  add_library(dxvk_linkage_check SHARED ${PORT}/tools/ci/dxvk_linkage_check.c)
+  target_link_libraries(dxvk_linkage_check PRIVATE dxvk_d3d9)
+  target_compile_options(dxvk_linkage_check PRIVATE -fvisibility=default)
+endif()
 
 # Compile the Android JNI settings bridge independently of generated game
 # code. This catches JNI/native API drift in CI without pretending to build an APK.
