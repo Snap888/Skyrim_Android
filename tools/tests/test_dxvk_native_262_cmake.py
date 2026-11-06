@@ -99,6 +99,16 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME", self.patcher)
         self.assertIn("VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME", self.patcher)
 
+    def test_android_fence_excludes_win32_semaphore_handle_api(self):
+        # DXVK's HANDLE import/export bridge is Win32-only. Android must keep
+        # native Vulkan semaphore operation and compile no Win32 Vk structs.
+        self.assertIn('fence_cpp = dxvk_dir / "dxvk_fence.cpp"', self.patcher)
+        self.assertIn('#ifdef _WIN32', self.patcher)
+        self.assertIn('VkImportSemaphoreWin32HandleInfoKHR', self.patcher)
+        self.assertIn('VkSemaphoreGetWin32HandleInfoKHR', self.patcher)
+        self.assertIn('return INVALID_HANDLE_VALUE;', self.patcher)
+        self.assertIn('External Win32 semaphore handles are unavailable on this platform', self.patcher)
+
     def test_candidate_does_not_replace_production_runtime(self):
         self.assertIn("SNAP_BUILD_DXVK_NATIVE_262", self.root_text)
         self.assertNotIn("SNAP_BUILD_DXVK_NATIVE_262 ON", self.root_text)
