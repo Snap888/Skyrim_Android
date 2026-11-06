@@ -237,6 +237,9 @@ jobs:
           assert "android_wsi_overlay" in build_groups
           assert "spirv" in build_groups
           assert len(groups["spirv"]) == 3
+          assert len(groups["d3d9_shaders"]) == 7
+          assert len(groups["dxvk_shaders"]) > 0
+          assert all(path.endswith((".comp", ".frag", ".vert", ".geom")) for path in groups["d3d9_shaders"] + groups["dxvk_shaders"])
           assert len(manifest["duplicate_android_build_sources"]) == 0
           assert all(path.startswith("src/wsi/") for path in groups["android_wsi"])
           assert all(
