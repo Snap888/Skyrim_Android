@@ -262,6 +262,48 @@ jobs:
           path: ${{ runner.temp }}/dxvk-native-262-android-source-manifest.json
           retention-days: 14
 
+  dxvk-native-262-android-arm64:
+    name: DXVK Native 2.6.2 Android ARM64 candidate build
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout Skyrim Android integration
+        uses: actions/checkout@v4
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install NDK, CMake and shader compiler
+        run: |
+          sdkmanager --install "cmake;${{ env.CMAKE_VERSION }}" "ndk;${{ env.NDK_VERSION }}"
+          sudo apt-get update
+          sudo apt-get install -y glslang-tools
+
+      - name: Checkout pinned DXVK Native 2.6.2
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/doitsujin/dxvk.git "$RUNNER_TEMP/dxvk-native-262-build"
+          git -C "$RUNNER_TEMP/dxvk-native-262-build" fetch --depth=1 origin 9d6f54a1ade20d1d27dd421024717a636f3d8c68
+          git -C "$RUNNER_TEMP/dxvk-native-262-build" checkout --detach 9d6f54a1ade20d1d27dd421024717a636f3d8c68
+          test "$(git -C "$RUNNER_TEMP/dxvk-native-262-build" rev-parse HEAD)" = "9d6f54a1ade20d1d27dd421024717a636f3d8c68"
+
+      - name: Apply Android Presenter and WSI overlay
+        run: |
+          python3 tools/dxvk/apply_native_262_android_port.py \
+            "$RUNNER_TEMP/dxvk-native-262-build" --project-root "$GITHUB_WORKSPACE"
+          git -C "$RUNNER_TEMP/dxvk-native-262-build" diff --check
+
+      - name: Compile DXVK Native 2.6.2 for Android ARM64 and verify ELF ABI
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/${{ env.NDK_VERSION }}
+          BUILD_JOBS: "2"
+        run: |
+          chmod +x tools/dxvk/build_native_262_android_candidate.sh
+          bash -n tools/dxvk/build_native_262_android_candidate.sh
+          tools/dxvk/build_native_262_android_candidate.sh \
+            "$RUNNER_TEMP/dxvk-native-262-build" \
+            "$RUNNER_TEMP/dxvk-native-262-android-build" \
+            "$GITHUB_WORKSPACE"
+
   apk:
     name: Full arm64 APK build
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_apk }}
