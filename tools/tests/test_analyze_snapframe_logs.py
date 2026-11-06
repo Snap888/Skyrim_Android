@@ -125,10 +125,10 @@ class AnalyzerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / "snapframe_events.csv").write_text(
-                "frame,event,width,height,detail\\n"
-                "30,gpu_metrics_copy_recorded,2448,1080,async_readback\\n"
-                "60,gpu_metrics_skipped,2448,1080,readback_ring_busy\\n"
-                "90,gpu_metrics_skipped,2448,1080,readback_ring_busy\\n",
+                "frame,event,width,height,detail\n"
+                "30,gpu_metrics_copy_recorded,2448,1080,async_readback\n"
+                "60,gpu_metrics_skipped,2448,1080,readback_ring_busy\n"
+                "90,gpu_metrics_skipped,2448,1080,readback_ring_busy\n",
                 encoding="utf-8")
             report = analyze(root)
             metrics = report["ai_telemetry_async"]
