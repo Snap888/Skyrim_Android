@@ -451,21 +451,27 @@ jobs:
             echo "applicationId=com.tj.skyrim"
           } > ../dist/build-info.txt
 
-      - name: Verify packaged DXVK 2.6.2 runtime pair
+      - name: Verify packaged DXVK 2.6.2 candidate without enabling runtime selection
         run: |
           set -euo pipefail
           APK="android/app/build/outputs/apk/debug/app-debug.apk"
           EXTRACT="$RUNNER_TEMP/apk-native-262"
           mkdir -p "$EXTRACT"
-          unzip -q "$APK" 'lib/arm64-v8a/libdxvk_d3d9_262.so' 'lib/arm64-v8a/libmain_262.so' -d "$EXTRACT"
-          DXVK_SO="$EXTRACT/lib/arm64-v8a/libdxvk_d3d9_262.so"
-          MAIN_SO="$EXTRACT/lib/arm64-v8a/libmain_262.so"
-          READELF="$ANDROID_HOME/ndk/$NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
-          NM="$ANDROID_HOME/ndk/$NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
-          bash tools/ci/verify_dxvk_runtime_pair.sh "$DXVK_SO" "$MAIN_SO" "$READELF" "$NM" "libdxvk_d3d9_262.so"
-          MAIN_DYNAMIC=$("$READELF" -d "$MAIN_SO")
-          grep -Fq 'Library soname: [libmain_262.so]' <<<"$MAIN_DYNAMIC"
-          echo "DXVK_NATIVE_262_RUNTIME_PAIR_PACKAGED_OK"
+          if unzip -Z1 "$APK" | grep -Fxq 'lib/arm64-v8a/libdxvk_d3d9_262.so'; then
+            unzip -q "$APK" 'lib/arm64-v8a/libdxvk_d3d9_262.so' -d "$EXTRACT"
+            DXVK_SO="$EXTRACT/lib/arm64-v8a/libdxvk_d3d9_262.so"
+            READELF="$ANDROID_HOME/ndk/$NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+            "$READELF" -h "$DXVK_SO" | grep -Fq 'AArch64'
+            "$READELF" -d "$DXVK_SO" | grep -Fq 'Library soname: [libdxvk_d3d9_262.so]'
+            echo "DXVK_NATIVE_262_CANDIDATE_PACKAGED_OK"
+          else
+            echo "::warning::DXVK 2.6.2 candidate DSO was not packaged; DXVK 1.9.2b remains the runtime fallback."
+          fi
+          if unzip -Z1 "$APK" | grep -Fxq 'lib/arm64-v8a/libmain_262.so'; then
+            echo "::error::main_262 was packaged without the dedicated 2.6.2 host bridge gate."
+            exit 1
+          fi
+          echo "DXVK_NATIVE_262_RUNTIME_SELECTOR_REMAINS_GATED"
 
       - name: Upload APK and native build diagnostics
         if: always()
