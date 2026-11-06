@@ -53,6 +53,13 @@ int snapframe_dxvk262_record_source(
 #endif
     ;
 
+/* Optional non-blocking retirement notification for frame_info.window_token. */
+void snapframe_dxvk262_release_window(void* window_token)
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((weak))
+#endif
+    ;
+
 #ifdef __cplusplus
 }
 #endif

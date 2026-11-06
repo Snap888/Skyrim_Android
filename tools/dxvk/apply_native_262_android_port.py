@@ -257,6 +257,24 @@ namespace dxvk::wsi {
 """
     replace_once(swapchain, old_callback, new_callback)
 
+    # Retire per-Presenter SnapFrame history before DXVK invalidates and erases
+    # the owning Presenter. This prevents stale history surviving pointer reuse.
+    replace_once(
+        swapchain,
+        """    if (entry != m_presenters.end()) {
+      if (entry->second.presenter) {
+        entry->second.presenter->destroyResources();
+        entry->second.presenter = nullptr;
+""",
+        """    if (entry != m_presenters.end()) {
+      if (entry->second.presenter) {
+        if (snapframe_dxvk262_release_window)
+          snapframe_dxvk262_release_window(static_cast<void*>(entry->second.presenter.ptr()));
+        entry->second.presenter->destroyResources();
+        entry->second.presenter = nullptr;
+""",
+    )
+
     # Guard the lifetime assumption against upstream Presenter refactors:
     # the callback member must remain alive through surface destruction.
     presenter_cpp = root / "src/dxvk/dxvk_presenter.cpp"
