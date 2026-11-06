@@ -37,7 +37,7 @@ The launcher stores a stable variant ID. `SkyrimActivity.getLibraries()` loads t
 
 ## Porting and acceptance gates for 2.6.2
 
-The 2.6.2 native D3D9 swapchain is not source-compatible with the current adapter: upstream uses per-window presenters and an `acquireNextImage` / `presentImage` path, while this port has a custom `PresentImage` flow with SnapFrame copy/generation callbacks, source/generated pressure reporting, present-mode hooks, and explicit synchronization diagnostics. This is a real adapter port, not a CMake target rename. Preserve the current baseline until each hook has an equivalent implementation and tests.
+The 2.6.2 native D3D9 swapchain is not source-compatible with the current adapter. Upstream uses per-window presenter contexts, acquires a WSI image with `Presenter::acquireNextImage`, then records the blit/present work through `m_parent->EmitCs` and `DxvkDevice::presentImage`. The current port instead has a custom `PresentImage` flow with SnapFrame copy/generation callbacks, source/generated pressure reporting, present-mode hooks, and explicit synchronization diagnostics around two present synchronization points. The new asynchronous command-stream path changes where source capture, generated-frame submission, and completion reporting must be inserted. This is a real adapter port, not a CMake target rename. Preserve the current baseline until each hook has an equivalent implementation and tests.
 
 1. Pin the exact upstream native tag/commit and build only D3D9 + SDL2 WSI for Android ARM64.
 2. Port the Android integration currently carried by the in-tree version: Vulkan loader/adrenotools integration, native surface handling, JNI/main hook integration, and Android logging.
