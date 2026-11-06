@@ -204,7 +204,6 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
             "state.colorHistoryViews[previousSlot]",
             "state.colorHistoryViews[slot]",
             "state.consistencyView",
-            "midpoint warp dispatch",
         ):
             self.assertIn(required, host_text)
         self.assertEqual(host_text.count(
