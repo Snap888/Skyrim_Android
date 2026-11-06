@@ -39,6 +39,9 @@ def main() -> int:
     if actual != expected:
         raise SystemExit(f"wrong DXVK source revision: {actual}; expected {expected}")
 
+    # Resolve the DXVK source directory before any source-file paths are built.
+    dxvk_dir = root / "src/dxvk"
+
     # Carry immutable identity for the source WSI acquire all the way from
     # Presenter -> command list -> queued present. This is deliberately the
     # first safe transaction step: one source transaction remains in flight,
@@ -269,7 +272,6 @@ def main() -> int:
     # Device teardown runs after DXVK has drained submissions and stopped
     # pipeline workers. Notify the matching host so device-scoped GPU state
     # can be retired without stale device keys.
-    dxvk_dir = root / "src/dxvk"
     dxvk_dir.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(snapframe_api, dxvk_dir / "snapframe_dxvk262_api.h")
     device_cpp = dxvk_dir / "dxvk_device.cpp"
