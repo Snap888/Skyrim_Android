@@ -100,6 +100,7 @@ jobs:
             -DSNAP_FRAME_BUILD_TESTS=OFF \
             -DSNAP_FRAME_BUILD_EXAMPLE=OFF \
             -DSNAP_FRAME_BUILD_DXVK_LEGACY=OFF
+            -DSNAP_DXVK_LINKAGE_CHECK=ON
 
       - name: Build portable Android libraries
         run: cmake --build "$RUNNER_TEMP/snap-ai-engine-build" --parallel 2
