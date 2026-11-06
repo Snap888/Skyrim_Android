@@ -40,7 +40,7 @@ public final class DxvkRuntimeSelector {
     // Upstream DXVK Native candidates. Each remains hidden until its own
     // Android-adapted DXVK + matching Skyrim runtime pair is packaged.
     private static final Variant NATIVE_262 = new Variant(
-            "native-2.6.2", "DXVK Native 2.6.2 (compatibility candidate)",
+            "native-2.6.2", "DXVK Native 2.6.2 (Android ARM64 — experimental)",
             "dxvk_d3d9_262", "main_262");
     private static final Variant NATIVE_271 = new Variant(
             "native-2.7.1", "DXVK Native 2.7.1 (maintenance5 required)",
