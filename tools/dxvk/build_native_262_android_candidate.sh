@@ -32,7 +32,17 @@ fi
 mkdir -p "$BUILD_DIR"
 BUILD_DIR=$(cd "$BUILD_DIR" && pwd)
 HARNESS="$BUILD_DIR/harness"
-mkdir -p "$HARNESS"
+SHADER_HEADER="$BUILD_DIR/snapframe-generated/snapframe_shaders.h"
+mkdir -p "$HARNESS" "$(dirname "$SHADER_HEADER")"
+
+SPIRV_VAL=${SPIRV_VAL:-spirv-val}
+GLSLANG_VALIDATOR=${GLSLANG_VALIDATOR:-glslangValidator}
+command -v "$SPIRV_VAL" >/dev/null
+command -v "$GLSLANG_VALIDATOR" >/dev/null
+python3 "$REPO_ROOT/tools/compile_snapframe_shaders.py" \
+  --glslang "$GLSLANG_VALIDATOR" \
+  --spirv-val "$SPIRV_VAL" \
+  --output "$SHADER_HEADER"
 cat > "$HARNESS/CMakeLists.txt" <<'CMAKE'
 cmake_minimum_required(VERSION 3.22)
 project(dxvk_native_262_android_candidate LANGUAGES C CXX)
@@ -46,6 +56,14 @@ add_subdirectory("${SNAP_REPO_ROOT}/android/app/jni/SDL2" sdl2)
 
 set(SNAP_DXVK_NATIVE_262_SOURCE_DIR "${SNAP_DXVK_SOURCE_DIR}" CACHE PATH "" FORCE)
 add_subdirectory("${SNAP_REPO_ROOT}/android/app/jni/dxvk_native_262" dxvk_native_262)
+
+# Compile the version-matched SnapFrame host into the candidate DSO.
+target_sources(dxvk_d3d9_262 PRIVATE
+  "${SNAP_REPO_ROOT}/android/app/jni/snapframe/snapframe_host_262.cpp")
+target_include_directories(dxvk_d3d9_262 PRIVATE
+  "${SNAP_REPO_ROOT}/android/app/jni/snapframe"
+  "${BUILD_SNAPFRAME_GENERATED_DIR}")
+target_compile_definitions(dxvk_d3d9_262 PRIVATE SNAPFRAME_DXVK262_HOST=1)
 CMAKE
 
 "$CMAKE_BIN" -S "$HARNESS" -B "$BUILD_DIR/build" \
@@ -54,7 +72,8 @@ CMAKE
   -DANDROID_PLATFORM="$PLATFORM" \
   -DCMAKE_BUILD_TYPE=Release \
   -DSNAP_REPO_ROOT="$REPO_ROOT" \
-  -DSNAP_DXVK_SOURCE_DIR="$DXVK_SOURCE_DIR"
+  -DSNAP_DXVK_SOURCE_DIR="$DXVK_SOURCE_DIR" \
+  -DBUILD_SNAPFRAME_GENERATED_DIR="$(dirname "$SHADER_HEADER")"
 
 "$CMAKE_BIN" --build "$BUILD_DIR/build" --target SDL2 dxvk_d3d9_262 --parallel "${BUILD_JOBS:-2}"
 
@@ -97,6 +116,16 @@ if ! grep -Eq '[[:space:]]Direct3DCreate9Ex$' <<<"$ELF_EXPORTS"; then
   exit 1
 fi
 
+if ! grep -Eq '[[:space:]]snapframe_dxvk262_record_sourceecho "DXVK_NATIVE_262_ANDROID_ARM64_SONAME_OK"
+echo "DXVK_NATIVE_262_ANDROID_D3D9_EXPORTS_OK"
+echo "DXVK_NATIVE_262_ANDROID_LIBRARY=$DXVK_SO"
+ <<<"$ELF_EXPORTS"; then
+  echo "DXVK 2.6.2 candidate is missing its compiled SnapFrame host callback" >&2
+  printf '%s\\n' "$ELF_EXPORTS" >&2
+  exit 1
+fi
+
+echo "DXVK_NATIVE_262_SNAPFRAME_HOST_COMPILED_OK"
 echo "DXVK_NATIVE_262_ANDROID_ARM64_BUILD_OK"
 echo "DXVK_NATIVE_262_ANDROID_ARM64_SONAME_OK"
 echo "DXVK_NATIVE_262_ANDROID_D3D9_EXPORTS_OK"
