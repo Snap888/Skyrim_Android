@@ -367,7 +367,7 @@ jobs:
           echo "Generated C files: $GEN_COUNT"
           test "$GEN_COUNT" -gt 0
 
-      - name: Checkout pinned DXVK Native 2.6.2 for matched runtime pair
+      - name: Checkout pinned DXVK Native 2.6.2 candidate source (runtime pair gated)
         run: |
           set -euo pipefail
           DXVK_DIR="$RUNNER_TEMP/dxvk-native-262-apk"
