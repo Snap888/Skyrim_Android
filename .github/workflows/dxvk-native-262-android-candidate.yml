@@ -42,7 +42,7 @@ jobs:
         run: |
           SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
           test -n "$SDK_ROOT"
-          yes | sdkmanager --licenses >/dev/null
+          # setup-android already accepts SDK licenses; avoid yes/sdmanager SIGPIPE under pipefail.
           sdkmanager "ndk;27.2.12479018" "platforms;android-28"
           echo "ANDROID_NDK_HOME=$SDK_ROOT/ndk/27.2.12479018" >> "$GITHUB_ENV"
           echo "ANDROID_PLATFORM=android-28" >> "$GITHUB_ENV"
