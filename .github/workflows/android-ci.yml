@@ -182,8 +182,7 @@ jobs:
           "$READELF" -h "$DXVK_SO" | grep -q 'AArch64'
           "$READELF" -h "$MAIN_SO" | grep -q 'AArch64'
           "$READELF" -d "$DXVK_SO" | tee "$RUNNER_TEMP/dxvk-dynamic.txt"
-          grep -Fq 'SONAME' "$RUNNER_TEMP/dxvk-dynamic.txt"
-          grep -Fq 'libdxvk_d3d9.so' "$RUNNER_TEMP/dxvk-dynamic.txt"
+          grep -q 'SONAME.*libdxvk_d3d9.so' "$RUNNER_TEMP/dxvk-dynamic.txt"
           "$READELF" -d "$MAIN_SO" | tee "$RUNNER_TEMP/main-dynamic.txt"
           grep -Fq 'Shared library: [libdxvk_d3d9.so]' "$RUNNER_TEMP/main-dynamic.txt"
           echo "Verified ARM64 DXVK SONAME and main -> DXVK DT_NEEDED linkage."
