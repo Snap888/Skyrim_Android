@@ -128,8 +128,14 @@ namespace dxvk::wsi {
     // SDL2's extension list may omit the Android surface extension when
     // Vulkan was loaded through a custom loader. DXVK validates availability
     // before creating the instance, so unsupported devices still fail cleanly.
-    if (std::find(extensionNames.begin(), extensionNames.end(),
-                  "VK_KHR_android_surface") == extensionNames.end())
+    bool hasAndroidSurfaceExtension = false;
+    for (const char* extensionName : extensionNames) {
+      if (std::strcmp(extensionName, "VK_KHR_android_surface") == 0) {
+        hasAndroidSurfaceExtension = true;
+        break;
+      }
+    }
+    if (!hasAndroidSurfaceExtension)
       extensionNames.push_back("VK_KHR_android_surface");
 #endif
 
@@ -169,7 +175,7 @@ namespace dxvk::wsi {
       cDevice = m_device,
       cWindow = Window
 #ifdef __ANDROID__
-      , cNativeWindow = std::move(nativeWindow),
+      , cNativeWindow = nativeWindow,
       cHasNativeWindow = hasNativeWindow
 #endif
     ] (VkSurfaceKHR* surface) {
