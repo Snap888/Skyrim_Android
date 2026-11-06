@@ -487,7 +487,7 @@ namespace dxvk::wsi {
             static_cast<void*>(ctx),
             static_cast<void*>(&contextObjects),
             static_cast<void*>(cDevice.ptr()),
-            static_cast<void*>(&cSrcView),
+            static_cast<const void*>(&cSrcView),
             &frameInfo);
         }
 """,
