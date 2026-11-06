@@ -402,3 +402,10 @@ test class that had shadowed earlier source-priority tests in the Python
 module. The remaining source-priority model is an admission-policy test only.
 Neither model claims to exercise Vulkan or prove the Android driver's acquire
 latency.
+
+
+## First DXVK-owned immutable source transaction step
+
+The Android port patcher now modifies the pinned DXVK 2.6.2 source so the successful source acquire is stamped with a transaction ID, swapchain generation, acquired image index, and semaphore-ring index. That exact PresenterSync record is copied into the command list and into the queued DxvkPresentInfo. The submission worker passes it to Presenter::presentImage, which validates the active token and uses the captured image index and semaphore-ring entry rather than reconstructing them from the current mutable indices.
+
+This is intentionally a single-in-flight source transaction implementation. It does **not** yet permit multiple outstanding acquires, does not introduce a second generated present, and does not remove the submit worker's blocking pre-acquire/fence wait. The active-token validation and generation checks are a prerequisite for that later multi-slot refactor, not proof that it is safe today. Source present behavior and the existing semaphore retirement strategy remain the baseline.
