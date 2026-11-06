@@ -410,7 +410,7 @@ extern "C" int snapframe_dxvk262_record_source(
     void* context,
     void* context_objects,
     void* device,
-    void* source_view_ref,
+    const void* source_view_ref,
     const SnapFrameDxvk262FrameInfo* frame_info) {
   using namespace dxvk;
 
@@ -424,7 +424,7 @@ extern "C" int snapframe_dxvk262_record_source(
   auto* dxvkContext = static_cast<DxvkContext*>(context);
   auto* dxvkDevice = static_cast<DxvkDevice*>(device);
   auto* contextObjects = static_cast<DxvkContextObjects*>(context_objects);
-  auto* sourceViewRef = static_cast<Rc<DxvkImageView>*>(source_view_ref);
+  auto* sourceViewRef = static_cast<const Rc<DxvkImageView>*>(source_view_ref);
 
   if (!contextObjects->cmd || !contextObjects->descriptorPool || !*sourceViewRef)
     return 1;
