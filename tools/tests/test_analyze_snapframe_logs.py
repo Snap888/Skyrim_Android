@@ -90,7 +90,7 @@ class AnalyzerTests(unittest.TestCase):
     def test_distinguishes_disabled_flow_readback_from_missing_samples(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / "snapframe.conf").write_text("enabled=1\\npresent_mode=2\\n", encoding="utf-8")
+            (root / "snapframe.conf").write_text("enabled=1\npresent_mode=2\n", encoding="utf-8")
             report = analyze(root)
             self.assertFalse(report["diagnostic_config"]["profiling_enabled"])
             self.assertFalse(report["diagnostic_config"]["motion_analysis"])
@@ -100,7 +100,7 @@ class AnalyzerTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / "snapframe.conf").write_text("motion_analysis=1\\nprofiling_enabled=1\\n", encoding="utf-8")
+            (root / "snapframe.conf").write_text("motion_analysis=1\nprofiling_enabled=1\n", encoding="utf-8")
             report = analyze(root)
             codes = {item["code"] for item in report["findings"]}
             self.assertIn("FLOW_READBACK_MISSING", codes)
