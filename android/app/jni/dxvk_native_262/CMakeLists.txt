@@ -40,10 +40,14 @@ if(NOT TARGET SDL2)
     message(FATAL_ERROR "SDL2 target must be provided by the parent Android build")
 endif()
 
+set(_repo_root "${CMAKE_CURRENT_LIST_DIR}")
+foreach(_parent RANGE 1 4)
+    get_filename_component(_repo_root "${_repo_root}/.." ABSOLUTE)
+endforeach()
 set(_manifest "${CMAKE_CURRENT_BINARY_DIR}/dxvk-native-262-android-manifest.json")
 execute_process(
     COMMAND "${Python3_EXECUTABLE}"
-        "${CMAKE_SOURCE_DIR}/tools/dxvk/generate_native_262_android_manifest.py"
+        "${_repo_root}/tools/dxvk/generate_native_262_android_manifest.py"
         "${SNAP_DXVK_NATIVE_262_SOURCE_DIR}" --output "${_manifest}"
     RESULT_VARIABLE _manifest_result
     COMMAND_ERROR_IS_FATAL ANY)
