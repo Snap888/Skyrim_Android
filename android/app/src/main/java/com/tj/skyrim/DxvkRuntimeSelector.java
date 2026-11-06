@@ -37,11 +37,17 @@ public final class DxvkRuntimeSelector {
             "native-1.9.2b", "Android DXVK Native 1.9.2b (current)",
             "dxvk_d3d9", "main");
 
-    // Reserved SONAME pair for the separately ported upstream Native 2.6.2.
-    // It is deliberately not advertised until both libraries exist in the APK.
+    // Upstream DXVK Native candidates. Each remains hidden until its own
+    // Android-adapted DXVK + matching Skyrim runtime pair is packaged.
     private static final Variant NATIVE_262 = new Variant(
-            "native-2.6.2", "DXVK Native 2.6.2",
+            "native-2.6.2", "DXVK Native 2.6.2 (compatibility candidate)",
             "dxvk_d3d9_262", "main_262");
+    private static final Variant NATIVE_271 = new Variant(
+            "native-2.7.1", "DXVK Native 2.7.1 (maintenance5 required)",
+            "dxvk_d3d9_271", "main_271");
+    private static final Variant NATIVE_311 = new Variant(
+            "native-3.1.1", "DXVK Native 3.1.1 (Vulkan 1.4 class driver)",
+            "dxvk_d3d9_311", "main_311");
 
     private DxvkRuntimeSelector() {}
 
@@ -52,6 +58,8 @@ public final class DxvkRuntimeSelector {
         // Always retain a safe baseline option. Its presence is validated at load time.
         variants.add(BASELINE);
         if (hasPair(dir, NATIVE_262)) variants.add(NATIVE_262);
+        if (hasPair(dir, NATIVE_271)) variants.add(NATIVE_271);
+        if (hasPair(dir, NATIVE_311)) variants.add(NATIVE_311);
         return variants;
     }
 
