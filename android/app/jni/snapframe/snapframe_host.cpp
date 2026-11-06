@@ -2743,6 +2743,11 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
     g_aiPressureThreshold.store(validated.ai_pressure_threshold, std::memory_order_release);
     g_aiHeadroomThreshold.store(validated.ai_headroom_threshold, std::memory_order_release);
     g_aiArtifactThreshold.store(validated.ai_artifact_threshold, std::memory_order_release);
+    snapframeLog("SnapFrame AI: policy=%s gpu_budget=%.2fms pressure=%.2f headroom=%.2f artifact=%.2f\\n",
+        validated.ai_mode == SNAPFRAME_AI_STANDARD ? "standard" :
+        validated.ai_mode == SNAPFRAME_AI_MANUAL ? "manual" : "intelligent",
+        validated.ai_gpu_budget_ms, validated.ai_pressure_threshold,
+        validated.ai_headroom_threshold, validated.ai_artifact_threshold);
     g_flowScalePercent.store(static_cast<uint32_t>(validated.flow_scale_percent), std::memory_order_release);
     {
         std::lock_guard<std::mutex> lock(g_motionV2Mutex);
@@ -2953,7 +2958,7 @@ extern "C" void snapframe_host_report_submission_pressure(float waitMs) {
     if (previous == 0) {
         snapframeEvent(g_capturedFrames.load(std::memory_order_relaxed),
             "ai_wsi_backpressure", g_width, g_height,
-            "generated_submission_wait_over_8ms; temporarily_bypassing_generation");
+            "source_or_generated_submission_wait_over_8ms; temporarily_bypassing_generation");
         snapframeLog("SnapFrame AI: WSI backpressure wait=%.3fms; bypassing generation for %u source frames\n",
             waitMs, kAiGeneratedWaitThrottleFrames);
     }
