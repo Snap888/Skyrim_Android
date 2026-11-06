@@ -2739,10 +2739,15 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
         || validated.ai_artifact_threshold < 0.05f || validated.ai_artifact_threshold > 0.80f)
         validated.ai_artifact_threshold = 0.25f;
     g_aiMode.store(validated.ai_mode, std::memory_order_release);
-    g_aiGpuBudgetMs.store(validated.ai_gpu_budget_ms, std::memory_order_release);
-    g_aiPressureThreshold.store(validated.ai_pressure_threshold, std::memory_order_release);
-    g_aiHeadroomThreshold.store(validated.ai_headroom_threshold, std::memory_order_release);
-    g_aiArtifactThreshold.store(validated.ai_artifact_threshold, std::memory_order_release);
+    const bool manualAi = validated.ai_mode == SNAPFRAME_AI_MANUAL;
+    g_aiGpuBudgetMs.store(manualAi ? validated.ai_gpu_budget_ms : 6.0f,
+        std::memory_order_release);
+    g_aiPressureThreshold.store(manualAi ? validated.ai_pressure_threshold : 0.75f,
+        std::memory_order_release);
+    g_aiHeadroomThreshold.store(manualAi ? validated.ai_headroom_threshold : 0.55f,
+        std::memory_order_release);
+    g_aiArtifactThreshold.store(manualAi ? validated.ai_artifact_threshold : 0.25f,
+        std::memory_order_release);
     snapframeLog("SnapFrame AI: policy=%s gpu_budget=%.2fms pressure=%.2f headroom=%.2f artifact=%.2f\\n",
         validated.ai_mode == SNAPFRAME_AI_STANDARD ? "standard" :
         validated.ai_mode == SNAPFRAME_AI_MANUAL ? "manual" : "intelligent",
@@ -2771,7 +2776,7 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
         snap_ai_default_config(&aiConfig);
         aiConfig.enabled = validated.ai_mode == SNAPFRAME_AI_STANDARD ? 0u : 1u;
         aiConfig.profile = SNAP_AI_PROFILE_BALANCED;
-        aiConfig.target_gpu_budget_ms = validated.ai_gpu_budget_ms;
+        aiConfig.target_gpu_budget_ms = g_aiGpuBudgetMs.load(std::memory_order_acquire);
         aiConfig.min_flow_scale = 0.50f;
         aiConfig.max_flow_scale = 0.75f;
         aiConfig.min_refinement_passes = 1;
