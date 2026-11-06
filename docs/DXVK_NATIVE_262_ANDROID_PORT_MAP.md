@@ -73,3 +73,9 @@ Required integration points in a 2.6.2 port:
 - Upstream source has been inspected against the current Android baseline; the present path and WSI are not drop-in compatible.
 - No 2.6.2 binary, Android port, or device test is claimed by this document.
 - CI's native Android job must build both `dxvk_d3d9` and `main`, then verify the DXVK SONAME and the main runtime's exact `DT_NEEDED` dependency.
+
+## Reusable runtime-pair ABI verifier
+
+The Android CI now uses `tools/ci/verify_dxvk_runtime_pair.sh` for the candidate pair acceptance checks. It accepts a DXVK shared object, its matching game runtime, the NDK `llvm-readelf` and `llvm-nm` tools, and the expected DXVK SONAME. It checks both files are AArch64 ELF, verifies the DXVK SONAME, requires the D3D9 creation exports, and verifies that the runtime's dynamic section has an exact `DT_NEEDED` entry for that SONAME.
+
+The current CI feeds the existing baseline DXVK and the small ABI-linkage probe into this verifier because generated Skyrim C sources are not present in the repository checkout. That proves the baseline DXVK ABI and the link edge in isolation; it does **not** claim the probe is a real `libmain.so`. When the 2.6.2 port produces both candidate objects, run the same verifier with `libdxvk_d3d9_262.so` and the actual `libmain_262.so` before allowing the launcher selector to expose the variant.
