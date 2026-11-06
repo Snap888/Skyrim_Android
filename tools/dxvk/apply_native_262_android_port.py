@@ -49,41 +49,49 @@ def main() -> int:
     vulkan_loader = root / "src/vulkan/vulkan_loader.h"
     replace_once(
         vulkan_loader,
-        "#define VK_USE_PLATFORM_WIN32_KHR 1\\n",
-        "#if defined(_WIN32) && !defined(__ANDROID__)\\n"
-        "#define VK_USE_PLATFORM_WIN32_KHR 1\\n"
-        "#endif\\n",
+        """#define VK_USE_PLATFORM_WIN32_KHR 1
+""",
+        """#if defined(_WIN32) && !defined(__ANDROID__)
+#define VK_USE_PLATFORM_WIN32_KHR 1
+#endif
+""",
     )
     replace_once(
         vulkan_loader,
-        "#include <vulkan/vulkan.h>\\n",
-        "#include <vulkan/vulkan.h>\\n"
-        "#if defined(__ANDROID__)\\n"
-        "#ifndef VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME\\n"
-        "#define VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME \\\"VK_EXT_full_screen_exclusive\\\"\\n"
-        "typedef enum VkFullScreenExclusiveEXT {\\n"
-        "  VK_FULL_SCREEN_EXCLUSIVE_DEFAULT_EXT = 0,\\n"
-        "  VK_FULL_SCREEN_EXCLUSIVE_ALLOWED_EXT = 1,\\n"
-        "  VK_FULL_SCREEN_EXCLUSIVE_DISALLOWED_EXT = 2,\\n"
-        "  VK_FULL_SCREEN_EXCLUSIVE_APPLICATION_CONTROLLED_EXT = 3\\n"
-        "} VkFullScreenExclusiveEXT;\\n"
-        "#define VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT ((VkStructureType)1000255000)\\n"
-        "typedef struct VkSurfaceFullScreenExclusiveInfoEXT {\\n"
-        "  VkStructureType sType;\\n"
-        "  const void* pNext;\\n"
-        "  VkFullScreenExclusiveEXT fullScreenExclusive;\\n"
-        "} VkSurfaceFullScreenExclusiveInfoEXT;\\n"
-        "#endif\\n"
-        "#ifndef VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME\\n"
-        "#define VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME \\\"VK_KHR_external_memory_win32\\\"\\n"
-        "#endif\\n"
-        "#ifndef VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME\\n"
-        "#define VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME \\\"VK_KHR_external_semaphore_win32\\\"\\n"
-        "#endif\\n"
-        "#ifndef VK_KHR_WIN32_KEYED_MUTEX_EXTENSION_NAME\\n"
-        "#define VK_KHR_WIN32_KEYED_MUTEX_EXTENSION_NAME \\\"VK_KHR_win32_keyed_mutex\\\"\\n"
-        "#endif\\n"
-        "#endif\\n",
+        """#include <vulkan/vulkan.h>
+""",
+        """#include <vulkan/vulkan.h>
+#if defined(__ANDROID__)
+// DXVK references optional Win32-only extension names in its common feature
+// inventory. These string constants are harmless on Android: the driver will
+// never advertise the Win32 extensions. Full-screen-exclusive is likewise
+// disabled by the driver, but the common Presenter code still needs its ABI.
+#ifndef VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME
+#define VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME "VK_EXT_full_screen_exclusive"
+typedef enum VkFullScreenExclusiveEXT {
+  VK_FULL_SCREEN_EXCLUSIVE_DEFAULT_EXT = 0,
+  VK_FULL_SCREEN_EXCLUSIVE_ALLOWED_EXT = 1,
+  VK_FULL_SCREEN_EXCLUSIVE_DISALLOWED_EXT = 2,
+  VK_FULL_SCREEN_EXCLUSIVE_APPLICATION_CONTROLLED_EXT = 3
+} VkFullScreenExclusiveEXT;
+#define VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT ((VkStructureType)1000255000)
+typedef struct VkSurfaceFullScreenExclusiveInfoEXT {
+  VkStructureType sType;
+  const void* pNext;
+  VkFullScreenExclusiveEXT fullScreenExclusive;
+} VkSurfaceFullScreenExclusiveInfoEXT;
+#endif
+#ifndef VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME
+#define VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME "VK_KHR_external_memory_win32"
+#endif
+#ifndef VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME
+#define VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME "VK_KHR_external_semaphore_win32"
+#endif
+#ifndef VK_KHR_WIN32_KEYED_MUTEX_EXTENSION_NAME
+#define VK_KHR_WIN32_KEYED_MUTEX_EXTENSION_NAME "VK_KHR_win32_keyed_mutex"
+#endif
+#endif
+""",
     )
 
     # Carry immutable identity for the source WSI acquire all the way from
