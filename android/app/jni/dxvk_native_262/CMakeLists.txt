@@ -174,7 +174,11 @@ configure_file(
     "${_generated_dir}/version.h" @ONLY)
 
 add_library(dxvk_d3d9_262 SHARED ${_dxvk_sources} ${_shader_headers})
+# Upstream SDL2 WSI dynamically loads SDL2 at runtime. Mirror Meson's
+# partial_dependency(compile_args: true, includes: true): consume headers only,
+# and do not add a DT_NEEDED entry for a desktop SDL2 SONAME.
 target_include_directories(dxvk_d3d9_262 PRIVATE
+    $<TARGET_PROPERTY:SDL2,INTERFACE_INCLUDE_DIRECTORIES>
     "${_generated_dir}"
     "${SNAP_DXVK_NATIVE_262_SOURCE_DIR}/include"
     "${SNAP_DXVK_NATIVE_262_SOURCE_DIR}/include/native"
@@ -202,7 +206,7 @@ target_compile_options(dxvk_d3d9_262 PRIVATE
 target_link_options(dxvk_d3d9_262 PRIVATE
     "-Wl,--version-script=${SNAP_DXVK_NATIVE_262_SOURCE_DIR}/src/d3d9/d3d9.sym")
 target_link_libraries(dxvk_d3d9_262 PRIVATE
-    SDL2 snap_display_info Threads::Threads "${SNAP_VULKAN_LIBRARY}"
+    snap_display_info Threads::Threads "${SNAP_VULKAN_LIBRARY}"
     "${SNAP_ANDROID_LIBRARY}" "${SNAP_LOG_LIBRARY}")
 # Android packages the exact filename and SONAME consumed by the runtime
 # selector; versioned ELF sonames/symlinks are not suitable APK ABI assets.
