@@ -337,6 +337,8 @@ The candidate:
   `d3d9.sym` export map, and emits a separately named
   `libdxvk_d3d9_262.so` candidate.
 
+The candidate also mirrors Meson's non-Windows `wrc_generator` behavior for `src/d3d9/version.rc`: CMake creates the generated `version_ignored.h` dependency with a `cmake -E touch` rule, rather than silently omitting that resource-generation edge.
+
 The target is deliberately gated on external Android build prerequisites:
 SDL2 CMake target, Vulkan/Android/log system libraries, Python 3,
 glslangValidator, and a pkg-config-visible `libdisplay-info` version below
