@@ -1039,10 +1039,15 @@ namespace dxvk {
         const auto waitStart = std::chrono::steady_clock::now();
         SynchronizePresent(&perfSourceSubmissionWaitMs,
           &perfGeneratedSubmissionWaitMs);
-        perfSourceHandoffWaitMs += std::chrono::duration<double, std::milli>(
+        const double handoffElapsedMs = std::chrono::duration<double, std::milli>(
           std::chrono::steady_clock::now() - waitStart).count();
         const double sourceWait = perfSourceSubmissionWaitMs - sourceWaitBefore;
         const double generatedWait = perfGeneratedSubmissionWaitMs - generatedWaitBefore;
+        /* Keep the handoff residual disjoint from the nested submission waits.
+         * This makes Present-spike component sums meaningful instead of
+         * counting the same wait twice. */
+        perfSourceHandoffWaitMs += std::max(
+          0.0, handoffElapsedMs - sourceWait - generatedWait);
         /* Both source and generated submission completion can stall the game
          * thread. Feed the larger per-handoff wait to AI; previously source
          * submission stalls were invisible to the WSI throttle. */
@@ -1166,10 +1171,14 @@ namespace dxvk {
         const auto waitStart = std::chrono::steady_clock::now();
         SynchronizePresent(&perfSourceSubmissionWaitMs,
           &perfGeneratedSubmissionWaitMs);
-        perfGeneratedHandoffWaitMs += std::chrono::duration<double, std::milli>(
+        const double handoffElapsedMs = std::chrono::duration<double, std::milli>(
           std::chrono::steady_clock::now() - waitStart).count();
         const double sourceWait = perfSourceSubmissionWaitMs - sourceWaitBefore;
         const double generatedWait = perfGeneratedSubmissionWaitMs - generatedWaitBefore;
+        /* Submission waits are reported separately below; handoff is only
+         * the remaining synchronization/dispatch overhead. */
+        perfGeneratedHandoffWaitMs += std::max(
+          0.0, handoffElapsedMs - sourceWait - generatedWait);
         if (const SnapFrameSubmissionPressureHook pressureHook =
               g_snapFrameSubmissionPressureHook.load(std::memory_order_acquire))
           pressureHook(static_cast<float>(sourceWait), static_cast<float>(generatedWait));
