@@ -30,6 +30,15 @@ def stats(values):
     return {"n":len(v),"mean":statistics.fmean(v),"median":statistics.median(v),
             "p95":pct(.95),"p99":pct(.99),"max":v[-1]}
 
+def key_values(line):
+    return {k: num(v) for k,v in re.findall(r"([a-z_]+)=(-?\\d+(?:\\.\\d+)?)", line)}
+
+def timing_group(rows, fields):
+    return {name: value for field, name in fields.items()
+            if (value := stats([(row.get(field) / 1000.0)
+                                if row.get(field) is not None else None
+                                for row in rows]))}
+
 def analyze(root):
     events,perf,flow,gpu=[read_csv(root/x) for x in FILES[:4]]
     log="\n".join((root/name).read_text(encoding="utf-8",errors="replace") for name in FILES[4:6] if (root/name).is_file())
@@ -60,6 +69,18 @@ def analyze(root):
     actual_wsi=[]
     for m in re.finditer(r"SnapFrame: actual present mode=(FIFO|MAILBOX|IMMEDIATE|FIFO_RELAXED|OTHER) image_count=(\d+) extent=(\d+)x(\d+)",log,re.I):
         actual_wsi.append({"mode":m.group(1).upper(),"image_count":int(m.group(2)),"width":int(m.group(3)),"height":int(m.group(4))})
+    wsi_rows=[key_values(line) for line in log.splitlines() if "DXVK-WSI:" in line]
+    queue_rows=[key_values(line) for line in log.splitlines() if "DXVK-PRESENT:" in line]
+    wsi_ms=timing_group(wsi_rows, {
+        "queue_present_us":"vk_queue_present_ms",
+        "pre_acquire_us":"wsi_pre_acquire_ms",
+        "frame_limiter_us":"frame_limiter_ms",
+        "total_present_us":"presenter_total_ms"})
+    queue_ms=timing_group(queue_rows, {
+        "queue_residence_us":"submission_queue_residence_ms",
+        "queue_lock_wait_us":"queue_lock_wait_ms",
+        "present_call_us":"present_call_ms",
+        "total_entry_us":"submission_entry_total_ms"})
     failed=counts.get("midpoint_present_failed",0)
     backpressure_count=sum(backpressure.values())
     rejected=counts.get("gpu_metrics_rejected",0)
@@ -67,6 +88,18 @@ def analyze(root):
     if backpressure_count: findings.append({"severity":"medium","code":"GENERATED_WSI_BACKPRESSURE","message":f"{backpressure_count} generated-frame attempts were skipped because no WSI image was immediately available (VK_NOT_READY/VK_TIMEOUT).","recommendation":"Keep generated acquire non-blocking. Compare backpressure by present mode and improve image scheduling; do not treat these skips as interpolation failures."})
     if failed and results: findings.append({"severity":"high","code":"GENERATED_WSI_ERRORS","message":f"{sum(results.values())} generated-frame failures have non-backpressure VkResults.","recommendation":"Inspect exact VkResult and surface/swapchain lifecycle."})
     if rejected: findings.append({"severity":"high","code":"AI_TELEMETRY_REJECTED","message":f"{rejected} GPU metric records were rejected; adaptive AI tuning must remain disabled.","recommendation":"Validate shader valid/expected cell counts against CPU grid dimensions and derive coverage from the same counters."})
+    for key, code, label in (
+        ("submission_queue_residence_ms","DXVK_SUBMISSION_QUEUE_BACKLOG","DXVK submission queue residence"),
+        ("queue_lock_wait_ms","DXVK_QUEUE_LOCK_CONTENTION","DXVK queue mutex wait"),
+        ("present_call_ms","DXVK_PRESENT_CALL_STALL","DXVK presenter call"),
+        ("vk_queue_present_ms","VULKAN_QUEUE_PRESENT_STALL","vkQueuePresentKHR"),
+        ("wsi_pre_acquire_ms","WSI_PRE_ACQUIRE_STALL","WSI pre-acquire"),
+        ("frame_limiter_ms","DXVK_FRAME_LIMITER_STALL","DXVK frame limiter")):
+        sample = queue_ms.get(key) or wsi_ms.get(key)
+        if sample and sample["p95"] >= 8.0:
+            findings.append({"severity":"high","code":code,
+                "message":f"{label} has P95 {sample['p95']:.2f} ms across {sample['n']} diagnostic samples.",
+                "recommendation":"Compare this stage with source_submission_wait_ms. Fix the measured blocking stage; do not remove presenter synchronization or semaphore waits without per-acquire ticket ownership."})
     if actual_wsi and min(x["image_count"] for x in actual_wsi)<3:
         findings.append({"severity":"medium","code":"WSI_IMAGE_COUNT_BELOW_TARGET","message":"The actual surface swapchain image count fell below three.","recommendation":"Compare generated acquire VK_NOT_READY rates by actual present mode. The surface may cap image count; do not force blocking acquire to compensate."})
     if not gpu: findings.append({"severity":"medium","code":"GPU_STAGE_CSV_EMPTY","message":"snapframe_gpu.csv has no stage samples.","recommendation":"Enable stage profiling briefly; keep diagnostic V2 workloads disabled during normal gameplay."})
@@ -79,6 +112,8 @@ def analyze(root):
         "backpressure_vk_results":dict(backpressure),
         "failure_vk_results":dict(results),"failure_reasons":dict(reasons)},
       "present_modes_seen_in_log":dict(modes),"actual_wsi_configurations":actual_wsi,"performance":perfstats,
+      "dxvk_wsi":{"wsi_rows":len(wsi_rows),"queue_rows":len(queue_rows),
+        "wsi_ms":wsi_ms,"queue_ms":queue_ms},
       "flow":{"rows":len(flow),"metrics":flowstats},"gpu_stage_rows":len(gpu),"findings":findings}
 
 def to_markdown(r):
@@ -89,7 +124,14 @@ def to_markdown(r):
       f"- Generated failed (non-backpressure): {r['generated_present']['failed']}",
       f"- Backpressure VkResult counts: {json.dumps(r['generated_present']['backpressure_vk_results'],sort_keys=True)}",
       f"- Failure VkResult counts: {json.dumps(r['generated_present']['failure_vk_results'],sort_keys=True)}",
-      f"- Modes observed: {json.dumps(r['present_modes_seen_in_log'],sort_keys=True)}","","## Event counts",""]
+      f"- Modes observed: {json.dumps(r['present_modes_seen_in_log'],sort_keys=True)}",
+      "","## DXVK WSI / queue timings (ms)","",
+      f"- DXVK-WSI samples: {r['dxvk_wsi']['wsi_rows']}",
+      f"- DXVK-PRESENT samples: {r['dxvk_wsi']['queue_rows']}"]
+    for group in ("wsi_ms","queue_ms"):
+        for key, value in r["dxvk_wsi"][group].items():
+            out.append(f"- {key}: mean {value['mean']:.3f}, median {value['median']:.3f}, p95 {value['p95']:.3f}, max {value['max']:.3f} (n={value['n']})")
+    out += ["","## Event counts",""]
     out += [f"- {k}: {v}" for k,v in sorted(r["event_counts"].items())]
     out += ["","## Performance (ms unless noted)",""]
     for k,v in r["performance"].items():
