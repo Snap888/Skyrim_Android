@@ -110,7 +110,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         # submissions and stopped pipeline workers. Keep this exact order in
         # the patch contract; a loose presence check would allow early teardown.
         self.assertIn(
-            '"'"'        "  }\\n\\n    m_objects.waitForIdle();\\n\\n    m_objects.pipelineManager().stopWorkerThreads();\\n\\n    if (snapframe_dxvk262_release_device)\\n      snapframe_dxvk262_release_device(static_cast<void*>(this));\\n  }\\n"'"'"',
+            '''        "  }\\n\\n    m_objects.waitForIdle();\\n\\n    m_objects.pipelineManager().stopWorkerThreads();\\n\\n    if (snapframe_dxvk262_release_device)\\n      snapframe_dxvk262_release_device(static_cast<void*>(this));\\n  }\\n"''',
             self.patcher,
         )
 
