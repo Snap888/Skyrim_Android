@@ -668,10 +668,11 @@ Save the base64 output as ANDROID_SIGNING_KEYSTORE_BASE64 and save the keystore 
 
 ## WSI-aware Snap AI backpressure
 
-- DXVK now reports the measured generated-submission wait from the start-of-frame synchronization point to the SnapFrame host.
-- If that wait reaches 8 ms, Snap AI enters a 30-source-frame generation cooldown. During the cooldown the game continues presenting real frames; capture and luma history continue, while bidirectional flow, consistency, midpoint warp, V2 diagnostics and generated presents are skipped. The controller then resumes generation automatically from the rolling two-frame history.
-- This is a backpressure guard, not a claim that the WSI stall itself is fixed. It prevents repeated generated presents from continuously extending a slow generated-present queue and prioritizes source-frame cadence during overload.
-- The throttle uses atomics only; it does not add waits, allocate resources, reset temporal history, or alter semaphore ownership. Keeping capture/luma active means the first resumed flow pass can use the most recent real-frame pair. Events ai_wsi_backpressure and ai_wsi_backpressure_recovered make each throttle cycle visible in snapframe_events.csv.
+- DXVK reports source-submission and generated-submission completion waits separately at both present synchronization points.
+- Current policy: generated wait >= 8 ms triggers a 24-source-frame generation cooldown. A source-only wait triggers the same cooldown only when it reaches 16 ms; moderate source waits remain visible to AI telemetry but do not independently suppress FG.
+- The thresholds are deliberately asymmetric because the latest log windows showed source waits of 6.45–18.43 ms while generated waits stayed near 0.40–0.62 ms. The previous shared 8 ms maximum threshold could repeatedly disable FG on moderate source-only stalls.
+- During cooldown the game continues presenting real frames; capture and luma history continue, while bidirectional flow, consistency, midpoint warp, V2 diagnostics and generated presents are skipped. Generation resumes automatically from the rolling two-frame history.
+- This is a backpressure guard, not a claim that the WSI stall itself is fixed. The hook uses atomics only; it adds no waits, allocations, temporal-history resets or semaphore-ownership changes. Events include the trigger reason and both measured waits. The new 16 ms source-only threshold is a hypothesis based on the current device log and needs same-scene device A/B validation.
 
 ## 2026-11-06: AI policies and source-submission backpressure
 
@@ -683,12 +684,12 @@ The dedicated SnapFrame log contains individual Present spikes up to 103.61 ms.
 Generated-present events were accepted 20/20 with no reported failures; this is
 submission acceptance, not proof of physical scan-out.
 
-The prior WSI feedback path observed only generated-submission wait. The DXVK
-present path now feeds the larger per-handoff source/generated submission wait
-into Snap AI at both synchronization points. This allows the AI cooldown to react
-to stalls that block the game's original frame, not only generated-frame stalls.
-The cooldown is reduced to 24 source frames; device A/B measurements are still
-required to tune the threshold and duration.
+The prior WSI feedback path observed only generated-submission wait. DXVK now
+feeds source and generated waits separately into Snap AI. The host uses an 8 ms
+generated-wait trigger and a more conservative 16 ms source-only trigger, with a
+24-source-frame cooldown. This avoids suppressing FG on moderate source-only
+waits while retaining protection for severe source stalls. Device A/B measurements
+are still required to validate the new asymmetric thresholds.
 
 The launcher now exposes three Snap AI policies:
 - Standard: fixed configured Flow Scale; adaptive quality changes are disabled.
@@ -743,3 +744,11 @@ compilation can cause long frame-time spikes.
 
 - Skyrim Android CI run [#42194150860](https://github.com/Snap888/Skyrim_Android/actions/runs/42194150860) passed the portable Snap AI/SnapFrame ARM64 build, portable API tests, Android Java compilation, DXVK SnapFrame host ARM64 compilation and log-analyzer tests. The full APK job was skipped; no installable APK was produced.
 - Upstream follow-up run [#42194423272](https://github.com/Snap888/Snap_AI_Engine/actions/runs/42194423272) passed all three portable suites after strengthening the sustained-difficult-motion test. Skyrim remains pinned to production-code commit `9621c32981ad818d2ff3c01dcecaa127da107c64`, which itself passed upstream run #42194038989.
+
+
+## WSI throttle calibration update — 2026-11-06
+
+- Implemented asymmetric backpressure triggers: generated submission wait >= 8 ms, or source-only submission wait >= 16 ms. Either enters the existing 24-source-frame cooldown.
+- Event details now include the trigger reason, both waits, and both thresholds. This will make the next device capture distinguish generated-queue pressure from severe source-present pressure.
+- Skyrim CI run [#42194653430](https://github.com/Snap888/Skyrim_Android/actions/runs/42194653430) completed successfully: portable ARM64 build, API tests, Android Java compile, DXVK/SnapFrame host ARM64 compile and log analyzer tests all passed. Full APK build was skipped.
+- The asymmetric threshold change is not yet device-validated. It is intended to avoid the previous false-positive behavior where source-only waits in the 8–16 ms range repeatedly triggered a long FG cooldown; compare source FPS, generated queued ratio, both submission waits, and visual quality in the same MAILBOX scene.
