@@ -285,6 +285,10 @@ jobs:
           git -C "$RUNNER_TEMP/dxvk-native-262-build" fetch --depth=1 origin 9d6f54a1ade20d1d27dd421024717a636f3d8c68
           git -C "$RUNNER_TEMP/dxvk-native-262-build" checkout --detach 9d6f54a1ade20d1d27dd421024717a636f3d8c68
           test "$(git -C "$RUNNER_TEMP/dxvk-native-262-build" rev-parse HEAD)" = "9d6f54a1ade20d1d27dd421024717a636f3d8c68"
+          git -C "$RUNNER_TEMP/dxvk-native-262-build" submodule update --init --recursive
+          test -f "$RUNNER_TEMP/dxvk-native-262-build/include/native/directx/d3d9.h"
+          test -f "$RUNNER_TEMP/dxvk-native-262-build/include/vulkan/include/vulkan/vulkan.h"
+          test -f "$RUNNER_TEMP/dxvk-native-262-build/include/spirv/include/spirv/unified1/spirv.hpp"
 
       - name: Apply Android Presenter and WSI overlay
         run: |
