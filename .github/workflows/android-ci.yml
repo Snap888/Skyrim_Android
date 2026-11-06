@@ -173,13 +173,20 @@ jobs:
         run: |
           "$ANDROID_HOME/cmake/$CMAKE_VERSION/bin/cmake" \
             --build "$RUNNER_TEMP/skyrim-native-build" \
-            --target dxvk_d3d9 snapframe_host snapframe_jni_compile_check --parallel 2
+            --target dxvk_d3d9 main snapframe_host snapframe_jni_compile_check --parallel 2
           DXVK_SO=$(find "$RUNNER_TEMP/skyrim-native-build" -type f -name 'libdxvk_d3d9.so' -print -quit)
+          MAIN_SO=$(find "$RUNNER_TEMP/skyrim-native-build" -type f -name 'libmain.so' -print -quit)
           test -n "$DXVK_SO" || { echo "::error::DXVK shared library was not produced"; exit 1; }
+          test -n "$MAIN_SO" || { echo "::error::Skyrim main runtime was not produced"; exit 1; }
           READELF="$ANDROID_HOME/ndk/$NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
           "$READELF" -h "$DXVK_SO" | grep -q 'AArch64'
+          "$READELF" -h "$MAIN_SO" | grep -q 'AArch64'
           "$READELF" -d "$DXVK_SO" | tee "$RUNNER_TEMP/dxvk-dynamic.txt"
-          grep -q 'SONAME.*libdxvk_d3d9.so' "$RUNNER_TEMP/dxvk-dynamic.txt"
+          grep -Fq 'SONAME' "$RUNNER_TEMP/dxvk-dynamic.txt"
+          grep -Fq 'libdxvk_d3d9.so' "$RUNNER_TEMP/dxvk-dynamic.txt"
+          "$READELF" -d "$MAIN_SO" | tee "$RUNNER_TEMP/main-dynamic.txt"
+          grep -Fq 'Shared library: [libdxvk_d3d9.so]' "$RUNNER_TEMP/main-dynamic.txt"
+          echo "Verified ARM64 DXVK SONAME and main -> DXVK DT_NEEDED linkage."
 
   apk:
     name: Full arm64 APK build
