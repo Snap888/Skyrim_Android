@@ -284,6 +284,10 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("vkAcquireNextImageKHR(", self.patcher)
         self.assertIn("blocking pre-acquire behavior changed", self.patcher)
         self.assertIn("SnapFrame generated present: DISABLED pending a DXVK-owned asynchronous transaction scheduler.", self.patcher)
+        model = (ROOT / "tools/tests/test_snapframe_presenter_transaction_model.py").read_text(encoding="utf-8")
+        self.assertIn("class SourcePrioritySchedulerModel", model)
+        self.assertIn("if self.source_pending or self.generated_running:", model)
+        self.assertIn("generated_dropped", model)
 
     def test_legacy_snapframe_host_is_not_linked_to_262_candidate(self):
         # The current SnapFrame host consumes DXVK-internal C++ types from the
