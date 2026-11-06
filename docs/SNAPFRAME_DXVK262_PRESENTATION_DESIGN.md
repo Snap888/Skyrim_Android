@@ -336,3 +336,54 @@ the source queue;
 
 The scheduler tests validate policy only; they are not evidence of a live
 DXVK worker or Android WSI implementation.
+
+
+## Refined DXVK integration seam: WSI semaphores already travel with command lists
+
+A review of the pinned command-list path found a concrete extension seam:
+
+- `DxvkContext::synchronizeWsi(PresenterSync)` stores the acquire/present
+  semaphore pair on the command list.
+- `DxvkCommandList::submit` waits the WSI acquire semaphore on the first
+  graphics submission and signals the WSI present semaphore on the final
+  graphics submission.
+- The command list then performs an extra timeline-only graphics submission
+  so DXVK can safely retire the WSI semaphore use.
+
+This means the WSI synchronization is already coupled to command-list
+submission, rather than being hidden in the D3D9 frontend. A multi-transaction
+implementation should preserve that mechanism but generalize the single
+`m_wsiSemaphores` member into an explicit collection of immutable WSI
+transaction records. Each record must bind one acquired image index to its
+acquire semaphore, present semaphore, swapchain generation, and transaction
+serial. The matching present queue entry must carry the same record; it must
+not reconstruct ownership from mutable `m_frameIndex` or `m_imageIndex`.
+
+### Candidate way to remove submit-worker blocking
+
+The current `presentImage` success path waits the next slot's WSI fence and
+performs an infinite-timeout `vkAcquireNextImageKHR` before returning to the
+submit worker. A promising refactor is to stop pre-acquiring in
+`presentImage`:
+
+1. Submit and present the immutable transaction already acquired for this
+   frame.
+2. Retire the present operation through the existing completion mechanism.
+3. Let the next ordinary source `acquireNextImage` perform its existing
+   blocking acquire on the frontend/application thread when needed.
+4. Add a separate generated acquire API that uses timeout `0` and returns
+   immediately with `VK_NOT_READY` when no WSI image is available.
+5. Keep the generated transaction optional and drop it on `VK_NOT_READY`.
+
+This moves the potential WSI wait away from `dxvk-submit`, which is the
+critical prerequisite for not delaying source command submissions. It is not
+yet implemented: the single `m_presentPending`, `m_imageIndex`, and
+`m_frameIndex` fields still need to become per-transaction ownership, and
+swapchain recreation must retain old-generation transaction state until every
+in-flight record is retired. The change must also preserve the exact binary
+semaphore reuse rules on devices both with and without
+`VK_EXT_swapchain_maintenance1` / present fences.
+
+Do not remove the blocking pre-acquire as an isolated patch. Until the
+per-transaction state and semaphore retirement are implemented together,
+the current source present path remains untouched.
