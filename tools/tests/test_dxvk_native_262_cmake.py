@@ -109,6 +109,15 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn('return INVALID_HANDLE_VALUE;', self.patcher)
         self.assertIn('External Win32 semaphore handles are unavailable on this platform', self.patcher)
 
+    def test_android_image_import_excludes_win32_shared_handle_structs(self):
+        # DxvkSharedImageInfo stores a Win32 HANDLE. It is not an Android FD,
+        # so Android must compile normal image allocation without this path.
+        self.assertIn('image_cpp = dxvk_dir / "dxvk_image.cpp"', self.patcher)
+        self.assertIn('VkImportMemoryWin32HandleInfoKHR sharedImportWin32', self.patcher)
+        self.assertIn('#ifdef _WIN32', self.patcher)
+        self.assertIn('DXVK Win32 shared-image handles are unavailable on Android', self.patcher)
+        self.assertIn('sharedMemoryInfo = nullptr;', self.patcher)
+
     def test_candidate_does_not_replace_production_runtime(self):
         self.assertIn("SNAP_BUILD_DXVK_NATIVE_262", self.root_text)
         self.assertNotIn("SNAP_BUILD_DXVK_NATIVE_262 ON", self.root_text)
