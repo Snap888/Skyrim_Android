@@ -5,6 +5,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 CMAKE = ROOT / "android/app/jni/dxvk_native_262/CMakeLists.txt"
 JNI_CMAKE = ROOT / "android/app/jni/CMakeLists.txt"
+GAME_CMAKE = ROOT / "android/app/jni/game/CMakeLists.txt"
+SNAPFRAME_CMAKE = ROOT / "android/app/jni/snapframe/CMakeLists.txt"
+SELECTOR = ROOT / "android/app/src/main/java/com/tj/skyrim/DxvkRuntimeSelector.java"
 BUILD_SCRIPT = ROOT / "tools/dxvk/build_native_262_android_candidate.sh"
 PATCHER = ROOT / "tools/dxvk/apply_native_262_android_port.py"
 
@@ -14,6 +17,9 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
     def setUpClass(cls):
         cls.text = CMAKE.read_text(encoding="utf-8")
         cls.root_text = JNI_CMAKE.read_text(encoding="utf-8")
+        cls.game_text = GAME_CMAKE.read_text(encoding="utf-8")
+        cls.snapframe_text = SNAPFRAME_CMAKE.read_text(encoding="utf-8")
+        cls.selector_text = SELECTOR.read_text(encoding="utf-8")
         cls.build_script = BUILD_SCRIPT.read_text(encoding="utf-8")
         cls.patcher = PATCHER.read_text(encoding="utf-8")
 
@@ -21,17 +27,17 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("option(SNAP_BUILD_DXVK_NATIVE_262", self.root_text)
         self.assertIn("if(SNAP_BUILD_DXVK_NATIVE_262)", self.root_text)
         self.assertIn("add_subdirectory(dxvk_native_262)", self.root_text)
-        self.assertRegex(self.text, r"add_library\(dxvk_d3d9_262 SHARED")
+        self.assertRegex(self.text, r"add_library\\(dxvk_d3d9_262 SHARED")
         self.assertIn("DXVK source revision mismatch", self.text)
         self.assertIn("initialize upstream submodules", self.text)
         self.assertIn("include/native/directx/d3d9.h", self.text)
         self.assertIn("include/vulkan/include/vulkan/vulkan.h", self.text)
-        self.assertNotIn("target_link_libraries(dxvk_d3d9_262 PRIVATE\n    SDL2", self.text)
+        self.assertNotIn("target_link_libraries(dxvk_d3d9_262 PRIVATE\\n    SDL2", self.text)
 
     def test_android_arm64_soname_contract_is_unversioned(self):
         self.assertIn('OUTPUT_NAME "dxvk_d3d9_262"', self.text)
         self.assertIn("NO_SONAME FALSE", self.text)
-        self.assertNotRegex(self.text, r"\b(?:VERSION|SOVERSION)\b")
+        self.assertNotRegex(self.text, r"\\b(?:VERSION|SOVERSION)\\b")
 
     def test_upstream_source_and_shader_inventory_are_used(self):
         self.assertIn(
@@ -59,7 +65,6 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         ):
             self.assertIn(dependency, self.text)
 
-
     def test_arm64_build_script_checks_elf_soname_and_exports(self):
         self.assertIn("android.toolchain.cmake", self.build_script)
         self.assertIn('ABI=${ANDROID_ABI:-arm64-v8a}', self.build_script)
@@ -74,6 +79,23 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("SNAP_BUILD_DXVK_NATIVE_262", self.root_text)
         self.assertNotIn("SNAP_BUILD_DXVK_NATIVE_262 ON", self.root_text)
         self.assertIn("add_subdirectory(dxvk)", self.root_text)
+
+    def test_runtime_selector_requires_a_complete_arm64_pair(self):
+        self.assertIn('"native-1.9.2b"', self.selector_text)
+        self.assertIn('"native-2.6.2"', self.selector_text)
+        self.assertIn('if (hasPair(dir, NATIVE_262))', self.selector_text)
+        self.assertIn('return isArm64Elf(new File(dir, "lib" + variant.dxvkLibrary + ".so"))', self.selector_text)
+        self.assertIn('&& isArm64Elf(new File(dir, "lib" + variant.mainLibrary + ".so"))', self.selector_text)
+        self.assertIn('"dxvk_d3d9_262", "main_262"', self.selector_text)
+
+    def test_legacy_snapframe_host_is_not_linked_to_262_candidate(self):
+        # The current SnapFrame host consumes DXVK-internal C++ types from the
+        # 1.9.2b tree. Keep the candidate isolated until a 2.6.2-native host
+        # target compiles against the pinned upstream headers.
+        self.assertIn("target_link_libraries(main PRIVATE SDL2 dxvk_d3d9 snapframe_host", self.game_text)
+        self.assertIn("target_link_libraries(snapframe_host PUBLIC dxvk_d3d9", self.snapframe_text)
+        self.assertNotIn("snapframe_host_262", self.game_text + self.snapframe_text)
+        self.assertNotIn("dxvk_d3d9_262 snapframe_host", self.game_text + self.snapframe_text)
 
 
 if __name__ == "__main__":
