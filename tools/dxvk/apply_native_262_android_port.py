@@ -659,7 +659,7 @@ namespace dxvk::wsi {
         ("present queue carries transaction",
          "PresenterSync       transaction;" in queue_header_text
          and "presentInfo.transaction = transaction;" in device_source_text
-         and "entry.present.transaction, entry.present.frameId" in queue_cpp.read_text(encoding="utf-8")),
+         and "entry.present.transaction, entry.present.frameId" in queue_cpp),
         ("frontend forwards exact acquire token",
          "cDevice->presentImage(cPresenter, cSync, cLatency, cFrameId, nullptr);" in frontend_text
          and "const PresenterSync&            transaction" in device_header_text),
