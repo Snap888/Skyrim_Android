@@ -35,6 +35,10 @@ Each selectable implementation must be a complete, independently linkable runtim
 
 The launcher stores a stable variant ID. `SkyrimActivity.getLibraries()` loads the selected versioned DXVK dependency and matching SnapFrame/Snap AI dependencies; `getMainSharedObject()` returns the matching versioned main library. Unknown or missing selections must fall back to baseline. Selection applies on the next game process launch; a loaded Vulkan/DXVK instance must never be hot-swapped.
 
+## DXVK Native 2.6.2 source-level port map
+
+The detailed comparison is in [`DXVK_NATIVE_262_ANDROID_PORT_MAP.md`](DXVK_NATIVE_262_ANDROID_PORT_MAP.md). It records the pinned upstream commit, the per-window WSI/presenter differences, the current SnapFrame two-submit present contract, and the required migration gates. The key safety decision is to retain the current baseline present path until the candidate can preserve source capture before HUD, separate generated-frame submission/results, Snap AI pressure feedback, Android-native surface lifetime, and serialized swapchain recreation.
+
 ## Porting and acceptance gates for 2.6.2
 
 The 2.6.2 native D3D9 swapchain is not source-compatible with the current adapter. Upstream uses per-window presenter contexts, acquires a WSI image with `Presenter::acquireNextImage`, then records the blit/present work through `m_parent->EmitCs` and `DxvkDevice::presentImage`. The current port instead has a custom `PresentImage` flow with SnapFrame copy/generation callbacks, source/generated pressure reporting, present-mode hooks, and explicit synchronization diagnostics around two present synchronization points. The new asynchronous command-stream path changes where source capture, generated-frame submission, and completion reporting must be inserted. This is a real adapter port, not a CMake target rename. Preserve the current baseline until each hook has an equivalent implementation and tests.
