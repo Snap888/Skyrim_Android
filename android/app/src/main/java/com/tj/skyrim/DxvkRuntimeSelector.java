@@ -16,6 +16,7 @@ import java.util.List;
 public final class DxvkRuntimeSelector {
     public static final String PREFS = "launcher";
     public static final String PREF_VERSION_INDEX = "dxvkVersion";
+    public static final String PREF_VERSION_ID = "dxvkVersionId";
 
     public static final class Variant {
         public final String id;
@@ -57,11 +58,43 @@ public final class DxvkRuntimeSelector {
     public static Variant resolve(Context context) {
         List<Variant> variants = available(context);
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        String selectedId = prefs.getString(PREF_VERSION_ID, null);
+        if (selectedId != null) {
+            for (Variant variant : variants) {
+                if (variant.id.equals(selectedId)) {
+                    File selectedDir = new File(context.getApplicationInfo().nativeLibraryDir);
+                    return hasPair(selectedDir, variant) ? variant : BASELINE;
+                }
+            }
+            return BASELINE;
+        }
+        // Migrate the previous index-only preference exactly once. Future
+        // variants may be inserted without changing the user selection.
         int selected = prefs.getInt(PREF_VERSION_INDEX, 0);
-        if (selected < 0 || selected >= variants.size()) return BASELINE;
+        if (selected < 0 || selected >= variants.size()) selected = 0;
         Variant variant = variants.get(selected);
         File dir = new File(context.getApplicationInfo().nativeLibraryDir);
+        prefs.edit().putString(PREF_VERSION_ID, variant.id).apply();
         return hasPair(dir, variant) ? variant : BASELINE;
+    }
+
+    public static int selectedIndex(Context context) {
+        List<Variant> variants = available(context);
+        SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        String selectedId = prefs.getString(PREF_VERSION_ID, null);
+        if (selectedId != null) {
+            for (int i = 0; i < variants.size(); i++)
+                if (variants.get(i).id.equals(selectedId)) return i;
+            return 0;
+        }
+        int legacy = prefs.getInt(PREF_VERSION_INDEX, 0);
+        return legacy >= 0 && legacy < variants.size() ? legacy : 0;
+    }
+
+    public static String idAt(Context context, int index) {
+        List<Variant> variants = available(context);
+        if (index < 0 || index >= variants.size()) return BASELINE.id;
+        return variants.get(index).id;
     }
 
     public static String[] labels(Context context) {
