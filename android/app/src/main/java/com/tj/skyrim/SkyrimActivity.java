@@ -34,7 +34,11 @@ import org.libsdl.app.SDLActivity;
 public class SkyrimActivity extends SDLActivity implements InputManager.InputDeviceListener {
     @Override
     protected String[] getLibraries() {
-        return new String[] { "SDL2", "dxvk_d3d9", "snap_frame_engine", "snap_ai_engine", "snap_motion_v2", "main" };
+        DxvkRuntimeSelector.Variant runtime = DxvkRuntimeSelector.resolve(this);
+        android.util.Log.i("Skyrim", "DXVK runtime selected=" + runtime.id
+                + " dxvk=" + runtime.dxvkLibrary + " main=" + runtime.mainLibrary);
+        return new String[] { "SDL2", runtime.dxvkLibrary, "snap_frame_engine",
+                "snap_ai_engine", "snap_motion_v2", runtime.mainLibrary };
     }
 
     /* argv[1] = game folder, argv[2] = save folder, from the launcher. */
