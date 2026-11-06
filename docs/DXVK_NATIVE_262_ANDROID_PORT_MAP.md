@@ -33,6 +33,38 @@ The current game runtime target `main` links against the legacy `dxvk_d3d9` targ
 
 The upstream 2.6.2 D3D9 present path is structurally different from the current Android baseline. Its per-window `D3D9WindowContext` and `Presenter` lifecycle differs from the older `m_presenter` / `m_context` path. SnapFrame source capture, generated-image presentation, independent result accounting, present-mode changes and Snap AI pressure telemetry must be deliberately ported to the new command-submission model. DXVK remains the translation/present backend; interpolation stays in SnapFrame.
 
+## Present-path comparison and SnapFrame port boundary
+
+The pinned upstream 2.6.2 D3D9 presentation path differs materially from the old Android fork:
+
+- D3D9SwapChainEx owns a map of per-window D3D9WindowContext objects; the active one is m_wctx.
+- Each D3D9WindowContext owns its Presenter, frame ID and frame-latency fence.
+- PresentImage obtains the source from m_backBuffers[0], acquires a WSI image through m_wctx->presenter, and schedules the blit/present through m_parent->EmitCs.
+- The command-list lambda captures the device, presenter, blitter, source/destination views, WSI synchronization, frame ID and latency tracker by value.
+- The lambda performs beginExternalRendering, DxvkSwapchainBlitter::present, synchronizeWsi, flushCommandList and DxvkDevice::presentImage.
+
+The existing Skyrim SnapFrame host is not version-neutral. snapframe_host.cpp directly uses DXVK private C++ types such as DxvkContext, DxvkDevice, DxvkImage, DxvkImageView and GPU query objects. Its CMake target includes private headers from the old fork and links dxvk_d3d9. The adapter's opaque C pointers do not make the underlying C++ object layouts ABI-compatible across DXVK revisions.
+
+Do not link the existing snapframe_host to dxvk_d3d9_262, and do not build a renamed main_262 against it. The safe boundary is a separate version-specific backend:
+
+1. Keep portable SnapFrame and Snap AI independent of DXVK private types.
+2. Build snapframe_host_262 against the pinned 2.6.2 headers and sources; it owns 2.6.2 GPU resources, command recording and query/readback implementation.
+3. Keep the C ABI narrow and versioned. Never pass a DXVK C++ object to a host compiled against another DXVK revision.
+4. Capture the D3D9 backbuffer in upstream 2.6.2 PresentImage before the WSI blit, using only 2.6.2 context/device/view objects.
+5. Schedule generated midpoint work in the same ordered command-list and WSI synchronization domain as source present. Track source and generated completion independently; accepted present is not physical scan-out.
+6. Tie history to the matching per-window D3D9WindowContext and presenter lifetime. Reset history on resize, reset, format change, surface recreation and window replacement.
+7. Only build the paired game runtime after the 2.6.2 host compiles and passes queue ownership, no-readback and lifetime tests.
+
+DXVK remains the D3D9/Vulkan backend and WSI integration. Interpolation and AI decisions remain in SnapFrame and Snap AI.
+
+## Runtime-pair safety
+
+The launcher exposes an upstream candidate only when both libraries exist and both pass an ARM64 ELF-header check. The current game target main links the old dxvk_d3d9 and old snapframe_host; the 2.6.2 candidate is not linked into that target.
+
+A matching libmain_262.so cannot be built from the current repository checkout alone because generated Skyrim gen/*.c runtime sources are absent. It must also wait for the 2.6.2-specific SnapFrame host. Before selection, verify both AArch64 ELF objects, the DXVK SONAME and D3D9 exports, the exact DT_NEEDED edge from main_262 to dxvk_d3d9_262, absence of a legacy DXVK dependency, and matching pinned headers.
+
+Keep native-1.9.2b as the default and fallback. Do not expose 2.6.2 until the complete pair and device gates pass.
+
 ## Next implementation gates
 
 1. Add an explicit, isolated 2.6.2 runtime-pair target. Do not reuse the old DXVK source list.
