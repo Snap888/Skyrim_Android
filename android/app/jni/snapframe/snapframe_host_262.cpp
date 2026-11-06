@@ -3,9 +3,10 @@
  *
  * This is intentionally a separate implementation from snapframe_host.cpp:
  * that file consumes private DXVK 1.9.2b APIs and must never be linked to the
- * 2.6.2 candidate. This first 2.6.2 stage records the luma preprocessing pass
- * through DxvkContext so DXVK owns barriers, descriptor allocation, pipeline
- * compilation, command submission and resource lifetime tracking.
+ * 2.6.2 candidate. The host records luma, bidirectional flow, consistency,
+ * owned RGBA16F color history and midpoint reconstruction through DxvkContext.
+ * DXVK owns barriers, descriptor allocation, pipeline compilation, command
+ * submission and resource lifetime tracking; this host never submits directly.
  */
 #include "snapframe_dxvk262_api.h"
 
