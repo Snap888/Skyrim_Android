@@ -1981,9 +1981,9 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
             const uint64_t decisions = g_aiDecisionCount.fetch_add(
                 1, std::memory_order_relaxed) + 1;
             if (decisions == 1 || (decisions % 30u) == 0u)
-                snapframeLog("SnapFrame AI: frame=%llu mode=%u flow_scale=%d%% gpu=%.3fms pressure=%.3f confidence=%.3f complexity=%.3f artifact=%.3f\n",
+                snapframeLog("SnapFrame AI: frame=%llu mode=%u flow_scale_request=%d%% flow_scale_active=%u%% gpu=%.3fms pressure=%.3f confidence=%.3f complexity=%.3f artifact=%.3f\\n",
                     static_cast<unsigned long long>(aiMetrics.frame_id),
-                    static_cast<unsigned>(decision.mode), requestedScale,
+                    static_cast<unsigned>(decision.mode), requestedScale, flowScalePercent(),
                     aiMetrics.gpu_time_ms, aiMetrics.gpu_pressure,
                     aiMetrics.flow_confidence, aiMetrics.motion_complexity,
                     aiMetrics.artifact_risk);
