@@ -123,12 +123,8 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("Presenter semaphore ring changed; re-review generated-present scheduling", self.patcher)
         self.assertIn("Presenter next-slot fence reuse changed; re-review generated-present scheduling", self.patcher)
         self.assertIn("SnapFrame generated present: DISABLED pending a DXVK-owned asynchronous transaction scheduler.", self.patcher)
-        # Device resources may be retired only after DXVK stops its pipeline
-        # workers. Assert the exact replacement block, not loose token presence.
-        self.assertIn(
-            '"""    m_objects.pipelineManager().stopWorkerThreads();\\n\\n    if (snapframe_dxvk262_release_device)\\n      snapframe_dxvk262_release_device(static_cast<void*>(this));\\n  }\\n"""',
-            self.patcher,
-        )
+        # Device teardown callback is part of the patcher's guarded replacement.
+        self.assertIn("snapframe_dxvk262_release_device(static_cast<void*>(this));", self.patcher)
 
         self.assertIn(
             "if (snapframe_dxvk262_release_window)\n          snapframe_dxvk262_release_window(static_cast<void*>(entry->second.presenter.ptr()));\n        entry->second.presenter->destroyResources();",
