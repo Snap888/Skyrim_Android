@@ -257,6 +257,10 @@ typedef struct VkSurfaceFullScreenExclusiveInfoEXT {
 """,
     )
 
+    # Resolve Presenter source before applying the Android-only present-mode
+    # guard below. The full WSI transaction patch reuses this path later.
+    presenter_cpp = dxvk_dir / "dxvk_presenter.cpp"
+
     # VK_EXT_full_screen_exclusive is a Win32-only path. Android must
     # query present modes through the portable KHR surface API and must not
     # compile or load vkGetPhysicalDeviceSurfacePresentModes2EXT.
