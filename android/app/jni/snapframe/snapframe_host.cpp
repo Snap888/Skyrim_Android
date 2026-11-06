@@ -200,7 +200,12 @@ SnapAIPendingMetrics g_snapAiPendingMetrics;
 std::atomic<uint64_t> g_aiDecisionCount{0};
 std::atomic<uint32_t> g_aiWsiThrottleFrames{0};
 static constexpr float kAiGeneratedWaitThrottleMs = 8.0f;
-static constexpr uint32_t kAiGeneratedWaitThrottleFrames = 30;
+static constexpr uint32_t kAiGeneratedWaitThrottleFrames = 24;
+std::atomic<int> g_aiMode{SNAPFRAME_AI_INTELLIGENT};
+std::atomic<float> g_aiGpuBudgetMs{6.0f};
+std::atomic<float> g_aiPressureThreshold{0.75f};
+std::atomic<float> g_aiHeadroomThreshold{0.55f};
+std::atomic<float> g_aiArtifactThreshold{0.25f};
 uint64_t g_aiLastScaleChangeFrame = 0;
 std::atomic<uint32_t> g_aiQualityHeadroomSamples{0};
 std::atomic<uint32_t> g_aiLoadPressureSamples{0};
@@ -1903,7 +1908,9 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
         aiMetrics.motion_magnitude = aiMetricsSnapshot.motionMagnitude;
         aiMetrics.motion_complexity = aiMetricsSnapshot.motionComplexity;
         aiMetrics.flow_confidence = aiMetricsSnapshot.flowConfidence;
-        aiMetrics.gpu_pressure = aiMetrics.gpu_time_ms / 6.0f;
+        const float aiGpuBudget = std::max(1.0f,
+            g_aiGpuBudgetMs.load(std::memory_order_acquire));
+        aiMetrics.gpu_pressure = aiMetrics.gpu_time_ms / aiGpuBudget;
         aiMetrics.artifact_risk = aiMetricsSnapshot.artifactRisk;
         aiMetrics.scene_cut = 0;
         aiMetrics.telemetry_valid = 1;
@@ -1930,11 +1937,11 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
              * increase compute load without clear GPU and source-frame headroom. */
             const bool reducingLoad = requestedScale < static_cast<int>(flowScalePercent());
             const bool increaseHasHeadroom =
-                aiMetrics.gpu_pressure <= 0.55f
+                aiMetrics.gpu_pressure <= g_aiHeadroomThreshold.load(std::memory_order_acquire)
                 && aiMetrics.frame_time_ms > 0.0f
                 && aiMetrics.frame_time_ms <= 20.0f
                 && aiMetrics.flow_confidence >= 0.45f
-                && aiMetrics.artifact_risk <= 0.25f;
+                && aiMetrics.artifact_risk <= g_aiArtifactThreshold.load(std::memory_order_acquire);
             const bool wsiCooldownActive =
                 g_aiWsiThrottleFrames.load(std::memory_order_acquire) != 0;
             const uint32_t stableHeadroomSamples = increaseHasHeadroom
@@ -1942,7 +1949,7 @@ void snapframeCopyFrameImpl(void* contextPtr, void* sourceViewPtr, void* deviceP
                 ? g_aiQualityHeadroomSamples.fetch_add(1, std::memory_order_relaxed) + 1u
                 : (g_aiQualityHeadroomSamples.store(0, std::memory_order_relaxed), 0u);
             const bool pressureSample = !wsiCooldownActive
-                && aiMetrics.gpu_pressure >= 0.75f
+                && aiMetrics.gpu_pressure >= g_aiPressureThreshold.load(std::memory_order_acquire)
                 && aiMetrics.frame_time_ms > 0.0f
                 && aiMetrics.frame_time_ms <= 20.0f;
             const uint32_t stablePressureSamples = pressureSample
@@ -2690,6 +2697,11 @@ extern "C" void snapframe_config_defaults(SnapFrameConfig *config) {
     config->profiling_enabled = 0;
     config->diagnostic_suite = 0;
     config->diagnostic_phase_frames = 1800;
+    config->ai_mode = SNAPFRAME_AI_INTELLIGENT;
+    config->ai_gpu_budget_ms = 6.0f;
+    config->ai_pressure_threshold = 0.75f;
+    config->ai_headroom_threshold = 0.55f;
+    config->ai_artifact_threshold = 0.25f;
 }
 
 extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
@@ -2711,6 +2723,26 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
     g_presentMode.store(validated.present_mode, std::memory_order_release);
     if (validated.diagnostic_phase_frames < 300) validated.diagnostic_phase_frames = 300;
     if (validated.diagnostic_phase_frames > 36000) validated.diagnostic_phase_frames = 36000;
+    if (validated.ai_mode < SNAPFRAME_AI_STANDARD
+        || validated.ai_mode > SNAPFRAME_AI_MANUAL)
+        validated.ai_mode = SNAPFRAME_AI_INTELLIGENT;
+    if (!std::isfinite(validated.ai_gpu_budget_ms)
+        || validated.ai_gpu_budget_ms < 3.0f || validated.ai_gpu_budget_ms > 20.0f)
+        validated.ai_gpu_budget_ms = 6.0f;
+    if (!std::isfinite(validated.ai_pressure_threshold)
+        || validated.ai_pressure_threshold < 0.40f || validated.ai_pressure_threshold > 1.50f)
+        validated.ai_pressure_threshold = 0.75f;
+    if (!std::isfinite(validated.ai_headroom_threshold)
+        || validated.ai_headroom_threshold < 0.20f || validated.ai_headroom_threshold > 0.90f)
+        validated.ai_headroom_threshold = 0.55f;
+    if (!std::isfinite(validated.ai_artifact_threshold)
+        || validated.ai_artifact_threshold < 0.05f || validated.ai_artifact_threshold > 0.80f)
+        validated.ai_artifact_threshold = 0.25f;
+    g_aiMode.store(validated.ai_mode, std::memory_order_release);
+    g_aiGpuBudgetMs.store(validated.ai_gpu_budget_ms, std::memory_order_release);
+    g_aiPressureThreshold.store(validated.ai_pressure_threshold, std::memory_order_release);
+    g_aiHeadroomThreshold.store(validated.ai_headroom_threshold, std::memory_order_release);
+    g_aiArtifactThreshold.store(validated.ai_artifact_threshold, std::memory_order_release);
     g_flowScalePercent.store(static_cast<uint32_t>(validated.flow_scale_percent), std::memory_order_release);
     {
         std::lock_guard<std::mutex> lock(g_motionV2Mutex);
@@ -2732,9 +2764,9 @@ extern "C" int snapframe_host_init(const SnapFrameConfig *config) {
         }
         SnapAIConfig aiConfig{};
         snap_ai_default_config(&aiConfig);
-        aiConfig.enabled = 1;
+        aiConfig.enabled = validated.ai_mode == SNAPFRAME_AI_STANDARD ? 0u : 1u;
         aiConfig.profile = SNAP_AI_PROFILE_BALANCED;
-        aiConfig.target_gpu_budget_ms = 6.0f;
+        aiConfig.target_gpu_budget_ms = validated.ai_gpu_budget_ms;
         aiConfig.min_flow_scale = 0.50f;
         aiConfig.max_flow_scale = 0.75f;
         aiConfig.min_refinement_passes = 1;
