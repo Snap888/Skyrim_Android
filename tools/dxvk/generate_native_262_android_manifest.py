@@ -92,7 +92,14 @@ def main() -> int:
                 errors.append(f"{group}: missing source {path}")
         groups[group] = paths
 
-    for group in ("wsi_common", "android_wsi"):
+    # Project-owned Android surface lifetime adapter, copied into the pinned
+    # upstream tree by apply_native_262_android_port.py before inventory.
+    overlay_source = "src/wsi/sdl2/wsi_native_surface.cpp"
+    if not (root / overlay_source).is_file():
+        errors.append(f"android_wsi_overlay: missing project adapter {overlay_source}")
+    groups["android_wsi_overlay"] = [overlay_source]
+
+    for group in ("wsi_common", "android_wsi", "android_wsi_overlay"):
         if not groups.get(group):
             errors.append(f"{group}: empty Android source list")
 
@@ -100,7 +107,7 @@ def main() -> int:
         raise SystemExit("\n".join(errors))
 
     build_groups = [
-        "d3d9", "dxvk", "dxso", "util", "vulkan", "wsi_common", "android_wsi"
+        "d3d9", "dxvk", "dxso", "util", "vulkan", "wsi_common", "android_wsi", "android_wsi_overlay"
     ]
     flattened = [p for key in build_groups for p in groups[key]]
     duplicates = sorted({p for p in flattened if flattened.count(p) > 1})
