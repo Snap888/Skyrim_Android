@@ -94,6 +94,90 @@ typedef struct VkSurfaceFullScreenExclusiveInfoEXT {
 """,
     )
 
+    # DXVK's shared semaphore HANDLE import/export path is Win32-only.
+    # Android uses native Vulkan synchronization and must not compile Win32
+    # handle structures or DeviceFn entry points from dxvk_fence.cpp.
+    fence_cpp = dxvk_dir / "dxvk_fence.cpp"
+    replace_once(
+        fence_cpp,
+        """    if (info.sharedHandle != INVALID_HANDLE_VALUE) {
+      if (externalFeatures & VK_EXTERNAL_SEMAPHORE_FEATURE_IMPORTABLE_BIT) {
+        VkImportSemaphoreWin32HandleInfoKHR importInfo = { VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR };
+        importInfo.semaphore = m_semaphore;
+        importInfo.handleType = info.sharedType;
+        importInfo.handle = info.sharedHandle;
+
+        vr = m_vkd->vkImportSemaphoreWin32HandleKHR(m_vkd->device(), &importInfo);
+        if (vr != VK_SUCCESS)
+          throw DxvkError("Failed to import timeline semaphore");
+      } else {
+        Logger::warn(str::format("Importing semaphores of type ", info.sharedType, " not supported by device"));
+      }
+    }
+""",
+        """#ifdef _WIN32
+    if (info.sharedHandle != INVALID_HANDLE_VALUE) {
+      if (externalFeatures & VK_EXTERNAL_SEMAPHORE_FEATURE_IMPORTABLE_BIT) {
+        VkImportSemaphoreWin32HandleInfoKHR importInfo = { VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR };
+        importInfo.semaphore = m_semaphore;
+        importInfo.handleType = info.sharedType;
+        importInfo.handle = info.sharedHandle;
+
+        vr = m_vkd->vkImportSemaphoreWin32HandleKHR(m_vkd->device(), &importInfo);
+        if (vr != VK_SUCCESS)
+          throw DxvkError("Failed to import timeline semaphore");
+      } else {
+        Logger::warn(str::format("Importing semaphores of type ", info.sharedType, " not supported by device"));
+      }
+    }
+#else
+    if (info.sharedHandle != INVALID_HANDLE_VALUE)
+      Logger::warn("External Win32 semaphore handles are unavailable on this platform");
+#endif
+""",
+    )
+    replace_once(
+        fence_cpp,
+        """  HANDLE DxvkFence::sharedHandle() const {
+    if (m_info.sharedType == VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_FLAG_BITS_MAX_ENUM)
+      return INVALID_HANDLE_VALUE;
+
+    VkSemaphoreGetWin32HandleInfoKHR win32HandleInfo = { VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR };
+    win32HandleInfo.semaphore = m_semaphore;
+    win32HandleInfo.handleType = m_info.sharedType;
+
+    HANDLE sharedHandle = INVALID_HANDLE_VALUE;
+    VkResult vr = m_vkd->vkGetSemaphoreWin32HandleKHR(m_vkd->device(), &win32HandleInfo, &sharedHandle);
+
+    if (vr != VK_SUCCESS)
+      Logger::err(str::format("Failed to get semaphore handle: ", vr));
+
+    return sharedHandle;
+  }
+""",
+        """  HANDLE DxvkFence::sharedHandle() const {
+#ifdef _WIN32
+    if (m_info.sharedType == VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_FLAG_BITS_MAX_ENUM)
+      return INVALID_HANDLE_VALUE;
+
+    VkSemaphoreGetWin32HandleInfoKHR win32HandleInfo = { VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR };
+    win32HandleInfo.semaphore = m_semaphore;
+    win32HandleInfo.handleType = m_info.sharedType;
+
+    HANDLE sharedHandle = INVALID_HANDLE_VALUE;
+    VkResult vr = m_vkd->vkGetSemaphoreWin32HandleKHR(m_vkd->device(), &win32HandleInfo, &sharedHandle);
+
+    if (vr != VK_SUCCESS)
+      Logger::err(str::format("Failed to get semaphore handle: ", vr));
+
+    return sharedHandle;
+#else
+    return INVALID_HANDLE_VALUE;
+#endif
+  }
+""",
+    )
+
     # Carry immutable identity for the source WSI acquire all the way from
     # Presenter -> command list -> queued present. This is deliberately the
     # first safe transaction step: one source transaction remains in flight,
