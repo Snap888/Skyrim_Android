@@ -709,3 +709,13 @@ change driver binaries without a same-scene A/B and Vulkan/thermal telemetry.
 The uploaded runtime_tuning.conf has synchronous pipeline compilation enabled;
 keep that option disabled for normal gameplay because first-use pipeline
 compilation can cause long frame-time spikes.
+
+## Follow-up audit — 2026-11-06
+
+- Current branch head at this audit: `1c72074877495272a8d153ce5306314cbe07a91f`.
+- CI run [#42186335044](https://github.com/Snap888/Skyrim_Android/actions/runs/42186335044) passed all five executed jobs: portable Snap AI/SnapFrame ARM64 build, Android Java compilation, DXVK/SnapFrame host ARM64 compilation, log analyzer tests, and portable API tests. The full APK job was skipped because it is only enabled for an explicitly dispatched build with generated `gen/*.c` sources supplied.
+- The current log analyzer reads `motion_analysis` and `profiling_enabled` from `snapframe.conf`. It now distinguishes a deliberately disabled GPU-to-CPU flow readback from a missing readback when both switches are enabled. The default values are `motion_analysis=1` and `profiling_enabled=0`.
+- For short diagnostic captures, set both values to 1. Restore `profiling_enabled=0` afterward; readback is diagnostic-only and must not be treated as a normal-play performance setting.
+- The current DXVK present path reports the maximum of source/generated submission handoff waits to the Snap AI pressure hook. This is useful backpressure telemetry, but it is not yet the complete Snap AI control loop described above.
+- The Android DXVK runtime selector still exposes only the packaged baseline pair (`dxvk_d3d9` + `main`). The reserved 2.6.2 entry remains hidden until a complete Android-port build of both matching libraries is packaged. The CI ABI probe is not a substitute for that runtime pair.
+- No new APK or device validation is claimed by this audit.
