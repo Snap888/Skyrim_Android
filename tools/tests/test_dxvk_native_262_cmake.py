@@ -293,6 +293,8 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("presentInfo.transaction = transaction;", self.patcher)
         self.assertIn("cDevice->presentImage(cPresenter, cSync, cLatency, cFrameId, nullptr);", self.patcher)
         self.assertIn("m_activeTransactionId = 0u;", self.patcher)
+        self.assertIn("m_surfaceCond.notify_one();", self.patcher)
+        self.assertIn("retire it so acquire waiters cannot deadlock", self.patcher)
         self.assertIn("m_swapchainGeneration++", self.patcher)
         self.assertIn("transaction.semaphoreIndex >= m_semaphores.size()", self.patcher)
         self.assertIn("transaction.imageIndex >= m_images.size()", self.patcher)
