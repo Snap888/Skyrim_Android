@@ -230,3 +230,32 @@ not drop-in replacements for upstream:
 **Current implementation boundary:** this review identifies the actual 2.6.2
 integration points and source-list delta. It does not yet add upstream 2.6.2
 translation units to the Android build, and does not claim a 2.6.2 binary.
+
+
+### Presenter-generation ownership refinement
+
+Inspection of the pinned upstream `src/d3d9/d3d9_swapchain.cpp` shows
+`D3D9SwapChainEx::CreatePresenter(HWND, Signal)` constructs a
+`PresenterSurfaceProc` lambda that captures the device and HWND. The
+`Presenter` stores that callback for its full lifetime and its destructor
+destroys the swapchain and surface before member destruction. This gives the
+2.6.2 port a concrete ownership boundary:
+
+- The Android integration must bind a native-window lease to the presenter
+  callback/window-context generation, not to the temporary
+  `vkCreateAndroidSurfaceKHR` call.
+- The lease must be captured by value in the callback (or an equivalent
+  presenter-owned RAII object). When a window is replaced, the old callback
+  retains the old native window until its Presenter has destroyed its
+  swapchain and VkSurfaceKHR.
+- The callback must create the surface from its captured window generation;
+  looking up the mutable global registry again at callback time can silently
+  bind an old presenter to a newly registered window.
+- `Sdl2WsiDriver::getInstanceExtensions()` is the upstream instance-extension
+  seam. Add `VK_KHR_android_surface` there for the Android native-window
+  path, while preserving SDL2's existing extension list and checking the
+  extension is available before instance creation.
+
+This replaces the earlier broad assumption that the current registry's
+active-registration reference alone could cover surface lifetime. The
+presenter-owned lease is the required 2.6.2 lifetime mechanism.
