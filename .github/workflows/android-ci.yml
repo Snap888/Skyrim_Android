@@ -333,11 +333,13 @@ jobs:
           GEN_URL: ${{ inputs.gen_url }}
         run: |
           set -euo pipefail
+          GEN_URL="${GEN_URL:-https://github.com/Snap888/fexdroid-1/releases/download/gen/gen.tar.xz}"
           if [ -d gen ] && [ -n "$(find gen -type f -name '*.c' -print -quit)" ]; then
             echo "Using gen/ from checkout."
-          elif [ -n "${GEN_URL}" ]; then
+          else
             mkdir -p /tmp/gen
             curl --fail --location --retry 3 "${GEN_URL}" -o /tmp/gen/archive
+            echo "5c03d4d21737ff50514433f775a3e4b0a6f2c68b282bc29a4fbcbb344683623c  /tmp/gen/archive" | sha256sum --check
             if file /tmp/gen/archive | grep -qi 'zip'; then
               unzip -q /tmp/gen/archive -d /tmp/gen/unpacked
             elif file /tmp/gen/archive | grep -qi 'gzip'; then
@@ -361,7 +363,22 @@ jobs:
             echo "::error::The archive did not contain generated C sources."
             exit 1
           }
-          echo "Generated C files: $(find gen -type f -name '*.c' | wc -l)"
+          GEN_COUNT=$(find gen -type f -name '*.c' | wc -l)
+          echo "Generated C files: $GEN_COUNT"
+          test "$GEN_COUNT" -gt 100
+
+      - name: Checkout pinned DXVK Native 2.6.2 for matched runtime pair
+        run: |
+          set -euo pipefail
+          DXVK_DIR="$RUNNER_TEMP/dxvk-native-262-apk"
+          git clone --filter=blob:none --no-checkout https://github.com/doitsujin/dxvk.git "$DXVK_DIR"
+          git -C "$DXVK_DIR" fetch --depth=1 origin 9d6f54a1ade20d1d27dd421024717a636f3d8c68
+          git -C "$DXVK_DIR" checkout --detach 9d6f54a1ade20d1d27dd421024717a636f3d8c68
+          git -C "$DXVK_DIR" submodule update --init --recursive
+          test "$(git -C "$DXVK_DIR" rev-parse HEAD)" = "9d6f54a1ade20d1d27dd421024717a636f3d8c68"
+          python3 tools/dxvk/apply_native_262_android_port.py "$DXVK_DIR" --project-root "$GITHUB_WORKSPACE"
+          git -C "$DXVK_DIR" diff --check
+          echo "DXVK_262_SOURCE=$DXVK_DIR" >> "$GITHUB_ENV"
 
       - name: Set up JDK
         uses: actions/setup-java@v5
@@ -407,6 +424,7 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleDebug \
             -PndkVersion=${{ env.NDK_VERSION }} \
+            -PsnapDxvk262Source="$DXVK_262_SOURCE" \
             -PversionCode="$VERSION_CODE" \
             -PversionName="$VERSION_NAME" \
             --no-daemon --stacktrace --info --console=plain
@@ -426,6 +444,25 @@ jobs:
           printf '%s\n' "$CERT_OUTPUT" | sed -n '/Signer #1 certificate SHA-256 digest:/p'
           mkdir -p ../dist
           cp "$APK" "../dist/Skyrim-$VERSION_NAME.apk"
+
+      - name: Verify packaged DXVK 2.6.2 runtime pair
+        run: |
+          set -euo pipefail
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          EXTRACT="$RUNNER_TEMP/apk-native-262"
+          mkdir -p "$EXTRACT"
+          unzip -q "$APK" 'lib/arm64-v8a/libdxvk_d3d9_262.so' 'lib/arm64-v8a/libmain_262.so' -d "$EXTRACT"
+          DXVK_SO="$EXTRACT/lib/arm64-v8a/libdxvk_d3d9_262.so"
+          MAIN_SO="$EXTRACT/lib/arm64-v8a/libmain_262.so"
+          READELF="$ANDROID_HOME/ndk/$NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          NM="$ANDROID_HOME/ndk/$NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
+          bash tools/ci/verify_dxvk_runtime_pair.sh "$DXVK_SO" "$MAIN_SO" "$READELF" "$NM" "libdxvk_d3d9_262.so"
+          MAIN_DYNAMIC=$("$READELF" -d "$MAIN_SO")
+          grep -Fq 'Library soname: [libmain_262.so]' <<<"$MAIN_DYNAMIC"
+          echo "DXVK_NATIVE_262_RUNTIME_PAIR_PACKAGED_OK"
+
+      - name: Record build metadata
+        run: |
           {
             echo "commit=$GITHUB_SHA"
             echo "versionName=$VERSION_NAME"
