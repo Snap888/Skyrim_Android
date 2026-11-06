@@ -70,10 +70,32 @@ NM="$LLVM_BIN/llvm-nm"
 test -x "$READELF"
 test -x "$NM"
 
-"$READELF" -h "$DXVK_SO" | grep -q 'AArch64'
-"$READELF" -d "$DXVK_SO" | grep -Fq 'Library soname: [libdxvk_d3d9_262.so]'
-"$NM" -D --defined-only "$DXVK_SO" | grep -Eq '[[:space:]]Direct3DCreate9$'
-"$NM" -D --defined-only "$DXVK_SO" | grep -Eq '[[:space:]]Direct3DCreate9Ex$'
+# Capture tool output before matching. With pipefail, grep -q can close a pipe
+# early and make llvm-readelf/llvm-nm report SIGPIPE (exit 74) even on success.
+ELF_HEADER=$("$READELF" -h "$DXVK_SO")
+ELF_DYNAMIC=$("$READELF" -d "$DXVK_SO")
+ELF_EXPORTS=$("$NM" -D --defined-only "$DXVK_SO")
+
+if ! grep -q 'AArch64' <<<"$ELF_HEADER"; then
+  echo "DXVK 2.6.2 candidate is not an AArch64 ELF library" >&2
+  printf '%s\n' "$ELF_HEADER" >&2
+  exit 1
+fi
+if ! grep -Fq 'Library soname: [libdxvk_d3d9_262.so]' <<<"$ELF_DYNAMIC"; then
+  echo "DXVK 2.6.2 candidate has an unexpected SONAME" >&2
+  printf '%s\n' "$ELF_DYNAMIC" >&2
+  exit 1
+fi
+if ! grep -Eq '[[:space:]]Direct3DCreate9$' <<<"$ELF_EXPORTS"; then
+  echo "DXVK 2.6.2 candidate is missing Direct3DCreate9 export" >&2
+  printf '%s\n' "$ELF_EXPORTS" >&2
+  exit 1
+fi
+if ! grep -Eq '[[:space:]]Direct3DCreate9Ex$' <<<"$ELF_EXPORTS"; then
+  echo "DXVK 2.6.2 candidate is missing Direct3DCreate9Ex export" >&2
+  printf '%s\n' "$ELF_EXPORTS" >&2
+  exit 1
+fi
 
 echo "DXVK_NATIVE_262_ANDROID_ARM64_BUILD_OK"
 echo "DXVK_NATIVE_262_ANDROID_ARM64_SONAME_OK"
