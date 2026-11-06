@@ -374,9 +374,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
 
     def test_main_262_runtime_pair_is_gated_until_dedicated_host_bridge_exists(self):
         game = self.game_text
-        self.assertIn(
-            "option(SNAP_BUILD_DXVK_NATIVE_262_RUNTIME_PAIR", game)
-        )
+        self.assertIn("option(SNAP_BUILD_DXVK_NATIVE_262_RUNTIME_PAIR", game)
         self.assertRegex(
             game,
             r"option\(SNAP_BUILD_DXVK_NATIVE_262_RUNTIME_PAIR[\s\S]*?OFF\)",
