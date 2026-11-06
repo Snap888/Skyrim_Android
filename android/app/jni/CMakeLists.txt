@@ -35,6 +35,14 @@ set(SDL_STATIC OFF CACHE BOOL "" FORCE)
 set(SDL_TEST OFF CACHE BOOL "" FORCE)
 add_subdirectory(SDL2)
 add_subdirectory(dxvk)
+
+# Experimental upstream DXVK Native 2.6.2 candidate. Keep disabled until the
+# Android toolchain, SDL2, Vulkan and libdisplay-info prerequisites are present
+# and the ARM64 runtime pair has passed ABI/export checks.
+option(SNAP_BUILD_DXVK_NATIVE_262 "Build the opt-in DXVK Native 2.6.2 candidate" OFF)
+if(SNAP_BUILD_DXVK_NATIVE_262)
+    add_subdirectory(dxvk_native_262)
+endif()
 # SnapFrame is the sole frame-generation backend.
 add_subdirectory(snapframe)
 add_subdirectory(game)
