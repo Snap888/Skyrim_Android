@@ -13,7 +13,7 @@ Last audited: 2026-11-04
 ## Audited upstream
 
 Snap AI Engine repository: `Snap888/Snap_AI_Engine`, branch `snapframe-engine`, pinned commit:
-`f60acfcb7b09722d5927215957c46045b11f7897`.
+`ccf4589ca19d5f788adc56c7248d94f83ca0a506` (current CMake pin; the historical integration steps below retain their original revisions).
 
 The corresponding PR #1 is still a draft and open. Its portable C APIs and core tests are present, but its own PR description explicitly says that the DXVK implementation under `framegen/backends/dxvk/legacy` has not yet been adapted to `SnapFrameBackendV1`. It also makes no Android APK or real-device validation claim.
 
@@ -66,7 +66,7 @@ The portable SnapFrame core now drives the DXVK frame callback through the concr
 - Branch creation and base equality: verified with Git commit comparison.
 - Portable Snap AI + SnapFrame ARM64 shared-library build: passed Android NDK CI (run #41736778626).
 - DXVK adapter + JNI bridge + Snap AI API-version probe + scalar GPU/frame timing export: passed Android ARM64 compile CI (run #41738939416); visual parity/device validation remains outstanding.
-- Snap AI telemetry/control loop: not implemented.
+- Snap AI telemetry/control loop: wired into the live V1 host using frame-tagged asynchronous scalar reduction and exact-frame GPU timestamps; runtime/device behavior still requires validation.
 - In-game Snap AI / Frame Generation section: added with Frame Generation and Flow Scale controls routed through the portable SnapFrame core; Snap AI adaptive control is explicitly marked unavailable until scalar telemetry is connected.
 - Full APK build: not run. Physical-device gameplay logs have now been supplied and audited, but visual parity, generated-image acceptance and measured FPS uplift remain unverified.
 
@@ -719,3 +719,11 @@ compilation can cause long frame-time spikes.
 - The current DXVK present path reports the maximum of source/generated submission handoff waits to the Snap AI pressure hook. This is useful backpressure telemetry, but it is not yet the complete Snap AI control loop described above.
 - The Android DXVK runtime selector still exposes only the packaged baseline pair (`dxvk_d3d9` + `main`). The reserved 2.6.2 entry remains hidden until a complete Android-port build of both matching libraries is packaged. The CI ABI probe is not a substitute for that runtime pair.
 - No new APK or device validation is claimed by this audit.
+
+
+## Snap AI runtime safety and overhead update — 2026-11-06
+
+- Hardened the live snap_ai_update() result gate: a non-bypass decision is applied only when the returned structure size, API version, mode, frame ID and finite Flow Scale are valid. Non-bypass Flow Scale must remain within the host's supported 50–75% capability range. Invalid decisions are rejected and logged; AI API errors are logged separately.
+- Removed adaptive-AI telemetry work in Standard mode. When adaptive AI is disabled, the host no longer schedules the sparse total-chain timestamp or the V1 scalar-reduction/readback for AI. Explicit profiling/diagnostic sampling remains independently available.
+- The AI path still uses the existing asynchronous 96-byte GPU-reduced scalar record and frame-matched total-chain timestamp. It does not read back full flow vectors for AI and does not add a GPU wait.
+- Source FPS and generated-image quality have not been measured after this change. The current CI run must pass ARM64 host compilation and portable API tests; the new decision guard and Standard-mode overhead reduction still require device validation on Adreno 740.
