@@ -14,12 +14,14 @@ EXPECTED_SONAME=$5
 
 for file in "$DXVK_SO" "$RUNTIME_SO"; do
   [[ -s "$file" ]] || { echo "::error::Missing or empty ELF: $file"; exit 1; }
-  "$READELF" -h "$file" | grep -q 'AArch64' || {
+  ELF_HEADER=$("$READELF" -h "$file")
+  grep -q 'AArch64' <<<"$ELF_HEADER" || {
     echo "::error::Not an AArch64 ELF: $file"; exit 1;
   }
 done
 
-"$READELF" -d "$DXVK_SO" | grep -Fq "Library soname: [$EXPECTED_SONAME]" || {
+DXVK_DYNAMIC=$("$READELF" -d "$DXVK_SO")
+grep -Fq "Library soname: [$EXPECTED_SONAME]" <<<"$DXVK_DYNAMIC" || {
   echo "::error::DXVK SONAME mismatch; expected $EXPECTED_SONAME"; exit 1;
 }
 
@@ -31,7 +33,8 @@ grep -Eq '[[:space:]]Direct3DCreate9Ex$' <<<"$DXVK_EXPORTS" || {
   echo "::error::Direct3DCreate9Ex export missing"; exit 1;
 }
 
-"$READELF" -d "$RUNTIME_SO" | grep -Fq "Shared library: [$EXPECTED_SONAME]" || {
+RUNTIME_DYNAMIC=$("$READELF" -d "$RUNTIME_SO")
+grep -Fq "Shared library: [$EXPECTED_SONAME]" <<<"$RUNTIME_DYNAMIC" || {
   echo "::error::Runtime does not depend on $EXPECTED_SONAME"; exit 1;
 }
 
