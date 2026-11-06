@@ -372,9 +372,19 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("if self.source_pending or self.generated_running:", model)
         self.assertIn("generated_dropped", model)
 
-    def test_main_262_runtime_target_links_only_to_matching_dxvk(self):
+    def test_main_262_runtime_pair_is_gated_until_dedicated_host_bridge_exists(self):
         game = self.game_text
-        self.assertIn("if(TARGET dxvk_d3d9_262)", game)
+        self.assertIn(
+            "option(SNAP_BUILD_DXVK_NATIVE_262_RUNTIME_PAIR", game)
+        )
+        self.assertRegex(
+            game,
+            r"option\(SNAP_BUILD_DXVK_NATIVE_262_RUNTIME_PAIR[\s\S]*?OFF\)",
+        )
+        self.assertIn(
+            "if(TARGET dxvk_d3d9_262 AND SNAP_BUILD_DXVK_NATIVE_262_RUNTIME_PAIR)",
+            game,
+        )
         self.assertIn("add_library(main_262 SHARED", game)
         self.assertIn("target_link_libraries(main_262 PRIVATE SDL2 dxvk_d3d9_262", game)
         self.assertNotIn("target_link_libraries(main_262 PRIVATE SDL2 dxvk_d3d9 snapframe_host", game)
