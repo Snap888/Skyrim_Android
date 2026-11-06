@@ -94,6 +94,7 @@ test -x "$NM"
 ELF_HEADER=$("$READELF" -h "$DXVK_SO")
 ELF_DYNAMIC=$("$READELF" -d "$DXVK_SO")
 ELF_EXPORTS=$("$NM" -D --defined-only "$DXVK_SO")
+ELF_DEFINED=$("$NM" --defined-only "$DXVK_SO")
 
 if ! grep -q 'AArch64' <<<"$ELF_HEADER"; then
   echo "DXVK 2.6.2 candidate is not an AArch64 ELF library" >&2
