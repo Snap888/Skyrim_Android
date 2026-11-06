@@ -353,3 +353,24 @@ Android configure/compile, and it does not build the matching
 `libmain_262.so`. Do not enable the option in production builds, add the
 candidate to the runtime selector, or package it until the ARM64 compile,
 runtime-pair ABI checks, and device surface tests pass.
+## Android ARM64 candidate build path
+
+The opt-in candidate now builds its EDID dependency from a pinned Android-compatible
+source revision instead of requiring a preinstalled host pkg-config package:
+
+- `aosp-mirror-neo/platform_external_libdisplay-info` commit
+  `92b031749c0fe84ef5cdf895067b84a829920e25` (libdisplay-info 0.1.1).
+- CMake compiles the upstream C sources into `snap_display_info` for the Android ABI.
+- If host `hwdata/pnp.ids` is available, it is used to generate the PNP lookup table.
+  Otherwise an empty lookup table is generated; EDID parsing and colorimetry/HDR
+  metadata remain compiled, but manufacturer-name lookup is unavailable.
+- Shader generation mirrors upstream Meson, including the GLSL depfile dependency.
+- `tools/dxvk/build_native_262_android_candidate.sh` creates a minimal CMake harness,
+  builds SDL2 plus the DXVK 2.6.2 D3D9 candidate with the NDK, and checks AArch64 ELF,
+  the unversioned SONAME, and D3D9 entry-point exports.
+- CI has a dedicated `DXVK Native 2.6.2 Android ARM64 candidate build` job. This
+  job is the first real Android compilation gate; source-inventory success alone
+  must never be treated as proof that the library builds.
+
+The candidate remains opt-in and is not packaged or selectable until the ARM64
+build passes and the matching `libmain_262.so` runtime pair is produced and verified.
