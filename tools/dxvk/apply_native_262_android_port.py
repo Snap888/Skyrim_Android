@@ -626,6 +626,44 @@ namespace dxvk::wsi {
                 "re-review transaction ownership and semaphore retirement"
             )
 
+    # Fail closed unless the exact source-acquire token reaches the
+    # queued present entry and Presenter consumes its captured image index.
+    presenter_header_text = presenter_h.read_text(encoding="utf-8")
+    presenter_source_text = presenter_cpp.read_text(encoding="utf-8")
+    queue_header_text = queue_h.read_text(encoding="utf-8")
+    device_header_text = device_h.read_text(encoding="utf-8")
+    device_source_text = device_cpp_path.read_text(encoding="utf-8")
+    frontend_text = swapchain.read_text(encoding="utf-8")
+    transaction_contract = (
+        ("PresenterSync carries transaction identity",
+         "uint64_t transactionId = 0u;" in presenter_header_text
+         and "uint64_t swapchainGeneration = 0u;" in presenter_header_text
+         and "uint32_t imageIndex = 0u;" in presenter_header_text
+         and "uint32_t semaphoreIndex = 0u;" in presenter_header_text),
+        ("acquire stamps active token",
+         "sync.transactionId = m_nextTransactionId++;" in presenter_source_text
+         and "m_activeTransactionId = sync.transactionId;" in presenter_source_text),
+        ("present validates active token",
+         "transaction.transactionId != m_activeTransactionId" in presenter_source_text
+         and "transaction.swapchainGeneration != m_swapchainGeneration" in presenter_source_text),
+        ("present uses captured image index",
+         "info.pImageIndices      = &presentImageIndex;" in presenter_source_text
+         and "uint32_t presentImageIndex = transaction.imageIndex;" in presenter_source_text),
+        ("present queue carries transaction",
+         "PresenterSync       transaction;" in queue_header_text
+         and "presentInfo.transaction = transaction;" in device_source_text
+         and "entry.present.transaction, entry.present.frameId" in queue_cpp.read_text(encoding="utf-8")),
+        ("frontend forwards exact acquire token",
+         "cDevice->presentImage(cPresenter, cSync, cLatency, cFrameId, nullptr);" in frontend_text
+         and "const PresenterSync&            transaction" in device_header_text),
+    )
+    for description, valid in transaction_contract:
+        if not valid:
+            raise SystemExit(
+                f"DXVK immutable WSI transaction contract changed ({description}); "
+                "do not enable generated present"
+            )
+
     # Verify the actual submission queue implementation, not a guessed
     # dxvk_submission_queue.* path. In this pinned revision it is dxvk_queue.*.
     # A generated-present scheduler must preserve the submit-thread ordering,
@@ -673,7 +711,9 @@ namespace dxvk::wsi {
         )
 
     print("DXVK_NATIVE_262_ANDROID_PRESENTER_WSI_PATCH_OK")
-    print("Verified: one outstanding acquire/present transaction; pre-acquire advances semaphore ring.")
+    print("Verified: source acquire token is carried through command list and queued present.")
+    print("Verified: Presenter consumes the captured image/semaphore indices, not a reconstructed token.")
+    print("Still gated: multiple outstanding transactions and non-blocking generated acquire.")
     print("Verified: DxvkSubmissionQueue FIFO submit worker + finish-thread retirement.")
     print("Verified: D3D9 WSI semaphore handoff -> command-list enqueue -> present enqueue order.")
     print("SnapFrame generated present: DISABLED pending a DXVK-owned asynchronous transaction scheduler.")
