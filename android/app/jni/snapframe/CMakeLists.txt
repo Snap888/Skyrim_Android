@@ -45,7 +45,7 @@ if(TARGET dxvk_d3d9_262)
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/generated")
   target_compile_definitions(dxvk_d3d9_262 PRIVATE SNAPFRAME_DXVK262_HOST=1)
-  message(STATUS "SnapFrame DXVK 2.6.2 luma host enabled (legacy host remains isolated)")
+  message(STATUS "SnapFrame DXVK 2.6.2 luma/flow/consistency/midpoint compute host enabled (legacy host remains isolated)")
 endif()
 target_include_directories(snapframe_host PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(snapframe_host PRIVATE
