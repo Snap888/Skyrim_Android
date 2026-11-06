@@ -39,6 +39,212 @@ def main() -> int:
     if actual != expected:
         raise SystemExit(f"wrong DXVK source revision: {actual}; expected {expected}")
 
+    # Carry immutable identity for the source WSI acquire all the way from
+    # Presenter -> command list -> queued present. This is deliberately the
+    # first safe transaction step: one source transaction remains in flight,
+    # but present no longer reconstructs its image/semaphore from mutable ring
+    # indices. Generated multi-flight scheduling remains disabled.
+    presenter_h = dxvk_dir / "dxvk_presenter.h"
+    presenter_cpp = dxvk_dir / "dxvk_presenter.cpp"
+    queue_h = dxvk_dir / "dxvk_queue.h"
+    queue_cpp_path = dxvk_dir / "dxvk_queue.cpp"
+    context_h = dxvk_dir / "dxvk_context.h"
+    cmdlist_h = dxvk_dir / "dxvk_cmdlist.h"
+    device_h = dxvk_dir / "dxvk_device.h"
+    device_cpp_path = dxvk_dir / "dxvk_device.cpp"
+
+    replace_once(
+        presenter_h,
+        """  struct PresenterSync {
+    VkSemaphore acquire = VK_NULL_HANDLE;
+    VkSemaphore present = VK_NULL_HANDLE;
+    VkFence fence = VK_NULL_HANDLE;
+    VkBool32 fenceSignaled = VK_FALSE;
+  };
+""",
+        """  struct PresenterSync {
+    VkSemaphore acquire = VK_NULL_HANDLE;
+    VkSemaphore present = VK_NULL_HANDLE;
+    VkFence fence = VK_NULL_HANDLE;
+    VkBool32 fenceSignaled = VK_FALSE;
+
+    // Immutable identity of the acquired WSI transaction. Handles remain
+    // owned by the Presenter semaphore ring; this record identifies which
+    // exact image/ring entry the command list and present operation consume.
+    uint64_t transactionId = 0u;
+    uint64_t swapchainGeneration = 0u;
+    uint32_t imageIndex = 0u;
+    uint32_t semaphoreIndex = 0u;
+  };
+""",
+    )
+    replace_once(
+        presenter_h,
+        """    VkResult presentImage(
+            uint64_t                frameId,
+      const Rc<DxvkLatencyTracker>& tracker);
+""",
+        """    VkResult presentImage(
+      const PresenterSync&          transaction,
+            uint64_t                frameId,
+      const Rc<DxvkLatencyTracker>& tracker);
+""",
+    )
+    replace_once(
+        presenter_h,
+        """    VkResult                    m_acquireStatus = VK_NOT_READY;
+    bool                        m_presentPending = false;
+""",
+        """    VkResult                    m_acquireStatus = VK_NOT_READY;
+    bool                        m_presentPending = false;
+    uint64_t                    m_swapchainGeneration = 0u;
+    uint64_t                    m_nextTransactionId = 1u;
+""",
+    )
+
+    replace_once(
+        presenter_cpp,
+        """    sync = m_semaphores.at(m_frameIndex);
+    image = m_images.at(m_imageIndex);
+
+    m_presentPending = true;
+""",
+        """    sync = m_semaphores.at(m_frameIndex);
+    sync.transactionId = m_nextTransactionId++;
+    sync.swapchainGeneration = m_swapchainGeneration;
+    sync.imageIndex = m_imageIndex;
+    sync.semaphoreIndex = m_frameIndex;
+    image = m_images.at(m_imageIndex);
+
+    m_presentPending = true;
+""",
+    )
+    replace_once(
+        presenter_cpp,
+        """  VkResult Presenter::presentImage(uint64_t frameId, const Rc<DxvkLatencyTracker>& tracker) {
+    PresenterSync& currSync = m_semaphores.at(m_frameIndex);
+""",
+        """  VkResult Presenter::presentImage(
+          const PresenterSync& transaction,
+                uint64_t frameId,
+          const Rc<DxvkLatencyTracker>& tracker) {
+    std::lock_guard transactionLock(m_surfaceMutex);
+
+    // Reject stale or malformed ownership rather than presenting an image
+    // selected from whichever mutable ring index happens to be current.
+    if (!transaction.transactionId
+     || transaction.swapchainGeneration != m_swapchainGeneration
+     || transaction.semaphoreIndex >= m_semaphores.size()
+     || transaction.imageIndex >= m_images.size()
+     || !m_swapchain)
+      return VK_ERROR_OUT_OF_DATE_KHR;
+
+    PresenterSync& currSync = m_semaphores.at(transaction.semaphoreIndex);
+    if (currSync.acquire != transaction.acquire
+     || currSync.present != transaction.present
+     || currSync.fence != transaction.fence)
+      return VK_ERROR_VALIDATION_FAILED_EXT;
+
+    uint32_t presentImageIndex = transaction.imageIndex;
+""",
+    )
+    replace_once(
+        presenter_cpp,
+        """    fenceInfo.pFences       = &currSync.fence;
+""",
+        """    fenceInfo.pFences       = &currSync.fence;
+""",
+    )
+    replace_once(
+        presenter_cpp,
+        """    info.pImageIndices      = &m_imageIndex;
+""",
+        """    info.pImageIndices      = &presentImageIndex;
+""",
+    )
+    # Generation advances only after a new swapchain has been created and its
+    # images imported. No old transaction may be silently retargeted.
+    replace_once(
+        presenter_cpp,
+        """    // Create one set of semaphores per swap image, as well as a fence
+""",
+        """    // Publish a new identity only after the new swapchain exists.
+    m_swapchainGeneration++;
+
+    // Create one set of semaphores per swap image, as well as a fence
+""",
+    )
+
+    replace_once(
+        queue_h,
+        """  struct DxvkPresentInfo {
+    Rc<Presenter>       presenter;
+    uint64_t            frameId;
+  };
+""",
+        """  struct DxvkPresentInfo {
+    Rc<Presenter>       presenter;
+    PresenterSync       transaction;
+    uint64_t            frameId;
+  };
+""",
+    )
+    replace_once(
+        device_h,
+        """    void presentImage(
+      const Rc<Presenter>&            presenter,
+      const Rc<DxvkLatencyTracker>&   tracker,
+            uint64_t                  frameId,
+            DxvkSubmitStatus*         status);
+""",
+        """    void presentImage(
+      const Rc<Presenter>&            presenter,
+      const PresenterSync&            transaction,
+      const Rc<DxvkLatencyTracker>&   tracker,
+            uint64_t                  frameId,
+            DxvkSubmitStatus*         status);
+""",
+    )
+    replace_once(
+        device_cpp_path,
+        """  void DxvkDevice::presentImage(
+    const Rc<Presenter>&            presenter,
+    const Rc<DxvkLatencyTracker>&   tracker,
+          uint64_t                  frameId,
+          DxvkSubmitStatus*         status) {
+    DxvkPresentInfo presentInfo = { };
+    presentInfo.presenter = presenter;
+    presentInfo.frameId = frameId;
+""",
+        """  void DxvkDevice::presentImage(
+    const Rc<Presenter>&            presenter,
+    const PresenterSync&            transaction,
+    const Rc<DxvkLatencyTracker>&   tracker,
+          uint64_t                  frameId,
+          DxvkSubmitStatus*         status) {
+    DxvkPresentInfo presentInfo = { };
+    presentInfo.presenter = presenter;
+    presentInfo.transaction = transaction;
+    presentInfo.frameId = frameId;
+""",
+    )
+    replace_once(
+        queue_cpp_path,
+        """          entry.result = entry.present.presenter->presentImage(
+            entry.present.frameId, entry.latency.tracker);
+""",
+        """          entry.result = entry.present.presenter->presentImage(
+            entry.present.transaction, entry.present.frameId, entry.latency.tracker);
+""",
+    )
+    replace_once(
+        swapchain,
+        """        cDevice->presentImage(cPresenter, cLatency, cFrameId, nullptr);
+""",
+        """        cDevice->presentImage(cPresenter, cSync, cLatency, cFrameId, nullptr);
+""",
+    )
+
     # Keep the 2.6.2 SnapFrame seam inside the pinned upstream tree. This
     # C ABI contains opaque 2.6.2 object pointers only; it is not shared with
     # the legacy 1.9.2b host.
