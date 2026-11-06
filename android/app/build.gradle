@@ -39,6 +39,13 @@ android {
         externalNativeBuild {
             cmake {
                 arguments "-DANDROID_STL=c++_shared", "-DANDROID_PLATFORM=android-28"
+                // Optional matched DXVK Native 2.6.2 + main_262 pair. CI passes
+                // the pinned, Android-patched source checkout explicitly.
+                def dxvk262Source = project.findProperty('snapDxvk262Source')
+                if (dxvk262Source != null && !dxvk262Source.toString().isEmpty()) {
+                    arguments "-DSNAP_BUILD_DXVK_NATIVE_262=ON",
+                              "-DSNAP_DXVK_NATIVE_262_SOURCE_DIR=${dxvk262Source}"
+                }
                 if (ffmpegProp == 'true') {
                     arguments "-DLB_HAS_FFMPEG=ON"
                 } else if (ffmpegProp == 'false') {
