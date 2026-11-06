@@ -53,6 +53,8 @@ def main() -> int:
     device_h = dxvk_dir / "dxvk_device.h"
     device_cpp_path = dxvk_dir / "dxvk_device.cpp"
 
+    swapchain = root / "src/d3d9/d3d9_swapchain.cpp"
+
     replace_once(
         presenter_h,
         """  struct PresenterSync {
@@ -662,7 +664,7 @@ namespace dxvk::wsi {
     present_sequence = (
         "ctx->synchronizeWsi(cSync);",
         "ctx->flushCommandList(nullptr, nullptr);",
-        "cDevice->presentImage(cPresenter, cLatency, cFrameId, nullptr);",
+        "cDevice->presentImage(cPresenter, cSync, cLatency, cFrameId, nullptr);",
     )
     positions = [swapchain_text.find(item) for item in present_sequence]
     if any(position < 0 for position in positions) or positions != sorted(positions):
