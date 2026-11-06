@@ -47,6 +47,28 @@ grep -q 'EmitCs' "$dest/src/d3d9/d3d9_swapchain.cpp"
 grep -q 'synchronizeWsi' "$dest/src/d3d9/d3d9_swapchain.cpp"
 grep -q 'presentImage' "$dest/src/dxvk/dxvk_presenter.cpp"
 
+
+# Verify that the Android integration seam being ported still exists in this
+# checkout. These checks prevent the source map from drifting away from code.
+readonly project_root="$(git rev-parse --show-toplevel)"
+native_surface_cpp="$project_root/android/app/jni/dxvk/src/wsi/sdl2/wsi_native_surface.cpp"
+native_surface_wsi="$project_root/android/app/jni/dxvk/src/wsi/sdl2/wsi_presenter_sdl2.cpp"
+swapchain_cpp="$project_root/android/app/jni/dxvk/src/d3d9/d3d9_swapchain.cpp"
+cmake_file="$project_root/android/app/jni/dxvk/CMakeLists.txt"
+
+for path in "$native_surface_cpp" "$native_surface_wsi" "$swapchain_cpp" "$cmake_file"; do
+  test -s "$path" || {
+    echo "::error::Android integration seam is missing: $path" >&2
+    exit 5
+  }
+done
+
+grep -q 'dxvk_native_surface' "$native_surface_cpp"
+grep -q 'vkCreateAndroidSurfaceKHR' "$native_surface_wsi"
+grep -q 'SnapFrameCopyHook' "$swapchain_cpp"
+grep -q 'SnapFramePresentResultHook' "$swapchain_cpp"
+grep -q 'wsi_native_surface.cpp' "$cmake_file"
+
 echo "DXVK_NATIVE_SOURCE_AUDIT_OK tag=$tag commit=$actual_commit"
 echo "Android port status: NOT_PORTED"
 echo "Build status: SOURCE_ONLY"
