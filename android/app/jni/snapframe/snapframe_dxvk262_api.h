@@ -24,7 +24,7 @@
 extern "C" {
 #endif
 
-#define SNAPFRAME_DXVK262_ABI_VERSION 1u
+#define SNAPFRAME_DXVK262_ABI_VERSION 2u
 
 typedef struct SnapFrameDxvk262FrameInfo {
   uint32_t struct_size;
