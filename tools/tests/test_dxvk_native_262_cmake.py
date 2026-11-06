@@ -127,7 +127,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("SNAPFRAME_DXVK262_ABI_VERSION", self.patcher)
         self.assertIn("static_cast<void*>(&cSrcView)", self.patcher)
         replacement_block = self.patcher.split(
-            "        // Record optional SnapFrame source work", 1
+            "        // Begin external rendering exactly once.", 1
         )[1].split('        """', 1)[0]
         self.assertLess(
             replacement_block.index("auto contextObjects = ctx->beginExternalRendering()"),
@@ -138,7 +138,37 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertNotIn("ctx->beginExternalRendering()", replacement_block.split(
             "auto contextObjects = ctx->beginExternalRendering()", 1
         )[1])
-        self.assertNotIn("snapframe_host_262", self.game_text + self.snapframe_text)
+        self.assertIn("snapframe_host_262.cpp", self.snapframe_text)
+        self.assertIn("target_sources(dxvk_d3d9_262 PRIVATE", self.snapframe_text)
+        self.assertIn("SnapFrame DXVK 2.6.2 luma host enabled", self.snapframe_text)
+        self.assertNotIn("snapframe_host_262", self.game_text)
+
+    def test_262_host_records_luma_through_dxvk_context_without_manual_submit(self):
+        host = ROOT / "android/app/jni/snapframe/snapframe_host_262.cpp"
+        host_text = host.read_text(encoding="utf-8")
+        for required in (
+            "DxvkContextObjects",
+            "DxvkShaderCreateInfo",
+            "new DxvkShader(shaderInfo, std::move(shaderCode))",
+            "bindResourceImageView",
+            "bindResourceSampler",
+            "dxvkContext->dispatch(",
+            "VK_FORMAT_R16_SFLOAT",
+            "SNAPFRAME_DXVK262_ABI_VERSION",
+            "snapframe_dxvk262_release_device",
+        ):
+            self.assertIn(required, host_text)
+        for forbidden in (
+            "vkQueueSubmit",
+            "vkDeviceWaitIdle",
+            "vkWaitForFences",
+            "flushCommandList",
+            "waitForIdle",
+            "mapPtr(",
+        ):
+            self.assertNotIn(forbidden, host_text)
+        self.assertIn("source_view_ref", host_text)
+        self.assertIn("Rc<DxvkImageView>", host_text)
 
     def test_legacy_snapframe_host_is_not_linked_to_262_candidate(self):
         # The current SnapFrame host consumes DXVK-internal C++ types from the
@@ -146,7 +176,8 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         # target compiles against the pinned upstream headers.
         self.assertIn("target_link_libraries(main PRIVATE SDL2 dxvk_d3d9 snapframe_host", self.game_text)
         self.assertIn("target_link_libraries(snapframe_host PUBLIC dxvk_d3d9", self.snapframe_text)
-        self.assertNotIn("snapframe_host_262", self.game_text + self.snapframe_text)
+        self.assertIn("snapframe_host_262.cpp", self.snapframe_text)
+        self.assertNotIn("snapframe_host_262", self.game_text)
         self.assertNotIn("dxvk_d3d9_262 snapframe_host", self.game_text + self.snapframe_text)
 
 
