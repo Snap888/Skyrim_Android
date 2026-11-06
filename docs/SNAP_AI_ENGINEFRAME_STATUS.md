@@ -778,3 +778,9 @@ compilation can cause long frame-time spikes.
 - 2.6.2 remains source-mapped, not yet an Android binary. The launcher selector continues to expose only the baseline unless both `libdxvk_d3d9_262.so` and its matching `libmain_262.so` are packaged.
 - The full APK workflow is intentionally manual and requires the generated Skyrim `gen/*.c` sources (or a `gen_url` archive). No signing secret is needed for the debug APK: Gradle uses its standard debug signing config when CI signing variables are absent.
 - Push CI is compile/test CI, not an APK delivery job. Do not ask for device testing until a full APK artifact exists and the candidate DXVK pair has passed ELF SONAME / DT_NEEDED checks.
+
+
+### Latest completed native validation
+
+- Android CI run [#630](https://github.com/Snap888/Skyrim_Android/actions/runs/42196065230), commit `eafb0bf07e591322c557c88d024599c2a5fdda8b`: all five validation jobs completed successfully, including the DXVK/SnapFrame host ARM64 compile and ELF linkage probe. The APK job was skipped.
+- This validates the host and portable code as of `eafb0bf`; the later asynchronous telemetry instrumentation commits are being checked by the queued CI runs and are not yet claimed as passed.
