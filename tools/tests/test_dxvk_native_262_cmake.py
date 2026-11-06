@@ -26,6 +26,13 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         cls.patcher = PATCHER.read_text(encoding="utf-8")
         cls.dxvk262_api = DXVK262_API.read_text(encoding="utf-8")
 
+    def test_android_patcher_resolves_dxvk_dir_before_using_source_paths(self):
+        self.assertLess(
+            self.patcher.index('dxvk_dir = root / "src/dxvk"'),
+            self.patcher.index('presenter_h = dxvk_dir / "dxvk_presenter.h"'),
+        )
+        self.assertEqual(self.patcher.count('dxvk_dir = root / "src/dxvk"'), 1)
+
     def test_candidate_is_opt_in_and_keeps_baseline_default(self):
         self.assertIn("option(SNAP_BUILD_DXVK_NATIVE_262", self.root_text)
         self.assertIn("if(SNAP_BUILD_DXVK_NATIVE_262)", self.root_text)
