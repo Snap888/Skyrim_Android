@@ -1034,18 +1034,22 @@ namespace dxvk {
 
     for (uint32_t i = 0; i < SyncInterval || i < 1; i++) {
       {
+        const double sourceWaitBefore = perfSourceSubmissionWaitMs;
+        const double generatedWaitBefore = perfGeneratedSubmissionWaitMs;
         const auto waitStart = std::chrono::steady_clock::now();
         SynchronizePresent(&perfSourceSubmissionWaitMs,
           &perfGeneratedSubmissionWaitMs);
         perfSourceHandoffWaitMs += std::chrono::duration<double, std::milli>(
           std::chrono::steady_clock::now() - waitStart).count();
+        const double sourceWait = perfSourceSubmissionWaitMs - sourceWaitBefore;
+        const double generatedWait = perfGeneratedSubmissionWaitMs - generatedWaitBefore;
+        /* Both source and generated submission completion can stall the game
+         * thread. Feed the larger per-handoff wait to AI; previously source
+         * submission stalls were invisible to the WSI throttle. */
+        if (const SnapFrameSubmissionPressureHook pressureHook =
+              g_snapFrameSubmissionPressureHook.load(std::memory_order_acquire))
+          pressureHook(static_cast<float>(std::max(sourceWait, generatedWait)));
       }
-      /* Feed the exact generated-status wait back to SnapFrame immediately.
-       * A long generated WSI handoff temporarily suppresses new FG requests,
-       * preventing the generator from extending a present-queue backlog. */
-      if (const SnapFrameSubmissionPressureHook pressureHook =
-            g_snapFrameSubmissionPressureHook.load(std::memory_order_acquire))
-        pressureHook(static_cast<float>(perfGeneratedSubmissionWaitMs));
 
       // Presentation semaphores and WSI swap chain image
       vk::PresenterInfo info = m_presenter->info();
@@ -1157,11 +1161,18 @@ namespace dxvk {
        * cannot hold the submission thread waiting for scan-out availability.
        */
       {
+        const double sourceWaitBefore = perfSourceSubmissionWaitMs;
+        const double generatedWaitBefore = perfGeneratedSubmissionWaitMs;
         const auto waitStart = std::chrono::steady_clock::now();
         SynchronizePresent(&perfSourceSubmissionWaitMs,
           &perfGeneratedSubmissionWaitMs);
         perfGeneratedHandoffWaitMs += std::chrono::duration<double, std::milli>(
           std::chrono::steady_clock::now() - waitStart).count();
+        const double sourceWait = perfSourceSubmissionWaitMs - sourceWaitBefore;
+        const double generatedWait = perfGeneratedSubmissionWaitMs - generatedWaitBefore;
+        if (const SnapFrameSubmissionPressureHook pressureHook =
+              g_snapFrameSubmissionPressureHook.load(std::memory_order_acquire))
+          pressureHook(static_cast<float>(std::max(sourceWait, generatedWait)));
       }
 
       for (uint32_t generation = 0; generation < generationCount; generation++) {
