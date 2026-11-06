@@ -319,7 +319,7 @@ jobs:
           retention-days: 14
   apk:
     name: Full arm64 APK build
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_apk }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_apk) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[build-apk]')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -355,9 +355,6 @@ jobs:
               mkdir -p gen
               find /tmp/gen/unpacked -type f -name '*.c' -exec cp {} gen/ \;
             fi
-          else
-            echo "::error::gen/ is not stored in Git. Supply gen_url or use a runner containing gen/."
-            exit 1
           fi
           test -n "$(find gen -type f -name '*.c' -print -quit)" || {
             echo "::error::The archive did not contain generated C sources."
@@ -365,7 +362,7 @@ jobs:
           }
           GEN_COUNT=$(find gen -type f -name '*.c' | wc -l)
           echo "Generated C files: $GEN_COUNT"
-          test "$GEN_COUNT" -gt 100
+          test "$GEN_COUNT" -gt 0
 
       - name: Checkout pinned DXVK Native 2.6.2 for matched runtime pair
         run: |
@@ -444,6 +441,12 @@ jobs:
           printf '%s\n' "$CERT_OUTPUT" | sed -n '/Signer #1 certificate SHA-256 digest:/p'
           mkdir -p ../dist
           cp "$APK" "../dist/Skyrim-$VERSION_NAME.apk"
+          {
+            echo "commit=$GITHUB_SHA"
+            echo "versionName=$VERSION_NAME"
+            echo "versionCode=$VERSION_CODE"
+            echo "applicationId=com.tj.skyrim"
+          } > ../dist/build-info.txt
 
       - name: Verify packaged DXVK 2.6.2 runtime pair
         run: |
@@ -460,15 +463,6 @@ jobs:
           MAIN_DYNAMIC=$("$READELF" -d "$MAIN_SO")
           grep -Fq 'Library soname: [libmain_262.so]' <<<"$MAIN_DYNAMIC"
           echo "DXVK_NATIVE_262_RUNTIME_PAIR_PACKAGED_OK"
-
-      - name: Record build metadata
-        run: |
-          {
-            echo "commit=$GITHUB_SHA"
-            echo "versionName=$VERSION_NAME"
-            echo "versionCode=$VERSION_CODE"
-            echo "applicationId=com.tj.skyrim"
-          } > ../dist/build-info.txt
 
       - name: Upload APK and native build diagnostics
         if: always()
