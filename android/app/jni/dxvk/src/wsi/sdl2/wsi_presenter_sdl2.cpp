@@ -33,10 +33,16 @@ namespace dxvk::wsi {
     if (nativeSurface(hWindow, &ns)) {
       auto create = reinterpret_cast<PFN_CreateAndroidSurface>(
         vki->sym("vkCreateAndroidSurfaceKHR"));
-      if (!create)
+      if (!create) {
+        releaseNativeSurface(&ns);
         return VK_ERROR_EXTENSION_NOT_PRESENT;
+      }
       AndroidSurfaceCreateInfo info = { VkStructureType(1000008000), nullptr, 0, ns.window };
-      return create(vki->instance(), &info, nullptr, pSurface);
+      VkResult result = create(vki->instance(), &info, nullptr, pSurface);
+      // The registry retains its own reference for the registered surface
+      // generation; this temporary lease only covers the Vulkan call itself.
+      releaseNativeSurface(&ns);
+      return result;
     }
 #endif
     SDL_Window* window = fromHwnd(hWindow);
