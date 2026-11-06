@@ -87,11 +87,13 @@ else()
   endif()
 endif()
 
-# DXVK Native 2.6.2 runtime pair. This target is created only when the
-# pinned 2.6.2 DXVK target exists; it shares the generated game objects and
-# runtime sources but links exclusively to the matching DXVK DSO. The
-# SnapFrame 2.6.2 host is already compiled into libdxvk_d3d9_262.so.
-if(TARGET dxvk_d3d9_262)
+# DXVK Native 2.6.2 runtime pair. The DXVK candidate can be built and
+# inspected independently, but main_262 must stay gated until its dedicated
+# 2.6.2 host/JNI bridge and Android surface ABI are implemented. Linking the
+# legacy snapframe_host here would silently pull in DXVK 1.9.2b and is unsafe.
+option(SNAP_BUILD_DXVK_NATIVE_262_RUNTIME_PAIR
+  "Build main_262 only after the dedicated DXVK 2.6.2 host bridge is complete" OFF)
+if(TARGET dxvk_d3d9_262 AND SNAP_BUILD_DXVK_NATIVE_262_RUNTIME_PAIR)
   if(NOT SNAP_DXVK_NATIVE_262_SOURCE_DIR)
     message(FATAL_ERROR "DXVK 2.6.2 source root is required for main_262")
   endif()
