@@ -762,3 +762,19 @@ compilation can cause long frame-time spikes.
 - The Markdown diagnostic report now prints the `ai_wsi_backpressure` reason histogram (`generated_wait`, `severe_source_wait`, and legacy/unspecified records). Previously the JSON report carried this information but the human-readable report omitted it.
 - A regression test now verifies that the reason histogram is rendered in Markdown, not merely present in the internal JSON object.
 - The asymmetric WSI thresholds remain provisional until a same-scene device A/B capture confirms source FPS, generated queued ratio, and the separate source/generated waits. Do not retune from CI-only evidence.
+
+
+## Non-blocking AI telemetry instrumentation — 2026-11-06
+
+- The existing GPU metrics path already uses a three-slot readback ring and a GPU command-list completion callback. It records a 96-byte scalar result (motion magnitude/complexity, flow confidence, artifact risk and validation counters) every 30 source frames.
+- The render/present path does not poll a fence or wait for the scalar buffer. A ring-full sample is skipped rather than blocking; the completion callback validates the completed host-visible coherent buffer and publishes metrics for the next serialized AI update.
+- Added callback-age and submit-to-completion latency metadata to `gpu_metrics_published` / `gpu_metrics_rejected` events. These measurements distinguish delayed telemetry from current-frame data; callback latency includes queue/GPU completion time and is not a GPU-only duration.
+- The local analyzer now reports median/P95/max asynchronous telemetry callback latency and frame age. Regression coverage includes both published and rejected samples.
+- This instrumentation adds only a steady-clock timestamp and event metadata in the completion callback. It does not add GPU readback frequency, synchronous query retrieval, queue-idle calls, or present-path waits.
+- Remaining telemetry work: keep pixel/flow-vector readback strictly diagnostic-only; add a bounded device-local summary for V2 flow confidence/occlusion if the existing scalar shader can produce it without changing the midpoint path; measure callback-age and ring-skip rates on device before changing the three-slot depth or 30-frame cadence.
+
+## DXVK Native 2.6.2 port gate
+
+- 2.6.2 remains source-mapped, not yet an Android binary. The launcher selector continues to expose only the baseline unless both `libdxvk_d3d9_262.so` and its matching `libmain_262.so` are packaged.
+- The full APK workflow is intentionally manual and requires the generated Skyrim `gen/*.c` sources (or a `gen_url` archive). No signing secret is needed for the debug APK: Gradle uses its standard debug signing config when CI signing variables are absent.
+- Push CI is compile/test CI, not an APK delivery job. Do not ask for device testing until a full APK artifact exists and the candidate DXVK pair has passed ELF SONAME / DT_NEEDED checks.
