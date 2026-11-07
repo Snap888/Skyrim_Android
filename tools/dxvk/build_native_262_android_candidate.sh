@@ -116,11 +116,13 @@ if ! grep -Eq '[[:space:]]Direct3DCreate9Ex$' <<<"$ELF_EXPORTS"; then
   printf '%s\\n' "$ELF_EXPORTS" >&2
   exit 1
 fi
-if ! grep -Eq '[[:space:]]snapframe_dxvk262_record_source$' <<<"$ELF_DEFINED"; then
-  echo "DXVK 2.6.2 candidate is missing its compiled SnapFrame host callback" >&2
-  printf '%s\\n' "$ELF_DEFINED" >&2
-  exit 1
-fi
+for symbol in snapframe_dxvk262_record_source snapframe_dxvk262_release_window snapframe_dxvk262_release_device; do
+  if ! grep -Eq "[[:space:]]${symbol}$" <<<"$ELF_DEFINED"; then
+    echo "DXVK 2.6.2 candidate is missing SnapFrame host symbol: ${symbol}" >&2
+    printf '%s\\n' "$ELF_DEFINED" >&2
+    exit 1
+  fi
+done
 
 echo "DXVK_NATIVE_262_SNAPFRAME_HOST_COMPILED_OK"
 echo "DXVK_NATIVE_262_ANDROID_ARM64_BUILD_OK"
