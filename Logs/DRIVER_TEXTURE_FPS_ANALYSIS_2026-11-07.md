@@ -33,3 +33,8 @@
 4. Check whether normalized duplicate-DATA paths reduce file-not-found probes and whether the missing texture symptoms change.
 5. Capture the DXVK A/B timing CSV with SnapFrame OFF. Then repeat the same route with SnapFrame ON; do not compare different scenes or different driver versions.
 6. Only after the above checks, build and test a separately named DXVK 2.7.1 + matching Skyrim runtime pair. Keep 2.6.2 available for rollback.
+
+
+## Build
+
+The Android ARM64 APK build is triggered from the commit carrying the AdrenoTools loader and path-normalization changes. The DXVK 2.6.2 runtime remains the selected test candidate; DXVK 2.7.1 stays gated on verifying that the selected Turnip ICD is truly active and exposes `maintenance5 = 1`.
