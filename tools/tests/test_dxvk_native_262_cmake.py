@@ -445,6 +445,12 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertNotIn("dxvk_d3d9_262 snapframe_host", self.game_text + self.snapframe_text)
 
 
+    def test_dxvk_startup_diagnostics_are_written_under_game_port_directory(self):
+        runtime_main = (ROOT / "runtime/main.c").read_text(encoding="utf-8")
+        self.assertIn('setenv("DXVK_LOG_PATH", dxvk_log_path, 1);', runtime_main)
+        self.assertIn('setenv("DXVK_LOG_LEVEL", "info", 1);', runtime_main)
+        self.assertIn('snprintf(dxvk_log_path, sizeof dxvk_log_path, "%s/port", g_game_dir);', runtime_main)
+
     def test_262_d3d9_startup_exceptions_do_not_cross_the_exported_abi(self):
         # DXVK 2.6.2 can throw while constructing DxvkInstance inside
         # Direct3DCreate9. Keep the exception inside the C ABI boundary and
