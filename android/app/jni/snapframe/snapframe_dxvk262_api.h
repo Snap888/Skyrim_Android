@@ -71,11 +71,11 @@ void snapframe_dxvk262_release_device(void* device_token)
 #endif
     ;
 
-#ifdef __cplusplus
-}
-#endif
-
 /* Runtime control. Defaults to disabled until the application loads and validates
  * SnapFrameConfig. These controls never submit or wait on GPU work. */
 int snapframe_dxvk262_set_enabled(int enabled);
 int snapframe_dxvk262_get_enabled(void);
+
+#ifdef __cplusplus
+}
+#endif
