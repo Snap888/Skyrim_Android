@@ -13,6 +13,7 @@
 #include <android/log.h>
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cstdint>
 #include <iterator>
 #include <mutex>
@@ -63,6 +64,8 @@ struct DeviceState {
 };
 
 std::mutex g_stateMutex;
+// Fail closed: the runtime must explicitly enable SnapFrame after config load.
+std::atomic<bool> g_enabled{false};
 std::unordered_map<DxvkDevice*, DeviceState> g_deviceStates;
 
 void logOnce(const char* message) {
@@ -435,6 +438,8 @@ extern "C" int snapframe_dxvk262_record_source(
 
   if (!context || !context_objects || !device || !source_view_ref || !frame_info)
     return 1;
+  if (!dxvk::g_enabled.load(std::memory_order_acquire))
+    return 1;
   if (frame_info->struct_size < sizeof(SnapFrameDxvk262FrameInfo)
       || frame_info->abi_version != SNAPFRAME_DXVK262_ABI_VERSION
       || !frame_info->width || !frame_info->height)
@@ -600,6 +605,17 @@ extern "C" int snapframe_dxvk262_record_source(
   // Luma, bidirectional flow and cycle consistency are now recorded. The
   // hook still skips FG until the midpoint image is wired into the WSI blit source.
   return 1;
+}
+
+extern "C" int snapframe_dxvk262_set_enabled(int enabled) {
+  dxvk::g_enabled.store(enabled != 0, std::memory_order_release);
+  __android_log_print(ANDROID_LOG_INFO, "SnapFrame262",
+    "runtime enable state=%d", enabled != 0 ? 1 : 0);
+  return 1;
+}
+
+extern "C" int snapframe_dxvk262_get_enabled(void) {
+  return dxvk::g_enabled.load(std::memory_order_acquire) ? 1 : 0;
 }
 
 extern "C" void snapframe_dxvk262_release_window(void*) {
