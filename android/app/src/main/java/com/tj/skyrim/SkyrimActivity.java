@@ -27,6 +27,8 @@ import android.widget.TextView;
 import android.app.AlertDialog;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.util.Date;
 import java.util.List;
 import org.libsdl.app.SDLActivity;
@@ -618,31 +620,80 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
         }
     }
 
-    /* Why the previous run ended (crash, low memory kill, ...), kept in
-     * files/last_exit.txt since log.txt is replaced on every launch. */
+    /* Preserve Android's previous-process exit metadata and native tombstone
+     * trace before SDL starts a new game process. The trace is the key evidence
+     * needed to symbolicate SIGSEGV on-device. */
     private void saveLastExit() {
-        if (Build.VERSION.SDK_INT < 30) return;
+        String game = getIntent().getStringExtra("game");
+        File dir = game != null ? new File(game, "port") : null;
+        if (dir == null) return;
         try {
-            ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
-            List<ApplicationExitInfo> l = am.getHistoricalProcessExitReasons(null, 0, 3);
-            String game = getIntent().getStringExtra("game");
-            File dir = game != null ? new File(game, "port") : null;
-            if (dir != null) dir.mkdirs();
-            if (l.isEmpty() || dir == null) return;
-            try (FileWriter w = new FileWriter(new File(dir, "last_exit.txt"))) {
-                for (ApplicationExitInfo e : l) {
-                    w.write(new Date(e.getTimestamp()) + ": reason " + reasonName(e.getReason())
-                            + " status " + e.getStatus() + " importance " + e.getImportance()
-                            + " pss " + e.getPss() / 1024 + "MB rss " + e.getRss() / 1024 + "MB"
-                            + " desc " + e.getDescription() + "\n");
+            if (!dir.exists() && !dir.mkdirs()) return;
+            File report = new File(dir, "last_exit.txt");
+            try (FileWriter w = new FileWriter(report, false)) {
+                w.write("Skyrim Android crash diagnostics\n");
+                w.write("captured=" + new Date() + "\n");
+                w.write("sdk=" + Build.VERSION.SDK_INT + " release=" + Build.VERSION.RELEASE
+                        + " device=" + Build.MANUFACTURER + "/" + Build.MODEL + "\n");
+                w.write("fingerprint=" + Build.FINGERPRINT + "\n");
+                w.write("abis=" + java.util.Arrays.toString(Build.SUPPORTED_ABIS) + "\n");
+                ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+                if (am == null) {
+                    w.write("ActivityManager unavailable\n");
+                    return;
+                }
+                List<ApplicationExitInfo> exits = am.getHistoricalProcessExitReasons(null, 0, 5);
+                w.write("historical_exit_count=" + exits.size() + "\n");
+                for (ApplicationExitInfo e : exits) {
+                    w.write("\n--- previous process ---\n");
+                    w.write("timestamp=" + new Date(e.getTimestamp())
+                            + " reason=" + reasonName(e.getReason())
+                            + " status=" + e.getStatus()
+                            + " importance=" + e.getImportance()
+                            + " pss=" + e.getPss() / 1024 + "MB"
+                            + " rss=" + e.getRss() / 1024 + "MB"
+                            + " description=" + e.getDescription() + "\n");
+                    if (Build.VERSION.SDK_INT >= 31
+                            && (e.getReason() == ApplicationExitInfo.REASON_CRASH_NATIVE
+                                || e.getReason() == ApplicationExitInfo.REASON_CRASH)) {
+                        File trace = new File(dir, "last_exit_" + e.getTimestamp() + ".trace");
+                        int bytes = copyExitTrace(e, trace);
+                        w.write("trace_file=" + (bytes > 0 ? trace.getName() : "unavailable")
+                                + " trace_bytes=" + bytes + "\n");
+                    }
                 }
                 ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
                 am.getMemoryInfo(mi);
-                w.write("device RAM " + mi.totalMem / (1 << 20) + "MB, available now " + mi.availMem / (1 << 20)
-                        + "MB, low-memory threshold " + mi.threshold / (1 << 20) + "MB\n");
+                w.write("\ndevice_ram=" + mi.totalMem / (1 << 20) + "MB"
+                        + " available_now=" + mi.availMem / (1 << 20) + "MB"
+                        + " low_memory_threshold=" + mi.threshold / (1 << 20) + "MB"
+                        + " low_memory=" + mi.lowMemory + "\n");
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            android.util.Log.e("Skyrim", "Unable to save previous process exit diagnostics", e);
         }
+    }
+
+    private static int copyExitTrace(ApplicationExitInfo exit, File destination) {
+        if (Build.VERSION.SDK_INT < 31) return 0;
+        int total = 0;
+        try (InputStream in = exit.getTraceInputStream()) {
+            if (in == null) return 0;
+            try (FileOutputStream out = new FileOutputStream(destination, false)) {
+                byte[] buffer = new byte[8192];
+                int count;
+                while ((count = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, count);
+                    total += count;
+                }
+                out.flush();
+            }
+        } catch (Exception e) {
+            android.util.Log.w("Skyrim", "Unable to copy native crash trace", e);
+            return 0;
+        }
+        if (total == 0) destination.delete();
+        return total;
     }
 
     private static String reasonName(int r) {
