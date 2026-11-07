@@ -107,7 +107,12 @@ def analyze(root):
     failed=counts.get("midpoint_present_failed",0)
     backpressure_count=sum(backpressure.values())
     rejected=counts.get("gpu_metrics_rejected",0)
+    suboptimal_recreate_count = log.count("Presenter: Got VK_SUBOPTIMAL_KHR, recreating swapchain")
     findings=[]
+    if suboptimal_recreate_count > 5:
+        findings.append({"severity":"high","code":"DXVK_SUBOPTIMAL_SWAPCHAIN_CHURN",
+            "message":f"DXVK recreated the swapchain {suboptimal_recreate_count} times after VK_SUBOPTIMAL_KHR. SUBOPTIMAL is a usable status and persistent recreation can churn WSI image/semaphore ownership.",
+            "recommendation":"On Android, keep a stable SUBOPTIMAL swapchain in use; recreate only for OUT_OF_DATE, SURFACE_LOST, or a real surface-generation/extent change. Preserve normal error recovery."})
     if backpressure_count: findings.append({"severity":"medium","code":"GENERATED_WSI_BACKPRESSURE","message":f"{backpressure_count} generated-frame attempts were skipped because no WSI image was immediately available (VK_NOT_READY/VK_TIMEOUT).","recommendation":"Keep generated acquire non-blocking. Compare backpressure by present mode and improve image scheduling; do not treat these skips as interpolation failures."})
     if failed and results: findings.append({"severity":"high","code":"GENERATED_WSI_ERRORS","message":f"{sum(results.values())} generated-frame failures have non-backpressure VkResults.","recommendation":"Inspect exact VkResult and surface/swapchain lifecycle."})
     if rejected: findings.append({"severity":"high","code":"AI_TELEMETRY_REJECTED","message":f"{rejected} GPU metric records were rejected; adaptive AI tuning must remain disabled.","recommendation":"Validate shader valid/expected cell counts against CPU grid dimensions and derive coverage from the same counters."})
@@ -154,6 +159,7 @@ def analyze(root):
       "present_modes_seen_in_log":dict(modes),"actual_wsi_configurations":actual_wsi,"performance":perfstats,
       "diagnostic_config":{"motion_analysis":bool(motion_analysis),"profiling_enabled":bool(profiling_enabled)},
       "dxvk_wsi":{"wsi_rows":len(wsi_rows),"queue_rows":len(queue_rows),
+        "suboptimal_swapchain_recreate_count":suboptimal_recreate_count,
         "wsi_ms":wsi_ms,"queue_ms":queue_ms},
       "flow":{"rows":len(flow),"metrics":flowstats},"gpu_stage_rows":len(gpu),"findings":findings}
 
@@ -169,7 +175,8 @@ def to_markdown(r):
       f"- Modes observed: {json.dumps(r['present_modes_seen_in_log'],sort_keys=True)}",
       "","## DXVK WSI / queue timings (ms)","",
       f"- DXVK-WSI samples: {r['dxvk_wsi']['wsi_rows']}",
-      f"- DXVK-PRESENT samples: {r['dxvk_wsi']['queue_rows']}"]
+      f"- DXVK-PRESENT samples: {r['dxvk_wsi']['queue_rows']}",
+      f"- VK_SUBOPTIMAL_KHR swapchain recreations: {r['dxvk_wsi']['suboptimal_swapchain_recreate_count']}"]
     for group in ("wsi_ms","queue_ms"):
         for key, value in r["dxvk_wsi"][group].items():
             out.append(f"- {key}: mean {value['mean']:.3f}, median {value['median']:.3f}, p95 {value['p95']:.3f}, max {value['max']:.3f} (n={value['n']})")
