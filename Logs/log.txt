@@ -42,6 +42,15 @@ INFO: Adding input device with name 23
 INFO: Adding output device with name 2
 INFO: Adding output device with name 3
 INFO: Adding output device with name 12
+INFO: Adding device with name 2, capture 1
+INFO: Adding device with name 3, capture 1
+INFO: Adding device with name 12, capture 1
+INFO: Adding device with name 19, capture 0
+INFO: Adding device with name 20, capture 0
+INFO: Adding device with name 21, capture 0
+INFO: Adding device with name 30, capture 0
+INFO: Adding device with name 22, capture 0
+INFO: Adding device with name 23, capture 0
 platform: window 2448x1080
 SnapAI: library loaded api=1 expected=1 adaptive_control=pending_telemetry_adapter
 guest threads on the fast cores: 3 4 5 6 7 (2803200 kHz; save/allcores.txt uses all)
@@ -58,16 +67,16 @@ VirtualAlloc(00000000, 67108864, 2000) = 70040000
 VirtualAlloc(00000000, 268435456, 2000) = 74040000
 VirtualAlloc(74040000, 8388608, 1000) = 74040000
 CreateThread start=00a5b000 param=01b8b1d0
-CreateThread start=00a5b000 param=01b8b1d0
 thread slot 1 taken (tid 264)
 CreateThread start=00a5b000 param=01b8b1d0
 CreateThread start=00a5b000 param=01b8b1d0
-thread slot 2 taken (tid 272)
-thread slot 3 taken (tid 268)
+thread slot 2 taken (tid 268)
 CreateThread start=00a5b000 param=01b8b1d0
-thread slot 4 taken (tid 280)
+thread slot 3 taken (tid 276)
+thread slot 4 taken (tid 272)
 CreateThread start=00a5b000 param=01b8b1d0
-thread slot 5 taken (tid 276)
+thread slot 5 taken (tid 280)
+CreateThread start=00a5b000 param=01b8b1d0
 CreateThread start=00a5ac30 param=01b8b1d0
 thread slot 6 taken (tid 284)
 thread slot 7 taken (tid 288)
@@ -80,17 +89,17 @@ GetFileAttributesExA failed: C:\Skyrim\NullStream (/storage/emulated/0/Download/
 VirtualAlloc(6031e9b0, 4194320, 1000) = 6031e9b0
 SteamAPI_Init: offline stub
 CreateFileA failed: C:\Users\Player\Documents\Skyrim\.\Plugins.txt (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/Skyrim/./Plugins.txt)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Misc.bsa -> fd 141
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Misc.bsa -> fd 132
 VirtualAlloc(00000000, 16777216, 2000) = 84540000
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Shaders.bsa -> fd 142
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Textures.bsa -> fd 150
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Interface.bsa -> fd 167
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Animations.bsa -> fd 170
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Meshes.bsa -> fd 172
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Sounds.bsa -> fd 173
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Voices.bsa -> fd 174
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - VoicesExtra.bsa -> fd 176
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.bsa -> fd 178
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Shaders.bsa -> fd 141
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Textures.bsa -> fd 142
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Interface.bsa -> fd 145
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Animations.bsa -> fd 146
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Meshes.bsa -> fd 147
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Sounds.bsa -> fd 149
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - Voices.bsa -> fd 159
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Skyrim - VoicesExtra.bsa -> fd 174
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/Update.bsa -> fd 175
 CreateFileA failed: C:\Users\Player\Documents\Skyrim\.\Plugins.txt (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/Skyrim/./Plugins.txt)
 FindFirstFileA C:\Skyrim\DATA\TEXTURES\\* -> /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/TEXTURES//*
 FindFirstFileA C:\Skyrim\DATA\TEXTURES\architecture\\* -> /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/DATA/TEXTURES/architecture//*
@@ -4641,7 +4650,7 @@ GetFileAttributesExA failed: C:\Skyrim\Interface\Controls\PC\Keyboard_RUSSIAN.tx
 GetFileAttributesExA failed: C:\Skyrim\Interface\Controls\PC\Keyboard_RUSSIAN.txt (/storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/Interface/Controls/PC/Keyboard_RUSSIAN.txt): No such file or directory
 DirectInput: created keyboard
 DirectInput: created mouse
-CreateThread start=00a4b4a0 param=744ca5c0
+CreateThread start=00a4b4a0 param=744ca540
 thread slot 9 taken (tid 296)
 xaudio2: created IXAudio2 200093a0
 xaudio2: build: xWMA path=yes decoder=FFmpeg WMAV2 log=port/log.txt + logcat
@@ -4650,56 +4659,12 @@ xaudio2: SDL device obtained freq=48000 format=0x8120 channels=2 samples=1024 (r
 CoCreateInstance -> E_NOINTERFACE
 thread slot 10 taken (tid 300)
 xaudio2: SDL playback started after queue prefill (46080B, target=46080B)
-CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/RendererInfo.txt (write, disposition 2) -> fd 184
+CreateFileA /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/port/save/Documents/My Games/Skyrim/RendererInfo.txt (write, disposition 2) -> fd 177
 Direct3DCreate9(32)
 info:  Game: app_process64
 info:  DXVK: v2.6.2+
 info:  Build: aarch64 Clang 21.0.0
-libc++abi: terminating due to uncaught exception of type dxvk::DxvkError
-CRASH: signal 6 code -1 at address 0x2b92000002a4 (thread 2011)
-  sp 7962fb4280
-  x0  0000000000000000 00000000000007db 0000000000000006 0000007962fb42a0
-  x4  646277641f736766 646277641f736766 646277641f736766 7f7f7f7f7f7f7f7f
-  x8  00000000000000f0 0000007cb1b2d438 ffffff80fffffb9f 0000000000000000
-  x12 0000007ce15df020 000000007fffffff 000000000215ead8 0000014e8db84009
-  x16 0000007cb1bdffe0 0000007cb1bcad40 0000007952ccc000 00000000000002a4
-  x20 00000000000007db 00000000ffffffff 0000007962fb43d0 0000007962fb4410
-  x24 0000007962fb44c0 0000007a8f704028 0000007a8f703ff8 0000007a8f704010
-  x28 0000007a8f7040a8 0000007962fb4320 0000007cb1b66b20 0000007cb1b66b20
-  guest mem base 0x77c0000000
-  guest slot 0 fs 18000000 tls array 18001000 [0] 20000460 tid 260
-  eax ff00088c ecx 00000990 edx 00000438 ebx 00000000 esp 103ff970 ebp 00000000 esi ff000348 edi 00000002
-  slots used: 0 1 2 3 4 5 6 7 8 9 10
-backtrace:
-  #-1 libc.so+0x5cb50 (abort+0xac)
-  #-2 libc.so+0x5cb20 (abort+0x7c)
-  #00 libmain_262.so+0x6455bc0
-  #01 [vdso]+0x84c (__kernel_rt_sigreturn+0x0)
-  #02 libc.so+0x5cb50 (abort+0xac)
-  #03 libc++_shared.so+0xa24dc
-  #04 libc++_shared.so+0xa1090
-  #05 libc++_shared.so+0xa152c
-  #06 libc++_shared.so+0xbdce4 (__cxa_get_exception_ptr+0x0)
-  #07 libc++_shared.so+0xbdcc0
-  #08 libdxvk_d3d9_262.so+0x20b788
-  #09 libdxvk_d3d9_262.so+0x16b318
-  #10 libdxvk_d3d9_262.so+0x16b0e4
-  #11 libdxvk_d3d9_262.so+0xc57b4
-  #12 libdxvk_d3d9_262.so+0xc54a8
-  #13 libdxvk_d3d9_262.so+0xc4e90 (Direct3DCreate9+0x20)
-  #14 libmain_262.so+0x6471388
-  #15 libmain_262.so+0x4c1f424 (f_CD55E0+0xc4)
-  #16 libmain_262.so+0x49bdc70 (f_C6D510+0x2c0)
-  #17 libmain_262.so+0x49bfd34 (f_C6DBF0+0x2b4)
-  #18 libmain_262.so+0x262c594 (f_691030+0x84)
-  #19 libmain_262.so+0x2680f8c (f_69D1D0+0x262c)
-  #20 libmain_262.so+0x5bd2d54 (f_F568A1+0x814)
-  #21 libmain_262.so+0x6454cdc (SDL_main+0x9c0)
-  #22 libSDL2.so+0xfae44 (Java_org_libsdl_app_SDLActivity_nativeRunMain+0x2c4)
-  #23 libart.so+0x378f74
-  #24 libart.so+0x362a44
-  #25 libart.so+0x35bd98
-  #26 libart.so+0x76dd84
-  #27 libart.so+0x37b5dc
-  #28 libart.so+0x34d5ac
-  #29 libart.so+0x37909c
+err:   DXVK 2.6.2 D3D9 initialization failed: DXVK_WSI_DRIVER environment variable unset
+MessageBoxA: [Skyrim] Failed to initialize renderer.
+No D3D Device description found.
+ExitProcess(0)
