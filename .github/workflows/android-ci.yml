@@ -203,6 +203,8 @@ jobs:
         run: python3 -m unittest discover -s tools/tests -p 'test_dxvk_native_262_cmake.py' -v
       - name: Test Skyrim Android path normalization
         run: python3 -m unittest discover -s tools/tests -p 'test_runtime_path_normalization.py' -v
+      - name: Test SnapFrame DXVK 2.6.2 runtime configuration
+        run: python3 -m unittest discover -s tools/tests -p 'test_snapframe_262_config.py' -v
 
       - name: Checkout pinned DXVK Native 2.6.2
         run: |
