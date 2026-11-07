@@ -313,8 +313,8 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertEqual(host_text.count(
             "dxvkContext->dispatch((state.flowWidth + 7u) / 8u"), 3)
         self.assertEqual(host_text.count("dxvkContext->dispatch("), 6)
-        self.assertIn("return 1;", host_text)
-        self.assertIn("hook still skips FG until the midpoint image is wired into the WSI blit source", host_text)
+        self.assertIn("return 0;", host_text)
+        self.assertIn("does not claim a generated WSI present", host_text)
         for forbidden in (
             "vkQueueSubmit",
             "vkDeviceWaitIdle",
@@ -429,6 +429,32 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("snapframe_host_262.cpp", self.snapframe_text)
         self.assertNotIn("snapframe_host_262", self.game_text)
         self.assertNotIn("dxvk_d3d9_262 snapframe_host", self.game_text + self.snapframe_text)
+
+
+    def test_262_runtime_adapter_exposes_only_explicitly_supported_settings(self):
+        runtime = ROOT / "android/app/jni/snapframe/snapframe_runtime_262.cpp"
+        runtime_text = runtime.read_text(encoding="utf-8")
+        for symbol in (
+            "snapframe_config_defaults", "snapframe_host_set_log_path",
+            "snapframe_host_set_gpu_log_path", "snapframe_host_set_flow_log_path",
+            "snapframe_host_set_flow_vectors_log_path", "snapframe_host_set_event_log_path",
+            "snapframe_host_log", "snapframe_host_init", "snapframe_host_shutdown",
+            "snapframe_host_active", "snapframe_host_set_enabled", "snapframe_host_get_stats",
+            "snapframe_host_get_settings", "snapframe_host_get_present_mode",
+            "snapframe_host_update_present_mode", "snapframe_host_update_settings",
+            "snapframe_host_get_last_telemetry",
+        ):
+            self.assertIn(symbol, runtime_text)
+            self.assertIn(symbol, self.patcher)
+        self.assertIn("return -ENOTSUP;", runtime_text)
+        self.assertIn("kSupportedFlowScale = 50", runtime_text)
+        self.assertIn("SNAPFRAME_PRESENT_MODE_AUTO", runtime_text)
+        self.assertIn("snapframe_dxvk262_set_enabled", runtime_text)
+        self.assertIn("generated WSI present remains disabled", runtime_text)
+        self.assertIn("snapframe_runtime_262.cpp", self.snapframe_text)
+        self.assertNotIn("snapframe_host.cpp", runtime_text)
+        self.assertNotIn("vkQueueSubmit", runtime_text)
+        self.assertNotIn("vkDeviceWaitIdle", runtime_text)
 
 
 if __name__ == "__main__":
