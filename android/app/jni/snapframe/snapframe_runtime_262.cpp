@@ -9,6 +9,7 @@
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
+#include <initializer_list>
 #include <mutex>
 
 namespace {
@@ -42,7 +43,12 @@ bool validConfig(const SnapFrameConfig* c) {
   return c && (c->enabled == 0 || c->enabled == 1)
       && c->flow_scale_percent == kSupportedFlowScale
       && c->present_mode == SNAPFRAME_PRESENT_MODE_AUTO
-      && c->multiplier == 1 && c->motion_analysis == 1;
+      && c->multiplier >= 1 && c->multiplier <= 2
+      && (!c->enabled || c->multiplier == 1)
+      && c->quality == SNAPFRAME_QUALITY_PERFORMANCE
+      && c->motion_analysis == 1
+      && c->ai_mode == SNAPFRAME_AI_MANUAL
+      && c->profiling_enabled == 0 && c->diagnostic_suite == 0;
 }
 }
 extern "C" void snapframe_config_defaults(SnapFrameConfig* c) {
