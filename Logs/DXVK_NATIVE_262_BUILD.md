@@ -56,3 +56,31 @@ The Android selector exposes a DXVK variant only when both corresponding ARM64 E
 ## SnapFrame status
 
 The 2.6.2 DXVK source hook currently captures the source path and records luma/flow/consistency work. Generated-frame WSI presentation remains disabled until a DXVK-owned asynchronous transaction scheduler and the matching runtime bridge are implemented and tested. Successful compilation of the candidate DSO is not evidence that generated frames are displayed.
+
+
+## Device launch crash analysis (2026-11-07)
+
+The updated device log in `Logs/log.txt` records a launch failure after Skyrim calls
+`Direct3DCreate9(32)` and loads `DXVK: v2.6.2+`:
+
+- `libc++abi: terminating due to uncaught exception of type dxvk::DxvkError`
+- signal 6 (`SIGABRT`)
+- stack enters `libdxvk_d3d9_262.so` and returns through `Direct3DCreate9` in `libmain_262.so`
+- no D3D9 device, swapchain, or SnapFrame frame-capture initialization is reached.
+
+This proves the current APK's 2.6.2 runtime pair is packaged and loaded, but it does
+**not** prove runtime initialization works. The failure is in DXVK startup, before
+SnapFrame's frame-generation path. Missing voice `.fuz` files are unrelated.
+
+A startup exception barrier is now applied to the pinned upstream
+`src/d3d9/d3d9_main.cpp`: it catches `DxvkError`, `std::exception`, and unknown
+exceptions at the exported D3D9 creation boundary, logs the original error to
+Android logcat under tag `DXVK262`, and returns `D3DERR_NOTAVAILABLE` instead of
+allowing a C++ exception to escape the exported ABI and abort the process.
+
+This is a containment/diagnostic change, **not yet the underlying Vulkan startup
+fix**. The next device run must capture the `DXVK262` logcat message. It will
+identify whether DXVK 2.6.2 rejected a required Vulkan instance extension, failed
+to create a Vulkan 1.3 instance, failed to enumerate an adapter, or encountered
+another initialization error. Do not mark 2.6.2 stable or make it the default
+until that cause is fixed and the game reaches the D3D9 device/swapchain stage.
