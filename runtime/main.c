@@ -455,6 +455,7 @@ static void setup_gpu_driver(void) {
     setenv("SKYRIM_TURNIP_DRIVER_PATH", driver_path, 1);
     setenv("SKYRIM_TURNIP_DRIVER_NAME", library_name, 1);
     LOG("GPU driver: requested custom Vulkan ICD %s (%s)", library_name, driver_path);
+    LOG("GPU driver: request accepted; DXVK must confirm AdrenoTools activation before device creation");
 }
 #endif
 
