@@ -1,8 +1,8 @@
 Skyrim Android crash diagnostics
-captured=Sat Nov 07 23:45:24 GMT+03:00 2026
+captured=Sun Nov 08 00:20:28 GMT+03:00 2026
 sdk=35 release=15 device=asus/ASUS_AI2205_C
 fingerprint=asus/WW_AI2205/ASUS_AI2205:15/AQ3A.240812.002/35.0604.0820.88:user/release-keys
 abis=[arm64-v8a, armeabi-v7a, armeabi]
 historical_exit_count=0
 
-device_ram=11193MB available_now=5123MB low_memory_threshold=300MB low_memory=false
+device_ram=11193MB available_now=3872MB low_memory_threshold=300MB low_memory=false
