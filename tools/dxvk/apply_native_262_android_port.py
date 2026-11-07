@@ -1036,6 +1036,8 @@ namespace dxvk::wsi {
         "snapframe_dxvk262_record_source",
         "snapframe_dxvk262_release_window",
         "snapframe_dxvk262_release_device",
+        "snapframe_dxvk262_set_enabled",
+        "snapframe_dxvk262_get_enabled",
     )
     missing_exports = [
         name for name in required_exports
