@@ -216,8 +216,12 @@ target_compile_options(dxvk_d3d9_262 PRIVATE
 target_link_options(dxvk_d3d9_262 PRIVATE
     "-Wl,--version-script=${SNAP_DXVK_NATIVE_262_SOURCE_DIR}/src/d3d9/d3d9.sym")
 target_link_libraries(dxvk_d3d9_262 PRIVATE
-    snap_display_info Threads::Threads "${SNAP_VULKAN_LIBRARY}"
+    snap_display_info Threads::Threads adrenotools "${SNAP_VULKAN_LIBRARY}"
     "${SNAP_ANDROID_LIBRARY}" "${SNAP_LOG_LIBRARY}")
+# AdrenoTools loads these hook DSOs dynamically from nativeLibraryDir.
+# They must be built and included in the APK even though DXVK does not link
+# against them directly.
+add_dependencies(dxvk_d3d9_262 main_hook hook_impl)
 # Android packages the exact filename and SONAME consumed by the runtime
 # selector; versioned ELF sonames/symlinks are not suitable APK ABI assets.
 set_target_properties(dxvk_d3d9_262 PROPERTIES
