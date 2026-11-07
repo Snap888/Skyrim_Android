@@ -74,6 +74,19 @@ void snapframe_bootstrap(void) {
         fclose(file);
     }
 
+#if defined(SNAP_DXVK_NATIVE_262_RUNTIME)
+    /*
+     * The 2.6.2 host currently exposes a fixed, non-adaptive compute path.
+     * It rejects Intelligent mode until the DXVK telemetry adapter is wired.
+     * Normalize only this runtime pair so the in-game capture/compute switch
+     * remains usable; legacy DXVK keeps the user's configured AI mode.
+     */
+    if (config.ai_mode != SNAPFRAME_AI_MANUAL) {
+        config.ai_mode = SNAPFRAME_AI_MANUAL;
+        snapframe_host_log("DXVK Native 2.6.2: AI mode normalized to Manual; adaptive telemetry is not connected yet");
+    }
+#endif
+
     snapframe_host_log("bootstrap entered");
     snapframe_host_init(&config);
     const uint32_t snapAiApi = snap_ai_get_api_version();
