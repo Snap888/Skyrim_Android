@@ -517,5 +517,28 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertNotIn("vkDeviceWaitIdle", runtime_text)
 
 
+    def test_262_uses_adrenotools_for_the_selected_turnip_icd(self):
+        # The app writes the private driver path before DXVK initializes. The
+        # 2.6.2 loader must consume it through AdrenoTools instead of silently
+        # opening the system libvulkan.so and reporting a false selection.
+        for required in (
+            'vulkan_loader_cpp = root / "src/vulkan/vulkan_loader.cpp"',
+            "adrenotools_open_libvulkan(",
+            "ADRENOTOOLS_DRIVER_CUSTOM",
+            "SKYRIM_TURNIP_DRIVER_PATH",
+            "SKYRIM_TURNIP_DRIVER_NAME",
+            "SKYRIM_TURNIP_DRIVER_ACTIVE",
+            "dlsym(library, \"vkGetInstanceProcAddr\")",
+            "AdrenoTools activated custom Vulkan driver",
+            "using system Vulkan",
+        ):
+            self.assertIn(required, self.patcher)
+        self.assertIn("adrenotools", self.text)
+        self.assertIn("add_dependencies(dxvk_d3d9_262 main_hook hook_impl)", self.text)
+        self.assertIn("FetchContent_Declare(adrenotools", self.build_script)
+        self.assertIn("GIT_TAG 8483dfdaa2abf97ee89ad0e5f337e7b508550c6b", self.build_script)
+
+
+
 if __name__ == "__main__":
     unittest.main()
