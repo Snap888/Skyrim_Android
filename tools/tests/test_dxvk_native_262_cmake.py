@@ -94,7 +94,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("snapframe_dxvk262_record_source", self.build_script)
         self.assertIn("snapframe_dxvk262_release_window", self.build_script)
         self.assertIn("snapframe_dxvk262_release_device", self.build_script)
-        self.assertIn("for symbol in snapframe_dxvk262_record_source snapframe_dxvk262_release_window snapframe_dxvk262_release_device", self.build_script)
+        self.assertIn("for symbol in dxvk_native_surface snapframe_dxvk262_record_source snapframe_dxvk262_release_window snapframe_dxvk262_release_device", self.build_script)
         self.assertIn("ELF_DEFINED", self.build_script)
         self.assertIn("ELF_EXPORTS", self.build_script)
         self.assertIn('SYMBOL_MAP="$DXVK_SOURCE_DIR/src/d3d9/d3d9.sym"', self.build_script)
