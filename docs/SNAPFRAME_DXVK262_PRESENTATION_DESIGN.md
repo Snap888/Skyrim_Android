@@ -409,3 +409,31 @@ latency.
 The Android port patcher now modifies the pinned DXVK 2.6.2 source so the successful source acquire is stamped with a transaction ID, swapchain generation, acquired image index, and semaphore-ring index. That exact PresenterSync record is copied into the command list and into the queued DxvkPresentInfo. The submission worker passes it to Presenter::presentImage, which validates the active token and uses the captured image index and semaphore-ring entry rather than reconstructing them from the current mutable indices.
 
 This is intentionally a single-in-flight source transaction implementation. It does **not** yet permit multiple outstanding acquires, does not introduce a second generated present, and does not remove the submit worker's blocking pre-acquire/fence wait. The active-token validation and generation checks are a prerequisite for that later multi-slot refactor, not proof that it is safe today. Source present behavior and the existing semaphore retirement strategy remain the baseline.
+
+
+## Android APK candidate packaging verification (2026-11-07)
+
+The full APK workflow for commit
+`221d0b7a17339e50a3af85eb1ad71e3674cc41a1` completed successfully in
+GitHub Actions run `42351177321` (all eight jobs successful). The produced
+artifact `Skyrim-0.21.913.apk` contains
+`lib/arm64-v8a/libdxvk_d3d9_262.so` alongside the legacy
+`lib/arm64-v8a/libdxvk_d3d9.so`.
+
+The packaged 2.6.2 candidate was extracted from the APK and checked:
+- ELF64, AArch64, Android API 28, shared object, stripped.
+- SONAME: `libdxvk_d3d9_262.so`.
+- SnapFrame hook exports are present:
+  `snapframe_dxvk262_record_source`,
+  `snapframe_dxvk262_set_enabled`, and
+  `snapframe_dxvk262_get_enabled`.
+- SHA-256 of the exact packaged DSO:
+  `e70bc7478b16d772b441584ce05243f9403c6d2a5209523e30b7b2a069ec2708`.
+- SHA-256 of the APK:
+  `039010e9af8efb8d42b16e004e0294408154ba03cf9c930fe6c76a35ef367b92`.
+
+This is packaging and ELF validation only. The APK does not contain
+`lib/arm64-v8a/libmain_262.so`; the runtime pair is therefore incomplete,
+and the 2.6.2 selector must remain unavailable. No device-side loading,
+Vulkan initialization, source capture, or generated scanout is implied by
+this CI result.
