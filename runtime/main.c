@@ -593,7 +593,7 @@ int main(int argc, char **argv) {
     if (!getenv("DXVK_WSI_DRIVER") &&
         setenv("DXVK_WSI_DRIVER", "SDL2", 1) != 0)
         rt_fatal("cannot configure DXVK_WSI_DRIVER=SDL2 for DXVK Native 2.6.2");
-    fprintf(stderr, "DXVK: WSI backend=%s\\n", getenv("DXVK_WSI_DRIVER"));
+    fprintf(stderr, "DXVK: WSI backend=%s\n", getenv("DXVK_WSI_DRIVER"));
 #endif
 #endif
 #ifdef GAME_MARVEL
