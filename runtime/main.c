@@ -585,6 +585,16 @@ int main(int argc, char **argv) {
     check_game_dir();
 #ifdef __ANDROID__
     setup_gpu_driver();
+#if defined(SNAP_DXVK_NATIVE_262_RUNTIME)
+    /* DXVK Native requires an explicit WSI backend. This runtime is linked
+     * against the SDL2 Android WSI implementation in the pinned 2.6.2 build.
+     * Set it before platform/Vulkan initialization; preserve an explicit
+     * launcher override for controlled diagnostics. */
+    if (!getenv("DXVK_WSI_DRIVER") &&
+        setenv("DXVK_WSI_DRIVER", "SDL2", 1) != 0)
+        rt_fatal("cannot configure DXVK_WSI_DRIVER=SDL2 for DXVK Native 2.6.2");
+    fprintf(stderr, "DXVK: WSI backend=%s\\n", getenv("DXVK_WSI_DRIVER"));
+#endif
 #endif
 #ifdef GAME_MARVEL
     { extern void port_restore_defaults(void); port_restore_defaults(); }
