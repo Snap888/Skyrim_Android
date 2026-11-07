@@ -226,7 +226,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         # patched DXVK translation units. Keep them inside the extern-C block
         # so the exported ABI has unmangled names on Android.
         extern_open = self.dxvk262_api.index('extern "C" {')
-        extern_close = self.dxvk262_api.index("#ifdef __cplusplus\\n}", extern_open)
+        extern_close = self.dxvk262_api.index("#ifdef __cplusplus\n}", extern_open)
         for symbol in (
             "snapframe_dxvk262_set_enabled",
             "snapframe_dxvk262_get_enabled",
