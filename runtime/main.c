@@ -571,6 +571,16 @@ int main(int argc, char **argv) {
     { extern void rt_watchdog_start(void); rt_watchdog_start(); }
     /* dxvk writes its pipeline state cache to the working directory; keep the game folder clean */
     if (!getenv("DXVK_STATE_CACHE_PATH")) setenv("DXVK_STATE_CACHE_PATH", g_save_dir, 1);
+    /* Keep DXVK's own startup diagnostics beside port/log.txt. This is
+     * especially important for native DXVK startup failures before D3D9
+     * device creation; stderr alone does not preserve all logger context. */
+    if (!getenv("DXVK_LOG_PATH")) {
+        char dxvk_log_path[1200];
+        snprintf(dxvk_log_path, sizeof(dxvk_log_path), "%s/port", g_game_dir);
+        mkdir(dxvk_log_path, 0777);
+        setenv("DXVK_LOG_PATH", dxvk_log_path, 1);
+    }
+    if (!getenv("DXVK_LOG_LEVEL")) setenv("DXVK_LOG_LEVEL", "info", 1);
     /* 0.2.6: no compile status HUD (as in 0.1.5); DXVK_HUD=portstatus enables it. */
     check_game_dir();
 #ifdef __ANDROID__
