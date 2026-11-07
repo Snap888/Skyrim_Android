@@ -104,7 +104,7 @@ if(TARGET dxvk_d3d9_262 AND SNAP_BUILD_DXVK_NATIVE_262_RUNTIME_PAIR)
       ${SNAP_DXVK_NATIVE_262_SOURCE_DIR}/include/native/directx
       ${SNAP_DXVK_NATIVE_262_SOURCE_DIR}/include/native/windows
       ${SNAP_DXVK_NATIVE_262_SOURCE_DIR}/include/native)
-  target_compile_definitions(main_262 PRIVATE DXVK_NATIVE GAME_SKYRIM)
+  target_compile_definitions(main_262 PRIVATE DXVK_NATIVE GAME_SKYRIM SNAP_DXVK_NATIVE_262_RUNTIME)
   target_compile_options(main_262 PRIVATE -O2 -fno-strict-aliasing -fwrapv
       -fsigned-char -Wno-everything
       $<$<COMPILE_LANGUAGE:C>:-std=gnu11>)
