@@ -1024,6 +1024,31 @@ namespace dxvk::wsi {
             "D3D9 source submit/present ordering changed; re-review SnapFrame transaction insertion"
         )
 
+    # DXVK's D3D9 version script hides symbols not listed in global:.
+    # Export the Android surface registry and the matching SnapFrame callbacks
+    # so main_262/JNI can resolve them from this exact versioned DSO.
+    symbol_map = root / "src/d3d9/d3d9.sym"
+    symbol_text = symbol_map.read_text(encoding="utf-8")
+    if symbol_text.count("  global:") != 1 or symbol_text.count("  local:") != 1:
+        raise SystemExit("unexpected DXVK D3D9 symbol map structure")
+    required_exports = (
+        "dxvk_native_surface",
+        "snapframe_dxvk262_record_source",
+        "snapframe_dxvk262_release_window",
+        "snapframe_dxvk262_release_device",
+    )
+    missing_exports = [
+        name for name in required_exports
+        if f"    {name};" not in symbol_text
+    ]
+    if missing_exports:
+        export_lines = "".join(f"    {name};\\n" for name in missing_exports)
+        symbol_text = symbol_text.replace(
+            "  local:", export_lines + "\\n  local:", 1
+        )
+        symbol_map.write_text(symbol_text, encoding="utf-8")
+    print("DXVK_NATIVE_262_SNAPFRAME_DYNAMIC_EXPORTS_OK")
+
     print("DXVK_NATIVE_262_ANDROID_PRESENTER_WSI_PATCH_OK")
     print("Verified: source acquire token is carried through command list and queued present.")
     print("Verified: Presenter consumes the captured image/semaphore indices, not a reconstructed token.")
