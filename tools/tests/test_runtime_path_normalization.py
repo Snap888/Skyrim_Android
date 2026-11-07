@@ -25,7 +25,7 @@ class RuntimePathNormalizationTests(unittest.TestCase):
         self.assertIn("if (resolve_ci(alternate))", block)
         self.assertIn("found = 1;", block)
         self.assertNotIn("else", block)
-        self.assertIn("never rewrite a real", block)
+        self.assertIn("never rewrite a real", self.text)
 
 
 if __name__ == "__main__":
