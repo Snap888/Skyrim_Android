@@ -40,12 +40,13 @@ if(TARGET dxvk_d3d9_262)
       "DXVK 2.6.2 SnapFrame host requires the validated generated shader header; install glslangValidator and spirv-val")
   endif()
   target_sources(dxvk_d3d9_262 PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/snapframe_host_262.cpp")
+    "${CMAKE_CURRENT_SOURCE_DIR}/snapframe_host_262.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/snapframe_runtime_262.cpp")
   target_include_directories(dxvk_d3d9_262 PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/generated")
   target_compile_definitions(dxvk_d3d9_262 PRIVATE SNAPFRAME_DXVK262_HOST=1)
-  message(STATUS "SnapFrame DXVK 2.6.2 luma/flow/consistency/midpoint compute host enabled (legacy host remains isolated)")
+  message(STATUS "SnapFrame DXVK 2.6.2 compute host + explicit runtime ABI enabled (legacy host remains isolated)")
 endif()
 target_include_directories(snapframe_host PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(snapframe_host PRIVATE
