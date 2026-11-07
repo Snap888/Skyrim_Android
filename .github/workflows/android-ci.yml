@@ -201,6 +201,8 @@ jobs:
 
       - name: Test DXVK 2.6.2 Android CMake contract
         run: python3 -m unittest discover -s tools/tests -p 'test_dxvk_native_262_cmake.py' -v
+      - name: Test Skyrim Android path normalization
+        run: python3 -m unittest discover -s tools/tests -p 'test_runtime_path_normalization.py' -v
 
       - name: Checkout pinned DXVK Native 2.6.2
         run: |
