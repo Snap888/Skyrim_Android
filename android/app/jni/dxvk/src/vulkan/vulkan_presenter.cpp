@@ -192,6 +192,19 @@ namespace dxvk::vk {
 
     // Select actual swap chain properties and create swap chain
     m_info.format       = pickFormat(formats.size(), formats.data(), desc.numFormats, desc.formats);
+#ifdef __ANDROID__
+    // Keep the negotiated surface formats visible in device logs. This is
+    // important on Android drivers that expose only 10-bit formats while
+    // D3D9 games commonly request an 8-bit X8R8G8B8 backbuffer.
+    Logger::info(str::format(
+      "Presenter: format negotiation requested=", desc.numFormats,
+      " supported=", formats.size(), " selected=", m_info.format.format));
+    for (uint32_t i = 0; i < formats.size(); i++) {
+      Logger::info(str::format(
+        "Presenter: surface_format[", i, "]=",
+        formats[i].format, " color_space=", formats[i].colorSpace));
+    }
+#endif
     m_info.presentMode  = pickPresentMode(modes.size(), modes.data(), desc.numPresentModes, desc.presentModes);
     m_info.imageExtent  = pickImageExtent(caps, desc.imageExtent);
     m_info.imageCount   = pickImageCount(caps, m_info.presentMode, desc.imageCount);

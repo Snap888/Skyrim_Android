@@ -1940,6 +1940,12 @@ namespace dxvk {
           m_flags.set(D3D9DeviceFlag::DirtyViewportScissor);
           break;
 
+        // Vulkan always performs primitive clipping; D3DRS_CLIPPING is
+        // therefore satisfied by the fixed-function rasterization path.
+        // Treat it as a supported no-op instead of reporting it as unknown.
+        case D3DRS_CLIPPING:
+          break;
+
         case D3DRS_SRGBWRITEENABLE:
           m_flags.set(D3D9DeviceFlag::DirtyFramebuffer);
           break;
