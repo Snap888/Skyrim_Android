@@ -46,10 +46,10 @@ android {
                     arguments "-DSNAP_BUILD_DXVK_NATIVE_262=ON",
                               "-DSNAP_DXVK_NATIVE_262_SOURCE_DIR=${dxvk262Source}"
                 }
-                // The standalone 2.6.2 candidate is built for inspection,
-                // but main_262 remains gated until its dedicated host/JNI bridge
-                // replaces the currently incompatible legacy host API.
-                arguments "-DSNAP_BUILD_DXVK_NATIVE_262_RUNTIME_PAIR=OFF"
+                // The standalone candidate remains the default. A deliberate
+                // CI/local opt-in can compile main_262 against the matched 2.6.2 DSO.
+                def build262Pair = project.findProperty('snapBuildDxvk262RuntimePair')?.toString() == 'true'
+                arguments "-DSNAP_BUILD_DXVK_NATIVE_262_RUNTIME_PAIR=${build262Pair ? 'ON' : 'OFF'}"
                 if (ffmpegProp == 'true') {
                     arguments "-DLB_HAS_FFMPEG=ON"
                 } else if (ffmpegProp == 'false') {
