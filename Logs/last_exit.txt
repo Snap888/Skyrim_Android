@@ -1,3 +1,2 @@
-Sat Nov 07 12:47:51 GMT+03:00 2026: reason SIGNALED status 6 importance 100 pss 0MB rss 0MB desc 
-Sat Nov 07 12:47:18 GMT+03:00 2026: reason SIGNALED status 6 importance 100 pss 0MB rss 0MB desc 
-device RAM 11193MB, available now 4196MB, low-memory threshold 300MB
+Sat Nov 07 15:19:01 GMT+03:00 2026: reason CRASH_NATIVE status 11 importance 100 pss 0MB rss 0MB desc crash
+device RAM 11193MB, available now 3978MB, low-memory threshold 300MB
