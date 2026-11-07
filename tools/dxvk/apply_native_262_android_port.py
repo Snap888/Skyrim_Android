@@ -1042,9 +1042,9 @@ namespace dxvk::wsi {
         if f"    {name};" not in symbol_text
     ]
     if missing_exports:
-        export_lines = "".join(f"    {name};\\n" for name in missing_exports)
+        export_lines = "".join(f"    {name};\n" for name in missing_exports)
         symbol_text = symbol_text.replace(
-            "  local:", export_lines + "\\n  local:", 1
+            "  local:", export_lines + "\n  local:", 1
         )
         symbol_map.write_text(symbol_text, encoding="utf-8")
     print("DXVK_NATIVE_262_SNAPFRAME_DYNAMIC_EXPORTS_OK")
