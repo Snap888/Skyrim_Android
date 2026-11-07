@@ -90,9 +90,13 @@ static int persist_snapframe_settings(int enabled, int flow_percent, int present
 JNIEXPORT jintArray JNICALL
 Java_com_tj_skyrim_SkyrimActivity_nativeGetSnapFrameSettings(JNIEnv *env, jclass clazz) {
     (void)clazz;
-    int enabled = 0, flow_percent = 75, present_mode = 0;
-    int active = snapframe_host_get_settings(&enabled, &flow_percent);
-    snapframe_host_get_present_mode(&present_mode);
+    int enabled = 0, flow_percent = 50, present_mode = 0;
+    /* SnapFrame host APIs use errno-style status: zero means success.
+     * The first Java field reports API availability, not the enabled state. */
+    int settings_status = snapframe_host_get_settings(&enabled, &flow_percent);
+    int active = settings_status == 0 ? 1 : 0;
+    if (snapframe_host_get_present_mode(&present_mode) != 0)
+        present_mode = 0; /* AUTO is the only supported 2.6.2 mode. */
     jint values[4] = { active, enabled, flow_percent, present_mode };
     jintArray result = (*env)->NewIntArray(env, 4);
     if (result) (*env)->SetIntArrayRegion(env, result, 0, 4, values);
@@ -106,8 +110,11 @@ Java_com_tj_skyrim_SkyrimActivity_nativeSetSnapFrameSettings(
     (void)clazz;
     if (flow_percent < 25 || flow_percent > 100
         || present_mode < 0 || present_mode > 3) return JNI_FALSE;
-    if (!snapframe_host_update_settings(enabled ? 1 : 0, flow_percent)
-        || !snapframe_host_update_present_mode(present_mode))
+    /* These APIs return 0 on success and a negative errno on failure.
+     * Treating zero as false here inverted success and rejected every update. */
+    if (snapframe_host_update_settings(enabled ? 1 : 0, flow_percent) != 0)
+        return JNI_FALSE;
+    if (snapframe_host_update_present_mode(present_mode) != 0)
         return JNI_FALSE;
     if (!persist_snapframe_settings(enabled ? 1 : 0, flow_percent, present_mode))
         fprintf(stderr, "SnapFrame: live settings applied but config persistence failed\n");
