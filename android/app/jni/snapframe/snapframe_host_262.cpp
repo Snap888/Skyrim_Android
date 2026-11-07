@@ -602,9 +602,9 @@ extern "C" int snapframe_dxvk262_record_source(
       state.flowWidth, state.flowHeight);
   }
 
-  // Luma, bidirectional flow and cycle consistency are now recorded. The
-  // hook still skips FG until the midpoint image is wired into the WSI blit source.
-  return 1;
+  // Luma, bidirectional flow and cycle consistency were recorded. This
+  // acknowledges compute work only; it does not claim a generated WSI present.
+  return 0;
 }
 
 extern "C" int snapframe_dxvk262_set_enabled(int enabled) {
