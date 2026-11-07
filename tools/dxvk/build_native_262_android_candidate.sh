@@ -77,6 +77,12 @@ set(SDL_STATIC OFF CACHE BOOL "" FORCE)
 set(SDL_TEST OFF CACHE BOOL "" FORCE)
 set(SDL_TESTS OFF CACHE BOOL "" FORCE)
 set(SDL2_DISABLE_INSTALL ON CACHE BOOL "" FORCE)
+include(FetchContent)
+FetchContent_Declare(adrenotools
+  GIT_REPOSITORY https://github.com/Pipetto-crypto/libadrenotools.git
+  GIT_TAG 8483dfdaa2abf97ee89ad0e5f337e7b508550c6b
+  GIT_SUBMODULES_RECURSE TRUE)
+FetchContent_MakeAvailable(adrenotools)
 add_subdirectory("${SNAP_REPO_ROOT}/android/app/jni/SDL2" sdl2)
 
 set(SNAP_DXVK_NATIVE_262_SOURCE_DIR "${SNAP_DXVK_SOURCE_DIR}" CACHE PATH "" FORCE)
