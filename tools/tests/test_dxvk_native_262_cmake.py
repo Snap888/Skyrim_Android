@@ -135,6 +135,19 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("vkGetPhysicalDeviceSurfacePresentModesKHR", self.patcher)
         self.assertIn("presenter_modes_second", self.patcher)
 
+    def test_android_presenter_reuses_suboptimal_swapchain_instead_of_recreating_every_frame(self):
+        # Adreno reports VK_SUBOPTIMAL_KHR persistently for this Android
+        # surface. It is a usable swapchain status, not an out-of-date signal.
+        self.assertIn("replace_exact(", self.patcher)
+        self.assertIn("acquire_status = ", self.patcher)
+        self.assertIn("        2,", self.patcher)
+        self.assertIn("if (m_acquireStatus == VK_SUBOPTIMAL_KHR)", self.patcher)
+        self.assertIn("m_acquireStatus = VK_SUCCESS;", self.patcher)
+        self.assertIn("if (status == VK_SUBOPTIMAL_KHR)", self.patcher)
+        self.assertIn("status = VK_SUCCESS;", self.patcher)
+        self.assertIn("DXVK_NATIVE_262_ANDROID_SUBOPTIMAL_REUSE_OK", self.patcher)
+        self.assertIn("reserve recreation for OUT_OF_DATE / SURFACE_LOST", self.patcher)
+
     def test_android_fence_excludes_win32_semaphore_handle_api(self):
         # DXVK's HANDLE import/export bridge is Win32-only. Android must keep
         # native Vulkan semaphore operation and compile no Win32 Vk structs.
