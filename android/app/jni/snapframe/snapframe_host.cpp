@@ -1257,7 +1257,7 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
             // V2 pyramid resources are deliberately separate from the V1 luma
             // and flow images. Every level has its own image and view so that
             // storage writes and sampled reads have explicit per-image tracking.
-            if (lumaFormatSupported) {
+            if (lumaFormatSupported && (g_profilingEnabled || g_diagnosticSuiteEnabled)) {
                 const uint32_t v2Widths[3] = {
                     lumaWidth, lumaWidth / 2u + lumaWidth % 2u,
                     (lumaWidth / 2u + lumaWidth % 2u) / 2u
@@ -1457,6 +1457,9 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                 flowViewInfo.minLayer = 0;
                 flowViewInfo.numLayers = 1;
 
+                /* V2 coarse-to-fine diagnostics are optional: do not allocate their
+                 * pyramid/search/refinement images during ordinary FG gameplay. */
+                if (g_profilingEnabled || g_diagnosticSuiteEnabled) {
                 bool v2FlowImagesCreated = true;
                 const uint32_t v2LumaWidths[3] = {
                     lumaWidth, lumaWidth / 2u + lumaWidth % 2u,
@@ -1549,6 +1552,8 @@ bool createHistory(DxvkDevice* device, uint32_t width, uint32_t height, VkFormat
                         && g_v2ValidationShader != nullptr;
                     if (!g_v2RefinementAvailable)
                         snapframeLog("SnapFrame: V2 refinement/validation resources unavailable; coarse flow retained for diagnostics only\n");
+                }
+
                 }
 
                 for (unsigned i = 0; i < 2; ++i) {
