@@ -42,6 +42,58 @@ def main() -> int:
     # Resolve the DXVK source directory before any source-file paths are built.
     dxvk_dir = root / "src/dxvk"
 
+    # DXVK Native 2.6.2 constructs its Vulkan instance from Direct3DCreate9.
+    # A DxvkError thrown by that constructor currently crosses the exported C
+    # ABI and terminates the whole Android process (SIGABRT). Convert startup
+    # failures into a normal D3D9 initialization error and emit the original
+    # exception text to logcat so the missing Vulkan capability is actionable.
+    d3d9_main = root / "src/d3d9/d3d9_main.cpp"
+    replace_once(
+        d3d9_main,
+        """#include "d3d9_shader_validator.h"
+
+#include "d3d9_annotation.h"
+""",
+        """#include "d3d9_shader_validator.h"
+
+#include "d3d9_annotation.h"
+#ifdef __ANDROID__
+#include <android/log.h>
+#endif
+""",
+    )
+    replace_once(
+        d3d9_main,
+        """    *ppDirect3D9Ex = ref(new D3D9InterfaceEx( Extended ));
+    return D3D_OK;
+""",
+        """    *ppDirect3D9Ex = nullptr;
+    try {
+      *ppDirect3D9Ex = ref(new D3D9InterfaceEx( Extended ));
+      return D3D_OK;
+    } catch (const DxvkError& e) {
+      Logger::err(str::format("DXVK 2.6.2 D3D9 initialization failed: ", e.message()));
+#ifdef __ANDROID__
+      __android_log_print(ANDROID_LOG_ERROR, "DXVK262", "D3D9 initialization failed: %s", e.message().c_str());
+#endif
+      return D3DERR_NOTAVAILABLE;
+    } catch (const std::exception& e) {
+      Logger::err(str::format("DXVK 2.6.2 D3D9 initialization threw: ", e.what()));
+#ifdef __ANDROID__
+      __android_log_print(ANDROID_LOG_ERROR, "DXVK262", "D3D9 initialization threw: %s", e.what());
+#endif
+      return D3DERR_NOTAVAILABLE;
+    } catch (...) {
+      Logger::err("DXVK 2.6.2 D3D9 initialization threw an unknown exception");
+#ifdef __ANDROID__
+      __android_log_print(ANDROID_LOG_ERROR, "DXVK262", "D3D9 initialization threw an unknown exception");
+#endif
+      return D3DERR_NOTAVAILABLE;
+    }
+""",
+    )
+    print("DXVK_NATIVE_262_D3D9_EXCEPTION_BARRIER_OK")
+
     # DXVK's loader header force-enables Win32 Vulkan declarations even for
     # Android. Keep those declarations on Windows only. Android still parses
     # the optional full-screen-exclusive extension fields, so provide the
