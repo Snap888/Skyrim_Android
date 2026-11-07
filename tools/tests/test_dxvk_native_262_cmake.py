@@ -450,6 +450,8 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         # Direct3DCreate9. Keep the exception inside the C ABI boundary and
         # preserve its message in Android logcat for diagnosis.
         self.assertIn("d3d9_main = root / \"src/d3d9/d3d9_main.cpp\"", self.patcher)
+        self.assertIn('#include <exception>', self.patcher)
+        self.assertIn('return D3DERR_NOTAVAILABLE;', self.patcher)
         self.assertIn("DXVK_NATIVE_262_D3D9_EXCEPTION_BARRIER_OK", self.patcher)
         self.assertIn("catch (const DxvkError& e)", self.patcher)
         self.assertIn("catch (const std::exception& e)", self.patcher)
