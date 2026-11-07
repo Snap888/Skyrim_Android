@@ -499,6 +499,23 @@ jobs:
           done
           echo "DXVK_NATIVE_262_DSO_ABI_OK"
 
+          # AdrenoTools opens these APK-local hooks dynamically when the
+          # selected private Turnip ICD is activated. They are runtime
+          # dependencies even though DXVK does not link against them directly.
+          for HOOK_ENTRY in \
+            'lib/arm64-v8a/libmain_hook.so' \
+            'lib/arm64-v8a/libhook_impl.so'; do
+            grep -Fxq "$HOOK_ENTRY" <<<"$APK_ENTRIES" || {
+              echo "::error::AdrenoTools hook is missing from APK: $HOOK_ENTRY"
+              exit 1
+            }
+            unzip -q "$APK" "$HOOK_ENTRY" -d "$EXTRACT"
+            HOOK_SO="$EXTRACT/$HOOK_ENTRY"
+            HOOK_SONAME="$(basename "$HOOK_ENTRY")"
+            require_arm64_elf "$HOOK_SO" "$HOOK_SONAME"
+          done
+          echo "ADRENOTOOLS_HOOKS_ABI_OK"
+
           if [[ "$BUILD_RUNTIME_PAIR" == "true" ]]; then
             grep -Fxq "$MAIN_ENTRY" <<<"$APK_ENTRIES" || {
               echo "::error::Runtime-pair build was requested, but libmain_262.so is missing."
