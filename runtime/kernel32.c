@@ -789,6 +789,23 @@ int rt_host_path(const char *win, char *out, size_t outsz) {
     /* Android storage is case-sensitive; resolve existing components using
        their actual on-disk spelling while preserving the Windows path. */
     int found = resolve_ci(out);
+    /* Some Skyrim callers already include DATA in their relative path while
+       the game-root prefix also resolves to the install root. That produces
+       DATA/DATA/... on Android although the actual asset is under DATA/....
+       Retry the de-duplicated path only when it exists; never rewrite a real
+       nested DATA/DATA directory or hide a genuinely missing asset. */
+    if (!found && root == g_game_dir && !strncasecmp(rel, "DATA\\DATA\\", 10)) {
+        char alternate[1024];
+        snprintf(alternate, sizeof alternate, "%s/%s", root, rel + 5);
+        if (resolve_ci(alternate)) {
+            snprintf(out, outsz, "%s", alternate);
+            found = 1;
+            static unsigned duplicate_data_logs;
+            unsigned seq = __atomic_fetch_add(&duplicate_data_logs, 1, __ATOMIC_RELAXED);
+            if (seq < 16)
+                LOG("rt_host_path: normalized duplicate DATA prefix %s -> %s", win, out);
+        }
+    }
     if (strcasestr(tmp, "\\sound\\voice\\")) {
         static unsigned voice_map_logs;
         unsigned seq = __atomic_fetch_add(&voice_map_logs, 1, __ATOMIC_RELAXED);
