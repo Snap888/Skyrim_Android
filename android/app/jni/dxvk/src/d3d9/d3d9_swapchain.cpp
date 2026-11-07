@@ -1408,6 +1408,19 @@ namespace dxvk {
     const VkResult sourceStatus = m_sourcePresentStatus.result.load();
     const VkResult generatedStatus = m_generatedPresentStatus.result.load();
 
+#ifdef __ANDROID__
+    // VK_SUBOPTIMAL_KHR is a successful WSI result: the acquired/presented
+    // image remains valid. Record a few occurrences so device logs can prove
+    // that this DXVK build is running, but never recreate the swapchain for it.
+    static std::atomic<uint32_t> suboptimalStatusLogCount{0};
+    if ((sourceStatus == VK_SUBOPTIMAL_KHR || generatedStatus == VK_SUBOPTIMAL_KHR)
+        && suboptimalStatusLogCount.fetch_add(1, std::memory_order_relaxed) < 8) {
+      Logger::info(str::format(
+        "DXVK-WSI: accepted VK_SUBOPTIMAL_KHR without swapchain recreation; source=",
+        sourceStatus, " generated=", generatedStatus));
+    }
+#endif
+
     if (sourceWasPending
         && (sourceStatus == VK_SUCCESS || sourceStatus == VK_SUBOPTIMAL_KHR))
       hud::addSnapFrameGameFrame();
