@@ -436,9 +436,8 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("BUILD_RUNTIME_PAIR", workflow)
 
     def test_legacy_snapframe_host_is_not_linked_to_262_candidate(self):
-        # The current SnapFrame host consumes DXVK-internal C++ types from the
-        # 1.9.2b tree. Keep the candidate isolated until a 2.6.2-native host
-        # target compiles against the pinned upstream headers.
+        # The 2.6.2 host is compiled into dxvk_d3d9_262. The game runtime
+        # must link that matching DSO, never the legacy 1.9.2b host target.
         self.assertIn("target_link_libraries(main PRIVATE SDL2 dxvk_d3d9 snapframe_host", self.game_text)
         self.assertIn("target_link_libraries(snapframe_host PUBLIC dxvk_d3d9", self.snapframe_text)
         self.assertIn("snapframe_host_262.cpp", self.snapframe_text)
