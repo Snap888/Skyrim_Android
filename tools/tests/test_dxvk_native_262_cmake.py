@@ -451,6 +451,18 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn('setenv("DXVK_LOG_LEVEL", "info", 1);', runtime_main)
         self.assertIn('snprintf(dxvk_log_path, sizeof(dxvk_log_path), "%s/port", g_game_dir);', runtime_main)
 
+    def test_262_runtime_selects_the_built_sdl2_wsi_backend_before_platform_init(self):
+        runtime_main = (ROOT / "runtime/main.c").read_text(encoding="utf-8")
+        self.assertIn("SNAP_DXVK_NATIVE_262_RUNTIME", self.game_text)
+        self.assertIn("SNAP_DXVK_NATIVE_262_RUNTIME", runtime_main)
+        self.assertIn('setenv("DXVK_WSI_DRIVER", "SDL2", 1)', runtime_main)
+        self.assertIn('getenv("DXVK_WSI_DRIVER")', runtime_main)
+        self.assertIn('DXVK_WSI_DRIVER=SDL2', runtime_main)
+        self.assertLess(
+            runtime_main.index('setenv("DXVK_WSI_DRIVER", "SDL2", 1)'),
+            runtime_main.index("platform_init();"),
+        )
+
     def test_262_d3d9_startup_exceptions_do_not_cross_the_exported_abi(self):
         # DXVK 2.6.2 can throw while constructing DxvkInstance inside
         # Direct3DCreate9. Keep the exception inside the C ABI boundary and
