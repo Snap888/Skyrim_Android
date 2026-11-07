@@ -111,3 +111,8 @@ This change addresses the exact error in the new log. The next build/device run
 must confirm that DXVK proceeds beyond WSI selection; a later Vulkan instance,
 surface, adapter, or swapchain error would be a separate issue and must be
 diagnosed from the next log rather than assumed fixed.
+
+
+## APK rebuild request
+
+The SDL2 WSI startup fix is included in the runtime-pair APK build triggered by commit marker `[build-runtime-pair]`. The Android CI must build and verify both `libmain_262.so` and `libdxvk_d3d9_262.so` before publishing the APK artifact.
