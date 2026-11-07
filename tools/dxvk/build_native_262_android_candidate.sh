@@ -29,6 +29,31 @@ if [[ ! -f "$DXVK_SOURCE_DIR/src/wsi/sdl2/wsi_native_surface.cpp" ]]; then
   exit 2
 fi
 
+# DXVK's D3D9 version script hides every symbol not listed under global:.
+# The game-side main_262/JNI bridge must resolve the Android surface registry
+# and the version-matched SnapFrame callbacks from this exact DSO.
+SYMBOL_MAP="$DXVK_SOURCE_DIR/src/d3d9/d3d9.sym"
+python3 - "$SYMBOL_MAP" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text(encoding="utf-8")
+required = (
+    "dxvk_native_surface",
+    "snapframe_dxvk262_record_source",
+    "snapframe_dxvk262_release_window",
+    "snapframe_dxvk262_release_device",
+)
+if text.count("  global:") != 1 or text.count("  local:") != 1:
+    raise SystemExit("unexpected DXVK D3D9 symbol map structure")
+missing = [name for name in required if f"    {name};" not in text]
+if missing:
+    insertion = "".join(f"    {name};\\n" for name in missing)
+    text = text.replace("  local:", insertion + "\\n  local:", 1)
+    path.write_text(text, encoding="utf-8")
+PY
+
 mkdir -p "$BUILD_DIR"
 BUILD_DIR=$(cd "$BUILD_DIR" && pwd)
 HARNESS="$BUILD_DIR/harness"
@@ -116,10 +141,10 @@ if ! grep -Eq '[[:space:]]Direct3DCreate9Ex$' <<<"$ELF_EXPORTS"; then
   printf '%s\\n' "$ELF_EXPORTS" >&2
   exit 1
 fi
-for symbol in snapframe_dxvk262_record_source snapframe_dxvk262_release_window snapframe_dxvk262_release_device; do
-  if ! grep -Eq "[[:space:]]${symbol}$" <<<"$ELF_DEFINED"; then
-    echo "DXVK 2.6.2 candidate is missing SnapFrame host symbol: ${symbol}" >&2
-    printf '%s\\n' "$ELF_DEFINED" >&2
+for symbol in dxvk_native_surface snapframe_dxvk262_record_source snapframe_dxvk262_release_window snapframe_dxvk262_release_device; do
+  if ! grep -Eq "[[:space:]]${symbol}$" <<<"$ELF_EXPORTS"; then
+    echo "DXVK 2.6.2 candidate is missing required dynamic export: ${symbol}" >&2
+    printf '%s\\n' "$ELF_EXPORTS" >&2
     exit 1
   fi
 done
