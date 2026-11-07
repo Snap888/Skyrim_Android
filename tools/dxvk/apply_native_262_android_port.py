@@ -187,14 +187,56 @@ typedef struct VkSurfaceFullScreenExclusiveInfoEXT {
     vulkan_loader_cpp = root / "src/vulkan/vulkan_loader.cpp"
     replace_once(
         vulkan_loader_cpp,
-        `#include "../util/util_win32_compat.h"\n`,
-        `#include "../util/util_win32_compat.h"\n#ifdef __ANDROID__\n#include <adrenotools/driver.h>\n#include <dlfcn.h>\n#include <cstdlib>\n#endif\n`,
+        """#include "../util/util_win32_compat.h"
+""",
+        """#include "../util/util_win32_compat.h"
+#ifdef __ANDROID__
+#include <adrenotools/driver.h>
+#include <dlfcn.h>
+#include <cstdlib>
+#include <string>
+#endif
+""",
     )
     replace_once(
         vulkan_loader_cpp,
-        `  static std::pair<HMODULE, PFN_vkGetInstanceProcAddr> loadVulkanLibrary() {\n    static const std::array<const char*, 2> dllNames = {{\n`,
-        `  static std::pair<HMODULE, PFN_vkGetInstanceProcAddr> loadVulkanLibrary() {\n#ifdef __ANDROID__\n    setenv("SKYRIM_TURNIP_DRIVER_ACTIVE", "0", 1);\n    const char* driverDir = std::getenv("SKYRIM_TURNIP_DRIVER_PATH");\n    const char* driverName = std::getenv("SKYRIM_TURNIP_DRIVER_NAME");\n    if (driverDir && driverName && *driverDir && *driverName) {\n      Dl_info info{};\n      if (dladdr(reinterpret_cast<void*>(&loadVulkanLibrary), &info) && info.dli_fname) {\n        std::string hookDir(info.dli_fname);\n        const auto slash = hookDir.find_last_of('/');\n        if (slash != std::string::npos) hookDir.resize(slash + 1);\n        void* library = adrenotools_open_libvulkan(\n          RTLD_NOW, ADRENOTOOLS_DRIVER_CUSTOM, nullptr, hookDir.c_str(),\n          driverDir, driverName, nullptr, nullptr);\n        if (library) {\n          auto proc = reinterpret_cast<PFN_vkGetInstanceProcAddr>(dlsym(library, "vkGetInstanceProcAddr"));\n          if (proc) {\n            Logger::info(str::format("AdrenoTools activated custom Vulkan driver ", driverName, " from ", driverDir));\n            setenv("SKYRIM_TURNIP_DRIVER_ACTIVE", "1", 1);\n            return { reinterpret_cast<HMODULE>(library), proc };\n          }\n          Logger::err("AdrenoTools loader did not export vkGetInstanceProcAddr; using system Vulkan");\n          dlclose(library);\n        } else {\n          Logger::err(str::format("AdrenoTools could not activate custom Vulkan driver ", driverName, "; using system Vulkan"));\n        }\n      } else {\n        Logger::err("AdrenoTools could not resolve the APK nativeLibraryDir; using system Vulkan");\n      }\n    }\n#endif\n    static const std::array<const char*, 2> dllNames = {{\n`,
-    );
+        """  static std::pair<HMODULE, PFN_vkGetInstanceProcAddr> loadVulkanLibrary() {
+    static const std::array<const char*, 2> dllNames = {{
+""",
+        """  static std::pair<HMODULE, PFN_vkGetInstanceProcAddr> loadVulkanLibrary() {
+#ifdef __ANDROID__
+    setenv("SKYRIM_TURNIP_DRIVER_ACTIVE", "0", 1);
+    const char* driverDir = std::getenv("SKYRIM_TURNIP_DRIVER_PATH");
+    const char* driverName = std::getenv("SKYRIM_TURNIP_DRIVER_NAME");
+    if (driverDir && driverName && *driverDir && *driverName) {
+      Dl_info info{};
+      if (dladdr(reinterpret_cast<void*>(&loadVulkanLibrary), &info) && info.dli_fname) {
+        std::string hookDir(info.dli_fname);
+        const auto slash = hookDir.find_last_of('/');
+        if (slash != std::string::npos) hookDir.resize(slash + 1);
+        void* library = adrenotools_open_libvulkan(
+          RTLD_NOW, ADRENOTOOLS_DRIVER_CUSTOM, nullptr, hookDir.c_str(),
+          driverDir, driverName, nullptr, nullptr);
+        if (library) {
+          auto proc = reinterpret_cast<PFN_vkGetInstanceProcAddr>(dlsym(library, "vkGetInstanceProcAddr"));
+          if (proc) {
+            Logger::info(str::format("AdrenoTools activated custom Vulkan driver ", driverName, " from ", driverDir));
+            setenv("SKYRIM_TURNIP_DRIVER_ACTIVE", "1", 1);
+            return { reinterpret_cast<HMODULE>(library), proc };
+          }
+          Logger::err("AdrenoTools loader did not export vkGetInstanceProcAddr; using system Vulkan");
+          dlclose(library);
+        } else {
+          Logger::err(str::format("AdrenoTools could not activate custom Vulkan driver ", driverName, "; using system Vulkan"));
+        }
+      } else {
+        Logger::err("AdrenoTools could not resolve the APK nativeLibraryDir; using system Vulkan");
+      }
+    }
+#endif
+    static const std::array<const char*, 2> dllNames = {{
+""",
+    )
     print("DXVK_NATIVE_262_ADRENOTOOLS_LOADER_PATCH_OK")
 
     # DXVK's shared semaphore HANDLE import/export path is Win32-only.
