@@ -84,7 +84,8 @@ add_subdirectory("${SNAP_REPO_ROOT}/android/app/jni/dxvk_native_262" dxvk_native
 
 # Compile the version-matched SnapFrame host into the candidate DSO.
 target_sources(dxvk_d3d9_262 PRIVATE
-  "${SNAP_REPO_ROOT}/android/app/jni/snapframe/snapframe_host_262.cpp")
+  "${SNAP_REPO_ROOT}/android/app/jni/snapframe/snapframe_host_262.cpp"
+  "${SNAP_REPO_ROOT}/android/app/jni/snapframe/snapframe_runtime_262.cpp")
 target_include_directories(dxvk_d3d9_262 PRIVATE
   "${SNAP_REPO_ROOT}/android/app/jni/snapframe"
   "${BUILD_SNAPFRAME_GENERATED_DIR}")
