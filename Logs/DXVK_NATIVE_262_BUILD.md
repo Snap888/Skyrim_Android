@@ -35,6 +35,20 @@ The CI package check verifies the candidate's AArch64 ELF class and SONAME and e
 
 This artifact is a verified standalone candidate, not a runtime pair. It must not be exposed in the runtime selector. The generated-frame presentation hook remains disabled.
 
+## Dedicated main_262 bridge inventory
+
+The standalone candidate is now linkable at the DXVK D3D9 export boundary, but the game-side runtime bridge is still absent. The Android runtime currently calls these SnapFrame host entry points from `runtime/main.c` and `runtime/snapframe_bootstrap.c`:
+
+- `snapframe_config_defaults`
+- `snapframe_host_set_log_path`, `snapframe_host_set_gpu_log_path`, `snapframe_host_set_flow_log_path`, `snapframe_host_set_flow_vectors_log_path`, `snapframe_host_set_event_log_path`
+- `snapframe_host_log`, `snapframe_host_init`
+- `snapframe_host_get_settings`, `snapframe_host_get_present_mode`
+- `snapframe_host_update_settings`, `snapframe_host_update_present_mode`
+
+The current 2.6.2 DSO exports the four DXVK/SnapFrame hook symbols listed above, but it does not yet implement this runtime host API. The legacy `snapframe_host.cpp` cannot be reused because its C++ implementation depends on DXVK 1.9.2b internals. A dedicated bridge must define the runtime API against an explicit 2.6.2 C ABI, and settings must actually reach the 2.6.2 capture/compute host; returning success from placeholder functions is not acceptable.
+
+Before enabling the pair, verify that disabled-by-default configuration prevents compute dispatch, enabled state is applied safely at a frame boundary, unsupported flow-scale/present-mode settings are reported honestly, and telemetry distinguishes recorded compute from generated WSI presents. The existing generated-present gate remains closed.
+
 ## Runtime selection and fallback
 
 The Android selector exposes a DXVK variant only when both corresponding ARM64 ELF libraries are present. DXVK Native 1.9.2b remains the default and safe fallback. A standalone 2.6.2 DSO must never cause the 2.6.2 selector entry to appear.
