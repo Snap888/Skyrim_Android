@@ -50,6 +50,14 @@ def main() -> int:
     d3d9_main = root / "src/d3d9/d3d9_main.cpp"
     replace_once(
         d3d9_main,
+        """#include "d3d9_interface.h"
+""",
+        """#include "d3d9_interface.h"
+#include <exception>
+""",
+    )
+    replace_once(
+        d3d9_main,
         """#include "d3d9_shader_validator.h"
 
 #include "d3d9_annotation.h"
