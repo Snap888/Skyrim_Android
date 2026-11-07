@@ -468,7 +468,8 @@ jobs:
             grep -Fq 'Library soname: [libdxvk_d3d9_262.so]' <<<"$ELF_DYNAMIC"
             echo "DXVK_NATIVE_262_CANDIDATE_PACKAGED_OK"
           else
-            echo "::warning::DXVK 2.6.2 candidate DSO was not packaged; DXVK 1.9.2b remains the runtime fallback."
+            echo "::error::DXVK 2.6.2 candidate DSO is required in this full APK build."
+            exit 1
           fi
           if grep -Fxq 'lib/arm64-v8a/libmain_262.so' <<<"$APK_ENTRIES"; then
             echo "::error::main_262 was packaged without the dedicated 2.6.2 host bridge gate."
