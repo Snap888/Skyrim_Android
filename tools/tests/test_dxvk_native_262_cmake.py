@@ -445,6 +445,19 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertNotIn("dxvk_d3d9_262 snapframe_host", self.game_text + self.snapframe_text)
 
 
+    def test_262_d3d9_startup_exceptions_do_not_cross_the_exported_abi(self):
+        # DXVK 2.6.2 can throw while constructing DxvkInstance inside
+        # Direct3DCreate9. Keep the exception inside the C ABI boundary and
+        # preserve its message in Android logcat for diagnosis.
+        self.assertIn("d3d9_main = root / \"src/d3d9/d3d9_main.cpp\"", self.patcher)
+        self.assertIn("DXVK_NATIVE_262_D3D9_EXCEPTION_BARRIER_OK", self.patcher)
+        self.assertIn("catch (const DxvkError& e)", self.patcher)
+        self.assertIn("catch (const std::exception& e)", self.patcher)
+        self.assertIn("D3DERR_NOTAVAILABLE", self.patcher)
+        self.assertIn("__android_log_print(ANDROID_LOG_ERROR, \"DXVK262\"", self.patcher)
+        self.assertIn("e.message().c_str()", self.patcher)
+        self.assertIn("e.what()", self.patcher)
+
     def test_262_runtime_adapter_exposes_only_explicitly_supported_settings(self):
         runtime = ROOT / "android/app/jni/snapframe/snapframe_runtime_262.cpp"
         runtime_text = runtime.read_text(encoding="utf-8")
