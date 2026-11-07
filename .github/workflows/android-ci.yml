@@ -20,6 +20,11 @@ on:
         required: false
         type: boolean
         default: false
+      build_runtime_pair:
+        description: "Also compile the opt-in DXVK 2.6.2 + main_262 runtime pair"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -319,7 +324,7 @@ jobs:
           retention-days: 14
   apk:
     name: Full arm64 APK build
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_apk) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[build-apk]')) }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && (inputs.build_apk || inputs.build_runtime_pair)) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[build-apk]')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -425,6 +430,7 @@ jobs:
           ./gradlew assembleDebug \
             -PndkVersion=${{ env.NDK_VERSION }} \
             -PsnapDxvk262Source="$DXVK_262_SOURCE" \
+            -PsnapBuildDxvk262RuntimePair="${{ inputs.build_runtime_pair == true }}" \
             -PversionCode="$VERSION_CODE" \
             -PversionName="$VERSION_NAME" \
             --no-daemon --stacktrace --info --console=plain
