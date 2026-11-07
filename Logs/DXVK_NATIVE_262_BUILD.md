@@ -84,3 +84,30 @@ identify whether DXVK 2.6.2 rejected a required Vulkan instance extension, faile
 to create a Vulkan 1.3 instance, failed to enumerate an adapter, or encountered
 another initialization error. Do not mark 2.6.2 stable or make it the default
 until that cause is fixed and the game reaches the D3D9 device/swapchain stage.
+
+
+## Updated device log: missing native WSI selection (2026-11-07)
+
+The newest `Logs/log.txt` no longer ends in an uncaught exception. The exception barrier reports the exact failure:
+
+```text
+DXVK 2.6.2 D3D9 initialization failed: DXVK_WSI_DRIVER environment variable unset
+```
+
+This is a deterministic DXVK Native configuration error, not a Vulkan ICD or
+SnapFrame failure. The pinned DXVK Native source requires an explicit WSI backend;
+the project patch builds and links its Android SDL2 WSI implementation
+(`wsi/sdl2`), so the correct value for this runtime is `SDL2`.
+DXVK Native documents the supported values as SDL3, SDL2, and GLFW:
+https://github.com/doitsujin/dxvk#dxvk-native
+
+The `main_262` target now defines `SNAP_DXVK_NATIVE_262_RUNTIME`. Before
+`platform_init()` and before any D3D9/Vulkan initialization, that runtime sets
+`DXVK_WSI_DRIVER=SDL2` when the launcher has not supplied an explicit override.
+This is scoped to `main_262` and does not alter the legacy 1.9.2b runtime.
+A regression test asserts the compile definition and ordering.
+
+This change addresses the exact error in the new log. The next build/device run
+must confirm that DXVK proceeds beyond WSI selection; a later Vulkan instance,
+surface, adapter, or swapchain error would be a separate issue and must be
+diagnosed from the next log rather than assumed fixed.
