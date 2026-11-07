@@ -22,6 +22,7 @@ FILE* g_flow_vectors_log = nullptr;
 FILE* g_event_log = nullptr;
 bool g_initialized = false;
 bool g_enabled = false;
+bool g_can_enable = false;
 constexpr int kSupportedFlowScale = 50;
 
 int replaceLog(FILE** slot, const char* path) {
@@ -39,12 +40,10 @@ void writeLog(const char* message) {
   std::lock_guard<std::mutex> lock(g_mutex);
   if (g_log) { std::fprintf(g_log, "%s\n", value); std::fflush(g_log); }
 }
-bool validConfig(const SnapFrameConfig* c) {
-  return c && (c->enabled == 0 || c->enabled == 1)
-      && c->flow_scale_percent == kSupportedFlowScale
+bool supportsEnabledConfig(const SnapFrameConfig* c) {
+  return c->flow_scale_percent == kSupportedFlowScale
       && c->present_mode == SNAPFRAME_PRESENT_MODE_AUTO
-      && c->multiplier >= 1 && c->multiplier <= 2
-      && (!c->enabled || c->multiplier == 1)
+      && c->multiplier == 1
       && c->quality == SNAPFRAME_QUALITY_PERFORMANCE
       && c->motion_analysis == 1
       && c->ai_mode == SNAPFRAME_AI_MANUAL
@@ -70,14 +69,17 @@ extern "C" int snapframe_host_set_event_log_path(const char* p) { return replace
 extern "C" void snapframe_host_log(const char* p) { writeLog(p); }
 
 extern "C" int snapframe_host_init(const SnapFrameConfig* c) {
-  if (!validConfig(c)) {
-    writeLog("Rejected unsupported DXVK 2.6.2 SnapFrame configuration");
+  if (!c || (c->enabled != 0 && c->enabled != 1)) return -EINVAL;
+  const bool canEnable = supportsEnabledConfig(c);
+  if (c->enabled && !canEnable) {
+    writeLog("Rejected unsupported enabled DXVK 2.6.2 SnapFrame configuration");
     return -ENOTSUP;
   }
   if (!snapframe_dxvk262_set_enabled(c->enabled)) return -ENODEV;
   {
     std::lock_guard<std::mutex> lock(g_mutex);
     g_enabled = c->enabled != 0;
+    g_can_enable = canEnable;
     g_initialized = true;
   }
   writeLog(c->enabled
@@ -89,6 +91,7 @@ extern "C" void snapframe_host_shutdown(void) {
   snapframe_dxvk262_set_enabled(0);
   std::lock_guard<std::mutex> lock(g_mutex);
   g_enabled = false;
+  g_can_enable = false;
   g_initialized = false;
   for (FILE** f : {&g_event_log, &g_flow_vectors_log, &g_flow_log, &g_gpu_log, &g_log}) {
     if (*f) { std::fclose(*f); *f = nullptr; }
@@ -103,6 +106,7 @@ extern "C" int snapframe_host_set_enabled(int enabled) {
   {
     std::lock_guard<std::mutex> lock(g_mutex);
     if (!g_initialized) return -EPIPE;
+    if (enabled && !g_can_enable) return -ENOTSUP;
   }
   if (!snapframe_dxvk262_set_enabled(enabled)) return -ENODEV;
   std::lock_guard<std::mutex> lock(g_mutex);
