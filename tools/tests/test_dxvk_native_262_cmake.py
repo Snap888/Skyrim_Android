@@ -407,7 +407,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("option(SNAP_BUILD_DXVK_NATIVE_262_RUNTIME_PAIR", game)
         self.assertRegex(
             game,
-            r"option\\(SNAP_BUILD_DXVK_NATIVE_262_RUNTIME_PAIR[\\s\\S]*?OFF\\)",
+            r"option\(SNAP_BUILD_DXVK_NATIVE_262_RUNTIME_PAIR[\s\S]*?OFF\)",
         )
         self.assertIn(
             "if(TARGET dxvk_d3d9_262 AND SNAP_BUILD_DXVK_NATIVE_262_RUNTIME_PAIR)",
