@@ -507,7 +507,7 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
         panel.setPadding(dp(20), dp(8), dp(20), dp(4));
 
         TextView status = new TextView(this);
-        status.setText("Frame Generation changes apply at the next safe render callback. Flow Scale changes reset temporal history before rebuilding its GPU resources.");
+        status.setText("Experimental capture and GPU compute only. Generated frames are not presented yet; source frames always retain priority.");
         status.setTextSize(13);
         panel.addView(status);
 
@@ -517,41 +517,24 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
         presentModeLabel.setPadding(0, dp(16), 0, dp(4));
         panel.addView(presentModeLabel);
 
-        String[] presentModeNames = { "Auto", "FIFO", "MAILBOX", "IMMEDIATE" };
+        String[] presentModeNames = { "Auto (only supported mode)" };
         Spinner presentMode = new Spinner(this);
         presentMode.setAdapter(new ArrayAdapter<>(this,
                 android.R.layout.simple_spinner_dropdown_item, presentModeNames));
-        presentMode.setSelection(Math.max(0, Math.min(3, current[3])));
+        presentMode.setSelection(0);
+        presentMode.setEnabled(false);
         panel.addView(presentMode);
 
-        TextView presentModeHint = new TextView(this);
-        presentModeHint.setText("Changing mode safely recreates the shared Vulkan swapchain at the next present boundary. A brief frame-time spike may occur; unsupported MAILBOX / IMMEDIATE falls back to FIFO.");
-        presentModeHint.setTextSize(11);
-        panel.addView(presentModeHint);
-
         CheckBox frameGeneration = new CheckBox(this);
-        frameGeneration.setText("Frame Generation");
+        frameGeneration.setText("Enable SnapFrame capture / compute (experimental)");
         frameGeneration.setChecked(current[1] != 0);
         frameGeneration.setPadding(0, dp(12), 0, dp(4));
         panel.addView(frameGeneration);
 
         TextView flowLabel = new TextView(this);
         flowLabel.setPadding(0, dp(16), 0, dp(4));
+        flowLabel.setText("Flow Scale: 50% (fixed for the current DXVK 2.6.2 host)");
         panel.addView(flowLabel);
-
-        SeekBar flowScale = new SeekBar(this);
-        flowScale.setMax(75);
-        flowScale.setProgress(Math.max(0, Math.min(75, current[2] - 25)));
-        panel.addView(flowScale);
-        Runnable updateFlowLabel = () -> flowLabel.setText("Flow Scale: " + (flowScale.getProgress() + 25) + "%");
-        updateFlowLabel.run();
-        flowScale.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar bar, int value, boolean fromUser) {
-                updateFlowLabel.run();
-            }
-            @Override public void onStartTrackingTouch(SeekBar bar) {}
-            @Override public void onStopTrackingTouch(SeekBar bar) {}
-        });
 
         TextView aiStatus = new TextView(this);
         aiStatus.setText("Snap AI Engine: adaptive GPU control is not available yet. It will be enabled after the DXVK telemetry adapter is connected.");
@@ -565,13 +548,13 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Apply", (dialog, which) -> {
                     int enabled = frameGeneration.isChecked() ? 1 : 0;
-                    int scale = flowScale.getProgress() + 25;
-                    int mode = presentMode.getSelectedItemPosition();
+                    int scale = 50;
+                    int mode = 0;
                     if (!nativeSetSnapFrameSettings(enabled, scale, mode)) {
                         android.widget.Toast.makeText(this, "Could not apply SnapFrame settings",
                                 android.widget.Toast.LENGTH_SHORT).show();
                     } else {
-                        android.widget.Toast.makeText(this, "SnapFrame settings applied; present mode switches at the next safe present boundary",
+                        android.widget.Toast.makeText(this, "SnapFrame capture / compute settings applied",
                                 android.widget.Toast.LENGTH_SHORT).show();
                     }
                 })
