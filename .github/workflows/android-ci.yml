@@ -372,7 +372,7 @@ jobs:
           echo "Generated C files: $GEN_COUNT"
           test "$GEN_COUNT" -gt 0
 
-      - name: Checkout pinned DXVK Native 2.6.2 candidate source (runtime pair gated)
+      - name: Checkout pinned DXVK Native 2.6.2 source for candidate or matched runtime pair
         run: |
           set -euo pipefail
           DXVK_DIR="$RUNNER_TEMP/dxvk-native-262-apk"
@@ -457,31 +457,70 @@ jobs:
             echo "applicationId=com.tj.skyrim"
           } > ../dist/build-info.txt
 
-      - name: Verify packaged DXVK 2.6.2 candidate without enabling runtime selection
+      - name: Verify packaged DXVK 2.6.2 runtime selection and ABI
+        env:
+          BUILD_RUNTIME_PAIR: ${{ inputs.build_runtime_pair == true || (github.event_name == 'push' && contains(github.event.head_commit.message, '[build-runtime-pair]')) }}
         run: |
           set -euo pipefail
           APK="android/app/build/outputs/apk/debug/app-debug.apk"
           EXTRACT="$RUNNER_TEMP/apk-native-262"
           mkdir -p "$EXTRACT"
           APK_ENTRIES=$(unzip -Z1 "$APK")
-          if grep -Fxq 'lib/arm64-v8a/libdxvk_d3d9_262.so' <<<"$APK_ENTRIES"; then
-            unzip -q "$APK" 'lib/arm64-v8a/libdxvk_d3d9_262.so' -d "$EXTRACT"
-            DXVK_SO="$EXTRACT/lib/arm64-v8a/libdxvk_d3d9_262.so"
-            READELF="$ANDROID_HOME/ndk/$NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
-            ELF_HEADER=$("$READELF" -h "$DXVK_SO")
-            ELF_DYNAMIC=$("$READELF" -d "$DXVK_SO")
-            grep -Fq 'AArch64' <<<"$ELF_HEADER"
-            grep -Fq 'Library soname: [libdxvk_d3d9_262.so]' <<<"$ELF_DYNAMIC"
-            echo "DXVK_NATIVE_262_CANDIDATE_PACKAGED_OK"
+          READELF="$ANDROID_HOME/ndk/$NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+
+          require_arm64_elf() {
+            local path="$1"
+            local soname="$2"
+            local header dynamic
+            header=$("$READELF" -h "$path")
+            dynamic=$("$READELF" -d "$path")
+            grep -Fq 'AArch64' <<<"$header"
+            grep -Fq "Library soname: [$soname]" <<<"$dynamic"
+          }
+
+          DXVK_ENTRY='lib/arm64-v8a/libdxvk_d3d9_262.so'
+          MAIN_ENTRY='lib/arm64-v8a/libmain_262.so'
+          grep -Fxq "$DXVK_ENTRY" <<<"$APK_ENTRIES" || {
+            echo "::error::DXVK 2.6.2 DSO is missing from the APK."
+            exit 1
+          }
+          unzip -q "$APK" "$DXVK_ENTRY" -d "$EXTRACT"
+          DXVK_SO="$EXTRACT/$DXVK_ENTRY"
+          require_arm64_elf "$DXVK_SO" 'libdxvk_d3d9_262.so'
+          DXVK_DYNAMIC=$("$READELF" -d "$DXVK_SO")
+          for symbol in snapframe_host_init snapframe_host_shutdown snapframe_host_set_enabled snapframe_host_get_settings; do
+            "$READELF" --dyn-syms "$DXVK_SO" | grep -E "[[:space:]]$symbol$" >/dev/null || {
+              echo "::error::DXVK 2.6.2 is missing runtime ABI export: $symbol"
+              exit 1
+            }
+          done
+          echo "DXVK_NATIVE_262_DSO_ABI_OK"
+
+          if [[ "$BUILD_RUNTIME_PAIR" == "true" ]]; then
+            grep -Fxq "$MAIN_ENTRY" <<<"$APK_ENTRIES" || {
+              echo "::error::Runtime-pair build was requested, but libmain_262.so is missing."
+              exit 1
+            }
+            unzip -q "$APK" "$MAIN_ENTRY" -d "$EXTRACT"
+            MAIN_SO="$EXTRACT/$MAIN_ENTRY"
+            require_arm64_elf "$MAIN_SO" 'libmain_262.so'
+            MAIN_DYNAMIC=$("$READELF" -d "$MAIN_SO")
+            grep -Fq 'Shared library: [libdxvk_d3d9_262.so]' <<<"$MAIN_DYNAMIC" || {
+              echo "::error::main_262 does not depend on the matching DXVK 2.6.2 DSO."
+              exit 1
+            }
+            if grep -Fq 'Shared library: [libdxvk_d3d9.so]' <<<"$MAIN_DYNAMIC"; then
+              echo "::error::main_262 unexpectedly depends on legacy DXVK."
+              exit 1
+            fi
+            echo "DXVK_NATIVE_262_RUNTIME_PAIR_ABI_OK"
           else
-            echo "::error::DXVK 2.6.2 candidate DSO is required in this full APK build."
-            exit 1
+            if grep -Fxq "$MAIN_ENTRY" <<<"$APK_ENTRIES"; then
+              echo "::error::main_262 was packaged although runtime-pair build was not requested."
+              exit 1
+            fi
+            echo "DXVK_NATIVE_262_RUNTIME_PAIR_REMAINS_OPT_IN"
           fi
-          if grep -Fxq 'lib/arm64-v8a/libmain_262.so' <<<"$APK_ENTRIES"; then
-            echo "::error::main_262 was packaged without the dedicated 2.6.2 host bridge gate."
-            exit 1
-          fi
-          echo "DXVK_NATIVE_262_RUNTIME_SELECTOR_REMAINS_GATED"
 
       - name: Upload APK and native build diagnostics
         if: always()
