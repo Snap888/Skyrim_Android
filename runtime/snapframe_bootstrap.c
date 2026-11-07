@@ -88,16 +88,20 @@ void snapframe_bootstrap(void) {
 #endif
 
     snapframe_host_log("bootstrap entered");
-    snapframe_host_init(&config);
+    const int initResult = snapframe_host_init(&config);
+    const int activeAfterInit = snapframe_host_active();
     const uint32_t snapAiApi = snap_ai_get_api_version();
     fprintf(stderr, "SnapAI: library loaded api=%u expected=%u adaptive_control=pending_telemetry_adapter\n",
         snapAiApi, SNAP_AI_API_VERSION);
     char summary[1400];
-    snprintf(summary, sizeof(summary), "config=%s log=%s gpu_csv=%s flow_csv=%s events_csv=%s enabled=%d multiplier=%d quality=%d flow_scale=%d present_mode=%d motion_analysis=%d profiling=%d diagnostic_suite=%d phase_frames=%d ai_mode=%d ai_budget_ms=%.2f ai_pressure=%.2f ai_headroom=%.2f ai_artifact=%.2f",
-             path, logPath, gpuLogPath, flowLogPath, eventLogPath, config.enabled, config.multiplier,
-             config.quality, config.flow_scale_percent, config.present_mode, config.motion_analysis,
+    snprintf(summary, sizeof(summary), "config=%s log=%s gpu_csv=%s flow_csv=%s events_csv=%s requested_enabled=%d init_result=%d active_after_init=%d multiplier=%d quality=%d flow_scale=%d present_mode=%d motion_analysis=%d profiling=%d diagnostic_suite=%d phase_frames=%d ai_mode=%d ai_budget_ms=%.2f ai_pressure=%.2f ai_headroom=%.2f ai_artifact=%.2f",
+             path, logPath, gpuLogPath, flowLogPath, eventLogPath, config.enabled,
+             initResult, activeAfterInit, config.multiplier, config.quality,
+             config.flow_scale_percent, config.present_mode, config.motion_analysis,
              config.profiling_enabled, config.diagnostic_suite, config.diagnostic_phase_frames,
              config.ai_mode, config.ai_gpu_budget_ms, config.ai_pressure_threshold,
              config.ai_headroom_threshold, config.ai_artifact_threshold);
     snapframe_host_log(summary);
+    if (initResult <= 0 || (config.enabled && !activeAfterInit))
+        snapframe_host_log("SnapFrame bootstrap warning: requested configuration was not activated; inspect host rejection/driver initialization messages above");
 }
