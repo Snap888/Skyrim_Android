@@ -1038,6 +1038,23 @@ namespace dxvk::wsi {
         "snapframe_dxvk262_release_device",
         "snapframe_dxvk262_set_enabled",
         "snapframe_dxvk262_get_enabled",
+        "snapframe_config_defaults",
+        "snapframe_host_set_log_path",
+        "snapframe_host_set_gpu_log_path",
+        "snapframe_host_set_flow_log_path",
+        "snapframe_host_set_flow_vectors_log_path",
+        "snapframe_host_set_event_log_path",
+        "snapframe_host_log",
+        "snapframe_host_init",
+        "snapframe_host_shutdown",
+        "snapframe_host_active",
+        "snapframe_host_set_enabled",
+        "snapframe_host_get_stats",
+        "snapframe_host_get_settings",
+        "snapframe_host_get_present_mode",
+        "snapframe_host_update_present_mode",
+        "snapframe_host_update_settings",
+        "snapframe_host_get_last_telemetry",
     )
     missing_exports = [
         name for name in required_exports
