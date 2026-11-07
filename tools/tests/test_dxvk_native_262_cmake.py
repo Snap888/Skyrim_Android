@@ -449,7 +449,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         runtime_main = (ROOT / "runtime/main.c").read_text(encoding="utf-8")
         self.assertIn('setenv("DXVK_LOG_PATH", dxvk_log_path, 1);', runtime_main)
         self.assertIn('setenv("DXVK_LOG_LEVEL", "info", 1);', runtime_main)
-        self.assertIn('snprintf(dxvk_log_path, sizeof dxvk_log_path, "%s/port", g_game_dir);', runtime_main)
+        self.assertIn('snprintf(dxvk_log_path, sizeof(dxvk_log_path), "%s/port", g_game_dir);', runtime_main)
 
     def test_262_d3d9_startup_exceptions_do_not_cross_the_exported_abi(self):
         # DXVK 2.6.2 can throw while constructing DxvkInstance inside
