@@ -90,6 +90,20 @@ class AnalyzerTests(unittest.TestCase):
             self.assertIn("thresholded log events; not all frames", rendered)
             self.assertIn("source_submission_wait", rendered)
 
+    def test_flags_persistent_suboptimal_swapchain_recreation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "log.txt").write_text(
+                "Presenter: Got VK_SUBOPTIMAL_KHR, recreating swapchain\\n" * 12,
+                encoding="utf-8")
+            report = analyze(root)
+            self.assertEqual(report["dxvk_wsi"]["suboptimal_swapchain_recreate_count"], 12)
+            finding = next(x for x in report["findings"]
+                           if x["code"] == "DXVK_SUBOPTIMAL_SWAPCHAIN_CHURN")
+            self.assertEqual(finding["severity"], "high")
+            self.assertIn("OUT_OF_DATE", finding["recommendation"])
+            self.assertIn("VK_SUBOPTIMAL_KHR swapchain recreations: 12", to_markdown(report))
+
     def test_reports_dxvk_queue_and_vulkan_wsi_stalls(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
