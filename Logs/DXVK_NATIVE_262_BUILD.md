@@ -116,3 +116,12 @@ diagnosed from the next log rather than assumed fixed.
 ## APK rebuild request
 
 The SDL2 WSI startup fix is included in the runtime-pair APK build triggered by commit marker `[build-runtime-pair]`. The Android CI must build and verify both `libmain_262.so` and `libdxvk_d3d9_262.so` before publishing the APK artifact.
+
+
+## Android SUBOPTIMAL swapchain churn fix (2026-11-07)
+
+The latest device log recorded 3,226 repetitions of `Presenter: Got VK_SUBOPTIMAL_KHR, recreating swapchain` while the surface remained at 2448x1080, FIFO, six images. The same run then crashed with SIGSEGV in `libdxvk_d3d9_262.so` (fault address `0x2000000001`; DXVK offsets `0x175a60` and `0x1758c0`). The available log does not identify the exact faulting source line, but the repeated recreation is a concrete WSI defect and a plausible source of stale swapchain/semaphore ownership.
+
+The Android overlay now treats `VK_SUBOPTIMAL_KHR` as a usable result after both `vkAcquireNextImageKHR` calls and `vkQueuePresentKHR`. This preserves the current valid swapchain; negative WSI errors continue through upstream recreation/recovery. The behavior is Android-only. The log analyzer now counts persistent SUBOPTIMAL-triggered recreations and emits `DXVK_SUBOPTIMAL_SWAPCHAIN_CHURN` as a high-severity finding.
+
+This is a targeted stability fix, not proof that every SIGSEGV is resolved. Keep SnapFrame disabled for the first 10-minute stability run, then test FG separately. See [WSI_SIGSEGV_ANALYSIS_2026-11-07.md](WSI_SIGSEGV_ANALYSIS_2026-11-07.md).
