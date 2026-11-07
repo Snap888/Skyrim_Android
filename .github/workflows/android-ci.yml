@@ -457,6 +457,7 @@ jobs:
             echo "applicationId=com.tj.skyrim"
           } > ../dist/build-info.txt
 
+      # Runtime-pair opt-in verifies both ARM64 ELFs and the exact DT_NEEDED edge.
       - name: Verify packaged DXVK 2.6.2 runtime selection and ABI
         env:
           BUILD_RUNTIME_PAIR: ${{ inputs.build_runtime_pair == true || (github.event_name == 'push' && contains(github.event.head_commit.message, '[build-runtime-pair]')) }}
