@@ -437,3 +437,33 @@ This is packaging and ELF validation only. The APK does not contain
 and the 2.6.2 selector must remain unavailable. No device-side loading,
 Vulkan initialization, source capture, or generated scanout is implied by
 this CI result.
+
+
+## DXVK 2.6.2 runtime ABI adapter (2026-11-07)
+
+A dedicated `snapframe_runtime_262.cpp` now implements the public SnapFrame
+host C ABI inside the candidate DSO. It is compiled alongside
+`snapframe_host_262.cpp`; it does not include or link the legacy
+DXVK 1.9.2b implementation. The Android overlay's D3D9 version-script export
+list is extended for the complete runtime ABI so a matching `main_262`
+can resolve it.
+
+The adapter is deliberately fail-closed:
+- Defaults to disabled, 50% flow scale, AUTO present mode, multiplier 1,
+  performance quality, motion analysis on, and manual AI mode.
+- Accepts only the implemented configuration: 50% flow scale, AUTO present
+  mode, performance quality, motion analysis enabled, manual AI, no profiling
+  or diagnostic suite. Enabling with multiplier 2 is rejected because no
+  generated WSI present exists yet.
+- Unsupported flow scales/present modes and unsupported enabled settings
+  return `-ENOTSUP`; uninitialized controls return an error rather than
+  reporting success.
+- Telemetry returns `-ENODATA` and zero values until actual 2.6.2 telemetry
+  is wired. Stats are zeroed, not fabricated.
+- The compute hook now returns accepted (0) after recording compute work;
+  early skips return non-zero. This return value is not a generated-frame
+  counter and is not used to alter source-present priority.
+
+The runtime pair build gate remains OFF. This adapter is an ABI implementation,
+not evidence that `libmain_262.so` builds or that generated frames are
+presented. The asynchronous WSI transaction scheduler remains the next gate.
