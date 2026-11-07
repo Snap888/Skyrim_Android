@@ -402,12 +402,12 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("if self.source_pending or self.generated_running:", model)
         self.assertIn("generated_dropped", model)
 
-    def test_main_262_runtime_pair_is_gated_until_dedicated_host_bridge_exists(self):
+    def test_main_262_runtime_pair_is_opt_in_and_links_only_matching_262_backend(self):
         game = self.game_text
         self.assertIn("option(SNAP_BUILD_DXVK_NATIVE_262_RUNTIME_PAIR", game)
         self.assertRegex(
             game,
-            r"option\(SNAP_BUILD_DXVK_NATIVE_262_RUNTIME_PAIR[\s\S]*?OFF\)",
+            r"option\\(SNAP_BUILD_DXVK_NATIVE_262_RUNTIME_PAIR[\\s\\S]*?OFF\\)",
         )
         self.assertIn(
             "if(TARGET dxvk_d3d9_262 AND SNAP_BUILD_DXVK_NATIVE_262_RUNTIME_PAIR)",
@@ -415,10 +415,25 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         )
         self.assertIn("add_library(main_262 SHARED", game)
         self.assertIn("target_link_libraries(main_262 PRIVATE SDL2 dxvk_d3d9_262", game)
-        self.assertNotIn("target_link_libraries(main_262 PRIVATE SDL2 dxvk_d3d9 snapframe_host", game)
+        self.assertNotIn(
+            "target_link_libraries(main_262 PRIVATE SDL2 dxvk_d3d9 snapframe_host",
+            game,
+        )
+        self.assertNotIn("target_link_libraries(main_262 PRIVATE SDL2 dxvk_d3d9 ", game)
         self.assertIn('OUTPUT_NAME "main_262"', game)
         self.assertIn("if(LB_HAS_FFMPEG)", game)
         self.assertIn("target_sources(main_262 PRIVATE", game)
+
+    def test_apk_verifies_both_262_libraries_and_the_exact_runtime_dependency(self):
+        workflow = (ROOT / ".github/workflows/android-ci.yml").read_text(encoding="utf-8")
+        self.assertIn("Verify packaged DXVK 2.6.2 runtime selection and ABI", workflow)
+        self.assertIn("DXVK_NATIVE_262_RUNTIME_PAIR_ABI_OK", workflow)
+        self.assertIn("DXVK_NATIVE_262_RUNTIME_PAIR_REMAINS_OPT_IN", workflow)
+        self.assertIn("lib/arm64-v8a/libdxvk_d3d9_262.so", workflow)
+        self.assertIn("lib/arm64-v8a/libmain_262.so", workflow)
+        self.assertIn("Shared library: [libdxvk_d3d9_262.so]", workflow)
+        self.assertIn("main_262 does not depend on the matching DXVK 2.6.2 DSO", workflow)
+        self.assertIn("BUILD_RUNTIME_PAIR", workflow)
 
     def test_legacy_snapframe_host_is_not_linked_to_262_candidate(self):
         # The current SnapFrame host consumes DXVK-internal C++ types from the
