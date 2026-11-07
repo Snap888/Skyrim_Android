@@ -20,6 +20,15 @@ def replace_once(path: Path, old: str, new: str) -> None:
     path.write_text(text.replace(old, new, 1), encoding="utf-8")
 
 
+
+
+def replace_exact(path: Path, old: str, new: str, expected: int) -> None:
+    text = path.read_text(encoding="utf-8")
+    count = text.count(old)
+    if count != expected:
+        raise SystemExit(f"expected {expected} patch anchors in {path}: found {count}")
+    path.write_text(text.replace(old, new), encoding="utf-8")
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("source_root", type=Path)
@@ -385,6 +394,39 @@ typedef struct VkSurfaceFullScreenExclusiveInfoEXT {
     }
 """
     )
+
+    # Android/Adreno may report VK_SUBOPTIMAL_KHR on every acquire and
+    # present while the ANativeWindow extent is stable. Vulkan permits using
+    # that swapchain; recreating it for every frame churns image/semaphore
+    # rings and can race Presenter teardown. Keep the valid swapchain and
+    # reserve recreation for OUT_OF_DATE / SURFACE_LOST / real surface changes.
+    acquire_status = """      m_acquireStatus = m_vkd->vkAcquireNextImageKHR(m_vkd->device(),
+        m_swapchain, std::numeric_limits<uint64_t>::max(),
+        sync.acquire, VK_NULL_HANDLE, &m_imageIndex);
+"""
+    replace_exact(
+        presenter_cpp,
+        acquire_status,
+        acquire_status + """#ifdef __ANDROID__
+      if (m_acquireStatus == VK_SUBOPTIMAL_KHR)
+        m_acquireStatus = VK_SUCCESS;
+#endif
+""",
+        2,
+    )
+    present_status = """    VkResult status = m_vkd->vkQueuePresentKHR(
+      m_device->queues().graphics.queueHandle, &info);
+"""
+    replace_once(
+        presenter_cpp,
+        present_status,
+        present_status + """#ifdef __ANDROID__
+    if (status == VK_SUBOPTIMAL_KHR)
+      status = VK_SUCCESS;
+#endif
+""",
+    )
+    print("DXVK_NATIVE_262_ANDROID_SUBOPTIMAL_REUSE_OK")
 
     # Carry immutable identity for the source WSI acquire all the way from
     # Presenter -> command list -> queued present. This is deliberately the
