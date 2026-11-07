@@ -49,8 +49,8 @@ if text.count("  global:") != 1 or text.count("  local:") != 1:
     raise SystemExit("unexpected DXVK D3D9 symbol map structure")
 missing = [name for name in required if f"    {name};" not in text]
 if missing:
-    insertion = "".join(f"    {name};\\n" for name in missing)
-    text = text.replace("  local:", insertion + "\\n  local:", 1)
+    insertion = "".join(f"    {name};\n" for name in missing)
+    text = text.replace("  local:", insertion + "\n  local:", 1)
     path.write_text(text, encoding="utf-8")
 PY
 
