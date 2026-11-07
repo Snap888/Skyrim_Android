@@ -218,7 +218,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         )[1])
         self.assertIn("snapframe_host_262.cpp", self.snapframe_text)
         self.assertIn("target_sources(dxvk_d3d9_262 PRIVATE", self.snapframe_text)
-        self.assertIn("SnapFrame DXVK 2.6.2 luma/flow/consistency/midpoint compute host enabled", self.snapframe_text)
+        self.assertIn("SnapFrame DXVK 2.6.2 compute host + explicit runtime ABI enabled", self.snapframe_text)
         self.assertNotIn("snapframe_host_262", self.game_text)
 
     def test_262_runtime_enable_api_has_consistent_c_linkage_and_fails_closed(self):
@@ -337,7 +337,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("distinct WSI image", design)
         self.assertIn("semaphore slot", design)
         self.assertIn("current hook does not claim a generated frame was presented", design)
-        self.assertIn("hook still skips FG until the midpoint image is wired into the WSI blit source", host)
+        self.assertIn("does not claim a generated WSI present", host)
         for forbidden in (
             "vkQueuePresentKHR",
             "presentImage(",
