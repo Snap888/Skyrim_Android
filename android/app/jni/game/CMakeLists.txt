@@ -87,12 +87,12 @@ else()
   endif()
 endif()
 
-# DXVK Native 2.6.2 runtime pair. The DXVK candidate can be built and
-# inspected independently, but main_262 must stay gated until its dedicated
-# 2.6.2 host/JNI bridge and Android surface ABI are implemented. Linking the
-# legacy snapframe_host here would silently pull in DXVK 1.9.2b and is unsafe.
+# DXVK Native 2.6.2 runtime pair. snapframe/CMakeLists.txt compiles the
+# version-matched host and runtime ABI into dxvk_d3d9_262. main_262 links only
+# that DSO; it must never link the legacy DXVK 1.9.2b snapframe_host target.
+# Keep the pair opt-in until the APK ABI checks and on-device smoke test pass.
 option(SNAP_BUILD_DXVK_NATIVE_262_RUNTIME_PAIR
-  "Build main_262 only after the dedicated DXVK 2.6.2 host bridge is complete" OFF)
+  "Build the opt-in main_262 runtime against the matching DXVK 2.6.2 DSO" OFF)
 if(TARGET dxvk_d3d9_262 AND SNAP_BUILD_DXVK_NATIVE_262_RUNTIME_PAIR)
   if(NOT SNAP_DXVK_NATIVE_262_SOURCE_DIR)
     message(FATAL_ERROR "DXVK 2.6.2 source root is required for main_262")
