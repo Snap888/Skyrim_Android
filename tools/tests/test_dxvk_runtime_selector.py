@@ -21,6 +21,12 @@ class DxvkRuntimeSelectorTests(unittest.TestCase):
         self.assertIn('new File(dir, "lib" + variant.mainLibrary + ".so")', self.selector)
         self.assertIn("(header[18] & 0xff) == 0xb7", self.selector)
 
+    def test_full_apk_build_always_packages_the_262_runtime_pair(self):
+        workflow = (ROOT / ".github/workflows/android-ci.yml").read_text(encoding="utf-8")
+        self.assertIn('-PsnapBuildDxvk262RuntimePair="true"', workflow)
+        self.assertIn('BUILD_RUNTIME_PAIR: "true"', workflow)
+        self.assertIn('echo "DXVK_NATIVE_262_RUNTIME_PAIR_ABI_OK"', workflow)
+
     def test_launcher_persists_stable_runtime_id(self):
         self.assertIn("DxvkRuntimeSelector.labels(this)", self.launcher)
         self.assertIn("DxvkRuntimeSelector.idAt(this, dxvkSpinner.getSelectedItemPosition())", self.launcher)

@@ -430,7 +430,7 @@ jobs:
           ./gradlew assembleDebug \
             -PndkVersion=${{ env.NDK_VERSION }} \
             -PsnapDxvk262Source="$DXVK_262_SOURCE" \
-            -PsnapBuildDxvk262RuntimePair="${{ inputs.build_runtime_pair == true || (github.event_name == 'push' && contains(github.event.head_commit.message, '[build-runtime-pair]')) }}" \
+            -PsnapBuildDxvk262RuntimePair="true" \
             -PversionCode="$VERSION_CODE" \
             -PversionName="$VERSION_NAME" \
             --no-daemon --stacktrace --info --console=plain
@@ -457,10 +457,10 @@ jobs:
             echo "applicationId=com.tj.skyrim"
           } > ../dist/build-info.txt
 
-      # Runtime-pair opt-in verifies both ARM64 ELFs and the exact DT_NEEDED edge.
+      # Every distributable APK includes and verifies the selectable DXVK 2.6.2 runtime pair.
       - name: Verify packaged DXVK 2.6.2 runtime selection and ABI
         env:
-          BUILD_RUNTIME_PAIR: ${{ inputs.build_runtime_pair == true || (github.event_name == 'push' && contains(github.event.head_commit.message, '[build-runtime-pair]')) }}
+          BUILD_RUNTIME_PAIR: "true"
         run: |
           set -euo pipefail
           APK="android/app/build/outputs/apk/debug/app-debug.apk"
