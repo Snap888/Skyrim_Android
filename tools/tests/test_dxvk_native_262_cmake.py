@@ -221,6 +221,25 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("SnapFrame DXVK 2.6.2 luma/flow/consistency/midpoint compute host enabled", self.snapframe_text)
         self.assertNotIn("snapframe_host_262", self.game_text)
 
+    def test_262_runtime_enable_api_has_consistent_c_linkage_and_fails_closed(self):
+        # These declarations are included by both C++ implementation and
+        # patched DXVK translation units. Keep them inside the extern-C block
+        # so the exported ABI has unmangled names on Android.
+        extern_open = self.dxvk262_api.index('extern "C" {')
+        extern_close = self.dxvk262_api.index("#ifdef __cplusplus\\n}", extern_open)
+        for symbol in (
+            "snapframe_dxvk262_set_enabled",
+            "snapframe_dxvk262_get_enabled",
+        ):
+            declaration = self.dxvk262_api.index(symbol)
+            self.assertGreater(declaration, extern_open)
+            self.assertLess(declaration, extern_close)
+        host = (ROOT / "android/app/jni/snapframe/snapframe_host_262.cpp").read_text(encoding="utf-8")
+        self.assertIn("std::atomic<bool> g_enabled{false};", host)
+        self.assertIn("g_enabled.load(std::memory_order_acquire)", host)
+        self.assertIn("g_enabled.store(enabled != 0, std::memory_order_release)", host)
+        self.assertIn("if (!dxvk::g_enabled.load(std::memory_order_acquire))", host)
+
     def test_262_host_records_luma_through_dxvk_context_without_manual_submit(self):
         host = ROOT / "android/app/jni/snapframe/snapframe_host_262.cpp"
         host_text = host.read_text(encoding="utf-8")
