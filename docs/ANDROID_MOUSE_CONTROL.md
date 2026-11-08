@@ -41,3 +41,5 @@ Android ARM64 debug APK requested through CI with commit message prefix `[build-
 
 
 <!-- [build-apk] Build an Android ARM64 test package with configurable touchpad camera look. -->
+
+Build request: package the configurable touchpad camera-look controls for on-device testing.
