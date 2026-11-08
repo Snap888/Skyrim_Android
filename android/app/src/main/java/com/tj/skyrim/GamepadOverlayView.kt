@@ -63,7 +63,28 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
             emit()
         }
     }
-    private var trackpadSensitivity = 1.6f
+    private var trackpadSensitivity = prefs.getFloat("trackpad_sensitivity", 1.6f).coerceIn(0.25f, 4.0f)
+    private var trackpadSpeed = prefs.getFloat("trackpad_speed", 1.0f).coerceIn(0.25f, 3.0f)
+    private var trackpadVerticalScale = prefs.getFloat("trackpad_vertical_scale", 1.0f).coerceIn(0.25f, 3.0f)
+    private var trackpadInvertY = prefs.getBoolean("trackpad_invert_y", false)
+
+    fun setTrackpadSettings(sensitivity: Float, speed: Float, verticalScale: Float, invertY: Boolean) {
+        trackpadSensitivity = sensitivity.coerceIn(0.25f, 4.0f)
+        trackpadSpeed = speed.coerceIn(0.25f, 3.0f)
+        trackpadVerticalScale = verticalScale.coerceIn(0.25f, 3.0f)
+        trackpadInvertY = invertY
+        prefs.edit()
+            .putFloat("trackpad_sensitivity", trackpadSensitivity)
+            .putFloat("trackpad_speed", trackpadSpeed)
+            .putFloat("trackpad_vertical_scale", trackpadVerticalScale)
+            .putBoolean("trackpad_invert_y", trackpadInvertY)
+            .apply()
+    }
+
+    fun trackpadSensitivity(): Float = trackpadSensitivity
+    fun trackpadSpeed(): Float = trackpadSpeed
+    fun trackpadVerticalScale(): Float = trackpadVerticalScale
+    fun trackpadInvertY(): Boolean = trackpadInvertY
 
     fun setMouseControlEnabled(enabled: Boolean) {
         mouseControlEnabled = enabled
@@ -87,10 +108,11 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
         // Treat finger velocity as stick deflection: small movements produce
         // proportional analog values; larger swipes saturate at the stick edge.
         val span = min(width, height).toFloat().coerceAtLeast(1f)
-        val scale = 32767f * trackpadSensitivity / (span * 0.06f)
+        val scale = 32767f * trackpadSensitivity * trackpadSpeed / (span * 0.06f)
         if (pointers.values.none { it.name == "RS" }) {
+            val verticalDirection = if (trackpadInvertY) 1f else -1f
             rightX = (dx * scale).toInt().coerceIn(-32767, 32767)
-            rightY = (-dy * scale).toInt().coerceIn(-32767, 32767)
+            rightY = (dy * verticalDirection * scale * trackpadVerticalScale).toInt().coerceIn(-32767, 32767)
         }
         trackpadHandler.removeCallbacks(trackpadZero)
         trackpadHandler.postDelayed(trackpadZero, 45L)
