@@ -60,8 +60,10 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
     private var trackpadTargetY = 0f
     private var trackpadSmoothX = 0f
     private var trackpadSmoothY = 0f
+    private var trackpadTickScheduled = false
     private val trackpadZero = object : Runnable {
         override fun run() {
+            trackpadTickScheduled = false
             if (mousePointers.isEmpty() && pointers.values.none { it.name == "RS" }) {
                 // Low-pass the analog stick signal and ease it back to neutral.
                 // A fixed 16 ms cadence avoids abrupt per-MotionEvent axis jumps.
@@ -82,6 +84,7 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
                 emit()
                 if (trackpadSmoothX != 0f || trackpadSmoothY != 0f ||
                     trackpadTargetX != 0f || trackpadTargetY != 0f) {
+                    trackpadTickScheduled = true
                     trackpadHandler.postDelayed(this, 16L)
                 }
             }
@@ -138,7 +141,8 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
             val verticalDirection = if (trackpadInvertY) 1f else -1f
             trackpadTargetX = (dx * scale).coerceIn(-32767f, 32767f)
             trackpadTargetY = (dy * verticalDirection * scale * trackpadVerticalScale).coerceIn(-32767f, 32767f)
-            if (!trackpadHandler.hasCallbacks(trackpadZero)) {
+            if (!trackpadTickScheduled) {
+                trackpadTickScheduled = true
                 trackpadHandler.post(trackpadZero)
             }
         }
@@ -146,6 +150,7 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
 
     private fun clearTrackpadMotion() {
         trackpadHandler.removeCallbacks(trackpadZero)
+        trackpadTickScheduled = false
         trackpadTargetX = 0f
         trackpadTargetY = 0f
         trackpadSmoothX = 0f
