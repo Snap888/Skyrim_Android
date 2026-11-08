@@ -349,9 +349,20 @@ jobs:
             echo "Using gen/ from checkout."
           else
             mkdir -p /tmp/gen
-            curl --fail --location --retry 3 "${GEN_URL}" -o /tmp/gen/archive
-            if [[ "$GEN_URL" == "https://github.com/Snap888/fexdroid-1/releases/download/gen/gen.tar.xz" ]]; then
+            DEFAULT_GEN_URL="https://github.com/Snap888/fexdroid-1/releases/download/gen/gen.tar.xz"
+            if [[ "$GEN_URL" == "$DEFAULT_GEN_URL" ]]; then
+              # GitHub's browser-download CDN can intermittently return HTTP 504.
+              # Retry through the Releases API asset endpoint before failing the APK job.
+              if ! curl --fail --location --retry 2 --retry-all-errors --connect-timeout 20 --max-time 180 "$GEN_URL" -o /tmp/gen/archive; then
+                echo "Primary release URL failed; retrying via GitHub Releases API asset endpoint."
+                curl --fail --location --retry 3 --retry-all-errors --connect-timeout 20 --max-time 180 \
+                  -H "Accept: application/octet-stream" \
+                  "https://api.github.com/repos/Snap888/fexdroid-1/releases/assets/683997355" \
+                  -o /tmp/gen/archive
+              fi
               echo "5c03d4d21737ff50514433f775a3e4b0a6f2c68b282bc29a4fbcbb344683623c  /tmp/gen/archive" | sha256sum --check
+            else
+              curl --fail --location --retry 3 --retry-all-errors --connect-timeout 20 --max-time 180 "${GEN_URL}" -o /tmp/gen/archive
             fi
             if file /tmp/gen/archive | grep -qi 'zip'; then
               unzip -q /tmp/gen/archive -d /tmp/gen/unpacked
