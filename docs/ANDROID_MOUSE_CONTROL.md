@@ -49,3 +49,8 @@ The following CI run is explicitly requested with `[build-apk]` to package the v
 Touching an unused area while Mouse control is enabled no longer sends SDL mouse events. Finger movement is converted into a short analog RIGHT STICK X/Y pulse and submitted through the same `nativeSetVirtualPad` path as the on-screen Xbox controller. Deflection is proportional to finger delta and clamped to the XInput range; the axes return to zero after 45 ms without movement or when the touch ends. A finger on the on-screen RS control retains ownership of the right-stick axes. This mirrors the touch-to-gamepad-axis architecture used by doom-port and avoids dependence on SDL mouse/relative-mode handling.
 
 Device test: enable Mouse control, swipe on an empty area and verify camera rotation in all directions; stop moving and verify the camera stops; simultaneously hold a gamepad button; compare with direct RS control. Tune `trackpadSensitivity` only after confirming input is received.
+
+
+## CI test package
+
+Requested Android ARM64 APK build for the virtual right-stick camera-look implementation (`[build-apk]`).
