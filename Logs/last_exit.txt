@@ -1,9 +1,15 @@
 Skyrim Android crash diagnostics
-captured=Sun Nov 08 02:19:38 GMT+03:00 2026
+captured=Sun Nov 08 07:54:42 GMT+03:00 2026
 sdk=35 release=15 device=asus/ASUS_AI2205_C
 fingerprint=asus/WW_AI2205/ASUS_AI2205:15/AQ3A.240812.002/35.0604.0820.88:user/release-keys
 abis=[arm64-v8a, armeabi-v7a, armeabi]
 historical_exit_count=5
+
+--- previous process ---
+timestamp=Sun Nov 08 02:50:31 GMT+03:00 2026 reason=EXIT_SELF status=0 importance=100 pss=2335MB rss=2447MB description=
+
+--- previous process ---
+timestamp=Sun Nov 08 02:25:03 GMT+03:00 2026 reason=EXIT_SELF status=0 importance=100 pss=2476MB rss=2593MB description=
 
 --- previous process ---
 timestamp=Sun Nov 08 02:19:30 GMT+03:00 2026 reason=code 16 status=0 importance=400 pss=23MB rss=104MB description=stop com.tj.skyrim due to installPackageLI
@@ -14,10 +20,4 @@ timestamp=Sun Nov 08 02:03:54 GMT+03:00 2026 reason=LOW_MEMORY status=0 importan
 --- previous process ---
 timestamp=Sun Nov 08 01:35:41 GMT+03:00 2026 reason=EXIT_SELF status=0 importance=100 pss=0MB rss=0MB description=
 
---- previous process ---
-timestamp=Sun Nov 08 01:27:44 GMT+03:00 2026 reason=code 16 status=0 importance=400 pss=27MB rss=105MB description=stop com.tj.skyrim due to installPackageLI
-
---- previous process ---
-timestamp=Sun Nov 08 01:19:20 GMT+03:00 2026 reason=LOW_MEMORY status=0 importance=400 pss=25MB rss=103MB description=
-
-device_ram=11193MB available_now=3976MB low_memory_threshold=300MB low_memory=false
+device_ram=11193MB available_now=4493MB low_memory_threshold=300MB low_memory=false
