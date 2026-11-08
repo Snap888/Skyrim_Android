@@ -1084,7 +1084,7 @@ namespace dxvk::wsi {
     replace_once(
         swapchain,
         '#include "d3d9_window.h"\n',
-        '#include "d3d9_window.h"\n#include "../wsi/sdl2/wsi_native_surface.h"\n#include "../dxvk/hud/dxvk_hud_item.h"\\n#include "snapframe_dxvk262_api.h"\n',
+        '#include "d3d9_window.h"\n#include "../wsi/sdl2/wsi_native_surface.h"\n#include "../dxvk/hud/dxvk_hud_item.h"\n#include "snapframe_dxvk262_api.h"\n',
     )
     replace_once(
         swapchain,
