@@ -581,5 +581,5 @@ jobs:
           gh release create "$TAG" dist/Skyrim-*.apk dist/build-info.txt \\
             --title "Skyrim Android — Camera Look Test ${GITHUB_RUN_NUMBER}" \\
             --notes-file docs/BUILD_ANDROID_CAMERA_LOOK.md \\
-            --latest=false
+            # Omit --latest: this is a versioned test release, not the repository's latest release.
 
