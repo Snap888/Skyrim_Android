@@ -50,12 +50,9 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
     private var mouseControlEnabled = prefs.getBoolean("mouse_control_enabled", false)
     private val mousePointers = HashMap<Int, Pair<Float, Float>>()
     private val mouseMoved = HashSet<Int>()
-    // SDL Android's absolute mouse path is more reliable for a touch-emulated
-    // pointer than relative mode (which depends on the game's relative-mode state).
-    // Coordinates are in the overlay/SDL surface pixel space.
-    private var virtualMouseX = 0f
-    private var virtualMouseY = 0f
-    private var virtualMouseInitialized = false
+    // Skyrim camera look consumes relative mouse deltas. An absolute SDL
+    // position does not rotate the camera when SDL relative mode is active.
+    private var trackpadSensitivity = 2.0f
 
     fun setMouseControlEnabled(enabled: Boolean) {
         mouseControlEnabled = enabled
@@ -63,41 +60,31 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
         if (!enabled) {
             mousePointers.clear()
             mouseMoved.clear()
-            virtualMouseInitialized = false
         }
         invalidate()
     }
 
     fun isMouseControlEnabled(): Boolean = mouseControlEnabled
 
-    private fun ensureVirtualMousePosition() {
-        if (!virtualMouseInitialized) {
-            virtualMouseX = width.coerceAtLeast(1) * 0.5f
-            virtualMouseY = height.coerceAtLeast(1) * 0.5f
-            virtualMouseInitialized = true
-        }
-    }
-
     private fun sendTrackpadMotion(dx: Float, dy: Float) {
-        ensureVirtualMousePosition()
-        virtualMouseX = (virtualMouseX + dx * 1.8f).coerceIn(0f, width.coerceAtLeast(1).toFloat())
-        virtualMouseY = (virtualMouseY + dy * 1.8f).coerceIn(0f, height.coerceAtLeast(1).toFloat())
-        // ACTION_MOVE with relative=false sends an absolute SDL mouse position.
+        // Android_OnMouse forwards relative=true to SDL_SendMouseMotion. This
+        // produces xrel/yrel for Skyrim's camera input instead of moving an
+        // absolute cursor that the game may ignore while relative mode is on.
         org.libsdl.app.SDLActivity.onNativeMouse(
-            0, MotionEvent.ACTION_MOVE, virtualMouseX, virtualMouseY, false
+            0, MotionEvent.ACTION_MOVE,
+            dx * trackpadSensitivity, dy * trackpadSensitivity, true
         )
     }
 
     private fun sendTrackpadClick() {
-        ensureVirtualMousePosition()
-        // SDL's Android bridge expects a BUTTON_PRIMARY state mask, not a
-        // button index, and derives press/release from the state transition.
+        // SDL Android expects the Android BUTTON_PRIMARY state bit (1), then
+        // zero on release. Relative coordinates are zero so a tap does not
+        // introduce an unintended camera movement.
         org.libsdl.app.SDLActivity.onNativeMouse(
-            MotionEvent.BUTTON_PRIMARY, MotionEvent.ACTION_DOWN,
-            virtualMouseX, virtualMouseY, false
+            MotionEvent.BUTTON_PRIMARY, MotionEvent.ACTION_DOWN, 0f, 0f, true
         )
         org.libsdl.app.SDLActivity.onNativeMouse(
-            0, MotionEvent.ACTION_UP, virtualMouseX, virtualMouseY, false
+            0, MotionEvent.ACTION_UP, 0f, 0f, true
         )
     }
     private val positions = controls.associate { control ->
