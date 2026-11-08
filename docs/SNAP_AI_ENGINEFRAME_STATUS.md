@@ -784,3 +784,14 @@ compilation can cause long frame-time spikes.
 
 - Android CI run [#630](https://github.com/Snap888/Skyrim_Android/actions/runs/42196065230), commit `eafb0bf07e591322c557c88d024599c2a5fdda8b`: all five validation jobs completed successfully, including the DXVK/SnapFrame host ARM64 compile and ELF linkage probe. The APK job was skipped.
 - This validates the host and portable code as of `eafb0bf`; the later asynchronous telemetry instrumentation commits are being checked by the queued CI runs and are not yet claimed as passed.
+
+
+## Device log audit and bootstrap status correction — 2026-11-08
+
+- Latest uploaded `snapframe.conf` contains `present_mode=2` and AI thresholds, but no `enabled=1`; the runtime therefore correctly remains disabled by default. The matching `snapframe.log` confirms `requested_enabled=0` and `active_after_init=0`. These logs do not demonstrate an active FG session.
+- The uploaded `snapframe_events.csv`, `snapframe_flow.csv`, `snapframe_flow_vectors.csv`, and `snapframe_gpu.csv` are empty. No generated-frame presentation or AI feedback can be inferred from this run.
+- `last_exit.txt` shows two recent `EXIT_SELF` exits with status 0 (PSS 2335/2476 MB) and about 4493 MB available RAM at capture time. This snapshot does not support a current OOM or native-crash diagnosis.
+- Found and fixed a bootstrap diagnostic bug: `snapframe_host_init()` uses errno-style status and returns 0 on success, but `runtime/snapframe_bootstrap.c` previously warned on `initResult <= 0`. It now warns only for negative errors or a requested-but-inactive configuration.
+- Added a regression assertion in `tools/tests/test_snapframe_262_config.py`.
+- DXVK Native 2.6.2 still records luma/flow/consistency/midpoint compute into the DXVK command stream only. Its runtime explicitly logs that generated WSI presentation remains disabled; `snapframe_host_get_last_telemetry` currently returns `-ENODATA`. Do not expose this state as completed frame generation or AI-adaptive operation.
+- Required next integration milestones remain: connect the generated midpoint to a separate, ownership-safe WSI transaction; count acquired/submitted/presented generated frames independently; only acknowledge a generated frame after successful queue present; connect frame-tagged asynchronous scalar GPU/WSI telemetry to Snap AI; then validate X11 and Wayland separately.
