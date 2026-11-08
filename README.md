@@ -148,6 +148,10 @@ Everything the port writes goes into a `port` folder inside your Skyrim folder: 
 - In **Touch controls editor**, drag a button or either stick to reposition it. The layout is saved as `port/save/touch_layout.cfg` and restored on the next launch. Tap the ☰ menu again and select the editor item to leave edit mode.
 - The keyboard can also be opened from the menu; the small native keyboard control remains available on the overlay.
 
+## Touchpad camera look
+
+Enable **Mouse control** from the in-game overlay menu to use empty screen areas for camera movement. The settings dialog provides sensitivity, speed, vertical sensitivity (each 0.1x–6.0x), and vertical inversion. Values are saved between launches. See [camera look controls](docs/ANDROID_MOUSE_CONTROL.md) and the [camera-look test build notes](docs/BUILD_ANDROID_CAMERA_LOOK.md).
+
 ## Troubleshooting
 `port/log.txt` in your Skyrim folder is rewritten on every launch, so please attach it if reporting a problem. It includes per-thread CPU use and a profile every 30 seconds.
 
