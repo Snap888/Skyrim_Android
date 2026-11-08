@@ -5,7 +5,7 @@ info:  Found config file: /storage/emulated/0/Download/Flud/The Elder Scrolls V 
 info:  Effective configuration:
 info:    dxvk.hud = fps,scale=1.25,align=center,vertical=top,game=1,fg=1,output=1,devinfo
 info:    d3d9.maxFrameRate = 0
-info:  AdrenoTools activated custom Vulkan driver libvulkan_freedreno.so from /data/user/0/com.tj.skyrim/files/gpu-drivers/turnip-gen8-v38-vulkan-1.4.363/
+info:  AdrenoTools activated custom Vulkan driver libvulkan_freedreno.so from /data/user/0/com.tj.skyrim/files/gpu-drivers/gamehub-turnip-26.3-dd-gmem-pwr_max-experimental--gamehub-26.3-dd-gmem-p/
 info:  Built-in extension providers:
 info:    Platform WSI
 info:  Enabled instance extensions:
@@ -14,8 +14,8 @@ info:    VK_KHR_android_surface
 info:    VK_KHR_get_surface_capabilities2
 info:    VK_KHR_surface
 info:  D3D9: VK_FORMAT_D16_UNORM_S8_UINT -> VK_FORMAT_D24_UNORM_S8_UINT
-info:  Turnip Adreno (TM) 740:
-info:    Driver : turnip Mesa driver 26.99.99
+info:  Rutabaga Adreno (TM) 740:
+info:    Driver : rutabaga Mesa driver 26.2.99
 info:    Memory Heap[0]: 
 info:      Size: 8395 MiB
 info:      Flags: 0x1
@@ -35,7 +35,7 @@ info:  Found config file: /storage/emulated/0/Download/Flud/The Elder Scrolls V 
 info:  Effective configuration:
 info:    dxvk.hud = fps,scale=1.25,align=center,vertical=top,game=1,fg=1,output=1,devinfo
 info:    d3d9.maxFrameRate = 0
-info:  AdrenoTools activated custom Vulkan driver libvulkan_freedreno.so from /data/user/0/com.tj.skyrim/files/gpu-drivers/turnip-gen8-v38-vulkan-1.4.363/
+info:  AdrenoTools activated custom Vulkan driver libvulkan_freedreno.so from /data/user/0/com.tj.skyrim/files/gpu-drivers/gamehub-turnip-26.3-dd-gmem-pwr_max-experimental--gamehub-26.3-dd-gmem-p/
 info:  Built-in extension providers:
 info:    Platform WSI
 info:  Enabled instance extensions:
@@ -44,8 +44,8 @@ info:    VK_KHR_android_surface
 info:    VK_KHR_get_surface_capabilities2
 info:    VK_KHR_surface
 info:  D3D9: VK_FORMAT_D16_UNORM_S8_UINT -> VK_FORMAT_D24_UNORM_S8_UINT
-info:  Turnip Adreno (TM) 740:
-info:    Driver : turnip Mesa driver 26.99.99
+info:  Rutabaga Adreno (TM) 740:
+info:    Driver : rutabaga Mesa driver 26.2.99
 info:    Memory Heap[0]: 
 info:      Size: 8395 MiB
 info:      Flags: 0x1
@@ -59,11 +59,10 @@ info:    vendor ID: 0x1002
 info:    device ID: 0x73df
 info:    device description: AMD Radeon RX 6700 XT
 info:  Device properties:
-info:    Device : Turnip Adreno (TM) 740
-info:    Driver : turnip Mesa driver 26.99.99
+info:    Device : Rutabaga Adreno (TM) 740
+info:    Driver : rutabaga Mesa driver 26.2.99
 info:  Enabled device extensions:
 info:    VK_EXT_attachment_feedback_loop_layout
-info:    VK_EXT_conservative_rasterization
 info:    VK_EXT_custom_border_color
 info:    VK_EXT_depth_clip_enable
 info:    VK_EXT_extended_dynamic_state3
@@ -148,7 +147,7 @@ info:    extension supported                    : 0
 info:  VK_EXT_attachment_feedback_loop_layout
 info:    attachmentFeedbackLoopLayout           : 1
 info:  VK_EXT_conservative_rasterization
-info:    extension supported                    : 1
+info:    extension supported                    : 0
 info:  VK_EXT_custom_border_color
 info:    customBorderColors                     : 1
 info:    customBorderColorWithoutFormat         : 1
@@ -176,6 +175,4 @@ info:  VK_EXT_line_rasterization
 info:    rectangularLines                       : 1
 info:    smoothLines                            : 0
 info:  VK_EXT_memory_budget
-info:    extension supported                    : 1
-info:  VK_EXT_memory_priority
-info:    memoryPr
+info:    extension supported                    :
