@@ -24,6 +24,11 @@ bool g_initialized = false;
 bool g_enabled = false;
 bool g_can_enable = false;
 constexpr int kSupportedFlowScale = 50;
+// The 2.6.2 host currently records full-frame capture/flow/warp work into the
+// source command stream, but has no independent generated WSI present path.
+// Running that work without presenting its result only steals GPU bandwidth
+// from the game. Keep it fail-closed until generated WSI ownership is complete.
+constexpr bool kGeneratedWsiPresentationReady = false;
 
 int replaceLog(FILE** slot, const char* path) {
   if (!path || !*path) return -EINVAL;
@@ -41,7 +46,8 @@ void writeLog(const char* message) {
   if (g_log) { std::fprintf(g_log, "%s\n", value); std::fflush(g_log); }
 }
 bool supportsEnabledConfig(const SnapFrameConfig* c) {
-  return c->flow_scale_percent == kSupportedFlowScale
+  return kGeneratedWsiPresentationReady
+      && c->flow_scale_percent == kSupportedFlowScale
       && c->present_mode == SNAPFRAME_PRESENT_MODE_AUTO
       && c->multiplier == 1
       && c->quality == SNAPFRAME_QUALITY_PERFORMANCE
@@ -72,7 +78,9 @@ extern "C" int snapframe_host_init(const SnapFrameConfig* c) {
   if (!c || (c->enabled != 0 && c->enabled != 1)) return -EINVAL;
   const bool canEnable = supportsEnabledConfig(c);
   if (c->enabled && !canEnable) {
-    writeLog("Rejected unsupported enabled DXVK 2.6.2 SnapFrame configuration");
+    writeLog(kGeneratedWsiPresentationReady
+      ? "Rejected unsupported enabled DXVK 2.6.2 SnapFrame configuration"
+      : "SnapFrame FG held disabled: generated WSI present is not ready; skipping capture/compute to protect source FPS");
     return -ENOTSUP;
   }
   if (!snapframe_dxvk262_set_enabled(c->enabled)) return -ENODEV;
@@ -83,7 +91,7 @@ extern "C" int snapframe_host_init(const SnapFrameConfig* c) {
     g_initialized = true;
   }
   writeLog(c->enabled
-    ? "Capture/compute enabled; generated WSI present remains disabled"
+    ? "SnapFrame runtime enabled"
     : "Runtime initialized disabled");
   return 0;
 }
