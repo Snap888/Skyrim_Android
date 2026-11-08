@@ -65,3 +65,7 @@ Recommendation: Check flow diagnostics export gating; accepted dispatch events a
 | snapframe.conf | 47 |
 
 Full logs remain local. This report contains aggregates and selected reasons; it does not upload files.
+
+## Android device-test APK build
+
+A full ARM64 debug APK build is requested for this branch revision. The build workflow is gated and requires the commit message marker `[build-apk]`; this update intentionally triggers that workflow. The build uses the pinned DXVK Native 2.6.2 source and enables the matching DXVK 2.6.2 runtime pair. The APK is not considered ready until CI verifies the APK signature, package metadata, ARM64 native libraries, and runtime-pair ABI.
