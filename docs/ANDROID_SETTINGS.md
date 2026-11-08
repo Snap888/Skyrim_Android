@@ -40,3 +40,9 @@ the launcher and restart the game to run a controlled A/B test. MAILBOX may
 discard stale queued frames; IMMEDIATE can tear and does not guarantee scanout
 at the submit rate. Output submit FPS remains a submission metric, not a
 measurement of displayed refresh.
+
+## In-game mouse control (touchpad)
+
+The in-game overlay menu includes a persistent **Mouse control: ON/OFF** toggle. When enabled, a touch that begins outside a virtual gamepad control is treated as a relative touchpad: finger movement is forwarded to SDL's Android mouse bridge, and a short tap sends a left click. Touches beginning on a visible gamepad control remain exclusively assigned to that control; they continue to send the same virtual XInput state as before. This pointer ownership is per finger, so a trackpad finger and one or more gamepad fingers can be used simultaneously. A touch already assigned to the trackpad never changes into a gamepad press mid-gesture, preventing accidental button activation while moving the cursor. The setting is saved in the gamepad_overlay preferences and survives activity/game restarts.
+
+The overlay uses SDL's native Android mouse event path (onNativeMouse) rather than injecting Android system input, so mouse motion and clicks enter the game through SDL. Relative motion sensitivity currently uses a fixed 1.8x multiplier.

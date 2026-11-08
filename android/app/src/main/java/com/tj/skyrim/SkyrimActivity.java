@@ -84,6 +84,7 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
     private native void nativeQuickAction(boolean load);
     private GamepadOverlayView gamepadOverlay;
     private boolean gamepadOverlayEnabled = true;
+    private boolean mouseControlEnabled = false;
     private boolean physicalGamepadConnected = false;
     private boolean forceOverlayVisible = false;
     private InputManager inputManager;
@@ -110,6 +111,8 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
         mLayout.addView(gamepadOverlay, p);
         android.content.SharedPreferences prefs = getSharedPreferences("gamepad_overlay", MODE_PRIVATE);
         gamepadOverlayEnabled = prefs.getBoolean("overlay_enabled", true);
+        mouseControlEnabled = prefs.getBoolean("mouse_control_enabled", false);
+        gamepadOverlay.setMouseControlEnabled(mouseControlEnabled);
         applyGamepadProfile(prefs, prefs.getString("active_profile", "Default"));
         gamepadOverlay.bringToFront();
         gamepadOverlay.setVisibility(gamepadOverlayEnabled ? android.view.View.VISIBLE : android.view.View.GONE);
@@ -125,6 +128,16 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
         if (!enabled && !mBrokenLibraries) nativeSetVirtualPad(0, 0, 0, 0, 0, 0, 0);
         android.widget.Toast.makeText(this,
                 enabled ? "Gamepad overlay enabled" : "Gamepad overlay disabled",
+                android.widget.Toast.LENGTH_SHORT).show();
+    }
+
+    private void setMouseControlEnabled(boolean enabled) {
+        mouseControlEnabled = enabled;
+        getSharedPreferences("gamepad_overlay", MODE_PRIVATE).edit()
+                .putBoolean("mouse_control_enabled", enabled).apply();
+        if (gamepadOverlay != null) gamepadOverlay.setMouseControlEnabled(enabled);
+        android.widget.Toast.makeText(this,
+                enabled ? "Mouse control enabled — touch empty areas to move cursor" : "Mouse control disabled",
                 android.widget.Toast.LENGTH_SHORT).show();
     }
 
@@ -175,7 +188,7 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
     }
 
     private void showOverlayMenu() {
-        String[] items = { "Snap AI / Frame Generation", "Android keyboard", "Gamepad overlay: " + (gamepadOverlayEnabled ? "ON" : "OFF"), "Gamepad editor", "Legacy touch controls editor" };
+        String[] items = { "Snap AI / Frame Generation", "Android keyboard", "Gamepad overlay: " + (gamepadOverlayEnabled ? "ON" : "OFF"), "Mouse control: " + (mouseControlEnabled ? "ON" : "OFF"), "Gamepad editor", "Legacy touch controls editor" };
         new AlertDialog.Builder(this)
                 .setTitle("Skyrim overlay")
                 .setItems(items, (dialog, which) -> {
@@ -186,6 +199,8 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
                     } else if (which == 2) {
                         setGamepadOverlayEnabled(!gamepadOverlayEnabled);
                     } else if (which == 3) {
+                        setMouseControlEnabled(!mouseControlEnabled);
+                    } else if (which == 4) {
                         showGamepadControlsEditor();
                     } else {
                         touchEditorEnabled = !touchEditorEnabled;

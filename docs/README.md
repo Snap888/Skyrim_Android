@@ -15,3 +15,5 @@ This index describes the current SnapFrame-based development line. Historical ba
 ## Active branch
 
 `Snap-AI-EngineFrame` is the active Skyrim integration branch. Keep `main` and `frame_gen` unchanged. SnapFrame is the only frame-generation backend in this branch.
+
+- [Android mouse control](ANDROID_MOUSE_CONTROL.md) — in-game touchpad toggle, pointer ownership and simultaneous virtual gamepad input.

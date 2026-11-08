@@ -1,0 +1,29 @@
+# Android in-game mouse control
+
+## User-facing behavior
+
+- The in-game overlay menu exposes **Mouse control: ON/OFF**.
+- The choice persists in the gamepad_overlay SharedPreferences store (mouse_control_enabled).
+- When ON, a finger that begins outside a virtual gamepad hitbox controls the SDL mouse using relative motion. A short tap on the trackpad area generates a left click.
+- A finger that begins on a visible virtual control is reserved for that control for its entire gesture. The existing XInput buttons, triggers, and analog sticks are unchanged.
+- Trackpad and controller fingers are tracked independently, allowing simultaneous cursor movement and button presses.
+- Turning the mode OFF clears any active trackpad pointer state immediately.
+
+## Input routing
+
+GamepadOverlayView performs virtual-control hit testing before trackpad routing. It keeps separate pointer maps for controller controls and trackpad fingers. Relative deltas and clicks are forwarded through org.libsdl.app.SDLActivity.onNativeMouse, which reaches SDL's Android Android_OnMouse implementation. The relative flag is set so deltas are not interpreted as absolute screen coordinates.
+
+The touchpad does not draw an opaque surface or add a second overlay view; it uses the existing full-screen gamepad overlay's empty hit regions. This preserves the existing overlay z-order and avoids a second view competing with the buttons.
+
+## Device validation checklist
+
+1. Open the in-game menu and switch Mouse control ON.
+2. Drag a finger through empty screen space; verify the game's mouse cursor or pointer moves.
+3. Tap empty space; verify a left click is received.
+4. Press and hold A/B/X/Y, D-pad, shoulders, triggers and both sticks; verify each still works.
+5. Move the cursor with one finger while holding a gamepad control with another.
+6. Start a gesture on a button and move outside its hitbox; it must remain a button gesture and must not move the mouse.
+7. Switch Mouse control OFF; empty-space touches must no longer move/click the mouse.
+8. Repeat in both X11 and Wayland launch modes.
+
+Sensitivity is currently fixed at 1.8x and can be tuned after device testing.

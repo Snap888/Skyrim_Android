@@ -47,6 +47,27 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
     )
     private val pointers = HashMap<Int, Control>()
     private val prefs = context.getSharedPreferences("gamepad_overlay", Context.MODE_PRIVATE)
+    private var mouseControlEnabled = prefs.getBoolean("mouse_control_enabled", false)
+    private val mousePointers = HashMap<Int, Pair<Float, Float>>()
+    private val mouseMoved = HashSet<Int>()
+
+    fun setMouseControlEnabled(enabled: Boolean) {
+        mouseControlEnabled = enabled
+        prefs.edit().putBoolean("mouse_control_enabled", enabled).apply()
+        if (!enabled) { mousePointers.clear(); mouseMoved.clear() }
+        invalidate()
+    }
+
+    fun isMouseControlEnabled(): Boolean = mouseControlEnabled
+
+    private fun sendTrackpadMotion(dx: Float, dy: Float) {
+        org.libsdl.app.SDLActivity.onNativeMouse(0, 2, dx * 1.8f, dy * 1.8f, true)
+    }
+
+    private fun sendTrackpadClick() {
+        org.libsdl.app.SDLActivity.onNativeMouse(1, 0, 0f, 0f, true)
+        org.libsdl.app.SDLActivity.onNativeMouse(0, 1, 0f, 0f, true)
+    }
     private val positions = controls.associate { control ->
         control.name to Pair(
             prefs.getFloat(profileKey("x_", control.name), prefs.getFloat("x_" + control.name, control.x)),
@@ -227,7 +248,14 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
                     invalidate()
                     return true
                 }
-                val c=hit(e.getX(index),e.getY(index)) ?: return true
+                val c = hit(e.getX(index), e.getY(index))
+                if (c == null) {
+                    if (mouseControlEnabled) {
+                        mousePointers[id] = Pair(e.getX(index), e.getY(index))
+                        mouseMoved.remove(id)
+                    }
+                    return true
+                }
                 if (!isControlEnabled(c.name)) return true
                 pointers[id]=c
                 if(c.kind==5) quickAction(c.name)
@@ -257,6 +285,15 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
                     lastTouch[pid] = Pair(e.getX(i),e.getY(i))
                     continue
                 }
+                val mousePrev = mousePointers[pid]
+                if (mousePrev != null) {
+                    val x = e.getX(i); val y = e.getY(i)
+                    val dx = x - mousePrev.first; val dy = y - mousePrev.second
+                    if (kotlin.math.abs(dx) + kotlin.math.abs(dy) > 1.5f) mouseMoved.add(pid)
+                    mousePointers[pid] = Pair(x, y)
+                    if (dx != 0f || dy != 0f) sendTrackpadMotion(dx, dy)
+                    continue
+                }
                 val c=pointers[pid] ?: continue
                 if(c.kind==3){val p=axis(c,e.getX(i),e.getY(i));axes[c.name.hashCode()]=p;setAxis(c,p)}
             }
@@ -271,6 +308,13 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
                     }
                     invalidate()
                     return true
+                }
+                val mouseIds = if (e.actionMasked == MotionEvent.ACTION_CANCEL) mousePointers.keys.toList() else listOf(id)
+                mouseIds.forEach { pid ->
+                    if (mousePointers.remove(pid) != null) {
+                        if (e.actionMasked != MotionEvent.ACTION_CANCEL && !mouseMoved.contains(pid)) sendTrackpadClick()
+                        mouseMoved.remove(pid)
+                    }
                 }
                 val ids=if(e.actionMasked==MotionEvent.ACTION_CANCEL) pointers.keys.toList() else listOf(id)
                 ids.forEach { pid ->
