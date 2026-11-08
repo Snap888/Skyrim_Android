@@ -51,6 +51,28 @@ def main() -> int:
     # Resolve the DXVK source directory before any source-file paths are built.
     dxvk_dir = root / "src/dxvk"
 
+    # DXVK Native 2.6.2 already has its Vulkan HUD renderer and D3D9 blitter
+    # integration. Match the 1.9.2 Android behavior: dxvk.conf wins, then
+    # DXVK_HUD, and FPS is enabled by default when neither is configured.
+    hud_items_cpp = root / "src/dxvk/hud/dxvk_hud_item.cpp"
+    replace_once(
+        hud_items_cpp,
+        """    std::string configStr = env::getEnvVar("DXVK_HUD");
+
+    if (configStr.empty())
+      configStr = device->config().hud;
+""",
+        """    std::string configStr = device->config().hud;
+
+    if (configStr.empty())
+      configStr = env::getEnvVar("DXVK_HUD");
+
+    if (configStr.empty())
+      configStr = "fps";
+""",
+    )
+    print("DXVK_NATIVE_262_HUD_DEFAULT_FPS_OK")
+
     # DXVK Native 2.6.2 constructs its Vulkan instance from Direct3DCreate9.
     # A DxvkError thrown by that constructor currently crosses the exported C
     # ABI and terminates the whole Android process (SIGABRT). Convert startup

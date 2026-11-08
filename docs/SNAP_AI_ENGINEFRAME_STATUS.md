@@ -795,3 +795,11 @@ compilation can cause long frame-time spikes.
 - Added a regression assertion in `tools/tests/test_snapframe_262_config.py`. The complete APK workflow is explicitly retriggered from this corrected branch head.
 - DXVK Native 2.6.2 still records luma/flow/consistency/midpoint compute into the DXVK command stream only. Its runtime explicitly logs that generated WSI presentation remains disabled; `snapframe_host_get_last_telemetry` currently returns `-ENODATA`. Do not expose this state as completed frame generation or AI-adaptive operation.
 - Required next integration milestones remain: connect the generated midpoint to a separate, ownership-safe WSI transaction; count acquired/submitted/presented generated frames independently; only acknowledge a generated frame after successful queue present; connect frame-tagged asynchronous scalar GPU/WSI telemetry to Snap AI; then validate X11 and Wayland separately.
+
+
+## DXVK Native 2.6.2 HUD parity — 2026-11-08
+
+- The pinned 2.6.2 source already contains the Vulkan HUD renderer, D3D9 HUD items, and swapchain-blitter composition. It renders in the same presentation command stream; the Android port does not need a second overlay renderer or an extra WSI present.
+- Restored the 1.9.2 default behavior in the 2.6.2 source patch: `dxvk.conf` HUD setting takes priority, `DXVK_HUD` is the fallback, and `fps` is enabled when neither is configured. Explicit user configuration remains authoritative.
+- Other upstream HUD items remain selectable through the normal HUD option list (for example `devinfo`, `frametimes`, `submissions`, `drawcalls`, `pipelines`, `memory`, `gpuload`, and `compiler`).
+- The HUD's built-in FPS is the measured DXVK presentation FPS. A separate generated-FPS counter is intentionally not reported until the 2.6.2 generated-frame path owns and confirms a distinct successful WSI present; compute midpoint recording alone is not a presented frame.

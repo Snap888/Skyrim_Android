@@ -110,6 +110,16 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME", self.patcher)
         self.assertIn("VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME", self.patcher)
 
+    def test_262_hud_defaults_to_fps_and_preserves_user_configuration_precedence(self):
+        # Native 2.6.2 already renders the HUD through DxvkSwapchainBlitter.
+        # Restore the 1.9.2 behavior without adding a second renderer or WSI path.
+        self.assertIn('hud_items_cpp = root / "src/dxvk/hud/dxvk_hud_item.cpp"', self.patcher)
+        self.assertIn('std::string configStr = device->config().hud;', self.patcher)
+        self.assertIn('configStr = env::getEnvVar("DXVK_HUD");', self.patcher)
+        self.assertIn('configStr = "fps";', self.patcher)
+        self.assertIn("DXVK_NATIVE_262_HUD_DEFAULT_FPS_OK", self.patcher)
+        self.assertIn('if (configStr.empty())\n      configStr = "fps";', self.patcher)
+
     def test_android_loader_keeps_compat_types_without_win32_vulkan_platform(self):
         # HMODULE comes from DXVK's Win32 compatibility layer, not Vulkan's
         # platform declarations. The loader header must include it explicitly.
