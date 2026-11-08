@@ -4,14 +4,14 @@
 
 - The in-game overlay menu exposes **Mouse control: ON/OFF**.
 - The choice persists in the gamepad_overlay SharedPreferences store (mouse_control_enabled).
-- When ON, a finger that begins outside a virtual gamepad hitbox controls the SDL mouse using relative motion. A short tap on the trackpad area generates a left click.
+- When ON, a finger that begins outside a virtual gamepad hitbox controls Skyrim camera look through relative SDL mouse deltas. A short tap on the trackpad area generates a left click.
 - A finger that begins on a visible virtual control is reserved for that control for its entire gesture. The existing XInput buttons, triggers, and analog sticks are unchanged.
 - Trackpad and controller fingers are tracked independently, allowing simultaneous cursor movement and button presses.
 - Turning the mode OFF clears any active trackpad pointer state immediately.
 
 ## Input routing
 
-GamepadOverlayView performs virtual-control hit testing before trackpad routing. It keeps separate pointer maps for controller controls and trackpad fingers. Relative deltas and clicks are forwarded through org.libsdl.app.SDLActivity.onNativeMouse, which reaches SDL's Android Android_OnMouse implementation. The relative flag is set so deltas are not interpreted as absolute screen coordinates.
+GamepadOverlayView performs virtual-control hit testing before trackpad routing. It keeps separate pointer maps for controller controls and trackpad fingers. Relative deltas and clicks are forwarded through org.libsdl.app.SDLActivity.onNativeMouse, which reaches SDL's Android Android_OnMouse implementation. Motion uses `relative=true`, causing SDL to deliver `xrel/yrel` deltas consumed by Skyrim's camera controls. Absolute cursor coordinates are not suitable here: Skyrim may enable SDL relative-mouse mode and ignore absolute positioning for camera look.
 
 The touchpad does not draw an opaque surface or add a second overlay view; it uses the existing full-screen gamepad overlay's empty hit regions. This preserves the existing overlay z-order and avoids a second view competing with the buttons.
 
@@ -36,4 +36,4 @@ The touchpad now maintains a virtual cursor in the overlay/SDL surface pixel spa
 
 ## Test build 2026-11-08
 
-Build target: Android ARM64 debug APK. This test revision corrects touchpad-to-SDL mouse delivery by maintaining an absolute virtual cursor, sending absolute motion events, and emitting primary-button press/release events at the cursor position. Gamepad hitbox priority and independent multi-touch pointer ownership are retained. Validation required on-device: cursor movement, click/menu interaction, and simultaneous mouse/gamepad input. This is a test build; physical-device validation is pending.
+Build target: Android ARM64 debug APK. This test revision routes touchpad deltas as relative SDL mouse motion for Skyrim camera look and emits primary-button press/release events. Gamepad hitbox priority and independent multi-touch pointer ownership are retained. Validation required on-device: cursor movement, click/menu interaction, and simultaneous mouse/gamepad input. This is a test build; physical-device validation is pending.
