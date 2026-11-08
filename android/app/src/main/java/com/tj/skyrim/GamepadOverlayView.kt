@@ -64,7 +64,7 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
     private val trackpadZero = object : Runnable {
         override fun run() {
             trackpadTickScheduled = false
-            if (mousePointers.isEmpty() && pointers.values.none { it.name == "RS" }) {
+            if (pointers.values.none { it.name == "RS" }) {
                 // Low-pass the analog stick signal and ease it back to neutral.
                 // A fixed 16 ms cadence avoids abrupt per-MotionEvent axis jumps.
                 trackpadSmoothX += (trackpadTargetX - trackpadSmoothX) * 0.55f
