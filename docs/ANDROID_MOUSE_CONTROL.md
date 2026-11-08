@@ -4,7 +4,7 @@
 
 - The in-game overlay menu exposes **Mouse control: ON/OFF**.
 - The choice persists in the gamepad_overlay SharedPreferences store (mouse_control_enabled).
-- When ON, a finger that begins outside a virtual gamepad hitbox controls Skyrim camera look through relative SDL mouse deltas. A short tap on the trackpad area generates a left click.
+- When ON, a finger that begins outside a virtual gamepad hitbox controls Skyrim camera look through virtual right-stick camera look deltas. A short tap on the trackpad area generates a left click.
 - A finger that begins on a visible virtual control is reserved for that control for its entire gesture. The existing XInput buttons, triggers, and analog sticks are unchanged.
 - Trackpad and controller fingers are tracked independently, allowing simultaneous cursor movement and button presses.
 - Turning the mode OFF clears any active trackpad pointer state immediately.
@@ -36,9 +36,16 @@ The touchpad now maintains a virtual cursor in the overlay/SDL surface pixel spa
 
 ## Test build 2026-11-08
 
-Build target: Android ARM64 debug APK. This test revision routes touchpad deltas as relative SDL mouse motion for Skyrim camera look and emits primary-button press/release events. Gamepad hitbox priority and independent multi-touch pointer ownership are retained. Validation required on-device: cursor movement, click/menu interaction, and simultaneous mouse/gamepad input. This is a test build; physical-device validation is pending.
+Build target: Android ARM64 debug APK. This test revision routes touchpad deltas as virtual right-stick camera look motion for Skyrim camera look and emits primary-button press/release events. Gamepad hitbox priority and independent multi-touch pointer ownership are retained. Validation required on-device: cursor movement, click/menu interaction, and simultaneous mouse/gamepad input. This is a test build; physical-device validation is pending.
 
 
 ## Build trigger
 
-The following CI run is explicitly requested with `[build-apk]` to package the relative SDL mouse camera-look fix for Android ARM64 device testing.
+The following CI run is explicitly requested with `[build-apk]` to package the virtual right-stick camera look camera-look fix for Android ARM64 device testing.
+
+
+## Virtual right-stick camera look (2026-11-08)
+
+Touching an unused area while Mouse control is enabled no longer sends SDL mouse events. Finger movement is converted into a short analog RIGHT STICK X/Y pulse and submitted through the same `nativeSetVirtualPad` path as the on-screen Xbox controller. Deflection is proportional to finger delta and clamped to the XInput range; the axes return to zero after 45 ms without movement or when the touch ends. A finger on the on-screen RS control retains ownership of the right-stick axes. This mirrors the touch-to-gamepad-axis architecture used by doom-port and avoids dependence on SDL mouse/relative-mode handling.
+
+Device test: enable Mouse control, swipe on an empty area and verify camera rotation in all directions; stop moving and verify the camera stops; simultaneously hold a gamepad button; compare with direct RS control. Tune `trackpadSensitivity` only after confirming input is received.
