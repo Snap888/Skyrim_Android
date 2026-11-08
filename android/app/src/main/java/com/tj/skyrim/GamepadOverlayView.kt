@@ -1,6 +1,8 @@
 package com.tj.skyrim
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
@@ -48,11 +50,20 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
     private val pointers = HashMap<Int, Control>()
     private val prefs = context.getSharedPreferences("gamepad_overlay", Context.MODE_PRIVATE)
     private var mouseControlEnabled = prefs.getBoolean("mouse_control_enabled", false)
+    // Empty-screen touchpad is translated into the virtual Xbox RIGHT STICK,
+    // not SDL mouse events. This follows the native touch-to-gamepad path used
+    // by doom-port: analog axes are consumed by the game's normal input loop.
     private val mousePointers = HashMap<Int, Pair<Float, Float>>()
     private val mouseMoved = HashSet<Int>()
-    // Skyrim camera look consumes relative mouse deltas. An absolute SDL
-    // position does not rotate the camera when SDL relative mode is active.
-    private var trackpadSensitivity = 2.0f
+    private val trackpadHandler = Handler(Looper.getMainLooper())
+    private val trackpadZero = Runnable {
+        if (mousePointers.isEmpty() && pointers.values.none { it.name == "RS" }) {
+            rightX = 0
+            rightY = 0
+            emit()
+        }
+    }
+    private var trackpadSensitivity = 1.6f
 
     fun setMouseControlEnabled(enabled: Boolean) {
         mouseControlEnabled = enabled
@@ -60,6 +71,12 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
         if (!enabled) {
             mousePointers.clear()
             mouseMoved.clear()
+            trackpadHandler.removeCallbacks(trackpadZero)
+            if (pointers.values.none { it.name == "RS" }) {
+                rightX = 0
+                rightY = 0
+                emit()
+            }
         }
         invalidate()
     }
@@ -67,25 +84,36 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
     fun isMouseControlEnabled(): Boolean = mouseControlEnabled
 
     private fun sendTrackpadMotion(dx: Float, dy: Float) {
-        // Android_OnMouse forwards relative=true to SDL_SendMouseMotion. This
-        // produces xrel/yrel for Skyrim's camera input instead of moving an
-        // absolute cursor that the game may ignore while relative mode is on.
-        org.libsdl.app.SDLActivity.onNativeMouse(
-            0, MotionEvent.ACTION_MOVE,
-            dx * trackpadSensitivity, dy * trackpadSensitivity, true
-        )
+        // Treat finger velocity as stick deflection: small movements produce
+        // proportional analog values; larger swipes saturate at the stick edge.
+        val span = min(width, height).toFloat().coerceAtLeast(1f)
+        val scale = 32767f * trackpadSensitivity / (span * 0.06f)
+        if (pointers.values.none { it.name == "RS" }) {
+            rightX = (dx * scale).toInt().coerceIn(-32767, 32767)
+            rightY = (-dy * scale).toInt().coerceIn(-32767, 32767)
+        }
+        trackpadHandler.removeCallbacks(trackpadZero)
+        trackpadHandler.postDelayed(trackpadZero, 45L)
     }
 
-    private fun sendTrackpadClick() {
-        // SDL Android expects the Android BUTTON_PRIMARY state bit (1), then
-        // zero on release. Relative coordinates are zero so a tap does not
-        // introduce an unintended camera movement.
-        org.libsdl.app.SDLActivity.onNativeMouse(
-            MotionEvent.BUTTON_PRIMARY, MotionEvent.ACTION_DOWN, 0f, 0f, true
-        )
-        org.libsdl.app.SDLActivity.onNativeMouse(
-            0, MotionEvent.ACTION_UP, 0f, 0f, true
-        )
+    private fun clearTrackpadMotion() {
+        trackpadHandler.removeCallbacks(trackpadZero)
+        if (pointers.values.none { it.name == "RS" }) {
+            rightX = 0
+            rightY = 0
+        }
+    }
+
+    override fun onDetachedFromWindow() {
+        trackpadHandler.removeCallbacks(trackpadZero)
+        mousePointers.clear()
+        mouseMoved.clear()
+        if (pointers.values.none { it.name == "RS" }) {
+            rightX = 0
+            rightY = 0
+            emit()
+        }
+        super.onDetachedFromWindow()
     }
     private val positions = controls.associate { control ->
         control.name to Pair(
@@ -330,11 +358,9 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
                 }
                 val mouseIds = if (e.actionMasked == MotionEvent.ACTION_CANCEL) mousePointers.keys.toList() else listOf(id)
                 mouseIds.forEach { pid ->
-                    if (mousePointers.remove(pid) != null) {
-                        if (e.actionMasked != MotionEvent.ACTION_CANCEL && !mouseMoved.contains(pid)) sendTrackpadClick()
-                        mouseMoved.remove(pid)
-                    }
+                    if (mousePointers.remove(pid) != null) mouseMoved.remove(pid)
                 }
+                if (mousePointers.isEmpty()) clearTrackpadMotion()
                 val ids=if(e.actionMasked==MotionEvent.ACTION_CANCEL) pointers.keys.toList() else listOf(id)
                 ids.forEach { pid ->
                     val c=pointers.remove(pid) ?: return@forEach
