@@ -81,3 +81,7 @@ The uploaded log snapshot is internally inconsistent: the report lists non-zero 
 ## Device-test build request
 
 The ARM64 APK workflow is triggered for this performance-safety change with the pinned DXVK Native 2.6.2 runtime pair. Verify CI artifact metadata and APK contents before installing.
+
+## CI contract-test correction
+
+The initial performance-gate CI run exposed one stale assertion expecting the old compute-only status message. The assertion now checks the explicit fail-closed message. Re-run the full ARM64 candidate and APK pipelines on this revision.
