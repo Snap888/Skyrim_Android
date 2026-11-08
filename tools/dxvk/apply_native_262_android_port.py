@@ -230,6 +230,80 @@ def main() -> int:
     )
     print("DXVK_NATIVE_262_HUD_DEFAULT_FPS_OK")
 
+    # DXVK 2.6.2 removed the legacy HUD alignment handling. Restore it in
+    # HudItemSet itself so launcher align/vertical options affect the native
+    # 2.6.2 renderer, including the scaled surface dimensions.
+    hud_item_h = root / "src/dxvk/hud/dxvk_hud_item.h"
+    replace_once(
+        hud_item_h,
+        """    template<typename T>
+    T getOption(const char *option, T fallback) {
+""",
+        """    std::string getOptionString(const char* option, const std::string& fallback) const {
+      auto entry = m_options.find(option);
+      return entry == m_options.end() ? fallback : entry->second;
+    }
+
+    template<typename T>
+    T getOption(const char *option, T fallback) {
+""",
+    )
+
+    replace_once(
+        hud_items_cpp,
+        """  void HudItemSet::render(
+      const DxvkContextObjects& ctx,
+      const HudPipelineKey&     key,
+      const HudOptions&         options,
+            HudRenderer&        renderer) {
+    HudPos position = { 8, 8 };
+
+    for (const auto& item : m_items)
+      position = item->render(ctx, key, options, renderer, position);
+  }
+""",
+        """  void HudItemSet::render(
+      const DxvkContextObjects& ctx,
+      const HudPipelineKey&     key,
+      const HudOptions&         options,
+            HudRenderer&        renderer) {
+    const VkExtent2D surface = renderer.getPushConstants().surfaceSize;
+    const float scale = options.scale > 0.01f ? options.scale : 1.0f;
+    const float width = float(surface.width) / scale;
+    const float height = float(surface.height) / scale;
+
+    const bool hasDeviceInfo =
+      m_enableFull || m_enabled.find("devinfo") != m_enabled.end()
+                   || m_enabled.find("driver") != m_enabled.end();
+    const float blockWidth = m_enableFull ? 520.0f
+                           : hasDeviceInfo ? 380.0f : 240.0f;
+    const float blockHeight = m_enableFull ? 360.0f
+                            : hasDeviceInfo ? 152.0f : 88.0f;
+
+    std::string align = getOptionString("align", "left");
+    if (align == "centre")
+      align = "center";
+
+    HudPos position = { 8, 8 };
+    if (align == "center")
+      position.x = width > blockWidth
+        ? int32_t((width - blockWidth) * 0.5f) : 8;
+    else if (align == "right")
+      position.x = width > blockWidth
+        ? int32_t(width - blockWidth - 8.0f) : 8;
+
+    const std::string vertical = getOptionString("vertical", "top");
+    if (vertical == "bottom")
+      position.y = height > blockHeight
+        ? int32_t(height - blockHeight - 8.0f) : 8;
+
+    for (const auto& item : m_items)
+      position = item->render(ctx, key, options, renderer, position);
+  }
+""",
+    )
+    print("DXVK_NATIVE_262_HUD_POSITIONING_OK")
+
     # DXVK Native 2.6.2 constructs its Vulkan instance from Direct3DCreate9.
     # A DxvkError thrown by that constructor currently crosses the exported C
     # ABI and terminates the whole Android process (SIGABRT). Convert startup

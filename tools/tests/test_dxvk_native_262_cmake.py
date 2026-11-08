@@ -130,6 +130,16 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn('m_hudItems.getOption<float>("output", 1.0f)', self.patcher)
         self.assertIn("DXVK_NATIVE_262_SNAPFRAME_HUD_METRICS_OK", self.patcher)
 
+    def test_262_hud_alignment_options_are_applied_by_native_hud_item_set(self):
+        # DXVK 2.6.2 upstream dropped the legacy align/vertical placement.
+        # The Android patch restores it using the actual scaled swapchain extent.
+        self.assertIn('getOptionString("align", "left")', self.patcher)
+        self.assertIn('align == "centre"', self.patcher)
+        self.assertIn('getOptionString("vertical", "top")', self.patcher)
+        self.assertIn("renderer.getPushConstants().surfaceSize", self.patcher)
+        self.assertIn("DXVK_NATIVE_262_HUD_POSITIONING_OK", self.patcher)
+        self.assertIn("const float blockWidth = m_enableFull ? 520.0f", self.patcher)
+
     def test_runtime_points_dxvk_to_the_launcher_config_file(self):
         self.assertIn("setup_dxvk_config();", self.runtime_main)
         self.assertIn('snprintf(path, sizeof(path), "%s/dxvk.conf", g_game_dir);', self.runtime_main)
