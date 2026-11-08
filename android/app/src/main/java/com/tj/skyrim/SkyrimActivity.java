@@ -139,6 +139,76 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
         android.widget.Toast.makeText(this,
                 enabled ? "Mouse control enabled — touch empty areas to look around with the right stick" : "Mouse control disabled",
                 android.widget.Toast.LENGTH_SHORT).show();
+        if (enabled) showMouseControlSettings();
+    }
+
+    private void showMouseControlSettings() {
+        if (gamepadOverlay == null) return;
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(20), dp(8), dp(20), dp(4));
+
+        final SeekBar sensitivity = new SeekBar(this);
+        final SeekBar speed = new SeekBar(this);
+        final SeekBar vertical = new SeekBar(this);
+        final TextView sensitivityValue = new TextView(this);
+        final TextView speedValue = new TextView(this);
+        final TextView verticalValue = new TextView(this);
+
+        addCameraSlider(panel, "Sensitivity", sensitivity, sensitivityValue, 375,
+                Math.round((gamepadOverlay.trackpadSensitivity() - 0.25f) * 100f), 0.25f, 4.0f);
+        addCameraSlider(panel, "Speed", speed, speedValue, 275,
+                Math.round((gamepadOverlay.trackpadSpeed() - 0.25f) * 100f), 0.25f, 3.0f);
+        addCameraSlider(panel, "Vertical sensitivity", vertical, verticalValue, 275,
+                Math.round((gamepadOverlay.trackpadVerticalScale() - 0.25f) * 100f), 0.25f, 3.0f);
+
+        CheckBox invertY = new CheckBox(this);
+        invertY.setText("Invert vertical look");
+        invertY.setChecked(gamepadOverlay.trackpadInvertY());
+        invertY.setPadding(0, dp(8), 0, dp(4));
+        panel.addView(invertY);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Mouse control settings")
+                .setMessage("Adjust camera look using touch movement on empty screen areas.")
+                .setView(panel)
+                .setNegativeButton("Cancel", null)
+                .setNeutralButton("Reset", (dialog, which) -> {
+                    gamepadOverlay.setTrackpadSettings(1.6f, 1.0f, 1.0f, false);
+                    showMouseControlSettings();
+                })
+                .setPositiveButton("Apply", (dialog, which) -> {
+                    gamepadOverlay.setTrackpadSettings(
+                            0.25f + sensitivity.getProgress() / 100f,
+                            0.25f + speed.getProgress() / 100f,
+                            0.25f + vertical.getProgress() / 100f,
+                            invertY.isChecked());
+                    android.widget.Toast.makeText(this, "Camera look settings saved",
+                            android.widget.Toast.LENGTH_SHORT).show();
+                })
+                .show();
+    }
+
+    private void addCameraSlider(LinearLayout panel, String title, SeekBar seek,
+            TextView value, int max, int progress, float min, float ignoredMax) {
+        TextView label = new TextView(this);
+        label.setText(title);
+        label.setTextSize(14);
+        label.setPadding(0, dp(10), 0, 0);
+        panel.addView(label);
+        value.setText(String.format(java.util.Locale.US, "%.2fx", min + Math.max(0, progress) / 100f));
+        value.setTextSize(12);
+        panel.addView(value);
+        seek.setMax(max);
+        seek.setProgress(Math.max(0, Math.min(max, progress)));
+        seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar bar, int p, boolean fromUser) {
+                value.setText(String.format(java.util.Locale.US, "%.2fx", min + p / 100f));
+            }
+            @Override public void onStartTrackingTouch(SeekBar bar) {}
+            @Override public void onStopTrackingTouch(SeekBar bar) {}
+        });
+        panel.addView(seek);
     }
 
     private boolean hasPhysicalGamepad() {
@@ -188,7 +258,7 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
     }
 
     private void showOverlayMenu() {
-        String[] items = { "Snap AI / Frame Generation", "Android keyboard", "Gamepad overlay: " + (gamepadOverlayEnabled ? "ON" : "OFF"), "Mouse control: " + (mouseControlEnabled ? "ON" : "OFF"), "Gamepad editor", "Legacy touch controls editor" };
+        String[] items = { "Snap AI / Frame Generation", "Android keyboard", "Gamepad overlay: " + (gamepadOverlayEnabled ? "ON" : "OFF"), "Mouse control: " + (mouseControlEnabled ? "ON" : "OFF"), "Mouse control settings", "Gamepad editor", "Legacy touch controls editor" };
         new AlertDialog.Builder(this)
                 .setTitle("Skyrim overlay")
                 .setItems(items, (dialog, which) -> {
@@ -201,6 +271,9 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
                     } else if (which == 3) {
                         setMouseControlEnabled(!mouseControlEnabled);
                     } else if (which == 4) {
+                        if (mouseControlEnabled) showMouseControlSettings();
+                        else android.widget.Toast.makeText(this, "Enable Mouse control first", android.widget.Toast.LENGTH_SHORT).show();
+                    } else if (which == 5) {
                         showGamepadControlsEditor();
                     } else {
                         touchEditorEnabled = !touchEditorEnabled;
