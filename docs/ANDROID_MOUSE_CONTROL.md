@@ -37,3 +37,8 @@ The touchpad now maintains a virtual cursor in the overlay/SDL surface pixel spa
 ## Test build 2026-11-08
 
 Build target: Android ARM64 debug APK. This test revision routes touchpad deltas as relative SDL mouse motion for Skyrim camera look and emits primary-button press/release events. Gamepad hitbox priority and independent multi-touch pointer ownership are retained. Validation required on-device: cursor movement, click/menu interaction, and simultaneous mouse/gamepad input. This is a test build; physical-device validation is pending.
+
+
+## Build trigger
+
+The following CI run is explicitly requested with `[build-apk]` to package the relative SDL mouse camera-look fix for Android ARM64 device testing.
