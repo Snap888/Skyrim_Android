@@ -102,6 +102,6 @@ void snapframe_bootstrap(void) {
              config.ai_mode, config.ai_gpu_budget_ms, config.ai_pressure_threshold,
              config.ai_headroom_threshold, config.ai_artifact_threshold);
     snapframe_host_log(summary);
-    if (initResult <= 0 || (config.enabled && !activeAfterInit))
+    if (initResult < 0 || (config.enabled && !activeAfterInit))
         snapframe_host_log("SnapFrame bootstrap warning: requested configuration was not activated; inspect host rejection/driver initialization messages above");
 }
