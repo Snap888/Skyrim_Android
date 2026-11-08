@@ -137,7 +137,7 @@ public class SkyrimActivity extends SDLActivity implements InputManager.InputDev
                 .putBoolean("mouse_control_enabled", enabled).apply();
         if (gamepadOverlay != null) gamepadOverlay.setMouseControlEnabled(enabled);
         android.widget.Toast.makeText(this,
-                enabled ? "Mouse control enabled — touch empty areas to move cursor" : "Mouse control disabled",
+                enabled ? "Mouse control enabled — touch empty areas to look around with the right stick" : "Mouse control disabled",
                 android.widget.Toast.LENGTH_SHORT).show();
     }
 
