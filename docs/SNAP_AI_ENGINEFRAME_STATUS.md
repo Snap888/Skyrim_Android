@@ -803,3 +803,12 @@ compilation can cause long frame-time spikes.
 - Restored the 1.9.2 default behavior in the 2.6.2 source patch: `dxvk.conf` HUD setting takes priority, `DXVK_HUD` is the fallback, and `fps` is enabled when neither is configured. Explicit user configuration remains authoritative.
 - Other upstream HUD items remain selectable through the normal HUD option list (for example `devinfo`, `frametimes`, `submissions`, `drawcalls`, `pipelines`, `memory`, `gpuload`, and `compiler`).
 - The HUD's built-in FPS is the measured DXVK presentation FPS. A separate generated-FPS counter is intentionally not reported until the 2.6.2 generated-frame path owns and confirms a distinct successful WSI present; compute midpoint recording alone is not a presented frame.
+
+
+## DXVK Native 2.6.2 HUD follow-up — 2026-11-08
+
+- The previous HUD parity patch restored only default `fps`; it did not port the launcher's `Game FPS / FG FPS / Output FPS` item because upstream 2.6.2 uses a different HudItem API from the legacy 1.9.2 tree.
+- The Android source overlay now adds `HudSnapFrameFpsItem` against the upstream 2.6.2 `DxvkContextObjects` renderer, maps the existing `game/fg/output` options, and accepts `driver` as an alias for `devinfo`.
+- Source FPS is counted at the DXVK 2.6.2 D3D9 source-present command path. FG FPS remains zero until a generated frame is successfully presented through WSI; compute midpoint dispatches are not counted as output frames.
+- The native launcher now sets an absolute `DXVK_CONFIG_FILE=<game>/dxvk.conf` after changing to the game directory, removing ambiguity about config lookup.
+- Generated WSI presentation is still not enabled here. The 2.6.2 host records temporal compute and midpoint work only; the Presenter remains serialized around one active WSI transaction. Do not report compute as active FG output.

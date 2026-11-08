@@ -459,6 +459,27 @@ static void setup_gpu_driver(void) {
 }
 #endif
 
+
+/* Set the launcher's config path explicitly after chdir. This avoids relying
+ * on the current-working-directory fallback in different DXVK runtime pairs. */
+static void setup_dxvk_config(void) {
+    const char *override = getenv("DXVK_CONFIG_FILE");
+    if (override && *override) {
+        LOG("DXVK config override: %s", override);
+        return;
+    }
+    char path[1200];
+    snprintf(path, sizeof(path), "%s/dxvk.conf", g_game_dir);
+    if (access(path, R_OK) == 0) {
+        if (setenv("DXVK_CONFIG_FILE", path, 1) == 0)
+            LOG("DXVK config file: %s", path);
+        else
+            LOG("DXVK config: failed to set DXVK_CONFIG_FILE: %s", strerror(errno));
+    } else {
+        LOG("DXVK config file not found: %s", path);
+    }
+}
+
 static void check_game_dir(void) {
     if (chdir(g_game_dir) != 0) {
         int e = errno;
@@ -584,6 +605,7 @@ int main(int argc, char **argv) {
     if (!getenv("DXVK_LOG_LEVEL")) setenv("DXVK_LOG_LEVEL", "info", 1);
     /* 0.2.6: no compile status HUD (as in 0.1.5); DXVK_HUD=portstatus enables it. */
     check_game_dir();
+    setup_dxvk_config();
 #ifdef __ANDROID__
     setup_gpu_driver();
 #if defined(SNAP_DXVK_NATIVE_262_RUNTIME)

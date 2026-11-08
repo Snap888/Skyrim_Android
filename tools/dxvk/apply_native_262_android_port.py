@@ -52,8 +52,170 @@ def main() -> int:
     dxvk_dir = root / "src/dxvk"
 
     # DXVK Native 2.6.2 already has its Vulkan HUD renderer and D3D9 blitter
-    # integration. Match the 1.9.2 Android behavior: dxvk.conf wins, then
-    # DXVK_HUD, and FPS is enabled by default when neither is configured.
+    # integration. Restore the launcher HUD using the 2.6.2 API, not the
+    # incompatible legacy 1.9.2 renderer.
+    hud_dir = root / "src/dxvk/hud"
+    hud_item_h = hud_dir / "dxvk_hud_item.h"
+    replace_once(
+        hud_item_h,
+        """namespace dxvk::hud {
+""",
+        """namespace dxvk::hud {
+
+  void addSnapFrameGameFrame();
+  void addSnapFrameGeneratedFrame();
+""",
+    )
+    replace_once(
+        hud_item_h,
+        """  class HudFrameTimeItem : public HudItem {
+""",
+        """  class HudSnapFrameFpsItem : public HudItem {
+    constexpr static int64_t UpdateInterval = 500'000;
+  public:
+    HudSnapFrameFpsItem(bool showGame, bool showGenerated, bool showOutput);
+    void update(dxvk::high_resolution_clock::time_point time);
+    HudPos render(
+      const DxvkContextObjects& ctx,
+      const HudPipelineKey&     key,
+      const HudOptions&         options,
+            HudRenderer&        renderer,
+            HudPos              position);
+  private:
+    uint64_t m_prevGameFrames = 0;
+    uint64_t m_prevGeneratedFrames = 0;
+    uint32_t m_gameFps = 0;
+    uint32_t m_generatedFps = 0;
+    uint32_t m_outputFps = 0;
+    bool m_showGame;
+    bool m_showGenerated;
+    bool m_showOutput;
+    dxvk::high_resolution_clock::time_point m_lastUpdate
+      = dxvk::high_resolution_clock::now();
+  };
+
+  class HudFrameTimeItem : public HudItem {
+""",
+    )
+    hud_items_cpp = hud_dir / "dxvk_hud_item.cpp"
+    replace_once(
+        hud_items_cpp,
+        """#include "dxvk_hud_item.h"
+""",
+        """#include "dxvk_hud_item.h"
+#include <atomic>
+""",
+    )
+    replace_once(
+        hud_items_cpp,
+        """namespace dxvk::hud {
+""",
+        """namespace dxvk::hud {
+
+  namespace {
+    std::atomic<uint64_t> g_snapFrameGameFrames{0};
+    std::atomic<uint64_t> g_snapFrameGeneratedFrames{0};
+  }
+
+  void addSnapFrameGameFrame() {
+    g_snapFrameGameFrames.fetch_add(1, std::memory_order_relaxed);
+  }
+
+  void addSnapFrameGeneratedFrame() {
+    g_snapFrameGeneratedFrames.fetch_add(1, std::memory_order_relaxed);
+  }
+""",
+    )
+    replace_once(
+        hud_items_cpp,
+        """  HudFrameTimeItem::HudFrameTimeItem(const Rc<DxvkDevice>& device, HudRenderer* renderer)
+""",
+        """  HudSnapFrameFpsItem::HudSnapFrameFpsItem(
+      bool showGame, bool showGenerated, bool showOutput)
+  : m_showGame(showGame),
+    m_showGenerated(showGenerated),
+    m_showOutput(showOutput) { }
+
+  void HudSnapFrameFpsItem::update(dxvk::high_resolution_clock::time_point time) {
+    const uint64_t gameFrames = g_snapFrameGameFrames.load(std::memory_order_relaxed);
+    const uint64_t generatedFrames = g_snapFrameGeneratedFrames.load(std::memory_order_relaxed);
+    const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(
+      time - m_lastUpdate);
+    if (elapsed.count() < UpdateInterval)
+      return;
+
+    const uint64_t elapsedUs = uint64_t(elapsed.count());
+    const uint64_t gameDelta = gameFrames - m_prevGameFrames;
+    const uint64_t generatedDelta = generatedFrames - m_prevGeneratedFrames;
+    m_gameFps = uint32_t((gameDelta * 1'000'000ull) / elapsedUs);
+    m_generatedFps = uint32_t((generatedDelta * 1'000'000ull) / elapsedUs);
+    m_outputFps = uint32_t(((gameDelta + generatedDelta) * 1'000'000ull) / elapsedUs);
+    m_prevGameFrames = gameFrames;
+    m_prevGeneratedFrames = generatedFrames;
+    m_lastUpdate = time;
+  }
+
+  HudPos HudSnapFrameFpsItem::render(
+      const DxvkContextObjects& ctx,
+      const HudPipelineKey&     key,
+      const HudOptions&         options,
+            HudRenderer&        renderer,
+            HudPos              position) {
+    position.y += 16;
+    if (m_showGame) {
+      renderer.drawText(16, position, 0xff4040ffu,
+        str::format("Game FPS: ", m_gameFps));
+      position.y += 20;
+    }
+    if (m_showGenerated) {
+      renderer.drawText(16, position, 0xff40ff80u,
+        str::format("FG FPS: ", m_generatedFps));
+      position.y += 20;
+    }
+    if (m_showOutput) {
+      renderer.drawText(16, position, 0xffffbf40u,
+        str::format("Output FPS: ", m_outputFps));
+      position.y += 20;
+    }
+    return position;
+  }
+
+  HudFrameTimeItem::HudFrameTimeItem(const Rc<DxvkDevice>& device, HudRenderer* renderer)
+""",
+    )
+    replace_once(
+        hud_dir / "dxvk_hud.cpp",
+        """    addItem<HudDeviceInfoItem>("devinfo", -1, m_device);
+    addItem<HudFpsItem>("fps", -1);
+""",
+        """    addItem<HudDeviceInfoItem>("devinfo", -1, m_device);
+    addItem<HudDeviceInfoItem>("driver", -1, m_device);
+    addItem<HudSnapFrameFpsItem>("fps", -1,
+      m_hudItems.getOption<float>("game", 1.0f) > 0.5f,
+      m_hudItems.getOption<float>("fg", 1.0f) > 0.5f,
+      m_hudItems.getOption<float>("output", 1.0f) > 0.5f);
+""",
+    )
+    swapchain = root / "src/d3d9/d3d9_swapchain.cpp"
+    replace_once(
+        swapchain,
+        '#include "d3d9_window.h"\\n',
+        '#include "d3d9_window.h"\\n#include "../dxvk/hud/dxvk_hud_item.h"\\n',
+    )
+    replace_once(
+        swapchain,
+        """        cBlitter->present(contextObjects,
+          cDstView, cDstRect, cSrcView, cSrcRect);
+""",
+        """        // Count source frames at the 2.6.2 D3D9 present boundary.
+        // FG FPS is incremented only after a future generated WSI present succeeds.
+        hud::addSnapFrameGameFrame();
+        cBlitter->present(contextObjects,
+          cDstView, cDstRect, cSrcView, cSrcRect);
+""",
+    )
+    print("DXVK_NATIVE_262_SNAPFRAME_HUD_METRICS_OK")
+
     hud_items_cpp = root / "src/dxvk/hud/dxvk_hud_item.cpp"
     replace_once(
         hud_items_cpp,

@@ -12,6 +12,7 @@ BUILD_SCRIPT = ROOT / "tools/dxvk/build_native_262_android_candidate.sh"
 PATCHER = ROOT / "tools/dxvk/apply_native_262_android_port.py"
 DXVK262_API = ROOT / "android/app/jni/snapframe/snapframe_dxvk262_api.h"
 PRESENTATION_DESIGN = ROOT / "docs/SNAPFRAME_DXVK262_PRESENTATION_DESIGN.md"
+RUNTIME_MAIN = ROOT / "runtime/main.c"
 
 
 class DxvkNative262CMakeContractTests(unittest.TestCase):
@@ -25,6 +26,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         cls.build_script = BUILD_SCRIPT.read_text(encoding="utf-8")
         cls.patcher = PATCHER.read_text(encoding="utf-8")
         cls.dxvk262_api = DXVK262_API.read_text(encoding="utf-8")
+        cls.runtime_main = RUNTIME_MAIN.read_text(encoding="utf-8")
 
     def test_android_patcher_resolves_dxvk_dir_before_using_source_paths(self):
         self.assertLess(
@@ -119,6 +121,19 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn('configStr = "fps";', self.patcher)
         self.assertIn("DXVK_NATIVE_262_HUD_DEFAULT_FPS_OK", self.patcher)
         self.assertIn('if (configStr.empty())\n      configStr = "fps";', self.patcher)
+
+    def test_262_snapframe_hud_metrics_are_patched_into_upstream_hud_api(self):
+        self.assertIn("HudSnapFrameFpsItem", self.patcher)
+        self.assertIn("addSnapFrameGameFrame", self.patcher)
+        self.assertIn('m_hudItems.getOption<float>("game", 1.0f)', self.patcher)
+        self.assertIn('m_hudItems.getOption<float>("fg", 1.0f)', self.patcher)
+        self.assertIn('m_hudItems.getOption<float>("output", 1.0f)', self.patcher)
+        self.assertIn("DXVK_NATIVE_262_SNAPFRAME_HUD_METRICS_OK", self.patcher)
+
+    def test_runtime_points_dxvk_to_the_launcher_config_file(self):
+        self.assertIn("setup_dxvk_config();", self.runtime_main)
+        self.assertIn('snprintf(path, sizeof(path), "%s/dxvk.conf", g_game_dir);', self.runtime_main)
+        self.assertIn('setenv("DXVK_CONFIG_FILE", path, 1)', self.runtime_main)
 
     def test_android_loader_keeps_compat_types_without_win32_vulkan_platform(self):
         # HMODULE comes from DXVK's Win32 compatibility layer, not Vulkan's
