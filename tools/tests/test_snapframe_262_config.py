@@ -24,10 +24,12 @@ class SnapFrame262ConfigTests(unittest.TestCase):
             self.bootstrap.index("snapframe_host_init(&config);"),
         )
 
-    def test_262_enable_gate_matches_normalized_mode(self):
+    def test_262_generated_wsi_gate_keeps_compute_only_path_disabled(self):
+        self.assertIn("constexpr bool kGeneratedWsiPresentationReady = false;", self.runtime)
+        self.assertIn("return kGeneratedWsiPresentationReady", self.runtime)
+        self.assertIn("generated WSI present is not ready; skipping capture/compute", self.runtime)
         self.assertIn("c->ai_mode == SNAPFRAME_AI_MANUAL", self.runtime)
         self.assertIn("c->flow_scale_percent == kSupportedFlowScale", self.runtime)
-        self.assertIn("c->present_mode == SNAPFRAME_PRESENT_MODE_AUTO", self.runtime)
 
     def test_successful_zero_status_does_not_emit_bootstrap_warning(self):
         self.assertIn("if (initResult < 0 || (config.enabled && !activeAfterInit))", self.bootstrap)
