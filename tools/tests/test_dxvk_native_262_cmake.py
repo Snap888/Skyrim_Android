@@ -545,7 +545,7 @@ class DxvkNative262CMakeContractTests(unittest.TestCase):
         self.assertIn("kSupportedFlowScale = 50", runtime_text)
         self.assertIn("SNAPFRAME_PRESENT_MODE_AUTO", runtime_text)
         self.assertIn("snapframe_dxvk262_set_enabled", runtime_text)
-        self.assertIn("generated WSI present remains disabled", runtime_text)
+        self.assertIn("generated WSI present is not ready; skipping capture/compute to protect source FPS", runtime_text)
         self.assertIn("snapframe_runtime_262.cpp", self.snapframe_text)
         self.assertNotIn("snapframe_host.cpp", runtime_text)
         self.assertNotIn("vkQueueSubmit", runtime_text)
