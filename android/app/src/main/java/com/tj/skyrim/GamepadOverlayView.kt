@@ -50,23 +50,55 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
     private var mouseControlEnabled = prefs.getBoolean("mouse_control_enabled", false)
     private val mousePointers = HashMap<Int, Pair<Float, Float>>()
     private val mouseMoved = HashSet<Int>()
+    // SDL Android's absolute mouse path is more reliable for a touch-emulated
+    // pointer than relative mode (which depends on the game's relative-mode state).
+    // Coordinates are in the overlay/SDL surface pixel space.
+    private var virtualMouseX = 0f
+    private var virtualMouseY = 0f
+    private var virtualMouseInitialized = false
 
     fun setMouseControlEnabled(enabled: Boolean) {
         mouseControlEnabled = enabled
         prefs.edit().putBoolean("mouse_control_enabled", enabled).apply()
-        if (!enabled) { mousePointers.clear(); mouseMoved.clear() }
+        if (!enabled) {
+            mousePointers.clear()
+            mouseMoved.clear()
+            virtualMouseInitialized = false
+        }
         invalidate()
     }
 
     fun isMouseControlEnabled(): Boolean = mouseControlEnabled
 
+    private fun ensureVirtualMousePosition() {
+        if (!virtualMouseInitialized) {
+            virtualMouseX = width.coerceAtLeast(1) * 0.5f
+            virtualMouseY = height.coerceAtLeast(1) * 0.5f
+            virtualMouseInitialized = true
+        }
+    }
+
     private fun sendTrackpadMotion(dx: Float, dy: Float) {
-        org.libsdl.app.SDLActivity.onNativeMouse(0, 2, dx * 1.8f, dy * 1.8f, true)
+        ensureVirtualMousePosition()
+        virtualMouseX = (virtualMouseX + dx * 1.8f).coerceIn(0f, width.coerceAtLeast(1).toFloat())
+        virtualMouseY = (virtualMouseY + dy * 1.8f).coerceIn(0f, height.coerceAtLeast(1).toFloat())
+        // ACTION_MOVE with relative=false sends an absolute SDL mouse position.
+        org.libsdl.app.SDLActivity.onNativeMouse(
+            0, MotionEvent.ACTION_MOVE, virtualMouseX, virtualMouseY, false
+        )
     }
 
     private fun sendTrackpadClick() {
-        org.libsdl.app.SDLActivity.onNativeMouse(1, 0, 0f, 0f, true)
-        org.libsdl.app.SDLActivity.onNativeMouse(0, 1, 0f, 0f, true)
+        ensureVirtualMousePosition()
+        // SDL's Android bridge expects a BUTTON_PRIMARY state mask, not a
+        // button index, and derives press/release from the state transition.
+        org.libsdl.app.SDLActivity.onNativeMouse(
+            MotionEvent.BUTTON_PRIMARY, MotionEvent.ACTION_DOWN,
+            virtualMouseX, virtualMouseY, false
+        )
+        org.libsdl.app.SDLActivity.onNativeMouse(
+            0, MotionEvent.ACTION_UP, virtualMouseX, virtualMouseY, false
+        )
     }
     private val positions = controls.associate { control ->
         control.name to Pair(
