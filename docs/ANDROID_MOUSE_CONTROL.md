@@ -27,3 +27,8 @@ The touchpad does not draw an opaque surface or add a second overlay view; it us
 8. Repeat in both X11 and Wayland launch modes.
 
 Sensitivity is currently fixed at 1.8x and can be tuned after device testing.
+
+
+## SDL mouse delivery correction (2026-11-08)
+
+The touchpad now maintains a virtual cursor in the overlay/SDL surface pixel space and sends absolute SDL mouse motion (`ACTION_MOVE`, `relative=false`). This avoids relying on SDL relative-mouse mode being enabled by the game. A tap sends `BUTTON_PRIMARY` down followed by a zero-button-state up at the current virtual cursor position; it no longer clicks at the top-left corner. The implementation preserves pointer ownership, so fingers that start on virtual controller controls remain controller inputs.
