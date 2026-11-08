@@ -69,3 +69,15 @@ Full logs remain local. This report contains aggregates and selected reasons; it
 ## Android device-test APK build
 
 A full ARM64 debug APK build is requested for this branch revision. The build workflow is gated and requires the commit message marker `[build-apk]`; this update intentionally triggers that workflow. The build uses the pinned DXVK Native 2.6.2 source and enables the matching DXVK 2.6.2 runtime pair. The APK is not considered ready until CI verifies the APK signature, package metadata, ARM64 native libraries, and runtime-pair ABI.
+
+## Performance regression mitigation (2026-11-08)
+
+The DXVK 2.6.2 host currently records luma, full-resolution RGBA16F history copies, bidirectional flow, consistency and midpoint warp into the source command stream. The generated midpoint is not connected to an independent generated WSI present path. This compute-only path adds GPU work to every source frame without delivering a displayed generated frame; the performance CSV correlates the worst source handoff/submission waits (10.9–18.4 ms) with near-zero generated admission (3–5%).
+
+The runtime now fails closed for enabled SnapFrame on DXVK 2.6.2 while generated WSI presentation is incomplete. It rejects the enable request with an explicit log message and leaves the original DXVK source-present path untouched. This is a temporary performance/stability safeguard, not a claim that FG is fixed or available. Re-enable only after independent generated WSI slots, image lifetime, semaphore ownership and successful-present accounting are implemented and validated.
+
+The uploaded log snapshot is internally inconsistent: the report lists non-zero event/GPU/flow CSV sizes, but the committed CSV blobs are empty; snapframe.log reports requested_enabled=0 while snapframe_perf_on.csv contains active-frame measurements. Therefore the reported aggregate and the perf CSV cannot be assumed to describe the same run. The next device test should use the new runtime log message and freshly generated local CSVs.
+
+## Device-test build request
+
+The ARM64 APK workflow is triggered for this performance-safety change with the pinned DXVK Native 2.6.2 runtime pair. Verify CI artifact metadata and APK contents before installing.
