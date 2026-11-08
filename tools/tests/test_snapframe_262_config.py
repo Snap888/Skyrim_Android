@@ -29,6 +29,10 @@ class SnapFrame262ConfigTests(unittest.TestCase):
         self.assertIn("c->flow_scale_percent == kSupportedFlowScale", self.runtime)
         self.assertIn("c->present_mode == SNAPFRAME_PRESENT_MODE_AUTO", self.runtime)
 
+    def test_successful_zero_status_does_not_emit_bootstrap_warning(self):
+        self.assertIn("if (initResult < 0 || (config.enabled && !activeAfterInit))", self.bootstrap)
+        self.assertNotIn("if (initResult <= 0 ||", self.bootstrap)
+
     def test_legacy_runtime_keeps_user_ai_mode(self):
         self.assertIn("#if defined(SNAP_DXVK_NATIVE_262_RUNTIME)", self.bootstrap)
         self.assertIn("legacy DXVK keeps the user's configured AI mode", self.bootstrap)
