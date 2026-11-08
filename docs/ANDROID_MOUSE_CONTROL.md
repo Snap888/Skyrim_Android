@@ -32,3 +32,8 @@ Sensitivity is currently fixed at 1.8x and can be tuned after device testing.
 ## SDL mouse delivery correction (2026-11-08)
 
 The touchpad now maintains a virtual cursor in the overlay/SDL surface pixel space and sends absolute SDL mouse motion (`ACTION_MOVE`, `relative=false`). This avoids relying on SDL relative-mouse mode being enabled by the game. A tap sends `BUTTON_PRIMARY` down followed by a zero-button-state up at the current virtual cursor position; it no longer clicks at the top-left corner. The implementation preserves pointer ownership, so fingers that start on virtual controller controls remain controller inputs.
+
+
+## Test build 2026-11-08
+
+Build target: Android ARM64 debug APK. This test revision corrects touchpad-to-SDL mouse delivery by maintaining an absolute virtual cursor, sending absolute motion events, and emitting primary-button press/release events at the cursor position. Gamepad hitbox priority and independent multi-touch pointer ownership are retained. Validation required on-device: cursor movement, click/menu interaction, and simultaneous mouse/gamepad input. This is a test build; physical-device validation is pending.
