@@ -1,9 +1,9 @@
 info:  Game: app_process64
 info:  DXVK: v2.6.2+
 info:  Build: aarch64 Clang 21.0.0
-info:  Found config file: dxvk.conf
+info:  Found config file: /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/dxvk.conf
 info:  Effective configuration:
-info:    dxvk.hud = fps,scale=1.0,align=left,vertical=top,game=1,fg=1,output=1,devinfo
+info:    dxvk.hud = fps,scale=1.25,align=center,vertical=top,game=1,fg=1,output=1,devinfo
 info:    d3d9.maxFrameRate = 0
 info:  AdrenoTools activated custom Vulkan driver libvulkan_freedreno.so from /data/user/0/com.tj.skyrim/files/gpu-drivers/turnip-gen8-v38-vulkan-1.4.363/
 info:  Built-in extension providers:
@@ -31,9 +31,9 @@ info:    device description: AMD Radeon RX 6700 XT
 info:  Game: app_process64
 info:  DXVK: v2.6.2+
 info:  Build: aarch64 Clang 21.0.0
-info:  Found config file: dxvk.conf
+info:  Found config file: /storage/emulated/0/Download/Flud/The Elder Scrolls V - Skyrim/dxvk.conf
 info:  Effective configuration:
-info:    dxvk.hud = fps,scale=1.0,align=left,vertical=top,game=1,fg=1,output=1,devinfo
+info:    dxvk.hud = fps,scale=1.25,align=center,vertical=top,game=1,fg=1,output=1,devinfo
 info:    d3d9.maxFrameRate = 0
 info:  AdrenoTools activated custom Vulkan driver libvulkan_freedreno.so from /data/user/0/com.tj.skyrim/files/gpu-drivers/turnip-gen8-v38-vulkan-1.4.363/
 info:  Built-in extension providers:
@@ -178,7 +178,4 @@ info:    smoothLines                            : 0
 info:  VK_EXT_memory_budget
 info:    extension supported                    : 1
 info:  VK_EXT_memory_priority
-info:    memoryPriority                         : 0
-info:  VK_EXT_multi_draw
-info:    multiDraw                              : 1
-info:  VK_EXT_non_se
+info:    memoryPr

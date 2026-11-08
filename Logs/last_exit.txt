@@ -1,23 +1,23 @@
 Skyrim Android crash diagnostics
-captured=Sun Nov 08 07:54:42 GMT+03:00 2026
+captured=Sun Nov 08 09:54:36 GMT+03:00 2026
 sdk=35 release=15 device=asus/ASUS_AI2205_C
 fingerprint=asus/WW_AI2205/ASUS_AI2205:15/AQ3A.240812.002/35.0604.0820.88:user/release-keys
 abis=[arm64-v8a, armeabi-v7a, armeabi]
 historical_exit_count=5
 
 --- previous process ---
-timestamp=Sun Nov 08 02:50:31 GMT+03:00 2026 reason=EXIT_SELF status=0 importance=100 pss=2335MB rss=2447MB description=
+timestamp=Sun Nov 08 09:54:26 GMT+03:00 2026 reason=code 16 status=0 importance=400 pss=18MB rss=61MB description=stop com.tj.skyrim due to installPackageLI
 
 --- previous process ---
-timestamp=Sun Nov 08 02:25:03 GMT+03:00 2026 reason=EXIT_SELF status=0 importance=100 pss=2476MB rss=2593MB description=
+timestamp=Sun Nov 08 09:04:56 GMT+03:00 2026 reason=USER_REQUESTED status=0 importance=400 pss=2336MB rss=2456MB description=[REMOVE TASK] remove task
 
 --- previous process ---
-timestamp=Sun Nov 08 02:19:30 GMT+03:00 2026 reason=code 16 status=0 importance=400 pss=23MB rss=104MB description=stop com.tj.skyrim due to installPackageLI
+timestamp=Sun Nov 08 08:54:19 GMT+03:00 2026 reason=USER_REQUESTED status=0 importance=400 pss=0MB rss=0MB description=[REMOVE TASK] remove task
 
 --- previous process ---
-timestamp=Sun Nov 08 02:03:54 GMT+03:00 2026 reason=LOW_MEMORY status=0 importance=400 pss=20MB rss=75MB description=
+timestamp=Sun Nov 08 08:51:01 GMT+03:00 2026 reason=USER_REQUESTED status=0 importance=400 pss=0MB rss=0MB description=[REMOVE TASK] remove task
 
 --- previous process ---
-timestamp=Sun Nov 08 01:35:41 GMT+03:00 2026 reason=EXIT_SELF status=0 importance=100 pss=0MB rss=0MB description=
+timestamp=Sun Nov 08 08:49:11 GMT+03:00 2026 reason=USER_REQUESTED status=0 importance=400 pss=0MB rss=0MB description=[REMOVE TASK] remove task
 
-device_ram=11193MB available_now=4493MB low_memory_threshold=300MB low_memory=false
+device_ram=11193MB available_now=3797MB low_memory_threshold=300MB low_memory=false
