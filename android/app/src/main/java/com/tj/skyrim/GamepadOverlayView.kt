@@ -56,22 +56,46 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
     private val mousePointers = HashMap<Int, Pair<Float, Float>>()
     private val mouseMoved = HashSet<Int>()
     private val trackpadHandler = Handler(Looper.getMainLooper())
-    private val trackpadZero = Runnable {
-        if (mousePointers.isEmpty() && pointers.values.none { it.name == "RS" }) {
-            rightX = 0
-            rightY = 0
-            emit()
+    private var trackpadTargetX = 0f
+    private var trackpadTargetY = 0f
+    private var trackpadSmoothX = 0f
+    private var trackpadSmoothY = 0f
+    private val trackpadZero = object : Runnable {
+        override fun run() {
+            if (mousePointers.isEmpty() && pointers.values.none { it.name == "RS" }) {
+                // Low-pass the analog stick signal and ease it back to neutral.
+                // A fixed 16 ms cadence avoids abrupt per-MotionEvent axis jumps.
+                trackpadSmoothX += (trackpadTargetX - trackpadSmoothX) * 0.55f
+                trackpadSmoothY += (trackpadTargetY - trackpadSmoothY) * 0.55f
+                trackpadTargetX *= 0.72f
+                trackpadTargetY *= 0.72f
+                if (kotlin.math.abs(trackpadSmoothX) < 90f && kotlin.math.abs(trackpadTargetX) < 45f) {
+                    trackpadSmoothX = 0f
+                    trackpadTargetX = 0f
+                }
+                if (kotlin.math.abs(trackpadSmoothY) < 90f && kotlin.math.abs(trackpadTargetY) < 45f) {
+                    trackpadSmoothY = 0f
+                    trackpadTargetY = 0f
+                }
+                rightX = trackpadSmoothX.toInt().coerceIn(-32767, 32767)
+                rightY = trackpadSmoothY.toInt().coerceIn(-32767, 32767)
+                emit()
+                if (trackpadSmoothX != 0f || trackpadSmoothY != 0f ||
+                    trackpadTargetX != 0f || trackpadTargetY != 0f) {
+                    trackpadHandler.postDelayed(this, 16L)
+                }
+            }
         }
     }
-    private var trackpadSensitivity = prefs.getFloat("trackpad_sensitivity", 1.6f).coerceIn(0.25f, 4.0f)
-    private var trackpadSpeed = prefs.getFloat("trackpad_speed", 1.0f).coerceIn(0.25f, 3.0f)
-    private var trackpadVerticalScale = prefs.getFloat("trackpad_vertical_scale", 1.0f).coerceIn(0.25f, 3.0f)
+    private var trackpadSensitivity = prefs.getFloat("trackpad_sensitivity", 1.6f).coerceIn(0.1f, 6.0f)
+    private var trackpadSpeed = prefs.getFloat("trackpad_speed", 1.0f).coerceIn(0.1f, 6.0f)
+    private var trackpadVerticalScale = prefs.getFloat("trackpad_vertical_scale", 1.0f).coerceIn(0.1f, 6.0f)
     private var trackpadInvertY = prefs.getBoolean("trackpad_invert_y", false)
 
     fun setTrackpadSettings(sensitivity: Float, speed: Float, verticalScale: Float, invertY: Boolean) {
-        trackpadSensitivity = sensitivity.coerceIn(0.25f, 4.0f)
-        trackpadSpeed = speed.coerceIn(0.25f, 3.0f)
-        trackpadVerticalScale = verticalScale.coerceIn(0.25f, 3.0f)
+        trackpadSensitivity = sensitivity.coerceIn(0.1f, 6.0f)
+        trackpadSpeed = speed.coerceIn(0.1f, 6.0f)
+        trackpadVerticalScale = verticalScale.coerceIn(0.1f, 6.0f)
         trackpadInvertY = invertY
         prefs.edit()
             .putFloat("trackpad_sensitivity", trackpadSensitivity)
@@ -92,7 +116,7 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
         if (!enabled) {
             mousePointers.clear()
             mouseMoved.clear()
-            trackpadHandler.removeCallbacks(trackpadZero)
+            clearTrackpadMotion()
             if (pointers.values.none { it.name == "RS" }) {
                 rightX = 0
                 rightY = 0
@@ -105,21 +129,27 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
     fun isMouseControlEnabled(): Boolean = mouseControlEnabled
 
     private fun sendTrackpadMotion(dx: Float, dy: Float) {
-        // Treat finger velocity as stick deflection: small movements produce
-        // proportional analog values; larger swipes saturate at the stick edge.
+        // Convert relative finger displacement to a bounded analog-stick target.
+        // The wider normalization window preserves fine control at low settings;
+        // smoothing and decay run at a stable cadence independently of touch rate.
         val span = min(width, height).toFloat().coerceAtLeast(1f)
-        val scale = 32767f * trackpadSensitivity * trackpadSpeed / (span * 0.06f)
+        val scale = 32767f * trackpadSensitivity * trackpadSpeed / (span * 0.12f)
         if (pointers.values.none { it.name == "RS" }) {
             val verticalDirection = if (trackpadInvertY) 1f else -1f
-            rightX = (dx * scale).toInt().coerceIn(-32767, 32767)
-            rightY = (dy * verticalDirection * scale * trackpadVerticalScale).toInt().coerceIn(-32767, 32767)
+            trackpadTargetX = (dx * scale).coerceIn(-32767f, 32767f)
+            trackpadTargetY = (dy * verticalDirection * scale * trackpadVerticalScale).coerceIn(-32767f, 32767f)
+            if (!trackpadHandler.hasCallbacks(trackpadZero)) {
+                trackpadHandler.post(trackpadZero)
+            }
         }
-        trackpadHandler.removeCallbacks(trackpadZero)
-        trackpadHandler.postDelayed(trackpadZero, 45L)
     }
 
     private fun clearTrackpadMotion() {
         trackpadHandler.removeCallbacks(trackpadZero)
+        trackpadTargetX = 0f
+        trackpadTargetY = 0f
+        trackpadSmoothX = 0f
+        trackpadSmoothY = 0f
         if (pointers.values.none { it.name == "RS" }) {
             rightX = 0
             rightY = 0
@@ -127,7 +157,7 @@ class GamepadOverlayView(context: Context, private val submit: (Int, Int, Int, I
     }
 
     override fun onDetachedFromWindow() {
-        trackpadHandler.removeCallbacks(trackpadZero)
+        clearTrackpadMotion()
         mousePointers.clear()
         mouseMoved.clear()
         if (pointers.values.none { it.name == "RS" }) {
